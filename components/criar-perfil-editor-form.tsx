@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ESTILOS,
@@ -13,6 +13,7 @@ import {
   SOFTWARES,
   type OpcaoComFrase,
 } from "@/lib/perfil";
+import { iniciais, TINT_PADRAO } from "@/lib/candidatos";
 import type { OnboardingEditor } from "@/lib/perfil-db";
 import { SelectEstadoCidade } from "@/components/select-estado-cidade";
 
@@ -80,9 +81,11 @@ function SeletorCartao({
 
 export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }) {
   const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [aba, setAba] = useState<Aba>("identidade");
 
   const [nome, setNome] = useState(inicial.nome);
+  const [foto, setFoto] = useState<string | undefined>(inicial.fotoUrl || undefined);
   const parsed = parseLocalizacao(inicial.localizacao);
   const [estadoUf, setEstadoUf] = useState(parsed.uf);
   const [cidadeNome, setCidadeNome] = useState(parsed.cidade);
@@ -99,6 +102,14 @@ export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }
 
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
+
+  function onEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+    const leitor = new FileReader();
+    leitor.onload = () => setFoto(leitor.result as string);
+    leitor.readAsDataURL(arquivo);
+  }
 
   function alternarSoftware(s: string) {
     setSoftwares((a) => (a.includes(s) ? a.filter((x) => x !== s) : [...a, s]));
@@ -124,16 +135,23 @@ export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }
     });
   }
 
-  // progresso por campo preenchido, não por aba visitada
-  const checklist = [
-    nome.trim() !== "",
-    cidadeNome.trim() !== "",
-    nivelEdicao !== "",
-    setupPc !== "",
-    softwares.length > 0,
-    portfolioLink.trim() !== "",
-  ];
-  const progresso = Math.round((checklist.filter(Boolean).length / checklist.length) * 100);
+  // progresso por etapa (1/3, 2/3, 3/3) — mais previsível que % de campos,
+  // que podia mostrar 50% ainda na etapa 1 e confundir o editor
+  const etapaIdx = ABAS.findIndex((a) => a.chave === aba);
+  const etapaNum = etapaIdx + 1;
+  const progresso = Math.round((etapaNum / ABAS.length) * 100);
+
+  // Validação por etapa: ao avançar da etapa 1, checa os obrigatórios dela.
+  // O editor ainda pode clicar numa aba do topo pra editar (não travamos isso),
+  // mas o botão "Avançar" só deixa seguir se nome estiver preenchido.
+  function avancarPara(a: Aba) {
+    if (aba === "identidade" && !nome.trim()) {
+      setErro("Precisa do seu nome pra continuar.");
+      return;
+    }
+    setErro("");
+    setAba(a);
+  }
 
   async function concluir() {
     if (!nome.trim()) {
@@ -149,6 +167,7 @@ export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         nome,
+        fotoUrl: foto,
         localizacao: cidadeNome ? `${cidadeNome}/${estadoUf}` : "",
         headline,
         bio,
@@ -175,7 +194,9 @@ export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }
   return (
     <div className="w-full max-w-2xl">
       <div className="mb-2 flex items-center justify-between text-xs text-muted-2">
-        <span>Perfil do editor</span>
+        <span>
+          Perfil do editor · etapa {etapaNum} de {ABAS.length}
+        </span>
         <span>{progresso}%</span>
       </div>
       <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-line">
@@ -214,26 +235,75 @@ export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }
               Quem é você
             </h2>
             <p className="mt-1 text-sm text-muted">
-              É o que o porta-voz vê antes de escolher quem edita.
+              É o que o porta-voz vê antes de escolher quem edita. A foto é
+              opcional: sem ela, usamos suas iniciais.
             </p>
 
-            <div className="mt-5">
-              <label
-                htmlFor="nome"
-                className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
-              >
-                Nome
-              </label>
-              <input
-                id="nome"
-                className="field-input !pl-4"
-                placeholder="Seu nome"
-                value={nome}
-                onChange={(e) => {
-                  setNome(e.target.value);
-                  setErro("");
-                }}
-              />
+            <div className="mt-5 flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+              <div className="flex flex-col items-center">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="group relative grid h-28 w-28 place-items-center overflow-hidden rounded-2xl border border-dashed border-line bg-surface transition-colors hover:border-gold/50"
+                >
+                  {foto ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- preview local, sem otimização
+                    <img src={foto} alt="Sua foto" className="h-full w-full object-cover" />
+                  ) : (
+                    <span
+                      className="grid h-full w-full place-items-center font-[family-name:var(--font-display)] text-3xl font-semibold text-black/80"
+                      style={{ background: TINT_PADRAO }}
+                    >
+                      {iniciais(nome || inicial.nome)}
+                    </span>
+                  )}
+                  <span className="absolute inset-0 hidden items-center justify-center bg-ink/60 text-xs font-medium text-silver-hi group-hover:flex">
+                    {foto ? "Trocar" : "Enviar foto"}
+                  </span>
+                </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onEscolherFoto}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="mt-2 text-xs font-medium text-gold-hi hover:underline"
+                >
+                  {foto ? "Escolher outra" : "Escolher da galeria"}
+                </button>
+                {foto && (
+                  <button
+                    type="button"
+                    onClick={() => setFoto(undefined)}
+                    className="mt-1 text-[11px] text-muted-2 hover:text-muted"
+                  >
+                    Pular por agora (usar iniciais)
+                  </button>
+                )}
+              </div>
+
+              <div className="w-full flex-1">
+                <label
+                  htmlFor="nome"
+                  className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+                >
+                  Nome
+                </label>
+                <input
+                  id="nome"
+                  className="field-input !pl-4"
+                  placeholder="Seu nome"
+                  value={nome}
+                  onChange={(e) => {
+                    setNome(e.target.value);
+                    setErro("");
+                  }}
+                />
+              </div>
             </div>
 
             <div className="mt-4">
@@ -304,12 +374,27 @@ export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }
               />
             </div>
           </div>
+
+          <button
+            type="button"
+            className="btn-gold self-start"
+            onClick={() => avancarPara("bancada")}
+          >
+            Avançar →
+          </button>
         </section>
       )}
 
       {/* ---- aba 2: a bancada (ferramentas e setup) ---- */}
       {aba === "bancada" && (
         <section className="reveal flex flex-col gap-8">
+          <button
+            type="button"
+            onClick={() => setAba("identidade")}
+            className="-mt-2 self-start text-xs font-medium text-muted hover:text-gold-hi"
+          >
+            ← Voltar (identidade)
+          </button>
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
               Nível de edição
@@ -375,12 +460,27 @@ export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }
               <p className="mt-2 text-xs text-muted-2">Máximo de {MAX_ESTILOS} estilos.</p>
             )}
           </div>
+
+          <button
+            type="button"
+            className="btn-gold self-start"
+            onClick={() => avancarPara("portfolio")}
+          >
+            Avançar →
+          </button>
         </section>
       )}
 
       {/* ---- aba 3: o portfólio (sua arte) ---- */}
       {aba === "portfolio" && (
         <section className="reveal flex flex-col gap-8">
+          <button
+            type="button"
+            onClick={() => setAba("bancada")}
+            className="-mt-2 self-start text-xs font-medium text-muted hover:text-gold-hi"
+          >
+            ← Voltar (a bancada)
+          </button>
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
               Portfólio

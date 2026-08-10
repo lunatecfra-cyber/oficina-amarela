@@ -81,6 +81,30 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
     }
   }
 
+  // Validação por etapa: ao avançar da etapa 1, checa os obrigatórios dela.
+  // O usuário ainda pode clicar numa aba do topo pra editar (não travamos isso),
+  // mas o botão "Avançar" só deixa seguir se os campos-chave da etapa estiverem ok.
+  // Isso evita descobrir só no final (concluir) que esqueceu algo na etapa 1.
+  function avancarPara(a: Aba) {
+    // só validamos quem está saindo da etapa 1 — as demais não têm obrigatórios
+    if (aba === "objetivo") {
+      if (!nome.trim()) {
+        setErro("Precisa do seu nome pra continuar.");
+        return;
+      }
+      if (!cargo) {
+        setErro("Escolhe o cargo pra continuar.");
+        return;
+      }
+      if (!cidadeNome.trim()) {
+        setErro("Conta mais ou menos onde você fica.");
+        return;
+      }
+    }
+    setErro("");
+    abrirAba(a);
+  }
+
   function onEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0];
     if (!arquivo) return;
@@ -165,16 +189,19 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
     router.refresh();
   }
 
-  const checklist = [nome, cargo, disputaPor, cidadeNome, bio, tom];
-  const progresso = Math.round(
-    (checklist.filter((c) => c.trim() !== "").length / checklist.length) * 100
-  );
+  // progresso por etapa (1/3, 2/3, 3/3) — mais previsível que % de campos,
+  // que podia mostrar 50% ainda na etapa 1 e confundir o candidato
+  const etapaIdx = ABAS.findIndex((a) => a.chave === aba); // 0, 1 ou 2
+  const etapaNum = etapaIdx + 1;
+  const progresso = Math.round((etapaNum / ABAS.length) * 100);
 
   return (
     <div className="w-full max-w-2xl">
-      {/* barra de progresso */}
+      {/* barra de progresso por etapa */}
       <div className="mb-2 flex items-center justify-between text-xs text-muted-2">
-        <span>Perfil do candidato</span>
+        <span>
+          Perfil do candidato · etapa {etapaNum} de {ABAS.length}
+        </span>
         <span>{progresso}%</span>
       </div>
       <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-line">
@@ -214,7 +241,8 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
               Quem é você
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Nome e foto — é o que editores e o público vão ver primeiro.
+              Nome e foto — é o que editores e o público vão ver primeiro. A foto é
+              opcional: sem ela, usamos suas iniciais.
             </p>
 
             <div className="mt-5 flex flex-col items-start gap-6 sm:flex-row sm:items-center">
@@ -253,6 +281,15 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
                 >
                   {foto ? "Escolher outra" : "Escolher da galeria"}
                 </button>
+                {foto && (
+                  <button
+                    type="button"
+                    onClick={() => setFoto(undefined)}
+                    className="mt-1 text-[11px] text-muted-2 hover:text-muted"
+                  >
+                    Pular por agora (usar iniciais)
+                  </button>
+                )}
               </div>
 
               <div className="w-full flex-1">
@@ -382,12 +419,27 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
               ))}
             </div>
           </div>
+
+          <button
+            type="button"
+            className="btn-gold self-start"
+            onClick={() => avancarPara("estilo")}
+          >
+            Avançar →
+          </button>
         </section>
       )}
 
       {/* ---- aba 2: estilo e bio ---- */}
       {aba === "estilo" && (
         <section className="reveal flex flex-col gap-9">
+          <button
+            type="button"
+            onClick={() => abrirAba("objetivo")}
+            className="-mt-2 self-start text-xs font-medium text-muted hover:text-gold-hi"
+          >
+            ← Voltar (objetivo e temas)
+          </button>
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
               Como você se comunica
@@ -517,17 +569,36 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
               onChange={(e) => setBio(e.target.value)}
             />
           </div>
+
+          <button
+            type="button"
+            className="btn-gold self-start"
+            onClick={() => avancarPara("canais")}
+          >
+            Avançar →
+          </button>
         </section>
       )}
 
       {/* ---- aba 3: canais e visual final ---- */}
       {aba === "canais" && (
         <section className="reveal flex flex-col gap-9">
+          <button
+            type="button"
+            onClick={() => abrirAba("estilo")}
+            className="-mt-2 self-start text-xs font-medium text-muted hover:text-gold-hi"
+          >
+            ← Voltar (estilo e bio)
+          </button>
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
               Suas redes
             </h2>
-            <p className="mt-1 text-sm text-muted">Só o @ ou o link já ajuda.</p>
+            <p className="mt-1 text-sm text-muted">
+              Só o @ ou o link já ajuda. A gente usa pra conferir seu estilo de
+              postagem — o editor precisa saber onde o vídeo vai ao ar pra editar
+              no formato certo.
+            </p>
 
             <div className="mt-4 flex flex-col gap-3">
               <div className="relative flex items-center">

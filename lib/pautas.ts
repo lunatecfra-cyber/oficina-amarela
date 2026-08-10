@@ -29,6 +29,10 @@ export type Pauta = {
   driveLink?: string;
   entregaLink?: string;
   notasInspetor?: string;
+  // campos do brief que antes eram perdidos no POST — agora persistidos
+  extras?: string; // cortes/trechos específicos (passo 2 do wizard)
+  motivo?: string; // contexto/porquê do vídeo (passo 4)
+  prazoDesejado?: string; // ISO date (passo 5)
 };
 
 export type Editor = {

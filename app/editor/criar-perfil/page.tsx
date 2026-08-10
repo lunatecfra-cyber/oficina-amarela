@@ -12,6 +12,7 @@ export default async function CriarPerfilEditorPage() {
   const sessao = await exigirSessao();
   const inicial = (await lerOnboardingEditor(sessao.id)) ?? {
     nome: sessao.nome,
+    fotoUrl: "",
     localizacao: "",
     headline: [],
     bio: "",

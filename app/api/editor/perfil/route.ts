@@ -29,6 +29,7 @@ export async function POST(request: Request) {
 
   const r = await salvarOnboardingEditor(sessao.id, {
     nome: body.nome,
+    fotoUrl: soTexto(body.fotoUrl),
     localizacao: soTexto(body.localizacao),
     headline: soLista(body.headline),
     bio: soTexto(body.bio),

@@ -99,6 +99,9 @@ export function NovaPautaForm() {
         cor: dados.cor,
         fonte: dados.fonte,
         refs: dados.refs,
+        extras: dados.extras,
+        motivo: dados.motivo,
+        prazo: dados.prazo,
       }),
     });
     const corpo = await resp.json().catch(() => null);

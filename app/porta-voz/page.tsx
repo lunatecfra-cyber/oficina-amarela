@@ -85,28 +85,57 @@ export default async function PortaVozHome() {
                   const posicao = filaGeral.findIndex((f) => f.id === p.id) + 1;
                   const total = filaGeral.length;
                   const pct = total > 1 ? Math.round(((total - posicao) / (total - 1)) * 100) : 100;
+                  // só pautas reais (id "db-...") têm tela de detalhe; demos
+                  // continuam como card estático
+                  const real = p.id.startsWith("db-");
                   return (
                     <li
                       key={p.id}
-                      className="rounded-xl border border-line bg-surface/60 p-4 lg:p-5"
+                      className={`rounded-xl border border-line bg-surface/60 p-4 lg:p-5 ${
+                        real ? "transition-colors hover:border-gold/40 hover:bg-surface-2" : ""
+                      }`}
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
-                          {p.titulo}
-                        </h3>
-                        <span className="text-xs text-muted">
-                          {ROTULO_FORMATO[p.formato]}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-2">
-                        Posição <b className="text-text">{posicao}</b> de {total} na fila dos editores
-                      </p>
-                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-gold-lo to-gold-hi transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+                      {real ? (
+                        <Link href={`/porta-voz/missao/${p.id}`} className="block">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text group-hover:text-gold-hi">
+                              {p.titulo}
+                            </h3>
+                            <span className="text-xs text-muted">
+                              {ROTULO_FORMATO[p.formato]}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-2">
+                            Posição <b className="text-text">{posicao}</b> de {total} na fila dos editores
+                          </p>
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-gold-lo to-gold-hi transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </Link>
+                      ) : (
+                        <>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
+                              {p.titulo}
+                            </h3>
+                            <span className="text-xs text-muted">
+                              {ROTULO_FORMATO[p.formato]}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-2">
+                            Posição <b className="text-text">{posicao}</b> de {total} na fila dos editores
+                          </p>
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-gold-lo to-gold-hi transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </>
+                      )}
                     </li>
                   );
                 })}

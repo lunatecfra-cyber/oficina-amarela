@@ -24,6 +24,9 @@ type LinhaPauta = {
   entrega_link: string | null;
   notas_inspetor: string | null;
   criada_em: string;
+  extras: string | null;
+  motivo: string | null;
+  prazo_desejado: string | null;
 };
 
 // converte a linha do banco pro mesmo formato que as telas já usam,
@@ -48,6 +51,9 @@ function paraPauta(l: LinhaPauta): Pauta {
     driveLink: l.drive_link ?? undefined,
     entregaLink: l.entrega_link ?? undefined,
     notasInspetor: l.notas_inspetor ?? undefined,
+    extras: l.extras ?? undefined,
+    motivo: l.motivo ?? undefined,
+    prazoDesejado: l.prazo_desejado ?? undefined,
   };
 }
 
@@ -56,6 +62,7 @@ const SELECT_BASE = sql`
          p.brief_tom, p.brief_cor, p.brief_fonte, p.brief_refs,
          p.drive_link, p.status, p.reservada_ate, p.entrega_link,
          p.notas_inspetor, p.criada_em,
+         p.extras, p.motivo, p.prazo_desejado,
          e.apelido AS reservada_por_apelido
   FROM pautas p
   JOIN users u ON u.id = p.porta_voz_id
@@ -71,6 +78,9 @@ export async function criarPauta(dados: {
   cor?: string;
   fonte?: string;
   refs?: string;
+  extras?: string;
+  motivo?: string;
+  prazo?: string;
 }): Promise<{ ok: true; id: number } | { ok: false; erro: string }> {
   const titulo = dados.titulo.trim();
   if (!titulo) return { ok: false, erro: "Dê um título pra pauta." };
@@ -80,11 +90,15 @@ export async function criarPauta(dados: {
 
   const [linha] = await sql`
     INSERT INTO pautas (porta_voz_id, titulo, formato, drive_link,
-                        brief_tom, brief_cor, brief_fonte, brief_refs)
+                        brief_tom, brief_cor, brief_fonte, brief_refs,
+                        extras, motivo, prazo_desejado)
     VALUES (${dados.portaVozId}, ${titulo}, ${dados.formato},
             ${dados.driveLink?.trim() || null},
             ${dados.tom?.trim() || null}, ${dados.cor?.trim() || null},
-            ${dados.fonte?.trim() || null}, ${dados.refs?.trim() || null})
+            ${dados.fonte?.trim() || null}, ${dados.refs?.trim() || null},
+            ${dados.extras?.trim() || null},
+            ${dados.motivo?.trim() || null},
+            ${dados.prazo?.trim() || null})
     RETURNING id
   `;
   return { ok: true, id: linha.id };
@@ -96,6 +110,48 @@ export async function pautasDoPortaVoz(portaVozId: number): Promise<Pauta[]> {
     ${SELECT_BASE} WHERE p.porta_voz_id = ${portaVozId} ORDER BY p.criada_em DESC
   `;
   return (linhas as unknown as LinhaPauta[]).map(paraPauta);
+}
+
+/** Uma pauta de um porta-voz específico, pelo id.
+ *  Filtra por porta_voz_id de propósito: o dono só pode ver a própria missão,
+ *  nunca a de outro porta-voz (mesmo que adivinhe o id). */
+export async function pautaPorIdDoPortaVoz(
+  id: number,
+  portaVozId: number
+): Promise<Pauta | null> {
+  const linhas = await sql`
+    ${SELECT_BASE} WHERE p.id = ${id} AND p.porta_voz_id = ${portaVozId}
+  `;
+  const l = (linhas as unknown as LinhaPauta[])[0];
+  return l ? paraPauta(l) : null;
+}
+
+/** Posição de uma pauta na fila dos editores (1 = primeira).
+ *  Conta quantas pautas 'disponivel' foram criadas antes dela + 1. Só faz
+ *  sentido pra pauta que ainda tá na fila; se já foi reservada, devolve 0. */
+export async function posicaoNaFila(pautaId: number): Promise<number> {
+  const [linha] = await sql`
+    SELECT (
+      SELECT COUNT(*)::int
+      FROM pautas antes
+      WHERE antes.status = 'disponivel'
+        AND antes.criada_em <= p.criada_em
+        AND antes.id <> p.id
+    ) + 1 AS posicao,
+    p.status
+    FROM pautas p
+    WHERE p.id = ${pautaId}
+  `;
+  if (!linha) return 0;
+  return linha.status === "disponivel" ? linha.posicao : 0;
+}
+
+/** Total de pautas na fila dos editores agora (status 'disponivel'). */
+export async function totalNaFila(): Promise<number> {
+  const [linha] = await sql`
+    SELECT COUNT(*)::int AS total FROM pautas WHERE status = 'disponivel'
+  `;
+  return linha?.total ?? 0;
 }
 
 /** Tudo que está livre pra qualquer editor pegar (a fila). */

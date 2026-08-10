@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const { titulo, formato, driveLink, tom, cor, fonte, refs } = body ?? {};
+  const { titulo, formato, driveLink, tom, cor, fonte, refs, extras, motivo, prazo } = body ?? {};
 
   if (typeof titulo !== "string" || (formato !== "short" && formato !== "longo")) {
     return NextResponse.json({ erro: "Preencha título e formato." }, { status: 400 });
@@ -27,6 +27,9 @@ export async function POST(request: Request) {
     cor: typeof cor === "string" ? cor : undefined,
     fonte: typeof fonte === "string" ? fonte : undefined,
     refs: typeof refs === "string" ? refs : undefined,
+    extras: typeof extras === "string" ? extras : undefined,
+    motivo: typeof motivo === "string" ? motivo : undefined,
+    prazo: typeof prazo === "string" ? prazo : undefined,
   });
 
   if (!resultado.ok) {

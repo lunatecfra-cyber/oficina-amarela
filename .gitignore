@@ -48,3 +48,6 @@ next-env.d.ts
 .claude/
 
 .vercel
+
+# editor metadata
+.zcode/

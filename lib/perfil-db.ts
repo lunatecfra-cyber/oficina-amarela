@@ -40,6 +40,7 @@ export async function salvarPerfilEditavel(
 
 export type OnboardingEditor = {
   nome: string;
+  fotoUrl: string;
   localizacao: string;
   headline: string[];
   bio: string;
@@ -83,13 +84,14 @@ function normalizarGrade(valor: unknown): boolean[][] {
 
 export async function lerOnboardingEditor(userId: number): Promise<OnboardingEditor | null> {
   const [l] = await sql`
-    SELECT nome, localizacao, headline, bio, softwares, estilos, nivel_edicao,
+    SELECT nome, foto_url, localizacao, headline, bio, softwares, estilos, nivel_edicao,
            setup_pc, portfolio_link, nicho, disponibilidade, perfil_completo
     FROM users WHERE id = ${userId}
   `;
   if (!l) return null;
   return {
     nome: l.nome ?? "",
+    fotoUrl: l.foto_url ?? "",
     localizacao: l.localizacao ?? "",
     headline: normalizarLista(l.headline),
     bio: l.bio ?? "",
@@ -108,6 +110,7 @@ export async function salvarOnboardingEditor(
   userId: number,
   dados: {
     nome: string;
+    fotoUrl?: string;
     localizacao?: string;
     headline?: string[];
     bio?: string;
@@ -137,6 +140,7 @@ export async function salvarOnboardingEditor(
   await sql`
     UPDATE users SET
       nome = ${nome},
+      foto_url = ${dados.fotoUrl?.trim() || null},
       localizacao = ${dados.localizacao?.trim() || null},
       headline = ${dados.headline ? sql.json(dados.headline) : null},
       bio = ${dados.bio?.trim() || null},

@@ -157,6 +157,15 @@ CREATE TABLE IF NOT EXISTS pautas (
 CREATE INDEX IF NOT EXISTS idx_pautas_status ON pautas (status);
 CREATE INDEX IF NOT EXISTS idx_pautas_porta_voz ON pautas (porta_voz_id);
 
+-- Campos extras do brief que o porta-voz preenche no wizard de Nova Missão.
+-- Antes estavam só no front e eram silenciosamente descartados no POST.
+-- extras = cortes/trechos específicos (textarea, passo 2)
+-- motivo = contexto/porquê do vídeo (textarea, passo 4)
+-- prazo_desejado = quando o porta-voz gostaria de receber (date, passo 5)
+ALTER TABLE pautas ADD COLUMN IF NOT EXISTS extras TEXT;
+ALTER TABLE pautas ADD COLUMN IF NOT EXISTS motivo TEXT;
+ALTER TABLE pautas ADD COLUMN IF NOT EXISTS prazo_desejado DATE;
+
 -- Avaliação da entrega. É daqui que a nota do editor vai sair — hoje
 -- users.nota ainda é NULL porque nenhuma entrega foi avaliada.
 -- Precisa vir DEPOIS de pautas: referencia pautas(id).
