@@ -4,7 +4,10 @@ export type StatusPauta =
   | "reservada"
   | "em_revisao"
   | "reedicao"
-  | "aprovada";
+  // 'aprovada' = o inspetor liberou, mas ainda espera o porta-voz conferir.
+  // 'finalizada' = o porta-voz aceitou. É o único estado terminal.
+  | "aprovada"
+  | "finalizada";
 
 export type Formato = "short" | "longo";
 
@@ -33,6 +36,8 @@ export type Pauta = {
   extras?: string; // cortes/trechos específicos (passo 2 do wizard)
   motivo?: string; // contexto/porquê do vídeo (passo 4)
   prazoDesejado?: string; // ISO date (passo 5)
+  // quem mandou de volta pra reedição — muda o texto que o editor lê
+  reedicaoPedidaPor?: "inspetor" | "porta_voz";
 };
 
 export type Editor = {
@@ -121,10 +126,69 @@ export const ROTULO_STATUS: Record<StatusPauta, string> = {
   reservada: "Reservada",
   em_revisao: "Em revisão",
   reedicao: "Reedição pedida",
-  aprovada: "Aprovada",
+  aprovada: "Pronta pra conferir",
+  finalizada: "Concluída",
 };
 
 export const ROTULO_FORMATO: Record<Formato, string> = {
   short: "Short 9:16",
   longo: "Longo 16:9",
 };
+
+/**
+ * O mesmo status, dito do ponto de vista de quem está esperando o vídeo.
+ * Vive aqui porque o painel e a tela de detalhe mostram a mesma frase — antes
+ * cada um tinha a sua cópia, e elas já tinham começado a divergir.
+ */
+export function mensagemStatusPortaVoz(status: StatusPauta): {
+  texto: string;
+  cor: string;
+} {
+  switch (status) {
+    case "reservada":
+    case "minha":
+      return { texto: "🎬 Seu vídeo começou a ser feito", cor: "text-gold-hi" };
+    case "em_revisao":
+      return { texto: "🔎 Na conferência de qualidade", cor: "text-silver-hi" };
+    case "reedicao":
+      return { texto: "💬 Voltou pro editor com um ajuste", cor: "text-silver-hi" };
+    case "aprovada":
+      return { texto: "🔍 Pronto — confira e libere", cor: "text-gold-hi" };
+    case "finalizada":
+      return { texto: "✅ Aceito! Pode postar", cor: "text-ok" };
+    default:
+      return { texto: "Na fila dos editores", cor: "text-muted" };
+  }
+}
+
+/**
+ * As etapas do ciclo, em ordem, pra desenhar a linha do tempo. `reedicao` não
+ * é etapa própria: é um retorno pra "com o editor", então cai no índice 2.
+ */
+export const ETAPAS_MISSAO = [
+  "Criada",
+  "Na fila",
+  "Com o editor",
+  "Na conferência",
+  "Pronta",
+  "Concluída",
+] as const;
+
+export function etapaAtual(status: StatusPauta): number {
+  switch (status) {
+    case "disponivel":
+      return 1;
+    case "reservada":
+    case "minha":
+    case "reedicao":
+      return 2;
+    case "em_revisao":
+      return 3;
+    case "aprovada":
+      return 4;
+    case "finalizada":
+      return 5;
+    default:
+      return 0;
+  }
+}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
-import { EDITOR_ATUAL } from "@/lib/pautas";
-import { EDITORES } from "@/lib/perfil";
+import { rankingEditores } from "@/lib/perfil-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
 
 export const metadata: Metadata = { title: "Ranking — Oficina Amarela" };
@@ -9,9 +9,10 @@ export const metadata: Metadata = { title: "Ranking — Oficina Amarela" };
 export const dynamic = "force-dynamic";
 
 export default async function RankingPage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
-  const ordenado = [...EDITORES].sort((a, b) => b.reputacao - a.reputacao);
+  // ranking de verdade, do banco. O SELECT já ordena por reputação.
+  const ordenado = await rankingEditores();
 
   return (
     <>
@@ -25,9 +26,24 @@ export default async function RankingPage() {
             Ordenado por XP (reputação). Constância vale mais que um pico isolado.
           </p>
 
+          {ordenado.length === 0 ? (
+            <div className="mt-8 rounded-2xl border border-dashed border-line p-12 text-center">
+              <p className="text-muted">
+                Ninguém no ranking ainda. Ele se preenche conforme os editores
+                completam o perfil e entregam.
+              </p>
+              <Link
+                href="/editor"
+                className="mt-4 inline-block font-medium text-gold-hi hover:underline"
+              >
+                Ir pra fila de missões
+              </Link>
+            </div>
+          ) : (
           <ol className="mt-6 flex flex-col gap-2">
             {ordenado.map((e, i) => {
-              const eu = e.apelido === EDITOR_ATUAL.apelido;
+              // compara por id, não por apelido: é quem está logado de fato
+              const eu = e.id === sessao.id;
               const pos = i + 1;
               return (
                 <li
@@ -70,6 +86,7 @@ export default async function RankingPage() {
               );
             })}
           </ol>
+          )}
         </div>
       </main>
     </>

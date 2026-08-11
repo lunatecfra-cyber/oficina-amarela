@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { TRABALHOS } from "@/lib/agenda";
+import { useEffect, useState } from "react";
+import type { TrabalhoEmMaos } from "@/lib/agenda";
 import { ROTULO_FORMATO } from "@/lib/pautas";
 
 function fmtRestante(ms: number) {
@@ -19,18 +19,15 @@ function corUrgencia(ms: number) {
   return "text-muted";
 }
 
-export function MesaAgora({ variant = "cards" }: { variant?: "cards" | "lista" }) {
+export function MesaAgora({
+  trabalhos,
+  variant = "cards",
+}: {
+  /** o que o editor tem em mãos agora — vem do banco, pelo server component */
+  trabalhos: TrabalhoEmMaos[];
+  variant?: "cards" | "lista";
+}) {
   const [agora, setAgora] = useState<number | null>(null);
-
-  // âncoras fixas (início e prazo) calculadas uma vez, no cliente
-  const ancoras = useMemo(
-    () =>
-      TRABALHOS.map((t) => {
-        const inicio = Date.now() - t.reservadaHaHoras * 3_600_000;
-        return { inicio, prazo: inicio + t.prazoTotalHoras * 3_600_000 };
-      }),
-    []
-  );
 
   useEffect(() => {
     setAgora(Date.now());
@@ -38,19 +35,28 @@ export function MesaAgora({ variant = "cards" }: { variant?: "cards" | "lista" }
     return () => clearInterval(id);
   }, []);
 
-  const calc = (i: number) => {
-    const { inicio, prazo } = ancoras[i];
+  const calc = (t: TrabalhoEmMaos) => {
     if (agora === null) return { pct: 0, restanteMs: null as number | null };
+    const inicio = new Date(t.inicioIso).getTime();
+    const prazo = new Date(t.prazoIso).getTime();
     const total = prazo - inicio;
     const pct = Math.min(100, Math.max(0, Math.round(((agora - inicio) / total) * 100)));
     return { pct, restanteMs: prazo - agora };
   };
 
+  if (trabalhos.length === 0) {
+    return (
+      <p className="text-sm text-muted">
+        Nada na mesa agora. Pegue uma missão na fila.
+      </p>
+    );
+  }
+
   if (variant === "lista") {
     return (
       <ul className="flex flex-col gap-3">
-        {TRABALHOS.map((t, i) => {
-          const { pct, restanteMs } = calc(i);
+        {trabalhos.map((t) => {
+          const { restanteMs } = calc(t);
           return (
             <li key={t.id} className="flex items-center gap-3">
               <span className="grid h-8 w-8 flex-none place-items-center rounded-lg border border-line bg-ink-2 text-gold">
@@ -80,8 +86,8 @@ export function MesaAgora({ variant = "cards" }: { variant?: "cards" | "lista" }
 
   return (
     <ul className="grid gap-4 sm:grid-cols-2">
-      {TRABALHOS.map((t, i) => {
-        const { pct, restanteMs } = calc(i);
+      {trabalhos.map((t) => {
+        const { pct, restanteMs } = calc(t);
         const apertado = restanteMs !== null && restanteMs < 4 * 3_600_000;
         return (
           <li key={t.id} className="rounded-2xl border border-line bg-surface/60 p-5">

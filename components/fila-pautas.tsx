@@ -55,7 +55,7 @@ export function Selo({ status }: { status: Pauta["status"] }) {
           ? "border-silver-hi/40 bg-silver-hi/5 text-silver-hi"
           : status === "em_revisao"
             ? "border-silver-lo/50 bg-surface-2 text-silver"
-            : status === "aprovada"
+            : status === "aprovada" || status === "finalizada"
               ? "border-ok/50 bg-ok/10 text-ok"
               : status === "reedicao"
                 ? "border-danger/50 bg-danger/10 text-danger"
@@ -74,6 +74,43 @@ function restante(ate: string) {
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
   return h > 0 ? `${h}h ${m}min restantes` : `${m}min restantes`;
+}
+
+// prazo desejado é data pura ("AAAA-MM-DD"). Lida em UTC de propósito: no
+// fuso do Brasil a meia-noite UTC cai no dia anterior, e o editor veria um
+// prazo um dia mais apertado do que o porta-voz pediu.
+function dataCurta(ymd: string) {
+  return new Date(ymd).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+/**
+ * Os pedidos em texto livre do porta-voz (cortes específicos e contexto).
+ * O editor precisa disso ANTES de reservar — é o que diz se o trabalho cabe
+ * no tempo dele. Antes ficava salvo no banco e não aparecia em lugar nenhum.
+ */
+function PedidosDoBrief({ pauta, limitar }: { pauta: Pauta; limitar?: boolean }) {
+  if (!pauta.extras && !pauta.motivo) return null;
+  const corte = limitar ? "line-clamp-3" : "";
+  return (
+    <div className="mt-3 flex flex-col gap-2 text-xs">
+      {pauta.extras && (
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-muted-2">Cortes pedidos</p>
+          <p className={`mt-0.5 whitespace-pre-line text-muted ${corte}`}>{pauta.extras}</p>
+        </div>
+      )}
+      {pauta.motivo && (
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-muted-2">Contexto</p>
+          <p className={`mt-0.5 whitespace-pre-line text-muted ${corte}`}>{pauta.motivo}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function FilaPautas({
@@ -237,7 +274,23 @@ export function FilaPautas({
           </h2>
           <p className="mt-1 text-sm text-muted">
             {minha.portaVoz} · {ROTULO_FORMATO[minha.formato]}
+            {minha.prazoDesejado && <> · pra {dataCurta(minha.prazoDesejado)}</>}
           </p>
+
+          {/* quem pediu a reedição muda a conversa: o inspetor reprovou por
+              qualidade, o porta-voz quer outra coisa */}
+          {minha.status === "minha" && minha.notasInspetor && (
+            <div className="mt-4 rounded-xl border border-danger/40 bg-danger/[0.06] p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-danger">
+                {minha.reedicaoPedidaPor === "porta_voz"
+                  ? "O porta-voz pediu um ajuste"
+                  : "O controle de qualidade pediu um ajuste"}
+              </p>
+              <p className="mt-2 whitespace-pre-line text-sm text-text">
+                {minha.notasInspetor}
+              </p>
+            </div>
+          )}
 
           <div className="mt-5 rounded-xl border border-line bg-surface/60 p-4">
             <p className="text-xs uppercase tracking-[0.12em] text-muted">
@@ -256,6 +309,28 @@ export function FilaPautas({
               </a>
             </p>
           </div>
+
+          {/* o brief inteiro, aqui onde ele trabalha — sem precisar voltar
+              pra fila pra lembrar o que foi pedido */}
+          {(minha.brief.tom ||
+            minha.brief.cor ||
+            minha.brief.fonte ||
+            minha.brief.refs ||
+            minha.extras ||
+            minha.motivo) && (
+            <div className="mt-4 rounded-xl border border-line bg-surface/60 p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-muted">
+                O que foi pedido
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                {minha.brief.tom && <Chip k="tom" v={minha.brief.tom} />}
+                {minha.brief.cor && <Chip k="cor" v={minha.brief.cor} />}
+                {minha.brief.fonte && <Chip k="fonte" v={minha.brief.fonte} />}
+                {minha.brief.refs && <Chip k="ref" v={minha.brief.refs} />}
+              </div>
+              <PedidosDoBrief pauta={minha} />
+            </div>
+          )}
 
           <div className="mt-5">
             <label
@@ -457,11 +532,13 @@ export function FilaPautas({
                     <span className="rounded-md border border-line bg-ink-2 px-2 py-0.5 text-muted">
                       {ROTULO_FORMATO[p.formato]}
                     </span>
+                    {p.prazoDesejado && <Chip k="pra" v={dataCurta(p.prazoDesejado)} />}
                     {p.brief.tom && <Chip k="tom" v={p.brief.tom} />}
                     {p.brief.cor && <Chip k="cor" v={p.brief.cor} />}
                     {p.brief.fonte && <Chip k="fonte" v={p.brief.fonte} />}
                     {p.brief.refs && <Chip k="ref" v={p.brief.refs} />}
                   </div>
+                  <PedidosDoBrief pauta={p} limitar />
                 </div>
 
                 {/* pressão + ação */}
@@ -552,11 +629,14 @@ function CartaBaralho({
         <span className="rounded-md border border-line bg-ink-2 px-2 py-0.5 text-muted">
           {ROTULO_FORMATO[pauta.formato]}
         </span>
+        {pauta.prazoDesejado && <Chip k="pra" v={dataCurta(pauta.prazoDesejado)} />}
         {pauta.brief.tom && <Chip k="tom" v={pauta.brief.tom} />}
         {pauta.brief.cor && <Chip k="cor" v={pauta.brief.cor} />}
         {pauta.brief.fonte && <Chip k="fonte" v={pauta.brief.fonte} />}
         {pauta.brief.refs && <Chip k="ref" v={pauta.brief.refs} />}
       </div>
+
+      <PedidosDoBrief pauta={pauta} limitar />
 
       <div className="mt-6 flex gap-3">
         <button className="btn-ghost flex-1" onClick={onPassar}>

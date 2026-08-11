@@ -1,4 +1,4 @@
-import type { Formato } from "@/lib/pautas";
+import type { Formato, Pauta } from "@/lib/pautas";
 
 export type Trabalho = {
   id: string;
@@ -9,6 +9,48 @@ export type Trabalho = {
   prazoTotalHoras: number; // tempo total dado até a entrega
   etapa: string;
 };
+
+/** O que o editor tem na mesa AGORA — datas absolutas, vindas do banco. */
+export type TrabalhoEmMaos = {
+  id: string;
+  titulo: string;
+  portaVoz: string;
+  formato: Formato;
+  inicioIso: string;
+  prazoIso: string;
+  etapa: string;
+};
+
+const PRAZO_HORAS = 24;
+
+const ETAPA_POR_STATUS: Record<string, string> = {
+  reservada: "Com você",
+  minha: "Com você",
+  em_revisao: "Na conferência",
+  reedicao: "Ajuste pedido",
+};
+
+/**
+ * Converte a missão reservada (banco) no formato que a "Mesa agora" desenha.
+ *
+ * O início vem de `reservadaAte - 24h` porque é assim que `reservarPauta`
+ * grava o prazo — não existe coluna separada de "reservada em".
+ */
+export function trabalhoDaPauta(p: Pauta | null): TrabalhoEmMaos[] {
+  if (!p?.reservadaAte) return [];
+  const prazo = new Date(p.reservadaAte).getTime();
+  return [
+    {
+      id: p.id,
+      titulo: p.titulo,
+      portaVoz: p.portaVoz,
+      formato: p.formato,
+      inicioIso: new Date(prazo - PRAZO_HORAS * 3_600_000).toISOString(),
+      prazoIso: p.reservadaAte,
+      etapa: ETAPA_POR_STATUS[p.status] ?? "Com você",
+    },
+  ];
+}
 
 // A barra de progresso = % do PRAZO já decorrido (tempo), não trabalho manual.
 // Ex.: pegou segunda, entrega quarta (48h). Na terça (24h depois) = 50%.

@@ -26,7 +26,9 @@ type LinhaPauta = {
   criada_em: string;
   extras: string | null;
   motivo: string | null;
-  prazo_desejado: string | null;
+  // coluna DATE: o driver devolve Date (meia-noite UTC), não string
+  prazo_desejado: Date | string | null;
+  reedicao_pedida_por: "inspetor" | "porta_voz" | null;
 };
 
 // converte a linha do banco pro mesmo formato que as telas já usam,
@@ -53,7 +55,13 @@ function paraPauta(l: LinhaPauta): Pauta {
     notasInspetor: l.notas_inspetor ?? undefined,
     extras: l.extras ?? undefined,
     motivo: l.motivo ?? undefined,
-    prazoDesejado: l.prazo_desejado ?? undefined,
+    // vira "AAAA-MM-DD" puro. O driver devolve Date na meia-noite UTC e, se
+    // isso chegasse cru na tela, o toLocaleDateString em BRT (-3) mostraria
+    // o dia ANTERIOR ao que o porta-voz escolheu.
+    prazoDesejado: l.prazo_desejado
+      ? new Date(l.prazo_desejado).toISOString().slice(0, 10)
+      : undefined,
+    reedicaoPedidaPor: l.reedicao_pedida_por ?? undefined,
   };
 }
 
@@ -62,7 +70,7 @@ const SELECT_BASE = sql`
          p.brief_tom, p.brief_cor, p.brief_fonte, p.brief_refs,
          p.drive_link, p.status, p.reservada_ate, p.entrega_link,
          p.notas_inspetor, p.criada_em,
-         p.extras, p.motivo, p.prazo_desejado,
+         p.extras, p.motivo, p.prazo_desejado, p.reedicao_pedida_por,
          e.apelido AS reservada_por_apelido
   FROM pautas p
   JOIN users u ON u.id = p.porta_voz_id
@@ -83,7 +91,7 @@ export async function criarPauta(dados: {
   prazo?: string;
 }): Promise<{ ok: true; id: number } | { ok: false; erro: string }> {
   const titulo = dados.titulo.trim();
-  if (!titulo) return { ok: false, erro: "Dê um título pra pauta." };
+  if (!titulo) return { ok: false, erro: "Dê um título pra missão." };
   if (dados.formato !== "short" && dados.formato !== "longo") {
     return { ok: false, erro: "Escolha o formato." };
   }
@@ -174,11 +182,13 @@ export async function pautaReservadaPor(editorId: number): Promise<Pauta | null>
   return l ? paraPauta(l) : null;
 }
 
-/** Entregas já aprovadas de um editor — é o portfólio real dele. */
+/** Entregas já aprovadas de um editor — é o portfólio real dele.
+ *  Inclui 'finalizada': depois que o porta-voz aceita, o trabalho continua
+ *  sendo do editor. Sem isso o portfólio (e o match) esvaziaria sozinho. */
 export async function entregasAprovadas(editorId: number): Promise<Pauta[]> {
   const linhas = await sql`
     ${SELECT_BASE}
-    WHERE p.reservada_por_id = ${editorId} AND p.status = 'aprovada'
+    WHERE p.reservada_por_id = ${editorId} AND p.status IN ('aprovada','finalizada')
     ORDER BY p.criada_em DESC
   `;
   return (linhas as unknown as LinhaPauta[]).map(paraPauta);
@@ -213,7 +223,7 @@ export async function reservarPauta(
 
   const jaTem = await pautaReservadaPor(editorId);
   if (jaTem) {
-    return { ok: false, erro: "Você já tem uma pauta em mãos. Entregue antes de pegar outra." };
+    return { ok: false, erro: "Você já tem uma missão em mãos. Entregue antes de pegar outra." };
   }
 
   const linhas = await sql`
@@ -225,7 +235,7 @@ export async function reservarPauta(
     RETURNING id
   `;
   if (linhas.length === 0) {
-    return { ok: false, erro: "Essa pauta já foi pega por outro editor." };
+    return { ok: false, erro: "Essa missão já foi pega por outro editor." };
   }
   return { ok: true };
 }
@@ -242,7 +252,7 @@ export async function cancelarReserva(
       AND status IN ('reservada','reedicao')
     RETURNING id
   `;
-  if (linhas.length === 0) return { ok: false, erro: "Essa pauta não está com você." };
+  if (linhas.length === 0) return { ok: false, erro: "Essa missão não está com você." };
   return { ok: true };
 }
 
@@ -261,7 +271,7 @@ export async function entregarPauta(
       AND status IN ('reservada','reedicao')
     RETURNING id
   `;
-  if (linhas.length === 0) return { ok: false, erro: "Essa pauta não está com você." };
+  if (linhas.length === 0) return { ok: false, erro: "Essa missão não está com você." };
   return { ok: true };
 }
 
@@ -278,14 +288,33 @@ export async function aprovarPauta(
   const [pauta] = await sql`
     SELECT reservada_por_id FROM pautas WHERE id = ${pautaId} AND status = 'em_revisao'
   `;
-  if (!pauta?.reservada_por_id) return { ok: false, erro: "Essa pauta não está em revisão." };
+  if (!pauta?.reservada_por_id) return { ok: false, erro: "Essa missão não está em revisão." };
   const editorId = pauta.reservada_por_id as number;
 
   if (nota !== undefined && (nota < 1 || nota > 5)) {
     return { ok: false, erro: "A nota vai de 1 a 5." };
   }
 
-  await sql`UPDATE pautas SET status = 'aprovada', notas_inspetor = NULL WHERE id = ${pautaId}`;
+  // O `AND pontuada = false` é a trava: depois que o porta-voz devolve uma
+  // missão já aprovada pra reedição, o inspetor aprova a MESMA missão de novo.
+  // Só a primeira aprovação pode valer ponto pro editor.
+  const primeiraVez = await sql`
+    UPDATE pautas
+    SET status = 'aprovada', notas_inspetor = NULL, reedicao_pedida_por = NULL,
+        pontuada = true
+    WHERE id = ${pautaId} AND pontuada = false
+    RETURNING id
+  `;
+
+  if (primeiraVez.length === 0) {
+    // já pontuou antes: muda o status e para por aqui
+    await sql`
+      UPDATE pautas
+      SET status = 'aprovada', notas_inspetor = NULL, reedicao_pedida_por = NULL
+      WHERE id = ${pautaId}
+    `;
+    return { ok: true };
+  }
 
   if (nota !== undefined) {
     await sql`
@@ -321,10 +350,56 @@ export async function pedirReedicao(
   if (!notas.trim()) return { ok: false, erro: "Escreva o que precisa mudar." };
 
   const linhas = await sql`
-    UPDATE pautas SET status = 'reedicao', notas_inspetor = ${notas.trim()}
+    UPDATE pautas SET status = 'reedicao', notas_inspetor = ${notas.trim()},
+                      reedicao_pedida_por = 'inspetor'
     WHERE id = ${pautaId} AND status = 'em_revisao'
     RETURNING id
   `;
-  if (linhas.length === 0) return { ok: false, erro: "Essa pauta não está em revisão." };
+  if (linhas.length === 0) return { ok: false, erro: "Essa missão não está em revisão." };
+  return { ok: true };
+}
+
+/**
+ * O porta-voz aceita a entrega e fecha a missão.
+ *
+ * O filtro por porta_voz_id é de segurança, não de conveniência: sem ele
+ * qualquer porta-voz logado fecharia a missão de outro só adivinhando o id.
+ * Mesma trava de `pautaPorIdDoPortaVoz`.
+ */
+export async function aceitarEntrega(
+  pautaId: number,
+  portaVozId: number
+): Promise<{ ok: true } | { ok: false; erro: string }> {
+  const linhas = await sql`
+    UPDATE pautas SET status = 'finalizada'
+    WHERE id = ${pautaId} AND porta_voz_id = ${portaVozId} AND status = 'aprovada'
+    RETURNING id
+  `;
+  if (linhas.length === 0) {
+    return { ok: false, erro: "Essa missão não está aguardando sua conferência." };
+  }
+  return { ok: true };
+}
+
+/**
+ * O porta-voz viu o vídeo aprovado e quer um ajuste. Volta pras mãos do
+ * mesmo editor, marcado como pedido dele (e não do inspetor).
+ */
+export async function pedirAjuste(
+  pautaId: number,
+  portaVozId: number,
+  notas: string
+): Promise<{ ok: true } | { ok: false; erro: string }> {
+  if (!notas.trim()) return { ok: false, erro: "Escreva o que precisa mudar." };
+
+  const linhas = await sql`
+    UPDATE pautas SET status = 'reedicao', notas_inspetor = ${notas.trim()},
+                      reedicao_pedida_por = 'porta_voz'
+    WHERE id = ${pautaId} AND porta_voz_id = ${portaVozId} AND status = 'aprovada'
+    RETURNING id
+  `;
+  if (linhas.length === 0) {
+    return { ok: false, erro: "Essa missão não está aguardando sua conferência." };
+  }
   return { ok: true };
 }

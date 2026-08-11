@@ -33,8 +33,9 @@ const GRUPOS: Grupo[] = [
     rotulo: "Papel: voz",
     itens: [
       { href: "/porta-voz/criar-perfil", titulo: "Criar perfil (3 etapas)", desc: "Onboarding revisado e aprovado.", protegida: true, ok: true },
-      { href: "/porta-voz", titulo: "Painel", desc: "Visão geral das missões.", protegida: true },
-      { href: "/porta-voz/nova-pauta", titulo: "Nova missão", desc: "Subir bruto + brief.", protegida: true },
+      { href: "/porta-voz", titulo: "Painel", desc: "Missões na fila e em andamento. Todo card real abre o detalhe.", protegida: true, ok: true },
+      { href: "/porta-voz", titulo: "Detalhe da missão", desc: "Clique num card do painel. Tem linha do tempo, briefing completo e, quando o inspetor libera, os botões de aceitar / pedir ajuste.", protegida: true, ok: true },
+      { href: "/porta-voz/nova-pauta", titulo: "Nova missão", desc: "Subir bruto + brief (5 passos).", protegida: true },
       { href: "/porta-voz/perfil", titulo: "Meu perfil", desc: "Edição do perfil do candidato.", protegida: true },
     ],
   },
@@ -43,16 +44,16 @@ const GRUPOS: Grupo[] = [
     rotulo: "Papel: editor",
     itens: [
       { href: "/editor/criar-perfil", titulo: "Criar perfil", desc: "Onboarding revisado e aprovado.", protegida: true, ok: true },
-      { href: "/editor", titulo: "Fila de missões", desc: "Onde o editor pega pautas (estilo Uber).", protegida: true },
+      { href: "/editor", titulo: "Fila de missões", desc: "Onde o editor pega missões (estilo Uber). Mostra prazo, cortes pedidos e contexto antes de reservar.", protegida: true, ok: true },
     ],
   },
   {
     titulo: "Comum / Inspetor",
     rotulo: "Inspetor só admin",
     itens: [
-      { href: "/agenda", titulo: "Agenda", desc: "Disponibilidade do editor.", protegida: true },
-      { href: "/ranking", titulo: "Ranking", desc: "Classificação de editores.", protegida: true },
-      { href: "/perfil", titulo: "Perfil (comum)", desc: "Visão de perfil logado.", protegida: true },
+      { href: "/agenda", titulo: "Agenda", desc: "Disponibilidade + missão em mãos, ambas do banco.", protegida: true, ok: true },
+      { href: "/ranking", titulo: "Ranking", desc: "Editores reais por XP. \"Você\" destaca quem está logado.", protegida: true, ok: true },
+      { href: "/perfil", titulo: "Perfil do editor", desc: "Histórico, disponibilidade e mesa agora — tudo do banco.", protegida: true, ok: true },
       { href: "/perfil/editar", titulo: "Editar perfil", desc: "Edição comum.", protegida: true },
       { href: "/inspetor", titulo: "Inspetor", desc: "Fila de entregas pra revisar (admin).", protegida: true },
     ],

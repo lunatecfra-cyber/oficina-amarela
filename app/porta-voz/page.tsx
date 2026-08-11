@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PAUTAS, ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
+import {
+  PAUTAS,
+  ROTULO_FORMATO,
+  mensagemStatusPortaVoz,
+  type Pauta,
+} from "@/lib/pautas";
 import { pautasDisponiveis, pautasDoPortaVoz } from "@/lib/pautas-db";
 import { lerSessao } from "@/lib/sessao-servidor";
 
@@ -10,20 +15,41 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Minhas Missões — Oficina Amarela" };
 
-// mensagem amigável de status, do ponto de vista de quem tá esperando o vídeo
-function mensagemStatus(status: Pauta["status"]): { texto: string; cor: string } {
-  switch (status) {
-    case "reservada":
-    case "minha":
-    case "em_revisao":
-      return { texto: "🎬 Seu vídeo começou a ser feito", cor: "text-gold-hi" };
-    case "reedicao":
-      return { texto: "💬 O editor tem uma observação", cor: "text-silver-hi" };
-    case "aprovada":
-      return { texto: "✅ Seu vídeo está pronto!", cor: "text-ok" };
-    default:
-      return { texto: "", cor: "" };
-  }
+// só missão real (id "db-N") tem tela de detalhe; as de demonstração são
+// cards estáticos e não existem no banco
+const ehReal = (id: string) => id.startsWith("db-");
+
+/**
+ * A casca do card. Existe porque as duas listas (na fila / em andamento)
+ * precisavam do mesmo `<li>` e do mesmo "vira link se for real" — antes esse
+ * bloco estava escrito duas vezes dentro do mesmo `map`.
+ *
+ * Importante: TODA missão real é clicável, inclusive as já entregues. É por
+ * aqui que o porta-voz chega no vídeo pronto e nos botões de aceitar/ajustar.
+ */
+function CardMissao({
+  pauta,
+  children,
+}: {
+  pauta: Pauta;
+  children: React.ReactNode;
+}) {
+  const real = ehReal(pauta.id);
+  return (
+    <li
+      className={`rounded-xl border border-line bg-surface/60 p-4 lg:p-5 ${
+        real ? "transition-colors hover:border-gold/40 hover:bg-surface-2" : ""
+      }`}
+    >
+      {real ? (
+        <Link href={`/porta-voz/missao/${pauta.id}`} className="group block">
+          {children}
+        </Link>
+      ) : (
+        children
+      )}
+    </li>
+  );
 }
 
 export default async function PortaVozHome() {
@@ -82,61 +108,27 @@ export default async function PortaVozHome() {
               </h2>
               <ul className="flex flex-col gap-3">
                 {naFila.map((p) => {
-                  const posicao = filaGeral.findIndex((f) => f.id === p.id) + 1;
+                  // findIndex devolve -1 quando a missão não está na fila
+                  // global; sem essa guarda saía "Posição 0 de N"
+                  const idx = filaGeral.findIndex((f) => f.id === p.id);
+                  const posicao = idx >= 0 ? idx + 1 : 0;
                   const total = filaGeral.length;
-                  const pct = total > 1 ? Math.round(((total - posicao) / (total - 1)) * 100) : 100;
-                  // só pautas reais (id "db-...") têm tela de detalhe; demos
-                  // continuam como card estático
-                  const real = p.id.startsWith("db-");
                   return (
-                    <li
-                      key={p.id}
-                      className={`rounded-xl border border-line bg-surface/60 p-4 lg:p-5 ${
-                        real ? "transition-colors hover:border-gold/40 hover:bg-surface-2" : ""
-                      }`}
-                    >
-                      {real ? (
-                        <Link href={`/porta-voz/missao/${p.id}`} className="block">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text group-hover:text-gold-hi">
-                              {p.titulo}
-                            </h3>
-                            <span className="text-xs text-muted">
-                              {ROTULO_FORMATO[p.formato]}
-                            </span>
-                          </div>
-                          <p className="mt-1 text-xs text-muted-2">
-                            Posição <b className="text-text">{posicao}</b> de {total} na fila dos editores
-                          </p>
-                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-gold-lo to-gold-hi transition-all"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </Link>
-                      ) : (
-                        <>
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
-                              {p.titulo}
-                            </h3>
-                            <span className="text-xs text-muted">
-                              {ROTULO_FORMATO[p.formato]}
-                            </span>
-                          </div>
-                          <p className="mt-1 text-xs text-muted-2">
-                            Posição <b className="text-text">{posicao}</b> de {total} na fila dos editores
-                          </p>
-                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-gold-lo to-gold-hi transition-all"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </>
+                    <CardMissao key={p.id} pauta={p}>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text transition-colors group-hover:text-gold-hi">
+                          {p.titulo}
+                        </h3>
+                        <span className="text-xs text-muted">
+                          {ROTULO_FORMATO[p.formato]}
+                        </span>
+                      </div>
+                      {posicao > 0 && (
+                        <p className="mt-1 text-xs text-muted-2">
+                          Posição <b className="text-text">{posicao}</b> de {total} na fila dos editores
+                        </p>
                       )}
-                    </li>
+                    </CardMissao>
                   );
                 })}
               </ul>
@@ -150,28 +142,29 @@ export default async function PortaVozHome() {
               </h2>
               <ul className="flex flex-col gap-3">
                 {emAndamento.map((p) => {
-                  const msg = mensagemStatus(p.status);
+                  const msg = mensagemStatusPortaVoz(p.status);
                   return (
-                    <li
-                      key={p.id}
-                      className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-surface/60 p-4 lg:p-5"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
-                          {p.titulo}
-                        </h3>
-                        <p className="mt-0.5 text-xs text-muted">
-                          {ROTULO_FORMATO[p.formato]}
-                          {p.reservadaPor && <> · editor: {p.reservadaPor}</>}
-                        </p>
-                        {p.status === "reedicao" && p.notasInspetor && (
-                          <p className="mt-1 text-xs text-muted-2">"{p.notasInspetor}"</p>
+                    <CardMissao key={p.id} pauta={p}>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text transition-colors group-hover:text-gold-hi">
+                            {p.titulo}
+                          </h3>
+                          <p className="mt-0.5 text-xs text-muted">
+                            {ROTULO_FORMATO[p.formato]}
+                            {p.reservadaPor && <> · editor: {p.reservadaPor}</>}
+                          </p>
+                          {p.status === "reedicao" && p.notasInspetor && (
+                            <p className="mt-1 text-xs text-muted-2">
+                              &ldquo;{p.notasInspetor}&rdquo;
+                            </p>
+                          )}
+                        </div>
+                        {msg.texto && (
+                          <span className={`text-sm font-medium ${msg.cor}`}>{msg.texto}</span>
                         )}
                       </div>
-                      {msg.texto && (
-                        <span className={`text-sm font-medium ${msg.cor}`}>{msg.texto}</span>
-                      )}
-                    </li>
+                    </CardMissao>
                   );
                 })}
               </ul>

@@ -5,7 +5,13 @@
 // Postgres pra lá jogaria o banco dentro do bundle do navegador e quebraria
 // o build. lib/perfil.ts continua sendo só tipos + dados de demonstração.
 import { sql } from "@/lib/db";
-import type { ItemPortfolio, Nivel, PerfilEditor } from "@/lib/perfil";
+import type {
+  EditorRanking,
+  ItemHistorico,
+  ItemPortfolio,
+  Nivel,
+  PerfilEditor,
+} from "@/lib/perfil";
 
 export type PerfilEditavel = {
   headline: string[];
@@ -169,11 +175,19 @@ export async function lerPerfilEditor(userId: number): Promise<PerfilEditor | nu
   `;
   if (!conta) return null;
 
-  const [itens, medalhas] = await Promise.all([
+  const [itens, medalhas, entregas] = await Promise.all([
     sql`SELECT id, titulo, formato, porta_voz, tint, link_video
         FROM portfolio WHERE user_id = ${userId} ORDER BY criado_em DESC`,
     sql`SELECT nome, icone FROM conquistas WHERE user_id = ${userId}
         ORDER BY conquistado_em DESC`,
+    // histórico real: as missões que este editor entregou. 'reedicao' entra
+    // porque faz parte da história do trabalho, não só os acertos.
+    sql`SELECT p.id, p.titulo, p.status, p.criada_em, u.nome AS porta_voz
+        FROM pautas p
+        JOIN users u ON u.id = p.porta_voz_id
+        WHERE p.reservada_por_id = ${userId}
+          AND p.status IN ('aprovada','finalizada','reedicao')
+        ORDER BY p.criada_em DESC`,
   ]);
 
   const portfolio: ItemPortfolio[] = itens.map((i) => ({
@@ -202,6 +216,50 @@ export async function lerPerfilEditor(userId: number): Promise<PerfilEditor | nu
     nivel: conta.nivel as Nivel,
     portfolio,
     conquistas: medalhas.map((m) => ({ icone: m.icone, nome: m.nome })),
-    historico: [], // só existe quando houver entregas de verdade
+    historico: entregas.map(
+      (e): ItemHistorico => ({
+        id: `db-${e.id}`,
+        titulo: e.titulo,
+        portaVoz: e.porta_voz,
+        data: new Date(e.criada_em).toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        resultado: e.status === "reedicao" ? "reedicao" : "aprovada",
+      })
+    ),
   };
+}
+
+/**
+ * O ranking real da guilda, direto de users.
+ *
+ * Antes isto era um array fake em lib/perfil.ts, então nenhum editor de
+ * verdade aparecia — e o realce de "Você" caía sempre no mesmo apelido
+ * hardcoded, independente de quem estivesse logado.
+ *
+ * Entra quem completou o perfil OU já entregou alguma coisa. O `entregues > 0`
+ * não é redundante: quem trabalhou ganhou o lugar na lista, mesmo com o
+ * cadastro pela metade. O que fica de fora é só conta recém-criada e parada.
+ */
+export async function rankingEditores(
+  limite = 50
+): Promise<(EditorRanking & { id: number; nome: string })[]> {
+  const linhas = await sql`
+    SELECT id, apelido, nome, nivel, reputacao, entregues, streak
+    FROM users
+    WHERE papel = 'editor' AND (perfil_completo = true OR entregues > 0)
+    ORDER BY reputacao DESC, entregues DESC, apelido ASC
+    LIMIT ${limite}
+  `;
+  return linhas.map((l) => ({
+    id: l.id,
+    apelido: l.apelido,
+    nome: l.nome,
+    nivel: l.nivel as Nivel,
+    reputacao: l.reputacao,
+    entregues: l.entregues,
+    streak: l.streak,
+  }));
 }

@@ -1,13 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DIAS, DISPONIBILIDADE_PADRAO, PERIODOS, TRABALHOS } from "@/lib/agenda";
+import { DIAS, DISPONIBILIDADE_PADRAO, PERIODOS, type TrabalhoEmMaos } from "@/lib/agenda";
 import { MesaAgora } from "@/components/mesa-agora";
 import { CelulaDisponibilidade } from "@/components/disponibilidade-cell";
 
 const CHAVE_STORAGE = "confraria:disponibilidade";
 
-export function AgendaView({ doBanco = null }: { doBanco?: boolean[][] | null }) {
+export function AgendaView({
+  doBanco = null,
+  naMesa = [],
+}: {
+  doBanco?: boolean[][] | null;
+  /** missão reservada de verdade (vem do banco, pelo server component) */
+  naMesa?: TrabalhoEmMaos[];
+}) {
   // o que veio do onboarding (banco) manda. Sem isso, a agenda mostraria a
   // grade padrão e o editor veria algo diferente do que acabou de preencher.
   const [disp, setDisp] = useState<boolean[][]>(() =>
@@ -68,12 +75,12 @@ export function AgendaView({ doBanco = null }: { doBanco?: boolean[][] | null })
         <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-gold">
           Na sua mesa agora
         </h2>
-        {TRABALHOS.length === 0 ? (
+        {naMesa.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
             Nada em andamento. Pegue uma missão na fila.
           </p>
         ) : (
-          <MesaAgora variant="cards" />
+          <MesaAgora trabalhos={naMesa} variant="cards" />
         )}
       </section>
 

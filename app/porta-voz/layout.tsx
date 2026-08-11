@@ -23,11 +23,15 @@ export default async function PortaVozLayout({
           </Link>
 
           <div className="flex items-center gap-4">
+            {/* no mobile só o "Perfil" cabe, mas ele PRECISA aparecer: este é
+                o único caminho pro perfil e, por tabela, pro criar-perfil.
+                Escondido no celular, o porta-voz ficava sem como se editar. */}
             <Link
               href="/porta-voz/perfil"
-              className="hidden text-sm text-muted transition-colors hover:text-text sm:block"
+              className="text-sm text-muted transition-colors hover:text-text"
             >
-              {sessao?.nome} · porta-voz
+              <span className="hidden sm:inline">{sessao.nome} · porta-voz</span>
+              <span className="sm:hidden">Perfil</span>
             </Link>
             <BotaoSair className="text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-silver-hi" />
           </div>

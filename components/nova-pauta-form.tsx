@@ -108,7 +108,7 @@ export function NovaPautaForm() {
     setEnviando(false);
 
     if (!resp.ok) {
-      setErro(corpo?.erro ?? "Não deu pra criar a pauta. Tenta de novo.");
+      setErro(corpo?.erro ?? "Não deu pra criar a missão. Tenta de novo.");
       return;
     }
     setEnviado(true);

@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: "Faça login primeiro." }, { status: 401 });
   }
   if (sessao.papel !== "voz" && sessao.papel !== "admin") {
-    return NextResponse.json({ erro: "Só porta-voz cria pauta." }, { status: 403 });
+    return NextResponse.json({ erro: "Só porta-voz cria missão." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);

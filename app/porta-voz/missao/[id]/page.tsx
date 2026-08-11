@@ -1,27 +1,56 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { pautaPorIdDoPortaVoz } from "@/lib/pautas-db";
+import { pautaPorIdDoPortaVoz, posicaoNaFila, totalNaFila } from "@/lib/pautas-db";
+import { lerCandidatoProprio } from "@/lib/candidato-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
-import { ROTULO_FORMATO, ROTULO_STATUS } from "@/lib/pautas";
+import {
+  ETAPAS_MISSAO,
+  ROTULO_FORMATO,
+  ROTULO_STATUS,
+  etapaAtual,
+  mensagemStatusPortaVoz,
+} from "@/lib/pautas";
+import { AcoesMissao } from "@/components/acoes-missao";
+import { AvatarCandidato } from "@/components/avatar-candidato";
 
 export const metadata: Metadata = { title: "Missão — Oficina Amarela" };
 export const dynamic = "force-dynamic";
 
-// mensagem de status do ponto de vista de quem espera o vídeo (mesma lógica do
-// painel, replicada aqui pra tela de detalhe ser autossuficiente)
-function mensagemStatus(status: string): { texto: string; cor: string } {
-  switch (status) {
-    case "reservada":
-    case "em_revisao":
-      return { texto: "🎬 Seu vídeo começou a ser feito", cor: "text-gold-hi" };
-    case "reedicao":
-      return { texto: "💬 O editor tem uma observação", cor: "text-silver-hi" };
-    case "aprovada":
-      return { texto: "✅ Seu vídeo está pronto!", cor: "text-ok" };
-    default:
-      return { texto: "Na fila dos editores", cor: "text-muted" };
-  }
+function formatarData(iso: string, comAno = true) {
+  return new Date(iso).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    ...(comAno ? { year: "numeric" } : {}),
+  });
+}
+
+// prazo desejado é data pura ("AAAA-MM-DD"), sem hora. Precisa ser lida em
+// UTC: no fuso do Brasil, a meia-noite UTC cai no dia anterior.
+function formatarDataPura(ymd: string) {
+  return new Date(ymd).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** "há 2 dias" — a data crua não responde "faz muito tempo?", que é a
+ *  pergunta real de quem está esperando o vídeo.
+ *
+ *  Conta dias de CALENDÁRIO, não tempo decorrido: algo criado às 23h de
+ *  ontem faz poucas horas, mas dizer "hoje" ao lado da data de ontem soa
+ *  errado pra quem lê. */
+function tempoDesde(iso: string) {
+  const meiaNoite = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dias = Math.round((meiaNoite(new Date()) - meiaNoite(new Date(iso))) / 86_400_000);
+  if (dias <= 0) return "hoje";
+  if (dias === 1) return "ontem";
+  if (dias < 30) return `há ${dias} dias`;
+  const meses = Math.floor(dias / 30);
+  return meses === 1 ? "há 1 mês" : `há ${meses} meses`;
 }
 
 export default async function DetalheMissaoPage({
@@ -37,12 +66,16 @@ export default async function DetalheMissaoPage({
   const idNum = Number(String(idBruto).replace(/^db-/, ""));
   if (!Number.isInteger(idNum)) notFound();
 
-  const pauta = await pautaPorIdDoPortaVoz(idNum, sessao.id);
+  const [pauta, posicao, total, candidato] = await Promise.all([
+    pautaPorIdDoPortaVoz(idNum, sessao.id),
+    posicaoNaFila(idNum),
+    totalNaFila(),
+    lerCandidatoProprio(sessao.id),
+  ]);
   if (!pauta) notFound();
 
-  const msg = mensagemStatus(pauta.status);
-  const briefPreenchido =
-    pauta.brief.tom || pauta.brief.cor || pauta.brief.fonte || pauta.brief.refs;
+  const msg = mensagemStatusPortaVoz(pauta.status);
+  const etapa = etapaAtual(pauta.status);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-8 lg:px-8 lg:py-12">
@@ -80,16 +113,71 @@ export default async function DetalheMissaoPage({
             <span>{ROTULO_STATUS[pauta.status]}</span>
             <span aria-hidden="true">·</span>
             <span>
-              criada em{" "}
-              {new Date(pauta.criadaEm).toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
+              criada {tempoDesde(pauta.criadaEm)} · {formatarData(pauta.criadaEm)}
             </span>
           </div>
+
+          {/* posição na fila — só faz sentido enquanto ninguém pegou. É a
+              pergunta que o porta-voz mais faz: "falta muito?" */}
+          {pauta.status === "disponivel" && posicao > 0 && (
+            <p className="mt-3 text-xs text-muted">
+              Posição <b className="text-text">{posicao}</b> de {total} na fila
+              dos editores
+            </p>
+          )}
+
+          {/* linha do tempo do ciclo — dá a sensação de acompanhamento que a
+              tela não tinha. Deriva só do status, sem consulta extra. */}
+          <ol className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-2 text-[11px]">
+            {ETAPAS_MISSAO.map((nome, i) => {
+              const vencida = i < etapa;
+              const atual = i === etapa;
+              return (
+                <li key={nome} className="flex items-center gap-2">
+                  <span
+                    className={
+                      atual
+                        ? "rounded-full border border-gold-lo/60 bg-gold/10 px-2.5 py-0.5 font-medium text-gold-hi"
+                        : vencida
+                          ? "text-gold-lo"
+                          : "text-muted-2"
+                    }
+                  >
+                    {vencida && !atual ? "✓ " : ""}
+                    {nome}
+                  </span>
+                  {i < ETAPAS_MISSAO.length - 1 && (
+                    <span aria-hidden="true" className="text-line">
+                      →
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
         </div>
       </header>
+
+      {/* aceitar ou pedir ajuste — o inspetor já liberou, falta o porta-voz */}
+      {pauta.status === "aprovada" && <AcoesMissao id={pauta.id} />}
+
+      {/* card do porta-voz — quem criou essa missão */}
+      {candidato && (
+        <section className="mb-8 flex items-center gap-4 rounded-2xl border border-line bg-surface/60 p-5">
+          <AvatarCandidato
+            candidato={candidato}
+            className="h-14 w-14 text-lg"
+          />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-text">
+              {candidato.nome}
+            </p>
+            {candidato.local && (
+              <p className="mt-0.5 text-xs text-muted">{candidato.local}</p>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* status / editor / entrega — só mostra o que existe */}
       {(pauta.reservadaPor || pauta.entregaLink) && (
@@ -102,11 +190,7 @@ export default async function DetalheMissaoPage({
           )}
           {pauta.reservadaAte && (
             <p className="mt-1 text-xs text-muted-2">
-              Prazo do editor até{" "}
-              {new Date(pauta.reservadaAte).toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "short",
-              })}
+              Prazo do editor até {formatarData(pauta.reservadaAte, false)}
             </p>
           )}
           {pauta.entregaLink && (
@@ -139,46 +223,57 @@ export default async function DetalheMissaoPage({
         </section>
       )}
 
-      {/* brief — só mostra se o porta-voz preencheu algo */}
-      {briefPreenchido && (
-        <section className="mb-6">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
-            Briefing (como você pediu)
-          </h2>
-          <dl className="grid gap-3 rounded-2xl border border-line bg-surface/40 p-5 sm:grid-cols-2">
-            {pauta.brief.tom && (
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-muted-2">Tom</dt>
-                <dd className="mt-0.5 text-sm text-text">{pauta.brief.tom}</dd>
-              </div>
-            )}
-            {pauta.brief.cor && (
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-muted-2">Cor</dt>
-                <dd className="mt-0.5 text-sm text-text">{pauta.brief.cor}</dd>
-              </div>
-            )}
-            {pauta.brief.fonte && (
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-muted-2">Fonte / legenda</dt>
-                <dd className="mt-0.5 text-sm text-text">{pauta.brief.fonte}</dd>
-              </div>
-            )}
-            {pauta.brief.refs && (
-              <div className="sm:col-span-2">
-                <dt className="text-[11px] uppercase tracking-wide text-muted-2">Referências</dt>
-                <dd className="mt-0.5 text-sm text-text">{pauta.brief.refs}</dd>
-              </div>
-            )}
-          </dl>
-        </section>
-      )}
+      {/* brief — tudo que o porta-voz pediu no wizard. Mostra todos os campos
+          sempre, mesmo vazios: o editor (e o próprio dono) precisa saber o
+          que foi preenchido e o que ficou de fora. */}
+      <section className="mb-6">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
+          Briefing (como você pediu)
+        </h2>
+        <dl className="grid gap-3 rounded-2xl border border-line bg-surface/40 p-5 sm:grid-cols-2">
+          {(
+            [
+              ["Prazo desejado", pauta.prazoDesejado ? formatarDataPura(pauta.prazoDesejado) : undefined],
+              ["Tom", pauta.brief.tom],
+              ["Cor", pauta.brief.cor],
+              ["Fonte / legenda", pauta.brief.fonte],
+            ] as const
+          ).map(([rotulo, valor]) => (
+            <div key={rotulo}>
+              <dt className="text-[11px] uppercase tracking-wide text-muted-2">
+                {rotulo}
+              </dt>
+              <dd className={valor ? "mt-0.5 text-sm text-text" : "mt-0.5 text-sm text-muted-2 italic"}>
+                {valor ?? "não informado"}
+              </dd>
+            </div>
+          ))}
+          {(
+            [
+              ["Referências", pauta.brief.refs],
+              ["Cortes específicos", pauta.extras],
+              ["Por que esse vídeo importa", pauta.motivo],
+            ] as const
+          ).map(([rotulo, valor]) => (
+            <div key={rotulo} className="sm:col-span-2">
+              <dt className="text-[11px] uppercase tracking-wide text-muted-2">
+                {rotulo}
+              </dt>
+              <dd className={`mt-0.5 text-sm ${valor ? "whitespace-pre-line text-text" : "text-muted-2 italic"}`}>
+                {valor ?? "não informado"}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
-      {/* observação do inspetor/editor (reedição) */}
+      {/* observação da reedição — o texto muda conforme quem pediu */}
       {pauta.notasInspetor && (
         <section className="mb-6">
           <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-gold">
-            Observação do editor
+            {pauta.reedicaoPedidaPor === "porta_voz"
+              ? "O ajuste que você pediu"
+              : "Observação do controle de qualidade"}
           </h2>
           <p className="rounded-2xl border border-line bg-surface/40 p-5 text-sm leading-relaxed text-muted">
             {pauta.notasInspetor}

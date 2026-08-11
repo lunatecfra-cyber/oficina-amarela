@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS pautas (
   brief_refs TEXT,
   drive_link TEXT,
   status TEXT NOT NULL DEFAULT 'disponivel'
-    CHECK (status IN ('disponivel','reservada','em_revisao','reedicao','aprovada')),
+    CHECK (status IN ('disponivel','reservada','em_revisao','reedicao','aprovada','finalizada')),
   reservada_por_id INT REFERENCES users(id) ON DELETE SET NULL,
   reservada_ate TIMESTAMPTZ,
   entrega_link TEXT,
@@ -165,6 +165,24 @@ CREATE INDEX IF NOT EXISTS idx_pautas_porta_voz ON pautas (porta_voz_id);
 ALTER TABLE pautas ADD COLUMN IF NOT EXISTS extras TEXT;
 ALTER TABLE pautas ADD COLUMN IF NOT EXISTS motivo TEXT;
 ALTER TABLE pautas ADD COLUMN IF NOT EXISTS prazo_desejado DATE;
+
+-- 'finalizada' fecha o ciclo: o inspetor aprova (status 'aprovada') e só
+-- então o porta-voz confere e aceita. O CREATE TABLE acima já nasce com ela,
+-- mas bancos criados antes precisam do constraint recriado.
+ALTER TABLE pautas DROP CONSTRAINT IF EXISTS pautas_status_check;
+ALTER TABLE pautas ADD CONSTRAINT pautas_status_check
+  CHECK (status IN ('disponivel','reservada','em_revisao','reedicao','aprovada','finalizada'));
+
+-- Trava de contagem dupla: aprovar dá entregues+1, reputacao+25 e streak+1 ao
+-- editor. Como o porta-voz pode devolver pra reedição depois de aprovada, o
+-- inspetor aprova a MESMA missão duas vezes — e sem isso o editor pontuava
+-- em dobro.
+ALTER TABLE pautas ADD COLUMN IF NOT EXISTS pontuada BOOLEAN NOT NULL DEFAULT false;
+
+-- 'inspetor' ou 'porta_voz': o editor precisa saber quem pediu o ajuste,
+-- porque a conversa muda ("o controle de qualidade reprovou" é diferente de
+-- "quem pediu o vídeo quer outra coisa").
+ALTER TABLE pautas ADD COLUMN IF NOT EXISTS reedicao_pedida_por TEXT;
 
 -- Avaliação da entrega. É daqui que a nota do editor vai sair — hoje
 -- users.nota ainda é NULL porque nenhuma entrega foi avaliada.

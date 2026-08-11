@@ -4,7 +4,9 @@ import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { ROTULO_FORMATO } from "@/lib/pautas";
 import { PERFIL_EDITOR, progressoNivel } from "@/lib/perfil";
-import { DIAS, DISPONIBILIDADE_PADRAO, PERIODOS, TRABALHOS } from "@/lib/agenda";
+import { DIAS, DISPONIBILIDADE_PADRAO, PERIODOS, trabalhoDaPauta } from "@/lib/agenda";
+import { pautaReservadaPor } from "@/lib/pautas-db";
+import { lerOnboardingEditor } from "@/lib/perfil-db";
 import { MesaAgora } from "@/components/mesa-agora";
 import { Stat } from "@/components/stat";
 import { Card } from "@/components/card";
@@ -19,13 +21,26 @@ export const dynamic = "force-dynamic";
 
 export default async function PerfilPage() {
   const sessao = await exigirSessao();
-  const doBanco = await lerPerfilEditor(sessao.id);
+  const [doBanco, onboarding, reservada] = await Promise.all([
+    lerPerfilEditor(sessao.id),
+    lerOnboardingEditor(sessao.id),
+    pautaReservadaPor(sessao.id),
+  ]);
 
   // Perfil real do banco. PERFIL_EDITOR só entra como último recurso (conta
   // recém-criada não tem nada preenchido, e a tela ficaria vazia demais).
   const p = doBanco ?? PERFIL_EDITOR;
   const nivel = progressoNivel(p.entregues);
-  const livres = DISPONIBILIDADE_PADRAO.flat().filter(Boolean).length;
+
+  // a grade que o editor salvou no cadastro (a /agenda já lia daqui; esta
+  // tela mostrava a grade fake e contradizia a outra)
+  const grade = onboarding?.disponibilidade?.length
+    ? onboarding.disponibilidade
+    : DISPONIBILIDADE_PADRAO;
+  const livres = grade.flat().filter(Boolean).length;
+
+  // missão que ele tem em mãos agora, de verdade
+  const naMesa = trabalhoDaPauta(reservada);
 
   return (
     <>
@@ -81,7 +96,9 @@ export default async function PerfilPage() {
               </div>
               <p className="mt-1 text-muted">{p.headline.join(" · ")}</p>
               <p className="mt-1 text-sm text-muted-2">
-                @{p.apelido} · {p.local} · na guilda desde {p.desde}
+                {/* sem cidade preenchida sairia "@apelido · · na guilda" */}
+                @{p.apelido} {p.local && <>· {p.local} </>}· na guilda desde{" "}
+                {p.desde}
               </p>
 
               {/* stats */}
@@ -102,10 +119,25 @@ export default async function PerfilPage() {
             {/* ---- coluna principal ---- */}
             <div className="flex flex-col gap-6">
               <Card titulo="Sobre" delay={0.05}>
-                <p className="text-[15px] leading-relaxed text-muted">{p.bio}</p>
+                {p.bio ? (
+                  <p className="text-[15px] leading-relaxed text-muted">{p.bio}</p>
+                ) : (
+                  <p className="text-sm text-muted-2">
+                    Você ainda não escreveu sua bio.{" "}
+                    <Link href="/perfil/editar" className="text-gold-hi hover:underline">
+                      Escrever agora
+                    </Link>
+                  </p>
+                )}
               </Card>
 
               <Card titulo="Portfólio" delay={0.1}>
+                {p.portfolio.length === 0 && (
+                  <p className="text-sm text-muted-2">
+                    Seu portfólio se preenche sozinho: cada entrega aprovada
+                    entra aqui.
+                  </p>
+                )}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {p.portfolio.map((v) => (
                     <figure key={v.id} className="group">
@@ -193,6 +225,11 @@ export default async function PerfilPage() {
               </Card>
 
               <Card titulo="Caixa de Ferramentas" delay={0.15}>
+                {p.conquistas.length === 0 && (
+                  <p className="text-sm text-muted-2">
+                    Nenhuma conquista ainda. Elas vêm com as entregas.
+                  </p>
+                )}
                 <ul className="flex flex-col gap-3">
                   {p.conquistas.map((c) => (
                     <li key={c.nome} className="flex items-center gap-3">
@@ -214,14 +251,12 @@ export default async function PerfilPage() {
                     Editar →
                   </Link>
                 </div>
-                <MiniGrade />
+                <MiniGrade grade={grade} />
               </Card>
 
-              {TRABALHOS.length > 0 && (
-                <Card titulo="Na mesa agora" delay={0.25}>
-                  <MesaAgora variant="lista" />
-                </Card>
-              )}
+              <Card titulo="Na mesa agora" delay={0.25}>
+                <MesaAgora trabalhos={naMesa} variant="lista" />
+              </Card>
             </aside>
           </div>
         </div>
@@ -230,7 +265,7 @@ export default async function PerfilPage() {
   );
 }
 
-function MiniGrade() {
+function MiniGrade({ grade }: { grade: boolean[][] }) {
   return (
     <div className="grid grid-cols-[18px_repeat(7,1fr)] gap-1">
       <span />
@@ -248,8 +283,8 @@ function MiniGrade() {
             <CelulaDisponibilidade
               key={d}
               size="mini"
-              livre={DISPONIBILIDADE_PADRAO[pi][di]}
-              label={`${periodo} de ${d}: ${DISPONIBILIDADE_PADRAO[pi][di] ? "livre" : "ocupado"}`}
+              livre={grade[pi][di]}
+              label={`${periodo} de ${d}: ${grade[pi][di] ? "livre" : "ocupado"}`}
             />
           ))}
         </div>
