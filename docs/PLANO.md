@@ -24,7 +24,7 @@
 | Fundo | **Preto texturizado** (trama diagonal + granulado) |
 | Prioridade de tela | **PC primeiro**, ótimo no celular |
 | Login | **Apelido + senha** E **login com Google** (Google é o caminho principal) |
-| Stack | **Next.js 16 + Tailwind 4 + Supabase** |
+| Stack | **Next.js 16 + Tailwind 4 + Postgres** (o provedor é detalhe: nada no código é específico dele) |
 | Tipografia | **Cinzel** (display) + **Sora** (interface) |
 | Vídeos | **100% no Google Drive.** Banco guarda só links (texto) |
 | Onde fica o bruto | **Drive pessoal de cada porta-voz** (não é mais um Drive central — mudou 27/07/2026) |
@@ -74,7 +74,9 @@ Em partes, não tudo de uma vez:
 - [x] **Validação do porta-voz** — depois do inspetor aprovar, o porta-voz
       confere e **aceita ou pede ajuste** (status `finalizada`)
 - [x] **Aulas** — aba criada no nav; página é placeholder, sem conteúdo ainda
-- [ ] **F6 — Auth real no Supabase** (apelido/senha + Google) + banco
+- [x] **F6 — Auth real** — cadastro, login com apelido/senha (bcrypt), login com Google,
+      recuperação de senha com link de uso único, sessão em JWT com revogação no banco,
+      trava de força bruta e exclusão de conta. Falta só apontar pro banco de produção.
 - [x] **Perfil do porta-voz** (`/porta-voz/perfil`, missões criadas no lugar do portfólio) *(no banco)*
 - [ ] **F7 — Perfil Estendido** (Abas de Certificações do Hub e Equipamentos/Setup do editor)
 
@@ -88,7 +90,9 @@ Em partes, não tudo de uma vez:
 
 - **Next.js 16** (App Router, Turbopack) + **React 19**
 - **Tailwind 4** (tokens em `app/globals.css` via `@theme`)
-- **Supabase** (`@supabase/supabase-js`, `@supabase/ssr`) — falta configurar chaves
+- **Postgres** via driver `postgres` (postgres.js). **Não usamos nenhum SDK de provedor** —
+  sem `@supabase/*`, sem Prisma. O `schema.sql` é SQL padrão, então trocar de hospedagem do
+  banco é trocar `DATABASE_URL`.
 - ⚠️ Next 16 tem breaking changes: ler `node_modules/next/dist/docs/` antes de codar (regra do `AGENTS.md`)
 
 ## Como rodar
@@ -111,7 +115,7 @@ npm run build    # verificar erros
 
 ## Pendente com o Vitor
 
-- [ ] Fazer o setup do **Google Cloud + Supabase** (ver `docs/SETUP-GOOGLE.md`) e me passar as chaves
+- [ ] Criar o banco no **Neon** (grátis, sem cartão) e me passar a `DATABASE_URL`
 - [ ] Critério da **nota/avaliação** do editor
 - [x] ~~Prazo padrão de reserva~~ → **24h** pra entregar, e **5 min** pra
       responder a oferta antes dela passar pro próximo editor
