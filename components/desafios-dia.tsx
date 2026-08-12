@@ -43,7 +43,7 @@ export function DesafiosDia() {
             type="button"
             onClick={() => marcar(d.id)}
             aria-pressed={d.cumprido}
-            className={`rounded-xl border p-4 text-left transition-colors ${
+            className={`rounded-2xl border p-4 text-left transition-colors ${
               d.cumprido
                 ? "border-ok/40 bg-ok/[0.06]"
                 : "border-line bg-surface/60 hover:border-gold/40"

@@ -45,6 +45,21 @@ function calcularMatch(p: Pauta, entregas: Pauta[]): { rotulo: string; cor: stri
   return { rotulo: "Match novo", cor: "border-line bg-surface-2 text-muted" };
 }
 
+// ── filete dourado (gradiente horizontal) ─────────────────────────
+
+function FileteDourado() {
+  return (
+    <div
+      aria-hidden="true"
+      className="h-px rounded-full"
+      style={{
+        background:
+          "linear-gradient(90deg, transparent 0%, rgba(244,206,31,0.7) 30%, rgba(244,206,31,0.9) 50%, rgba(244,206,31,0.7) 70%, transparent 100%)",
+      }}
+    />
+  );
+}
+
 export function Selo({ status }: { status: Pauta["status"] }) {
   const cor =
     status === "minha"
@@ -257,6 +272,7 @@ export function FilaPautas({
     <div className="mx-auto w-full max-w-6xl px-5 py-8 lg:px-8 lg:py-12">
       {minha && (
         <section className="mb-10 rounded-2xl border border-gold-lo/50 bg-gradient-to-b from-gold/[0.07] to-transparent p-6 lg:p-8">
+          <FileteDourado />
           <div className="flex flex-wrap items-center gap-3">
             <Selo status="minha" />
             <span className="text-xs uppercase tracking-[0.15em] text-gold-hi">
@@ -280,7 +296,7 @@ export function FilaPautas({
           {/* quem pediu a reedição muda a conversa: o inspetor reprovou por
               qualidade, o porta-voz quer outra coisa */}
           {minha.status === "minha" && minha.notasInspetor && (
-            <div className="mt-4 rounded-xl border border-danger/40 bg-danger/[0.06] p-4">
+            <div className="mt-4 rounded-2xl border border-danger/40 bg-danger/[0.06] p-4">
               <p className="text-xs uppercase tracking-[0.12em] text-danger">
                 {minha.reedicaoPedidaPor === "porta_voz"
                   ? "O porta-voz pediu um ajuste"
@@ -292,7 +308,7 @@ export function FilaPautas({
             </div>
           )}
 
-          <div className="mt-5 rounded-xl border border-line bg-surface/60 p-4">
+          <div className="mt-5 rounded-2xl border border-line bg-surface/60 p-4">
             <p className="text-xs uppercase tracking-[0.12em] text-muted">
               Acesso ao bruto
             </p>
@@ -318,7 +334,7 @@ export function FilaPautas({
             minha.brief.refs ||
             minha.extras ||
             minha.motivo) && (
-            <div className="mt-4 rounded-xl border border-line bg-surface/60 p-4">
+            <div className="mt-4 rounded-2xl border border-line bg-surface/60 p-4">
               <p className="text-xs uppercase tracking-[0.12em] text-muted">
                 O que foi pedido
               </p>
@@ -378,6 +394,7 @@ export function FilaPautas({
 
       {sorteada && (
         <section className="mb-8 rounded-2xl border border-gold-lo/50 bg-gradient-to-b from-gold/[0.08] to-transparent p-6 lg:p-8">
+          <FileteDourado />
           <span className="text-xs uppercase tracking-[0.15em] text-gold-hi">
             🎲 Pauta sorteada
           </span>
@@ -484,12 +501,13 @@ export function FilaPautas({
           return (
             <li
               key={p.id}
-              className={`rounded-2xl border p-4 transition-colors lg:p-5 ${
+              className={`overflow-hidden rounded-2xl border p-4 transition-colors lg:p-5 ${
                 livre
                   ? "border-line bg-surface/70 hover:border-gold/40"
                   : "border-line-soft bg-surface/30"
               }`}
             >
+              {livre && <FileteDourado />}
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                 {/* quem ele vai editar */}
                 <Link
@@ -529,7 +547,7 @@ export function FilaPautas({
                     )}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-                    <span className="rounded-md border border-line bg-ink-2 px-2 py-0.5 text-muted">
+                    <span className="rounded-full border border-line bg-ink-2 px-2.5 py-0.5 text-[11px] font-medium text-muted-2">
                       {ROTULO_FORMATO[p.formato]}
                     </span>
                     {p.prazoDesejado && <Chip k="pra" v={dataCurta(p.prazoDesejado)} />}
@@ -539,6 +557,11 @@ export function FilaPautas({
                     {p.brief.refs && <Chip k="ref" v={p.brief.refs} />}
                   </div>
                   <PedidosDoBrief pauta={p} limitar />
+                  {!ehPautaReal(p.id) && (
+                    <span className="mt-2 inline-block rounded-full border border-line-soft bg-ink-2 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-2">
+                      Demonstração
+                    </span>
+                  )}
                 </div>
 
                 {/* pressão + ação */}
@@ -626,7 +649,7 @@ function CartaBaralho({
       </h2>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
-        <span className="rounded-md border border-line bg-ink-2 px-2 py-0.5 text-muted">
+        <span className="rounded-full border border-line bg-ink-2 px-2.5 py-0.5 text-[11px] font-medium text-muted-2">
           {ROTULO_FORMATO[pauta.formato]}
         </span>
         {pauta.prazoDesejado && <Chip k="pra" v={dataCurta(pauta.prazoDesejado)} />}
