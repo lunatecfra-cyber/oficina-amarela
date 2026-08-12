@@ -19,6 +19,13 @@ export type TrabalhoEmMaos = {
   inicioIso: string;
   prazoIso: string;
   etapa: string;
+  // brief criativo + acesso — o editor precisa disso sem voltar pra fila
+  tom?: string;
+  cor?: string;
+  fonte?: string;
+  refs?: string;
+  driveLink?: string;
+  prazoDesejado?: string;
 };
 
 const PRAZO_HORAS = 24;
@@ -48,6 +55,12 @@ export function trabalhoDaPauta(p: Pauta | null): TrabalhoEmMaos[] {
       inicioIso: new Date(prazo - PRAZO_HORAS * 3_600_000).toISOString(),
       prazoIso: p.reservadaAte,
       etapa: ETAPA_POR_STATUS[p.status] ?? "Com você",
+      tom: p.brief.tom,
+      cor: p.brief.cor,
+      fonte: p.brief.fonte,
+      refs: p.brief.refs,
+      driveLink: p.driveLink,
+      prazoDesejado: p.prazoDesejado,
     },
   ];
 }

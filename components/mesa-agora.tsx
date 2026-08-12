@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { TrabalhoEmMaos } from "@/lib/agenda";
 import { ROTULO_FORMATO } from "@/lib/pautas";
 
@@ -17,6 +18,15 @@ function corUrgencia(ms: number) {
   if (h < 4) return "text-danger";
   if (h < 12) return "text-gold-hi";
   return "text-muted";
+}
+
+// brief em miniatura — mesma cara do card da fila, pra o editor lembrar o tom
+function Chip({ k, v }: { k: string; v: string }) {
+  return (
+    <span className="rounded-md border border-line-soft bg-surface px-2 py-0.5 text-[11px] text-muted">
+      <span className="text-muted-2">{k}:</span> {v}
+    </span>
+  );
 }
 
 export function MesaAgora({
@@ -89,11 +99,12 @@ export function MesaAgora({
       {trabalhos.map((t) => {
         const { pct, restanteMs } = calc(t);
         const apertado = restanteMs !== null && restanteMs < 4 * 3_600_000;
+        const temBrief = t.tom || t.cor || t.fonte || t.refs;
         return (
           <li key={t.id} className="rounded-2xl border border-line bg-surface/60 p-5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-muted">{t.portaVoz}</span>
-              <span className="rounded-md border border-line bg-ink-2 px-2 py-0.5 text-[11px] text-muted">
+              <span className="rounded-full border border-line bg-ink-2 px-2.5 py-0.5 text-[11px] font-medium text-muted-2">
                 {ROTULO_FORMATO[t.formato]}
               </span>
             </div>
@@ -101,6 +112,16 @@ export function MesaAgora({
             <h3 className="mt-2 font-[family-name:var(--font-display)] text-lg font-semibold text-text">
               {t.titulo}
             </h3>
+
+            {/* brief criativo — o editor precisa lembrar o tom sem voltar pra fila */}
+            {temBrief && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {t.tom && <Chip k="tom" v={t.tom} />}
+                {t.cor && <Chip k="cor" v={t.cor} />}
+                {t.fonte && <Chip k="fonte" v={t.fonte} />}
+                {t.refs && <Chip k="ref" v={t.refs} />}
+              </div>
+            )}
 
             <div className="mt-4 flex items-center justify-between text-xs">
               <span className="text-muted">{t.etapa}</span>
@@ -117,14 +138,46 @@ export function MesaAgora({
               />
             </div>
 
-            <p className="mt-4 text-sm">
-              <span className="text-muted-2">Prazo: </span>
-              {restanteMs === null ? (
-                <span className="text-muted">—</span>
-              ) : (
-                <span className={corUrgencia(restanteMs)}>⏳ {fmtRestante(restanteMs)} restantes</span>
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <span>
+                <span className="text-muted-2">Prazo: </span>
+                {restanteMs === null ? (
+                  <span className="text-muted">—</span>
+                ) : (
+                  <span className={corUrgencia(restanteMs)}>⏳ {fmtRestante(restanteMs)} restantes</span>
+                )}
+              </span>
+              {t.prazoDesejado && (
+                <span className="text-xs text-muted-2">
+                  ⏰ Desejado:{" "}
+                  {new Date(t.prazoDesejado).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "short",
+                    timeZone: "UTC",
+                  })}
+                </span>
               )}
-            </p>
+            </div>
+
+            {/* ações — Drive + ir pra fila onde ele entrega */}
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
+              {t.driveLink && (
+                <a
+                  href={t.driveLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
+                >
+                  📁 Abrir bruto no Drive
+                </a>
+              )}
+              <Link
+                href="/editor"
+                className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
+              >
+                Ir pra entrega →
+              </Link>
+            </div>
           </li>
         );
       })}
