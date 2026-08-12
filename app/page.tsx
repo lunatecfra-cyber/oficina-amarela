@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 
+// O papel escolhido aqui já entra pré-selecionado no cadastro. Antes os dois
+// cards apontavam pra /entrar, rota que nunca existiu: a landing inteira dava
+// 404 e a escolha de papel não levava nada adiante.
 const ROLES = [
   {
-    href: "/entrar",
+    href: "/criar-conta?papel=voz",
     title: "Porta-voz",
     desc: "Você tem o vídeo bruto e precisa que alguém edite.",
     icon: (
@@ -11,9 +14,9 @@ const ROLES = [
     ),
   },
   {
-    href: "/entrar",
+    href: "/criar-conta?papel=editor",
     title: "Editor de vídeo",
-    desc: "Você pega pautas da fila, edita e entrega.",
+    desc: "As missões chegam até você. Você aceita, edita e entrega.",
     icon: (
       <>
         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -40,7 +43,7 @@ export default function Home() {
             className="reveal mt-4 text-sm text-muted lg:text-base"
             style={{ "--reveal-delay": "170ms" } as React.CSSProperties}
           >
-            A guilda de quem edita. Pegue pautas, entregue, suba de nível.
+            A guilda de quem edita. Receba missões, entregue, suba de nível.
           </p>
 
           <div

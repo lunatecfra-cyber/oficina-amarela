@@ -125,11 +125,20 @@ export async function criarTokenRecuperacao(userId: number) {
     .sign(chave());
 }
 
-export async function verificarTokenRecuperacao(token: string): Promise<{ userId: number } | null> {
+export async function verificarTokenRecuperacao(
+  token: string
+): Promise<{ userId: number; emitidoEmMs: number } | null> {
   try {
     const { payload } = await jwtVerify(token, chave());
-    if (payload.uso === "recuperar-senha" && typeof payload.userId === "number") {
-      return { userId: payload.userId };
+    if (
+      payload.uso === "recuperar-senha" &&
+      typeof payload.userId === "number" &&
+      typeof payload.iat === "number"
+    ) {
+      // devolve quando foi emitido: quem chama compara com
+      // users.sessoes_validas_apos pra recusar link já usado. `iat` vem em
+      // segundos, aqui vira ms pra bater com o timestamp do banco.
+      return { userId: payload.userId, emitidoEmMs: payload.iat * 1000 };
     }
     return null;
   } catch {

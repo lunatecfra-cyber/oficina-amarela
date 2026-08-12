@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Entrar — Oficina Amarela" };
 
 const PILARES = [
   {
-    texto: "Pegue missões da fila e reserve o que vai editar.",
+    texto: "As missões chegam até você — aceite a que combinar.",
     icon: (
       <>
         <rect x="3" y="4" width="18" height="16" rx="2" />

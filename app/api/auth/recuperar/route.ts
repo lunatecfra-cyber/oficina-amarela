@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { buscarContaPorEmail } from "@/lib/contas";
+import { buscarContaPorEmail, registrarTentativa, taxaTravada } from "@/lib/contas";
+import { ipDaRequisicao } from "@/lib/ip";
 import { criarTokenRecuperacao } from "@/lib/sessao";
 import { emailConfigurado, enviarEmailRecuperacao } from "@/lib/email";
 
@@ -25,12 +26,44 @@ export async function POST(request: Request) {
     );
   }
 
+  // Dois freios, porque são dois abusos diferentes:
+  //  - por e-mail: impede encher a caixa de UMA pessoa de link de recuperação
+  //  - por IP: impede varrer muitos e-mails a partir do mesmo lugar
+  // Ambos respondem a MENSAGEM_PADRAO quando travam: dizer "você está
+  // bloqueado" já entregaria que aquele e-mail tem conta.
+  const chaveEmail = `recuperar:${email}`;
+  const chaveIp = `recuperar-ip:${ipDaRequisicao(request)}`;
+
+  const [travaEmail, travaIp] = await Promise.all([
+    taxaTravada(chaveEmail),
+    taxaTravada(chaveIp),
+  ]);
+  if (travaEmail.travado || travaIp.travado) {
+    return NextResponse.json(MENSAGEM_PADRAO);
+  }
+
+  await Promise.all([
+    registrarTentativa(chaveEmail, 3),
+    registrarTentativa(chaveIp, 15),
+  ]);
+
   const conta = await buscarContaPorEmail(email);
   if (conta) {
     const token = await criarTokenRecuperacao(conta.id);
     const origem = new URL(request.url).origin;
     const link = `${origem}/redefinir-senha?token=${token}`;
-    await enviarEmailRecuperacao(conta.email, conta.nome, link);
+    const enviou = await enviarEmailRecuperacao(conta.email, conta.nome, link);
+
+    // Falha de infraestrutura NÃO pode virar "mandamos o link": a pessoa
+    // ficaria esperando pra sempre um e-mail que não saiu. O sigilo sobre
+    // quem tem conta continua valendo pro caso "não achei" logo abaixo —
+    // aqui o problema é nosso, e quem está esperando precisa saber.
+    if (!enviou) {
+      return NextResponse.json(
+        { erro: "Não deu pra mandar o e-mail agora. Tenta de novo em alguns minutos." },
+        { status: 503 }
+      );
+    }
   }
 
   return NextResponse.json(MENSAGEM_PADRAO);

@@ -218,10 +218,26 @@ Tudo texto. Estimativa: 1 pauta ≈ 1 KB → 1.000 pautas ≈ 1 MB. O plano grá
 | Fundo | **Preto texturizado** (trama diagonal + granulado) |
 | Prioridade | **PC primeiro**, ótimo no celular |
 | Tipografia | **Cinzel** (títulos) + **Sora** (interface) |
-| Marca | **Tigre dentro de uma casa/celeiro**, dourado no preto (logo oficial do grupo) |
+| Marca | **Onça-pintada dentro de uma casa/celeiro**, dourado no preto |
 
-✅ Logo oficial do tigre-casa já aplicado (`public/emblema.png`, transparente).
-Obs.: veio em PNG ~370px — se for usar gigante (banner/camiseta), pedir SVG ou PNG maior.
+> **Rebrand em 12/08/2026: o mascote deixou de ser tigre e virou onça-pintada**
+> — animal brasileiro, combina melhor com a pegada do produto.
+>
+> ⚠️ **A troca está pela metade.** O texto e os emojis já são onça, mas a arte
+> ainda é o tigre antigo. Falta o designer entregar:
+>
+> - `public/emblema.png` — 5 referências no código: `components/logo.tsx` (o
+>   logo do header, reusado em várias telas), o favicon em `app/layout.tsx` e a
+>   marca d'água de 3 perfis. Todas apontam pro mesmo arquivo, então **trocar a
+>   imagem resolve tudo de uma vez, sem mexer em código**.
+> - `public/emblema-fundo.png` e `public/logo-completo.png` — confirmados
+>   órfãos (nenhum import), mas também são tigre. Trocar ou apagar.
+>
+> Obs.: o emblema veio em PNG ~370px. Se for usar gigante (banner, camiseta),
+> pedir SVG ou PNG maior junto com a arte nova.
+>
+> Nota sobre o emoji: usamos 🐆 porque **não existe emoji de onça-pintada**.
+> No Unicode ele é oficialmente "leopard" — é o mais próximo que dá.
 
 Tokens em `app/globals.css` (`@theme`). Amarelo da marca: `#f4ce1f` (core), `#fbe9a6` (claro), `#a9840e` (escuro).
 

@@ -57,9 +57,16 @@ export function EditarPerfilForm({ inicial }: { inicial: PerfilEditavel }) {
   return (
     <form onSubmit={onSubmit} className="w-full max-w-lg" noValidate>
       <div className="mb-4">
-        <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-          Especialidades
-        </label>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <label className="block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+            Especialidades
+          </label>
+          {/* sem o contador, o usuário só descobria o teto quando os chips
+              paravam de responder ao clique */}
+          <span className="text-[11px] text-muted-2">
+            {headline.length}/{MAX_HEADLINES}
+          </span>
+        </div>
         <p className="mb-3 text-xs text-muted-2">
           Até {MAX_HEADLINES}. Aparecem embaixo do seu nome no perfil.
         </p>
@@ -90,6 +97,11 @@ export function EditarPerfilForm({ inicial }: { inicial: PerfilEditavel }) {
             </div>
           ))}
         </div>
+        {headline.length >= MAX_HEADLINES && (
+          <p className="mt-2 text-xs text-muted-2">
+            Máximo de {MAX_HEADLINES} especialidades.
+          </p>
+        )}
       </div>
 
       <div className="mb-4">
@@ -139,6 +151,18 @@ export function EditarPerfilForm({ inicial }: { inicial: PerfilEditavel }) {
           {salvando ? "Salvando…" : "Salvar perfil"}
         </button>
       </div>
+
+      {/* Esta tela edita 3 campos; o perfil mostra bem mais que isso. Sem
+          este aviso, quem quisesse trocar software ou foto ficava sem saber
+          por onde — o formulário completo é o do onboarding, que já vem
+          preenchido e funciona como edição. */}
+      <p className="mt-6 border-t border-line pt-4 text-xs text-muted-2">
+        Foto, softwares, estilos, formato, nível de edição e setup ficam no
+        formulário completo.{" "}
+        <Link href="/editor/criar-perfil" className="text-gold-hi hover:underline">
+          Editar a bancada →
+        </Link>
+      </p>
     </form>
   );
 }

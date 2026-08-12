@@ -8,12 +8,12 @@ const OPCOES = [
   {
     papel: "editor" as const,
     titulo: "Sou editor",
-    descricao: "Edito vídeo. Quero pegar missões, entregar e subir de nível.",
+    descricao: "Edito vídeo. Quero receber missões, entregar e subir de nível.",
   },
   {
     papel: "voz" as const,
     titulo: "Sou porta-voz",
-    descricao: "Sou candidato(a). Quero postar missões pros editores pegarem.",
+    descricao: "Sou candidato(a). Mando o bruto e recebo o vídeo editado.",
   },
 ];
 

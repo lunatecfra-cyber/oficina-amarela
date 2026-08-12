@@ -42,6 +42,13 @@ export default async function PerfilPage() {
   // missão que ele tem em mãos agora, de verdade
   const naMesa = trabalhoDaPauta(reservada);
 
+  const temBancada =
+    p.softwares.length > 0 ||
+    p.estilos.length > 0 ||
+    p.nicho.length > 0 ||
+    !!p.nivelEdicao ||
+    !!p.setupPc;
+
   return (
     <>
       <AppHeader />
@@ -72,14 +79,25 @@ export default async function PerfilPage() {
             {/* cabeçalho */}
             <div className="px-5 pb-6 lg:px-8">
               <div className="relative z-10 -mt-12 flex items-end justify-between gap-4 lg:-mt-14">
+                {/* a foto vem do onboarding. Antes o perfil mostrava as
+                    iniciais mesmo quando ela existia no banco. */}
                 <div
-                  className="grid h-24 w-24 place-items-center rounded-2xl bg-ink font-[family-name:var(--font-display)] text-3xl font-semibold text-gold lg:h-28 lg:w-28 lg:text-4xl"
+                  className="grid h-24 w-24 place-items-center overflow-hidden rounded-2xl bg-ink font-[family-name:var(--font-display)] text-3xl font-semibold text-gold lg:h-28 lg:w-28 lg:text-4xl"
                   style={{
                     boxShadow:
                       "0 0 0 4px var(--color-ink), 0 0 0 5px rgba(244,206,31,0.55), 0 12px 34px rgba(0,0,0,0.6)",
                   }}
                 >
-                  {iniciais(p.nome)}
+                  {p.fotoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- data URL do upload, next/image não otimiza
+                    <img
+                      src={p.fotoUrl}
+                      alt={p.nome}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    iniciais(p.nome)
+                  )}
                 </div>
                 <Link href="/perfil/editar" className="btn-ghost mb-1 w-auto px-4 text-sm">
                   Editar perfil
@@ -220,26 +238,77 @@ export default async function PerfilPage() {
                     </p>
                   </>
                 ) : (
-                  <p className="mt-3 text-xs text-muted">Nível máximo alcançado. 🐅</p>
+                  <p className="mt-3 text-xs text-muted">Nível máximo alcançado. 🐆</p>
                 )}
               </Card>
 
-              <Card titulo="Caixa de Ferramentas" delay={0.15}>
-                {p.conquistas.length === 0 && (
+              {/* "A Bancada" é o nome da etapa do cadastro onde ele preencheu
+                  isto. Antes o card se chamava "Caixa de Ferramentas" e
+                  mostrava conquistas — as ferramentas de verdade estavam no
+                  banco e não apareciam em lugar nenhum. */}
+              <Card titulo="A Bancada" delay={0.15}>
+                {temBancada ? (
+                  <div className="flex flex-col gap-4">
+                    {p.softwares.length > 0 && (
+                      <ListaChips titulo="Softwares" itens={p.softwares} />
+                    )}
+                    {p.estilos.length > 0 && (
+                      <ListaChips titulo="Estilos" itens={p.estilos} />
+                    )}
+                    {p.nicho.length > 0 && (
+                      <ListaChips titulo="Formato" itens={p.nicho} />
+                    )}
+                    {(p.nivelEdicao || p.setupPc) && (
+                      <div className="flex flex-wrap gap-x-6 gap-y-3 border-t border-line pt-3">
+                        {p.nivelEdicao && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide text-muted-2">
+                              Nível de edição
+                            </p>
+                            <p className="mt-0.5 text-sm text-text">{p.nivelEdicao}</p>
+                          </div>
+                        )}
+                        {p.setupPc && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide text-muted-2">
+                              Setup
+                            </p>
+                            <p className="mt-0.5 text-sm text-text">{p.setupPc}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-2">
+                    Você ainda não montou sua bancada.{" "}
+                    <Link
+                      href="/editor/criar-perfil"
+                      className="text-gold-hi hover:underline"
+                    >
+                      Preencher agora
+                    </Link>
+                  </p>
+                )}
+              </Card>
+
+              <Card titulo="Conquistas" delay={0.18}>
+                {p.conquistas.length === 0 ? (
                   <p className="text-sm text-muted-2">
                     Nenhuma conquista ainda. Elas vêm com as entregas.
                   </p>
+                ) : (
+                  <ul className="flex flex-col gap-3">
+                    {p.conquistas.map((c) => (
+                      <li key={c.nome} className="flex items-center gap-3">
+                        <span className="grid h-9 w-9 place-items-center rounded-lg border border-line bg-ink-2 text-lg">
+                          {c.icone}
+                        </span>
+                        <span className="text-sm text-muted">{c.nome}</span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-                <ul className="flex flex-col gap-3">
-                  {p.conquistas.map((c) => (
-                    <li key={c.nome} className="flex items-center gap-3">
-                      <span className="grid h-9 w-9 place-items-center rounded-lg border border-line bg-ink-2 text-lg">
-                        {c.icone}
-                      </span>
-                      <span className="text-sm text-muted">{c.nome}</span>
-                    </li>
-                  ))}
-                </ul>
               </Card>
 
               <Card titulo="Disponibilidade" delay={0.2}>
@@ -262,6 +331,24 @@ export default async function PerfilPage() {
         </div>
       </main>
     </>
+  );
+}
+
+function ListaChips({ titulo, itens }: { titulo: string; itens: string[] }) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wide text-muted-2">{titulo}</p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {itens.map((i) => (
+          <span
+            key={i}
+            className="rounded-md border border-line-soft bg-surface px-2 py-0.5 text-xs text-muted"
+          >
+            {i}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 

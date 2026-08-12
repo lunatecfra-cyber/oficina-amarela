@@ -5,6 +5,7 @@
 // Postgres pra lá jogaria o banco dentro do bundle do navegador e quebraria
 // o build. lib/perfil.ts continua sendo só tipos + dados de demonstração.
 import { sql } from "@/lib/db";
+import { LIMITES, fotoValida, limitar, limitarLista, limitarOuNulo } from "@/lib/limites";
 import type {
   EditorRanking,
   ItemHistorico,
@@ -37,9 +38,9 @@ export async function salvarPerfilEditavel(
 ): Promise<void> {
   await sql`
     UPDATE users SET
-      headline = ${dados.headline ? sql.json(dados.headline) : null},
-      bio = ${dados.bio?.trim() || null},
-      localizacao = ${dados.localizacao?.trim() || null}
+      headline = ${dados.headline ? sql.json(limitarLista(dados.headline, 5)) : null},
+      bio = ${limitarOuNulo(dados.bio, LIMITES.bio)},
+      localizacao = ${limitarOuNulo(dados.localizacao, LIMITES.localizacao)}
     WHERE id = ${userId}
   `;
 }
@@ -61,13 +62,31 @@ export type OnboardingEditor = {
 };
 
 /**
- * Normaliza headline: aceita tanto string[] (novo jsonb) quanto string (legado).
- * Se for string não-vazia, devolve array com esse único elemento.
+ * Normaliza uma lista de tags vinda do banco.
+ *
+ * Três formatos aparecem aqui, e os três precisam funcionar:
+ *
+ * 1. `string[]` — colunas TEXT[] de verdade (softwares, estilos, nicho).
+ * 2. Texto com JSON dentro — é o caso do `headline`. A coluna é TEXT, mas
+ *    `salvarPerfilEditavel` grava com `sql.json(...)`, então volta como a
+ *    string `'["Cortes impactantes","Ritmo rápido"]'`. Sem fazer o parse, a
+ *    tela imprimia o JSON cru, colchetes e aspas incluídos.
+ * 3. Texto simples — headline antiga, de antes de virar multi-seleção.
  */
 function normalizarLista(valor: unknown): string[] {
   if (Array.isArray(valor)) return valor.filter((x) => typeof x === "string");
-  if (typeof valor === "string" && valor.trim()) return [valor];
-  return [];
+  if (typeof valor !== "string" || !valor.trim()) return [];
+
+  const texto = valor.trim();
+  if (texto.startsWith("[")) {
+    try {
+      const lido: unknown = JSON.parse(texto);
+      if (Array.isArray(lido)) return lido.filter((x) => typeof x === "string");
+    } catch {
+      // não era JSON válido: trata como texto simples, abaixo
+    }
+  }
+  return [texto];
 }
 
 /**
@@ -132,12 +151,18 @@ export async function salvarOnboardingEditor(
     disponibilidade?: boolean[][];
   }
 ): Promise<{ ok: true } | { ok: false; erro: string }> {
-  const nome = dados.nome.trim();
+  const nome = limitar(dados.nome, LIMITES.nome);
   if (!nome) return { ok: false, erro: "Digite seu nome." };
+
+  // a foto é gravada como data URL e trafega inteira toda vez que o perfil
+  // renderiza — aqui é o único ponto que consegue recusar uma grande
+  if (!fotoValida(dados.fotoUrl)) {
+    return { ok: false, erro: "A foto precisa ser imagem e ter menos de 1,5 MB." };
+  }
 
   // corta no teto em vez de recusar: o formulário já impede passar disso, e
   // recusar aqui só perderia o resto do que a pessoa preencheu
-  const estilos = (dados.estilos ?? []).slice(0, 3);
+  const estilos = limitarLista(dados.estilos, 3);
 
   // sql.json(x) quando há grade nova, NULL quando não há — COALESCE mantém o
   // valor atual da coluna nesse segundo caso, em vez de zerar
@@ -147,15 +172,15 @@ export async function salvarOnboardingEditor(
     UPDATE users SET
       nome = ${nome},
       foto_url = ${dados.fotoUrl?.trim() || null},
-      localizacao = ${dados.localizacao?.trim() || null},
-      headline = ${dados.headline ? sql.json(dados.headline) : null},
-      bio = ${dados.bio?.trim() || null},
-      softwares = ${dados.softwares ?? []},
+      localizacao = ${limitarOuNulo(dados.localizacao, LIMITES.localizacao)},
+      headline = ${dados.headline ? sql.json(limitarLista(dados.headline, 5)) : null},
+      bio = ${limitarOuNulo(dados.bio, LIMITES.bio)},
+      softwares = ${limitarLista(dados.softwares, 12)},
       estilos = ${estilos},
-      nivel_edicao = ${dados.nivelEdicao?.trim() || null},
-      setup_pc = ${dados.setupPc?.trim() || null},
-      portfolio_link = ${dados.portfolioLink?.trim() || null},
-      nicho = ${dados.nicho ?? []},
+      nivel_edicao = ${limitarOuNulo(dados.nivelEdicao, LIMITES.tag)},
+      setup_pc = ${limitarOuNulo(dados.setupPc, LIMITES.tag)},
+      portfolio_link = ${limitarOuNulo(dados.portfolioLink, LIMITES.link)},
+      nicho = ${limitarLista(dados.nicho, 4)},
       -- sql.json e nao JSON.stringify: com a string, o Postgres guardava um
       -- JSON *string* dentro do jsonb (duplamente codificado) e a grade
       -- voltava como texto, nao como array
@@ -170,7 +195,11 @@ export async function salvarOnboardingEditor(
 export async function lerPerfilEditor(userId: number): Promise<PerfilEditor | null> {
   const [conta] = await sql`
     SELECT apelido, nome, headline, bio, localizacao, criado_em,
-           entregues, reputacao, streak, nota, nivel
+           entregues, reputacao, streak, nota, nivel,
+           -- tudo isto o onboarding já salvava e o perfil nunca lia:
+           -- a foto aparecia como iniciais mesmo existindo, e a "caixa de
+           -- ferramentas" não mostrava ferramenta nenhuma
+           foto_url, softwares, estilos, nicho, nivel_edicao, setup_pc
     FROM users WHERE id = ${userId}
   `;
   if (!conta) return null;
@@ -208,6 +237,12 @@ export async function lerPerfilEditor(userId: number): Promise<PerfilEditor | nu
       year: "numeric",
     }),
     bio: conta.bio ?? "",
+    fotoUrl: conta.foto_url ?? undefined,
+    softwares: normalizarLista(conta.softwares),
+    estilos: normalizarLista(conta.estilos),
+    nicho: normalizarLista(conta.nicho),
+    nivelEdicao: conta.nivel_edicao ?? undefined,
+    setupPc: conta.setup_pc ?? undefined,
     entregues: conta.entregues,
     // nota é NULL até existir avaliação — a tela decide como mostrar isso
     nota: conta.nota === null ? null : Number(conta.nota),

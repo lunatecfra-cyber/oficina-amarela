@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { atualizarSenha } from "@/lib/contas";
+import { atualizarSenha, linkRecuperacaoJaUsado } from "@/lib/contas";
 import { verificarTokenRecuperacao } from "@/lib/sessao";
 
 export async function POST(request: Request) {
@@ -12,6 +12,13 @@ export async function POST(request: Request) {
 
   const dados = await verificarTokenRecuperacao(token);
   if (!dados) {
+    return NextResponse.json({ erro: "Link expirado ou inválido. Peça um novo." }, { status: 401 });
+  }
+
+  // link de uso único: assinatura válida não basta, ele não pode já ter sido
+  // gasto. Mesma resposta do token inválido — quem tem o link na mão não
+  // precisa saber se ele foi usado ou se nunca prestou.
+  if (await linkRecuperacaoJaUsado(dados.userId, dados.emitidoEmMs)) {
     return NextResponse.json({ erro: "Link expirado ou inválido. Peça um novo." }, { status: 401 });
   }
 

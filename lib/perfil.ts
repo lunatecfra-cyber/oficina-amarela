@@ -165,6 +165,13 @@ export type PerfilEditor = {
   local: string;
   desde: string;
   bio: string;
+  // o que ele preencheu no cadastro e antes não aparecia em lugar nenhum
+  fotoUrl?: string;
+  softwares: string[];
+  estilos: string[];
+  nicho: string[];
+  nivelEdicao?: string;
+  setupPc?: string;
   entregues: number;
   nota: number | null; // null = ainda não foi avaliado (não é nota zero)
   nivel?: Nivel; // vem calculado do banco a partir de entregues
@@ -182,6 +189,11 @@ export const PERFIL_EDITOR: PerfilEditor = {
   local: "Petrópolis, RJ",
   desde: "março de 2026",
   bio: "Corto rápido e no ritmo. Especialidade em short de reação e clipe de fala forte. Gosto de tom direto, legenda bold e áudio limpo.",
+  softwares: ["Premiere", "After Effects"],
+  estilos: ["Reels dinâmico", "Corte de live"],
+  nicho: ["Vertical (9:16)"],
+  nivelEdicao: "Avançado",
+  setupPc: "🚀 PC Monstro",
   entregues: 12,
   nota: 4.8,
   reputacao: 340,
@@ -221,7 +233,7 @@ export const DESAFIOS_HOJE: Desafio[] = [
   {
     id: "d1",
     titulo: "Entregue uma missão hoje",
-    descricao: "Termine e entregue qualquer pauta que você já reservou.",
+    descricao: "Termine e entregue a missão que você aceitou.",
     xp: 40,
     dificuldade: 2,
     cumprido: false,

@@ -30,13 +30,23 @@ export default async function PerfilPortaVozPage() {
   const cand = candOpt ?? getCandidato(sessao.nome);
   const minhas = [...reaisMinhas, ...PAUTAS.filter((p) => p.portaVoz === sessao.nome)];
 
-  const naFila = minhas.filter((p) => p.status === "disponivel").length;
+  // Os quatro contadores têm que somar o total, senão missão some da conta.
+  // 'oferecida' (dispatch, ainda sem editor) conta como fila; 'finalizada'
+  // (o porta-voz aceitou) conta como pronta — sem isso o número de aprovadas
+  // DIMINUÍA no momento em que ele aceitava o vídeo.
+  const naFila = minhas.filter((p) =>
+    ["disponivel", "oferecida"].includes(p.status)
+  ).length;
   const emProducao = minhas.filter((p) =>
     ["reservada", "em_revisao", "reedicao"].includes(p.status)
   ).length;
-  const aprovadas = minhas.filter((p) => p.status === "aprovada").length;
+  const prontas = minhas.filter((p) =>
+    ["aprovada", "finalizada"].includes(p.status)
+  ).length;
 
-  const historico = minhas.filter((p) => p.status === "aprovada" || p.status === "reedicao");
+  const historico = minhas.filter((p) =>
+    ["aprovada", "finalizada", "reedicao"].includes(p.status)
+  );
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 lg:px-8 lg:py-10">
@@ -82,7 +92,7 @@ export default async function PerfilPortaVozPage() {
             <Stat valor={String(minhas.length)} rotulo="missões" />
             <Stat valor={String(naFila)} rotulo="na fila" />
             <Stat valor={String(emProducao)} rotulo="em produção" />
-            <Stat valor={String(aprovadas)} rotulo="aprovadas" />
+            <Stat valor={String(prontas)} rotulo="prontas" />
           </dl>
         </div>
       </section>
@@ -121,7 +131,7 @@ export default async function PerfilPortaVozPage() {
           ) : (
             <ol className="relative ml-1">
               {historico.map((h, i) => {
-                const ok = h.status === "aprovada";
+                const ok = h.status === "aprovada" || h.status === "finalizada";
                 const ultimo = i === historico.length - 1;
                 return (
                   <li key={h.id} className="relative flex gap-4 pb-5 last:pb-0">
@@ -138,7 +148,11 @@ export default async function PerfilPortaVozPage() {
                       <p className="text-xs text-muted-2">
                         {h.reservadaPor ?? "—"} ·{" "}
                         <span className={ok ? "text-ok" : "text-gold"}>
-                          {ok ? "aprovada" : "reedição pedida"}
+                          {h.status === "finalizada"
+                            ? "concluída"
+                            : h.status === "aprovada"
+                              ? "pronta pra conferir"
+                              : "reedição pedida"}
                         </span>
                       </p>
                     </div>

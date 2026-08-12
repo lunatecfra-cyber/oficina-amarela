@@ -35,7 +35,8 @@ export default async function CriarPerfilEditorPage() {
             Monte sua bancada
           </h1>
           <p className="mt-1 mb-8 text-sm text-muted">
-            Três passos rápidos. É com isso que a Oficina te indica as pautas certas.
+            Três passos rápidos. É com isso que a Oficina escolhe quais missões
+            oferecer pra você.
           </p>
         </div>
         <CriarPerfilEditorForm inicial={inicial} />

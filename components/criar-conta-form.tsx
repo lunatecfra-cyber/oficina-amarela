@@ -216,7 +216,23 @@ export function CriarContaForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted">
+      {/* /termos e /privacidade existiam sem nenhum caminho até elas. Aqui é
+          onde a pessoa decide entrar, então é aqui que precisam estar.
+          Falta ainda o registro de consentimento (quem aceitou o quê e
+          quando) — ver docs/OBRIGATORIO-LEGAL.md. */}
+      <p className="mt-5 text-center text-xs leading-relaxed text-muted-2">
+        Ao criar sua conta você concorda com os{" "}
+        <Link href="/termos" className="text-muted hover:text-gold-hi hover:underline">
+          Termos de Uso
+        </Link>{" "}
+        e a{" "}
+        <Link href="/privacidade" className="text-muted hover:text-gold-hi hover:underline">
+          Política de Privacidade
+        </Link>
+        .
+      </p>
+
+      <p className="mt-5 text-center text-sm text-muted">
         Já é membro?{" "}
         <Link href="/login" className="font-medium text-gold-hi hover:underline">
           Entrar

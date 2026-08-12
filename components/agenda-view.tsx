@@ -120,11 +120,18 @@ export function AgendaView({
       <section className="mt-10">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-gold">
-              Disponibilidade da semana
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-gold">
+                Disponibilidade da semana
+              </h2>
+              <span className="rounded-full border border-silver-lo/50 bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-silver">
+                Beta
+              </span>
+            </div>
             <p className="mt-1 text-xs text-muted-2">
               Você só recebe oferta de missão nos blocos que estiverem livres.
+              Recurso em teste — se sentir que parou de chegar missão sem
+              motivo, confira a grade aqui.
             </p>
           </div>
           <span className="flex items-center gap-2 text-xs text-muted">

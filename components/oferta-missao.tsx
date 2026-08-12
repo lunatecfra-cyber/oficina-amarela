@@ -161,7 +161,7 @@ export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) 
             className="absolute inset-0 animate-ping rounded-2xl border border-gold-lo/30"
             style={{ animationDuration: "2.6s" }}
           />
-          <span className="relative">🐯</span>
+          <span className="relative">🐆</span>
         </span>
 
         <p className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">

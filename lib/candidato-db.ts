@@ -3,6 +3,7 @@
 // importado por componentes "use client" — puxar o driver do Postgres pra
 // lá quebraria o build.
 import { sql } from "@/lib/db";
+import { LIMITES, fotoValida, limitar, limitarLista, limitarOuNulo } from "@/lib/limites";
 import { TINT_PADRAO, type Candidato, type RedesSociais } from "@/lib/candidatos";
 
 export type OnboardingCandidato = {
@@ -60,28 +61,34 @@ export async function salvarOnboardingCandidato(
     bio?: string;
   }
 ): Promise<{ ok: true } | { ok: false; erro: string }> {
-  const nome = dados.nome.trim();
+  const nome = limitar(dados.nome, LIMITES.nome);
   if (!nome) return { ok: false, erro: "Digite seu nome." };
   if (!dados.cargo?.trim()) return { ok: false, erro: "Escolha o cargo." };
   if (!dados.localizacao?.trim()) return { ok: false, erro: "Preencha a região." };
 
-  const palavrasChave = (dados.palavrasChave ?? []).slice(0, 3);
+  // mesma trava do editor: a foto vira data URL e trafega inteira toda vez
+  // que o perfil (ou o card na fila) renderiza
+  if (!fotoValida(dados.fotoUrl)) {
+    return { ok: false, erro: "A foto precisa ser imagem e ter menos de 1,5 MB." };
+  }
+
+  const palavrasChave = limitarLista(dados.palavrasChave, 3);
 
   await sql`
     UPDATE users SET
       nome = ${nome},
       foto_url = ${dados.fotoUrl?.trim() || null},
-      cargo = ${dados.cargo?.trim() || null},
-      disputa_por = ${dados.disputaPor?.trim() || null},
-      ano_eleicao = ${dados.anoEleicao?.trim() || null},
-      localizacao = ${dados.localizacao?.trim() || null},
-      bandeiras = ${dados.bandeiras ?? []},
-      tom_comunicacao = ${dados.tomComunicacao?.trim() || null},
+      cargo = ${limitarOuNulo(dados.cargo, LIMITES.tag)},
+      disputa_por = ${limitarOuNulo(dados.disputaPor, LIMITES.tag)},
+      ano_eleicao = ${limitarOuNulo(dados.anoEleicao, 4)},
+      localizacao = ${limitarOuNulo(dados.localizacao, LIMITES.localizacao)},
+      bandeiras = ${limitarLista(dados.bandeiras, 12)},
+      tom_comunicacao = ${limitarOuNulo(dados.tomComunicacao, LIMITES.tag)},
       palavras_chave = ${palavrasChave},
       -- sql.json e nao JSON.stringify: mesma armadilha do disponibilidade no
       -- onboarding do editor (JSON.stringify()::jsonb guarda string, nao objeto)
       redes_sociais = ${sql.json(dados.redes ?? {})},
-      bio = ${dados.bio?.trim() || null},
+      bio = ${limitarOuNulo(dados.bio, LIMITES.bio)},
       perfil_completo = true
     WHERE id = ${userId}
   `;

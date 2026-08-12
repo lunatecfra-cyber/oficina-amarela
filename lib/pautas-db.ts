@@ -5,6 +5,7 @@
 // (editor) são pessoas diferentes, em navegadores diferentes. localStorage é
 // isolado por navegador, então nunca chegaria de um pro outro.
 import { sql } from "@/lib/db";
+import { LIMITES, limitar, limitarOuNulo } from "@/lib/limites";
 import type { Formato, Pauta, StatusPauta } from "@/lib/pautas";
 
 type LinhaPauta = {
@@ -90,23 +91,36 @@ export async function criarPauta(dados: {
   motivo?: string;
   prazo?: string;
 }): Promise<{ ok: true; id: number } | { ok: false; erro: string }> {
-  const titulo = dados.titulo.trim();
+  const titulo = limitar(dados.titulo, LIMITES.titulo);
   if (!titulo) return { ok: false, erro: "Dê um título pra missão." };
   if (dados.formato !== "short" && dados.formato !== "longo") {
     return { ok: false, erro: "Escolha o formato." };
   }
+
+  // corta tudo aqui, no ponto onde grava: não importa se veio do wizard ou
+  // de um POST direto na API
+  const brief = {
+    tom: limitarOuNulo(dados.tom, LIMITES.briefCampo),
+    cor: limitarOuNulo(dados.cor, LIMITES.briefCampo),
+    fonte: limitarOuNulo(dados.fonte, LIMITES.briefCampo),
+    refs: limitarOuNulo(dados.refs, LIMITES.briefCampo),
+    extras: limitarOuNulo(dados.extras, LIMITES.textoLongo),
+    motivo: limitarOuNulo(dados.motivo, LIMITES.textoLongo),
+    driveLink: limitarOuNulo(dados.driveLink, LIMITES.link),
+    prazo: limitarOuNulo(dados.prazo, 10), // "AAAA-MM-DD"
+  };
 
   const [linha] = await sql`
     INSERT INTO pautas (porta_voz_id, titulo, formato, drive_link,
                         brief_tom, brief_cor, brief_fonte, brief_refs,
                         extras, motivo, prazo_desejado)
     VALUES (${dados.portaVozId}, ${titulo}, ${dados.formato},
-            ${dados.driveLink?.trim() || null},
-            ${dados.tom?.trim() || null}, ${dados.cor?.trim() || null},
-            ${dados.fonte?.trim() || null}, ${dados.refs?.trim() || null},
-            ${dados.extras?.trim() || null},
-            ${dados.motivo?.trim() || null},
-            ${dados.prazo?.trim() || null})
+            ${brief.driveLink},
+            ${brief.tom}, ${brief.cor},
+            ${brief.fonte}, ${brief.refs},
+            ${brief.extras},
+            ${brief.motivo},
+            ${brief.prazo})
     RETURNING id
   `;
   return { ok: true, id: linha.id };

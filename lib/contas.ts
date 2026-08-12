@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { LIMITES, limitar } from "@/lib/limites";
 import { sql } from "@/lib/db";
 import type { Papel } from "@/lib/sessao";
 
@@ -24,11 +25,16 @@ export async function criarConta(dados: {
   senha: string;
   papel: Papel;
 }): Promise<{ ok: true; conta: ContaUsuario } | { ok: false; erro: string }> {
-  const nome = dados.nome.trim();
-  const apelido = dados.apelido.trim();
-  const email = dados.email.trim();
+  const nome = limitar(dados.nome, LIMITES.nome);
+  const apelido = limitar(dados.apelido, LIMITES.apelido);
+  const email = limitar(dados.email, LIMITES.email);
 
   if (!nome) return { ok: false, erro: "Digite seu nome." };
+  // senha longa demais também é problema: bcrypt fica caro e vira porta de
+  // negação de serviço barata
+  if (dados.senha.length > 200) {
+    return { ok: false, erro: "Senha longa demais." };
+  }
   if (!apelidoValido(apelido)) {
     return { ok: false, erro: "Apelido deve ter 3-24 letras, números, ponto ou underline." };
   }
@@ -123,6 +129,26 @@ export async function buscarContaPorEmail(email: string): Promise<ContaUsuario |
   return (linha as ContaUsuario) ?? null;
 }
 
+/**
+ * O link de recuperação já foi gasto?
+ *
+ * Não existe registro de "token usado" — e não precisa. Trocar a senha grava
+ * `sessoes_validas_apos = now()`, então qualquer link emitido ANTES desse
+ * instante já cumpriu (ou perdeu) a função. Isso fecha o reuso: o mesmo link
+ * trocava a senha quantas vezes quisesse dentro dos 30 minutos, e ele viaja
+ * por e-mail — fica em caixa de entrada, log de gateway, histórico.
+ */
+export async function linkRecuperacaoJaUsado(
+  userId: number,
+  emitidoEmMs: number
+): Promise<boolean> {
+  const [linha] = await sql`
+    SELECT sessoes_validas_apos FROM users WHERE id = ${userId}
+  `;
+  if (!linha?.sessoes_validas_apos) return false; // nunca trocou senha
+  return emitidoEmMs < new Date(linha.sessoes_validas_apos).getTime();
+}
+
 export async function atualizarSenha(
   userId: number,
   novaSenha: string
@@ -139,17 +165,25 @@ export async function atualizarSenha(
   return { ok: true };
 }
 
-// ---- trava de força bruta no login ----------------------------------------
+// ---- trava de taxa ---------------------------------------------------------
 // Guardada no Postgres de propósito: em memória não funciona na Vercel, porque
 // cada instância serverless tem a própria memória (basta cair noutra instância
 // pra zerar a contagem).
+//
+// A tabela `tentativas_login` nasceu só pro login, mas é um contador genérico
+// por chave — serve pra qualquer ação que precise de freio. As chaves vão
+// prefixadas ("login:", "cadastro:", "recuperar:") pra um cadastro em massa
+// não travar o login de alguém por acidente.
 
 const MAX_TENTATIVAS = 5;
 const MINUTOS_TRAVA = 15;
 const MINUTOS_JANELA = 15; // tentativas velhas que isso são esquecidas
 
-export async function loginTravado(apelido: string): Promise<{ travado: boolean; minutos: number }> {
-  const chave = apelido.trim().toLowerCase();
+/** Está travado agora? Devolve quantos minutos faltam. */
+export async function taxaTravada(
+  chaveBruta: string
+): Promise<{ travado: boolean; minutos: number }> {
+  const chave = chaveBruta.trim().toLowerCase();
   const [linha] = await sql`SELECT travado_ate FROM tentativas_login WHERE chave = ${chave}`;
   if (!linha?.travado_ate) return { travado: false, minutos: 0 };
 
@@ -159,8 +193,12 @@ export async function loginTravado(apelido: string): Promise<{ travado: boolean;
   return { travado: true, minutos: Math.max(1, Math.ceil(restanteMs / 60000)) };
 }
 
-export async function registrarFalhaLogin(apelido: string): Promise<void> {
-  const chave = apelido.trim().toLowerCase();
+/** Conta mais uma tentativa. Estourou o teto, tranca pelo tempo da janela. */
+export async function registrarTentativa(
+  chaveBruta: string,
+  max = MAX_TENTATIVAS
+): Promise<void> {
+  const chave = chaveBruta.trim().toLowerCase();
 
   // ON CONFLICT resolve a corrida entre duas tentativas simultâneas: o banco
   // serializa, então o contador não se perde.
@@ -181,7 +219,7 @@ export async function registrarFalhaLogin(apelido: string): Promise<void> {
     RETURNING tentativas
   `;
 
-  if (linha && linha.tentativas >= MAX_TENTATIVAS) {
+  if (linha && linha.tentativas >= max) {
     await sql`
       UPDATE tentativas_login
       SET travado_ate = now() + (${MINUTOS_TRAVA} || ' minutes')::interval,
@@ -192,8 +230,14 @@ export async function registrarFalhaLogin(apelido: string): Promise<void> {
   }
 }
 
+// ---- atalhos por ação ------------------------------------------------------
+
+export const loginTravado = (apelido: string) => taxaTravada(`login:${apelido}`);
+export const registrarFalhaLogin = (apelido: string) =>
+  registrarTentativa(`login:${apelido}`);
+
 export async function limparTentativasLogin(apelido: string): Promise<void> {
-  await sql`DELETE FROM tentativas_login WHERE chave = ${apelido.trim().toLowerCase()}`;
+  await sql`DELETE FROM tentativas_login WHERE chave = ${`login:${apelido}`.trim().toLowerCase()}`;
 }
 
 async function gerarApelidoUnico(email: string): Promise<string> {
