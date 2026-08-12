@@ -5,8 +5,15 @@
 
 ## ⚠️ Regras invioláveis
 
-- **NUNCA usar a palavra "missão"** (nem "Missio" em latim) — é ligada a partido, não podemos atrelar.
-  Palavra oficial adotada: **PAUTA**. (Ex.: "Pautas disponíveis", "Pauta aceita!")
+- **Na tela, o termo é "missão/missões".** No código continua `pauta` (tabela
+  `pautas`, `lib/pautas.ts`, rota `/api/pautas`) — só o texto visível muda.
+
+  > **Regra revogada em 12/08/2026.** Antes valia o contrário: *"NUNCA usar a
+  > palavra missão (nem Missio em latim) — é ligada a partido, não podemos
+  > atrelar. Palavra oficial adotada: PAUTA."* Fica registrado porque o motivo
+  > era de marca, não de estilo: havia receio de associação partidária. O Vitor
+  > reavaliou e considerou o risco superado. Se alguém no futuro estranhar a
+  > palavra na interface, a discussão já aconteceu — não é descuido.
 
 ## Decisões travadas
 
@@ -53,15 +60,28 @@ Em partes, não tudo de uma vez:
 ## Roadmap
 
 - [x] **F0 — Identidade + Login** (design system, boas-vindas, login)
-- [x] **F3 — Demanda do porta-voz** (wizard 5 passos + home "minhas pautas") *(a fonte — interface pronta, dados fake)*
-- [x] **F1 — Fila de pautas do editor** + reservar com prazo *(interface pronta, dados fake)*
-- [x] **F2 — Entrega** (link do editado) → vai pra "em revisão" *(interface pronta, dados fake)*
-- [x] **F5 — Perfil do editor** (estilo LinkedIn: capa, avatar, stats, portfólio, histórico timeline, nível, conquistas)
-- [x] **Agenda dinâmica** (disponibilidade da semana clicável + trabalhos em andamento com contador vivo)
-- [x] **F4 — Inspetor**: aprovar / pedir reedição *(interface pronta, dados fake)*
+- [x] **F3 — Demanda do porta-voz** (wizard 5 passos + home "minhas missões") *(no banco)*
+- [x] **F1 — Fila do editor** — virou **dispatch estilo Uber**: a missão é
+      oferecida a um editor por vez, com 5 min pra responder; recusou ou venceu,
+      vai pro próximo. Não existe mais lista aberta pra navegar. *(no banco)*
+- [x] **F2 — Entrega** (link do editado) → vai pra "em revisão" *(no banco)*
+- [x] **F5 — Perfil do editor** (capa, avatar, stats, portfólio, histórico, nível, conquistas) *(no banco)*
+- [x] **Agenda** — a grade de disponibilidade **decide quem recebe oferta**:
+      bloco ocupado = nenhuma missão naquele horário *(no banco)*
+- [x] **Ranking** — editores reais por XP *(no banco)*
+- [x] **F4 — Inspetor**: aprovar / pedir reedição *(no banco; a fila ainda
+      concatena as missões de demonstração)*
+- [x] **Validação do porta-voz** — depois do inspetor aprovar, o porta-voz
+      confere e **aceita ou pede ajuste** (status `finalizada`)
+- [x] **Aulas** — aba criada no nav; página é placeholder, sem conteúdo ainda
 - [ ] **F6 — Auth real no Supabase** (apelido/senha + Google) + banco
-- [x] **Perfil do porta-voz** (`/porta-voz/perfil`, variação: pautas criadas no lugar do portfólio) *(interface pronta, dados fake)*
+- [x] **Perfil do porta-voz** (`/porta-voz/perfil`, missões criadas no lugar do portfólio) *(no banco)*
 - [ ] **F7 — Perfil Estendido** (Abas de Certificações do Hub e Equipamentos/Setup do editor)
+
+> **Onde ainda entram dados de demonstração** (decisão do Vitor: manter por
+> ora): `app/porta-voz/page.tsx`, `app/porta-voz/perfil/page.tsx`,
+> `components/fila-inspetor.tsx` e `app/candidato/[slug]/page.tsx` concatenam
+> as missões fake de `lib/pautas.ts` com as do banco.
 
 
 ## Stack
@@ -93,9 +113,14 @@ npm run build    # verificar erros
 
 - [ ] Fazer o setup do **Google Cloud + Supabase** (ver `docs/SETUP-GOOGLE.md`) e me passar as chaves
 - [ ] Critério da **nota/avaliação** do editor
-- [ ] Prazo padrão de reserva de uma pauta
-- [ ] Editor pega 1 pauta por vez?
+- [x] ~~Prazo padrão de reserva~~ → **24h** pra entregar, e **5 min** pra
+      responder a oferta antes dela passar pro próximo editor
+- [x] ~~Editor pega 1 missão por vez?~~ → **sim**, travado no banco
 - [ ] Referências visuais que ele ia mandar
+- [ ] Missão que passa por todos os editores fica parada. Reoferecer depois de
+      um tempo, ou o admin ver as órfãs numa tela?
+- [ ] "Desafios do dia" (`/editor`) é decorativo: lista fixa, marcar não salva,
+      o XP não entra em lugar nenhum. De onde saem os desafios?
 
 ## Para ligar o login do Google + Drive
 

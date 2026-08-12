@@ -52,7 +52,8 @@ const GRUPOS: Grupo[] = [
     titulo: "Comum / Inspetor",
     rotulo: "Inspetor só admin",
     itens: [
-      { href: "/agenda", titulo: "Agenda", desc: "Disponibilidade + missão em mãos, ambas do banco.", protegida: true, ok: true },
+      { href: "/agenda", titulo: "Agenda", desc: "A grade decide de verdade quem recebe oferta: bloco ocupado = nenhuma missão naquele horário. O bloco de agora aparece com anel dourado.", protegida: true, ok: true },
+      { href: "/aulas", titulo: "Aulas", desc: "Placeholder — a aba existe no nav, o conteúdo ainda não.", protegida: true },
       { href: "/ranking", titulo: "Ranking", desc: "Editores reais por XP. \"Você\" destaca quem está logado.", protegida: true, ok: true },
       { href: "/perfil", titulo: "Perfil do editor", desc: "Histórico, disponibilidade e mesa agora — tudo do banco.", protegida: true, ok: true },
       { href: "/perfil/editar", titulo: "Editar perfil", desc: "Edição comum.", protegida: true },
