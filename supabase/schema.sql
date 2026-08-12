@@ -169,9 +169,12 @@ ALTER TABLE pautas ADD COLUMN IF NOT EXISTS prazo_desejado DATE;
 -- 'finalizada' fecha o ciclo: o inspetor aprova (status 'aprovada') e só
 -- então o porta-voz confere e aceita. O CREATE TABLE acima já nasce com ela,
 -- mas bancos criados antes precisam do constraint recriado.
+-- 'oferecida' é o dispatch: a missão está reservada em caráter provisório pro
+-- editor que recebeu a oferta e some da lista aberta. Se ele recusar ou o
+-- prazo vencer, volta pra 'disponivel' e vai pro próximo da rodada.
 ALTER TABLE pautas DROP CONSTRAINT IF EXISTS pautas_status_check;
 ALTER TABLE pautas ADD CONSTRAINT pautas_status_check
-  CHECK (status IN ('disponivel','reservada','em_revisao','reedicao','aprovada','finalizada'));
+  CHECK (status IN ('disponivel','oferecida','reservada','em_revisao','reedicao','aprovada','finalizada'));
 
 -- Trava de contagem dupla: aprovar dá entregues+1, reputacao+25 e streak+1 ao
 -- editor. Como o porta-voz pode devolver pra reedição depois de aprovada, o
@@ -183,6 +186,46 @@ ALTER TABLE pautas ADD COLUMN IF NOT EXISTS pontuada BOOLEAN NOT NULL DEFAULT fa
 -- porque a conversa muda ("o controle de qualidade reprovou" é diferente de
 -- "quem pediu o vídeo quer outra coisa").
 ALTER TABLE pautas ADD COLUMN IF NOT EXISTS reedicao_pedida_por TEXT;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- Fila de dispatch (estilo Uber)
+-- ─────────────────────────────────────────────────────────────────────
+--
+-- A missão não fica exposta pra todo mundo brigar: é OFERECIDA a um editor
+-- por vez, com prazo pra responder. Recusou ou venceu -> vai pro próximo.
+-- Rodou todo mundo sem ninguém pegar -> cai na lista aberta como antes.
+--
+-- Presença: não temos websocket, então "online" é derivado do próprio
+-- polling. Cada chamada da fila carimba ultimo_visto_em; quem não aparece
+-- há alguns minutos deixa de receber oferta (senão a missão ficaria parada
+-- 5 min esperando alguém que fechou o navegador).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ultimo_visto_em TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS ofertas (
+  id SERIAL PRIMARY KEY,
+  pauta_id INT NOT NULL REFERENCES pautas(id) ON DELETE CASCADE,
+  editor_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pendente'
+    CHECK (status IN ('pendente','aceita','rejeitada','expirada')),
+  oferecida_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  respondida_em TIMESTAMPTZ,
+  expira_em TIMESTAMPTZ NOT NULL,
+  -- posição desta oferta na rodada daquela missão (1 = primeiro tentado)
+  ordem INT NOT NULL
+);
+
+-- A trava do dispatch: no máximo UMA oferta pendente por missão. Duas
+-- chamadas simultâneas do despacho não conseguem oferecer a mesma missão
+-- pra dois editores — a segunda viola o índice e é descartada.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_uma_por_pauta
+  ON ofertas (pauta_id) WHERE status = 'pendente';
+
+-- Mesma ideia do outro lado: um editor não acumula ofertas pendentes.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_uma_por_editor
+  ON ofertas (editor_id) WHERE status = 'pendente';
+
+-- Usado pra saber quem já passou por esta missão (não oferecer de novo).
+CREATE INDEX IF NOT EXISTS idx_ofertas_pauta ON ofertas (pauta_id);
 
 -- Avaliação da entrega. É daqui que a nota do editor vai sair — hoje
 -- users.nota ainda é NULL porque nenhuma entrega foi avaliada.

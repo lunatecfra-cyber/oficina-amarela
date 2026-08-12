@@ -45,7 +45,7 @@ const GRUPOS: Grupo[] = [
     rotulo: "Papel: editor",
     itens: [
       { href: "/editor/criar-perfil", titulo: "Criar perfil", desc: "Onboarding revisado e aprovado.", protegida: true, ok: true },
-      { href: "/editor", titulo: "Fila de missões", desc: "Onde o editor pega missões (estilo Uber). Mostra prazo, cortes pedidos e contexto antes de reservar.", protegida: true, ok: true },
+      { href: "/editor", titulo: "Fila de missões", desc: "Dispatch estilo Uber: sem lista pra navegar. A missão é oferecida a um editor por vez, com 5 min pra responder. Recusou ou venceu, vai pro próximo.", protegida: true, ok: true },
     ],
   },
   {

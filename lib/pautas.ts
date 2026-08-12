@@ -1,5 +1,8 @@
 export type StatusPauta =
   | "disponivel"
+  // oferecida a um editor específico, com prazo pra responder (dispatch).
+  // Sai da lista aberta enquanto a oferta está de pé.
+  | "oferecida"
   | "minha"
   | "reservada"
   | "em_revisao"
@@ -122,6 +125,7 @@ export const PAUTAS: Pauta[] = [
 
 export const ROTULO_STATUS: Record<StatusPauta, string> = {
   disponivel: "Disponível",
+  oferecida: "Oferecida a um editor",
   minha: "Sua missão",
   reservada: "Reservada",
   em_revisao: "Em revisão",
@@ -145,6 +149,8 @@ export function mensagemStatusPortaVoz(status: StatusPauta): {
   cor: string;
 } {
   switch (status) {
+    case "oferecida":
+      return { texto: "📨 Oferecida a um editor", cor: "text-gold-hi" };
     case "reservada":
     case "minha":
       return { texto: "🎬 Seu vídeo começou a ser feito", cor: "text-gold-hi" };
@@ -177,6 +183,9 @@ export const ETAPAS_MISSAO = [
 export function etapaAtual(status: StatusPauta): number {
   switch (status) {
     case "disponivel":
+    // oferecida ainda é "na fila" do ponto de vista de quem espera: nenhum
+    // editor assumiu o trabalho até aceitar
+    case "oferecida":
       return 1;
     case "reservada":
     case "minha":

@@ -28,11 +28,17 @@ export function DesafiosDia() {
 
   return (
     <section className="mb-8">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-gold">
-          Encomendas expressas
-        </h2>
-        <span className="text-xs text-muted">
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div>
+          {/* "encomenda" era vocabulário solto: em tela tudo é missão */}
+          <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-gold">
+            Desafios do dia
+          </h2>
+          <p className="mt-1 text-xs text-muted-2">
+            XP extra por manter o ritmo. Independe da missão que você está fazendo.
+          </p>
+        </div>
+        <span className="flex-none text-xs text-muted">
           {feitos}/{desafios.length}
         </span>
       </div>

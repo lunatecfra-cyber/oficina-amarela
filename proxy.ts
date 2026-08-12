@@ -21,8 +21,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // resto das rotas protegidas (/editor, /perfil, /agenda, /ranking) é área
-  // de editor; /porta-voz é do candidato
+  // resto das rotas protegidas (/editor, /perfil, /agenda, /aulas, /ranking)
+  // é área de editor; /porta-voz é do candidato
   const rotaExigePapel = caminho.startsWith("/porta-voz") ? "voz" : "editor";
 
   if (sessao.papel !== "admin" && sessao.papel !== rotaExigePapel) {
@@ -40,5 +40,6 @@ export const config = {
     "/inspetor/:path*",
     "/agenda/:path*",
     "/ranking/:path*",
+    "/aulas/:path*",
   ],
 };

@@ -252,12 +252,6 @@ export type EditorRanking = {
   streak: number;
 };
 
-// dados fake pro ranking — jr.eneias é o EDITOR_ATUAL (mesmos números de PERFIL_EDITOR)
-export const EDITORES: EditorRanking[] = [
-  { apelido: "duda.corte", nivel: "Artífice", reputacao: 810, entregues: 34, streak: 12 },
-  { apelido: "gui.frames", nivel: "Artífice", reputacao: 705, entregues: 31, streak: 3 },
-  { apelido: "jr.eneias", nivel: "Oficial", reputacao: 340, entregues: 12, streak: 5 },
-  { apelido: "bia.cortez", nivel: "Oficial", reputacao: 290, entregues: 11, streak: 8 },
-  { apelido: "theo.edits", nivel: "Oficial", reputacao: 205, entregues: 9, streak: 1 },
-  { apelido: "manu.rc", nivel: "Aprendiz", reputacao: 60, entregues: 3, streak: 0 },
-];
+// O ranking fake que existia aqui saiu: /ranking agora lê os editores reais
+// do banco (rankingEditores, em lib/perfil-db.ts). O tipo continua porque é
+// o formato que aquela consulta devolve.

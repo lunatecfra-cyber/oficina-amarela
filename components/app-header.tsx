@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { BotaoSair } from "@/components/botao-sair";
+import { NavEditor } from "@/components/nav-editor";
 import { EDITOR_ATUAL, type Editor } from "@/lib/pautas";
 import { lerPerfilEditor } from "@/lib/perfil-db";
 import { lerSessao } from "@/lib/sessao-servidor";
@@ -30,17 +31,7 @@ export async function AppHeader() {
             </span>
           </Link>
 
-          <nav className="flex items-center gap-4 text-sm">
-            <Link href="/editor" className="text-muted transition-colors hover:text-text">
-              Fila
-            </Link>
-            <Link href="/agenda" className="text-muted transition-colors hover:text-text">
-              Agenda
-            </Link>
-            <Link href="/ranking" className="text-muted transition-colors hover:text-text">
-              Ranking
-            </Link>
-          </nav>
+          <NavEditor />
         </div>
 
         <div className="flex items-center gap-4">

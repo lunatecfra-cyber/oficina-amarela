@@ -6,7 +6,7 @@ import Link from "next/link";
 import { PAUTAS, ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
 import { iniciais, type Candidato } from "@/lib/candidatos";
 import { LocalProximidade } from "@/components/local-proximidade";
-import { Selo, Chip, candidatoDaPauta } from "@/components/fila-pautas";
+import { Selo, Chip, candidatoDaPauta } from "@/components/pauta-ui";
 
 export function FilaInspetor({
   pautasReais = [],
