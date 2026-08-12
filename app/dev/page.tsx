@@ -36,7 +36,8 @@ const GRUPOS: Grupo[] = [
       { href: "/porta-voz", titulo: "Painel", desc: "Missões na fila e em andamento. Todo card real abre o detalhe.", protegida: true, ok: true },
       { href: "/porta-voz", titulo: "Detalhe da missão", desc: "Clique num card do painel. Tem linha do tempo, briefing completo e, quando o inspetor libera, os botões de aceitar / pedir ajuste.", protegida: true, ok: true },
       { href: "/porta-voz/nova-pauta", titulo: "Nova missão", desc: "Subir bruto + brief (5 passos).", protegida: true },
-      { href: "/porta-voz/perfil", titulo: "Meu perfil", desc: "Edição do perfil do candidato.", protegida: true },
+      { href: "/porta-voz/perfil", titulo: "Meu perfil", desc: "Perfil do candidato — visualização, stats e histórico.", protegida: true },
+      { href: "/porta-voz/perfil/editar", titulo: "Editar perfil", desc: "Edição dedicada (uma página só).", protegida: true },
     ],
   },
   {

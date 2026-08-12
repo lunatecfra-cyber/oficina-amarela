@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { PAUTAS, ROTULO_STATUS } from "@/lib/pautas";
+import { pautasDoPortaVoz } from "@/lib/pautas-db";
 import { getCandidato } from "@/lib/candidatos";
 import { lerCandidatoProprio } from "@/lib/candidato-db";
-import { lerSessao } from "@/lib/sessao-servidor";
+import { exigirSessao } from "@/lib/sessao-servidor";
 import { Stat } from "@/components/stat";
 import { Card } from "@/components/card";
 import { AvatarCandidato } from "@/components/avatar-candidato";
@@ -13,15 +14,25 @@ import { NomeCandidato } from "@/components/nome-candidato";
 
 export const metadata: Metadata = { title: "Meu Perfil — Oficina Amarela" };
 
+// lê sessão (cookie + banco) e missões recentes — não pode ser estático
+export const dynamic = "force-dynamic";
+
 export default async function PerfilPortaVozPage() {
-  const sessao = await lerSessao();
-  const cand = sessao
-    ? ((await lerCandidatoProprio(sessao.id)) ?? getCandidato(sessao.nome))
-    : getCandidato("");
-  const minhas = PAUTAS.filter((p) => p.portaVoz === sessao?.nome);
+  const sessao = await exigirSessao();
+
+  // perfil + missões de verdade (banco). PAUTAS só entra como demo quando o
+  // nome bate com um candidato de demonstração — pra um porta-voz real nunca
+  // casa, então as stats refletem só o que ele criou de fato.
+  const [candOpt, reaisMinhas] = await Promise.all([
+    lerCandidatoProprio(sessao.id),
+    pautasDoPortaVoz(sessao.id),
+  ]);
+  const cand = candOpt ?? getCandidato(sessao.nome);
+  const minhas = [...reaisMinhas, ...PAUTAS.filter((p) => p.portaVoz === sessao.nome)];
+
   const naFila = minhas.filter((p) => p.status === "disponivel").length;
   const emProducao = minhas.filter((p) =>
-    ["reservada", "minha", "em_revisao", "reedicao"].includes(p.status)
+    ["reservada", "em_revisao", "reedicao"].includes(p.status)
   ).length;
   const aprovadas = minhas.filter((p) => p.status === "aprovada").length;
 
@@ -53,7 +64,7 @@ export default async function PerfilPortaVozPage() {
         <div className="px-5 pb-6 lg:px-8">
           <div className="relative z-10 -mt-12 flex items-end justify-between gap-4 lg:-mt-14">
             <AvatarCandidato candidato={cand} className="h-24 w-24 text-3xl lg:h-28 lg:w-28 lg:text-4xl" />
-            <Link href="/porta-voz/criar-perfil" className="btn-ghost mb-1 w-auto px-4 text-sm">
+            <Link href="/porta-voz/perfil/editar" className="btn-ghost mb-1 w-auto px-4 text-sm">
               Editar perfil
             </Link>
           </div>
