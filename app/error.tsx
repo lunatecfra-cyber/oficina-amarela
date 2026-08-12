@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import * as Sentry from "@sentry/nextjs";
 
 // Rede de segurança do app inteiro. Antes disto, qualquer falha de servidor
 // (banco fora do ar, por exemplo) deixava a TELA BRANCA: sem mensagem, sem
@@ -17,6 +18,9 @@ export default function Error({
   unstable_retry: () => void;
 }) {
   useEffect(() => {
+    // erro que estourou no cliente não passa pelo onRequestError do
+    // servidor — este é o único lugar que o captura
+    Sentry.captureException(error, { tags: { digest: error.digest } });
     console.error(error);
   }, [error]);
 

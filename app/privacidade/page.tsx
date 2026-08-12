@@ -39,14 +39,34 @@ export default function PrivacidadePage() {
             2. Quais dados coletamos
           </h2>
           <ul className="list-disc pl-5">
-            <li>Apelido e e-mail (via login com Google ou cadastro)</li>
-            <li>Papel na plataforma (porta-voz, editor ou controle de qualidade) e nível/reputação</li>
+            <li>Nome, apelido e e-mail (via cadastro ou login com Google)</li>
+            <li>Sua senha, guardada apenas como hash — nunca em texto legível</li>
             <li>
-              <b className="text-text">Só para porta-vozes:</b> um token de autorização do Google Drive,
-              limitado aos arquivos que você escolher compartilhar na plataforma (escopo{" "}
-              <code>drive.file</code>) — não temos acesso ao seu Drive inteiro
+              O que você preenche no perfil: foto, cidade/estado, bio e as
+              etiquetas que escolhe (especialidades, softwares, temas, tom)
+            </li>
+            <li>Papel na plataforma (porta-voz, editor ou controle de qualidade), nível e reputação</li>
+            <li>
+              O conteúdo das missões: título, briefing e os{" "}
+              <b className="text-text">links do Google Drive que você mesmo cola</b>
+            </li>
+            <li>
+              <b className="text-text">Só para editores:</b> sua grade de
+              disponibilidade e o horário do seu último acesso — é o que decide
+              se uma missão pode ser oferecida a você agora
+            </li>
+            <li>
+              Seu endereço de IP, guardado temporariamente para limitar
+              tentativas de login e criação de contas em massa
             </li>
           </ul>
+          <p className="mt-3">
+            <b className="text-text">O que não coletamos:</b> não pedimos nem
+            guardamos autorização de acesso ao seu Google Drive. O login com
+            Google serve só para identificar você (nome, e-mail e foto). Os
+            vídeos ficam no seu Drive; nós guardamos apenas o link que você
+            cola.
+          </p>
         </section>
 
         <section>
@@ -57,9 +77,14 @@ export default function PrivacidadePage() {
             <li>Autenticar você e identificar seu papel na plataforma</li>
             <li>Calcular nível e reputação a partir do seu histórico de missões</li>
             <li>
-              Liberar automaticamente o acesso ao arquivo bruto pro editor que reservou a missão, e
-              revogar esse acesso quando o prazo vence ou a missão é entregue/aprovada
+              Decidir a qual editor oferecer cada missão, cruzando a grade de
+              disponibilidade, o histórico de entregas e quem está online
             </li>
+            <li>
+              Mostrar seu perfil a quem participa da mesma missão — o
+              porta-voz vê quem está editando, o editor vê de quem é o material
+            </li>
+            <li>Proteger as contas contra tentativa de invasão e cadastro em massa</li>
           </ul>
         </section>
 
@@ -68,9 +93,16 @@ export default function PrivacidadePage() {
             4. Com quem compartilhamos
           </h2>
           <p>
-            Não vendemos nem compartilhamos seus dados com terceiros. O e-mail do editor que reservou
-            uma missão é usado exclusivamente para conceder e revogar acesso ao arquivo específico
-            daquela missão, no Google Drive do porta-voz.
+            Não vendemos seus dados. Dentro da plataforma, seu perfil público
+            (nome, foto, cidade e etiquetas) é visível para quem participa da
+            mesma missão que você.
+          </p>
+          <p className="mt-2">
+            <b className="text-text">Importante sobre o Google Drive:</b> quem
+            libera o acesso ao arquivo bruto é você, no seu próprio Drive. A
+            plataforma guarda o link, mas não concede nem revoga permissão
+            nenhuma por você — quem controla quem enxerga o arquivo, e por
+            quanto tempo, continua sendo você.
           </p>
         </section>
 
@@ -79,8 +111,14 @@ export default function PrivacidadePage() {
             5. Por quanto tempo guardamos
           </h2>
           <p>
-            Enquanto sua conta existir. Se você excluir sua conta, apagamos seus dados pessoais e
-            revogamos qualquer autorização de Google Drive vinculada a ela.
+            Enquanto sua conta existir. Ao excluir a conta, apagamos seu perfil,
+            suas missões, seu portfólio e seu histórico — é imediato e não dá
+            para desfazer.
+          </p>
+          <p className="mt-2">
+            Os arquivos no seu Google Drive não são tocados: eles nunca
+            estiveram conosco. Se você compartilhou uma pasta com algum editor,
+            precisa remover esse acesso no próprio Drive.
           </p>
         </section>
 
@@ -90,9 +128,16 @@ export default function PrivacidadePage() {
           </h2>
           <p>Você pode, a qualquer momento:</p>
           <ul className="list-disc pl-5">
-            <li>Pedir acesso ou correção dos seus dados</li>
-            <li>Pedir a exclusão da sua conta e dos seus dados</li>
-            <li>Revogar a autorização de acesso ao Google Drive, direto na sua conta Google ou na plataforma</li>
+            <li>
+              <b className="text-text">Apagar sua conta sozinho</b>, na tela de
+              editar perfil — vai embora tudo, na hora
+            </li>
+            <li>Corrigir seus dados na mesma tela de editar perfil</li>
+            <li>Pedir acesso a uma cópia dos seus dados, pelo e-mail abaixo</li>
+            <li>
+              Desfazer o compartilhamento de qualquer pasta do Google Drive
+              direto no seu Drive — esse acesso nunca passou por nós
+            </li>
           </ul>
         </section>
 
@@ -100,11 +145,15 @@ export default function PrivacidadePage() {
           <h2 className="mb-2 font-[family-name:var(--font-display)] text-xl font-semibold text-text">
             7. Segurança
           </h2>
-          <p>
-            O token de acesso ao Google Drive é armazenado de forma criptografada. Apenas processos
-            automatizados da plataforma o utilizam — para conceder e revogar acesso a arquivos
-            específicos.
-          </p>
+          <ul className="list-disc pl-5">
+            <li>Senhas guardadas como hash (bcrypt), nunca em texto legível</li>
+            <li>Sessão em cookie assinado, inacessível a scripts da página</li>
+            <li>
+              Trocar a senha derruba as sessões abertas em outros aparelhos, e
+              o link de recuperação vale uma vez só
+            </li>
+            <li>Todo o tráfego é por HTTPS</li>
+          </ul>
         </section>
 
         <section>
@@ -112,7 +161,19 @@ export default function PrivacidadePage() {
             8. Contato
           </h2>
           <p>
-            Dúvidas sobre privacidade: <span className="text-text">[preencher e-mail de contato]</span>.
+            Dúvidas sobre privacidade, pedido de exclusão de conta ou qualquer
+            direito previsto na LGPD:{" "}
+            <a
+              href="mailto:lunatecfra@gmail.com"
+              className="text-gold-hi hover:underline"
+            >
+              lunatecfra@gmail.com
+            </a>
+            .
+          </p>
+          <p className="mt-2">
+            Você também pode apagar sua conta sozinho, a qualquer momento, na
+            tela de editar perfil — a exclusão é imediata e não passa por nós.
           </p>
         </section>
       </div>

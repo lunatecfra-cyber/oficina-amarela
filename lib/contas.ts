@@ -130,6 +130,73 @@ export async function buscarContaPorEmail(email: string): Promise<ContaUsuario |
 }
 
 /**
+ * Apaga a conta e tudo que é dela.
+ *
+ * A política publicada em /privacidade promete isso desde sempre, e não havia
+ * código nenhum por trás — nem canal manual, porque o e-mail de contato era
+ * um placeholder. A LGPD (art. 18) dá esse direito ao titular.
+ *
+ * Um DELETE só resolve: as foreign keys do schema já cascateiam. `portfolio`,
+ * `conquistas`, `pautas` (as que ele criou), `avaliacoes` e `ofertas` vão
+ * junto; a missão que um editor tinha em mãos volta pra fila em vez de sumir
+ * (`reservada_por_id ... ON DELETE SET NULL`).
+ *
+ * Consequência aceita: apagar um porta-voz leva as missões dele, e com elas
+ * as avaliações — o histórico do editor perde esses itens. Anonimizar
+ * preservaria, mas seria menos honesto com o que o texto publicado promete.
+ */
+/** Conta criada pelo Google não tem senha — a tela precisa saber o que pedir
+ *  como confirmação. */
+export async function contaTemSenha(userId: number): Promise<boolean> {
+  const [linha] = await sql`SELECT senha_hash FROM users WHERE id = ${userId}`;
+  return !!linha?.senha_hash;
+}
+
+export async function apagarConta(
+  userId: number,
+  confirmacao: string
+): Promise<{ ok: true } | { ok: false; erro: string }> {
+  const [linha] = await sql`
+    SELECT apelido, senha_hash FROM users WHERE id = ${userId}
+  `;
+  if (!linha) return { ok: false, erro: "Conta não encontrada." };
+
+  // conta criada pelo Google não tem senha: a confirmação é digitar o
+  // próprio apelido, que é o que ela tem de próprio
+  const confere = linha.senha_hash
+    ? bcrypt.compareSync(confirmacao, linha.senha_hash)
+    : confirmacao.trim().toLowerCase() === String(linha.apelido).toLowerCase();
+
+  if (!confere) {
+    return {
+      ok: false,
+      erro: linha.senha_hash
+        ? "Senha incorreta."
+        : "Digite seu apelido exatamente como ele aparece.",
+    };
+  }
+
+  // Antes de apagar, devolver pra fila o que ele tinha em mãos.
+  //
+  // O `ON DELETE SET NULL` do schema limpa `reservada_por_id`, mas não mexe
+  // no status: a missão ficava 'reservada' sem reservante nenhum — invisível
+  // pra `pautasDisponiveis` (que filtra 'disponivel') e nunca mais
+  // despachada. Missão zumbi, presa pra sempre, e o porta-voz sem entender
+  // por que o vídeo dele parou.
+  //
+  // 'em_revisao' fica de fora de propósito: o vídeo já foi entregue e está
+  // com o inspetor. Devolver pra fila jogaria fora trabalho pronto.
+  await sql`
+    UPDATE pautas
+    SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL
+    WHERE reservada_por_id = ${userId} AND status IN ('reservada','reedicao','oferecida')
+  `;
+
+  await sql`DELETE FROM users WHERE id = ${userId}`;
+  return { ok: true };
+}
+
+/**
  * O link de recuperação já foi gasto?
  *
  * Não existe registro de "token usado" — e não precisa. Trocar a senha grava

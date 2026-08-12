@@ -103,7 +103,14 @@ export default function TermosPage() {
             8. Contato
           </h2>
           <p>
-            Dúvidas: <span className="text-text">[preencher e-mail de contato]</span>. Veja também a{" "}
+            Dúvidas:{" "}
+            <a
+              href="mailto:lunatecfra@gmail.com"
+              className="text-gold-hi hover:underline"
+            >
+              lunatecfra@gmail.com
+            </a>
+            . Veja também a{" "}
             <Link href="/privacidade" className="font-medium text-gold-hi hover:underline">
               Política de Privacidade
             </Link>

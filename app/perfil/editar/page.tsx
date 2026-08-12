@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
 import { EditarPerfilForm } from "@/components/editar-perfil-form";
+import { ApagarConta } from "@/components/apagar-conta";
+import { contaTemSenha } from "@/lib/contas";
 import { lerPerfilEditavel } from "@/lib/perfil-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
 
@@ -10,7 +12,11 @@ export const dynamic = "force-dynamic";
 
 export default async function EditarPerfilPage() {
   const sessao = await exigirSessao();
-  const perfil = (await lerPerfilEditavel(sessao.id)) ?? {
+  const [perfilOpt, temSenha] = await Promise.all([
+    lerPerfilEditavel(sessao.id),
+    contaTemSenha(sessao.id),
+  ]);
+  const perfil = perfilOpt ?? {
     headline: [],
     bio: null,
     localizacao: null,
@@ -29,6 +35,10 @@ export default async function EditarPerfilPage() {
           </p>
 
           <EditarPerfilForm inicial={perfil} />
+
+          <div className="max-w-lg">
+            <ApagarConta temSenha={temSenha} />
+          </div>
         </div>
       </main>
     </>

@@ -27,6 +27,17 @@ export type Oferta = {
   ordem: number;
 };
 
+/** O erro do Postgres foi violação de índice único (23505)?
+ *  O driver expõe o SQLSTATE em `code`. */
+function ehViolacaoDeUnicidade(e: unknown): boolean {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    "code" in e &&
+    (e as { code?: unknown }).code === "23505"
+  );
+}
+
 /**
  * Carimba presença. O polling do editor é o batimento cardíaco: sem isso,
  * uma missão ficaria 5 minutos parada esperando resposta de alguém que
@@ -171,8 +182,14 @@ export async function despacharMissoes(): Promise<number> {
         WHERE id = ${p.id} AND status = 'disponivel'
       `;
       despachadas++;
-    } catch {
-      // violou índice único: outra requisição despachou primeiro. Segue.
+    } catch (e) {
+      // 23505 = unique_violation: outra requisição despachou esta missão
+      // primeiro. É o resultado esperado da corrida, então segue em frente.
+      //
+      // Qualquer outro erro (conexão caída, timeout, SQL quebrado) é
+      // relançado. Antes este catch era vazio e engolia TUDO: uma falha real
+      // do dispatch em produção sumia sem deixar rastro.
+      if (!ehViolacaoDeUnicidade(e)) throw e;
     }
   }
   return despachadas;

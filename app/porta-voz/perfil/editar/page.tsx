@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EditarPerfilCandidatoForm } from "@/components/editar-perfil-candidato-form";
+import { ApagarConta } from "@/components/apagar-conta";
 import { lerOnboardingCandidato } from "@/lib/candidato-db";
+import { contaTemSenha } from "@/lib/contas";
 import { exigirSessao } from "@/lib/sessao-servidor";
 
 export const metadata: Metadata = { title: "Editar perfil — Oficina Amarela" };
@@ -10,7 +12,10 @@ export const dynamic = "force-dynamic";
 
 export default async function EditarPerfilCandidatoPage() {
   const sessao = await exigirSessao();
-  const doBanco = await lerOnboardingCandidato(sessao.id);
+  const [doBanco, temSenha] = await Promise.all([
+    lerOnboardingCandidato(sessao.id),
+    contaTemSenha(sessao.id),
+  ]);
 
   // conta sem onboarding ainda: começa com o nome da sessão e campos vazios.
   // Assim a página serve pra editar E pra criar de novo, sem redirecionar.
@@ -45,6 +50,10 @@ export default async function EditarPerfilCandidatoPage() {
       </p>
 
       <EditarPerfilCandidatoForm inicial={inicial} />
+
+      <div className="max-w-lg">
+        <ApagarConta temSenha={temSenha} />
+      </div>
     </div>
   );
 }
