@@ -29,9 +29,9 @@ jobs:
       AUTH_SECRET: ci-somente-para-build-nao-assina-nada-real
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # A Vercel roda Node 22+. Manter igual aqui pra o CI não passar
           # em algo que quebraria lá.
