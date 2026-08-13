@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
-import { pareceLinkDrive } from "@/lib/validators";
+import { pareceLink, pareceLinkDrive } from "@/lib/validators";
 
 // A missão que o editor aceitou e está fazendo agora.
 //
@@ -235,7 +235,7 @@ export function MissaoEmMaos({ missao }: { missao: Pauta | null }) {
             <p className="flex flex-wrap items-center gap-2 text-sm text-text">
               <span className="text-ok">✓</span> Entregue. Agora é com o controle
               de qualidade — assim que aprovarem, a próxima missão chega pra você.
-              {missao.entregaLink && (
+              {missao.entregaLink && pareceLink(missao.entregaLink) && (
                 <a
                   href={missao.entregaLink}
                   target="_blank"

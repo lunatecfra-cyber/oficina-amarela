@@ -7,6 +7,7 @@ import { PAUTAS, ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
 import { iniciais, type Candidato } from "@/lib/candidatos";
 import { LocalProximidade } from "@/components/local-proximidade";
 import { Selo, Chip, candidatoDaPauta } from "@/components/pauta-ui";
+import { pareceLink } from "@/lib/validators";
 
 export function FilaInspetor({
   pautasReais = [],
@@ -172,7 +173,7 @@ function CardRevisao({
           </div>
           <p className="mt-2 text-xs text-muted">
             Entregue por <span className="text-text">{p.reservadaPor}</span>
-            {p.entregaLink && (
+            {p.entregaLink && pareceLink(p.entregaLink) && (
               <>
                 {" "}
                 ·{" "}

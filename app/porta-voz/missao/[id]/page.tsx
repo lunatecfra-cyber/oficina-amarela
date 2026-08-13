@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { pautaPorIdDoPortaVoz, posicaoNaFila, totalNaFila } from "@/lib/pautas-db";
 import { lerCandidatoProprio } from "@/lib/candidato-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
-import { pareceLinkDrive } from "@/lib/validators";
+import { pareceLink, pareceLinkDrive } from "@/lib/validators";
 import {
   ETAPAS_MISSAO,
   ROTULO_FORMATO,
@@ -194,7 +194,7 @@ export default async function DetalheMissaoPage({
               Prazo do editor até {formatarData(pauta.reservadaAte, false)}
             </p>
           )}
-          {pauta.entregaLink && (
+          {pauta.entregaLink && pareceLink(pauta.entregaLink) && (
             <a
               href={pauta.entregaLink}
               target="_blank"

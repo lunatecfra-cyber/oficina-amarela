@@ -7,6 +7,7 @@
 import { sql } from "@/lib/db";
 import { LIMITES, limitar, limitarOuNulo } from "@/lib/limites";
 import type { Formato, Pauta, StatusPauta } from "@/lib/pautas";
+import { pareceLink } from "@/lib/validators";
 
 type LinhaPauta = {
   id: number;
@@ -287,7 +288,16 @@ export async function entregarPauta(
   editorId: number,
   link: string
 ): Promise<{ ok: true } | { ok: false; erro: string }> {
-  if (!link.trim()) return { ok: false, erro: "Cole o link do vídeo editado." };
+  // Aceitava qualquer texto não-vazio. Duas coisas dependiam disso dar certo, e
+  // nenhuma era nossa: o React recusa `javascript:` sozinho, e o navegador não
+  // navega pra `data:text/html` — os dois testados, os dois barram. Mas quem
+  // protegia era a biblioteca, não o código, e o `driveLink` logo ao lado já
+  // conferia o formato na entrada. Aqui vale mais pelo produto do que pela
+  // segurança: sem isso, o porta-voz recebia um "link" que não abria nada e só
+  // descobria ao clicar. Agora o editor é avisado na hora de entregar.
+  if (!pareceLink(link)) {
+    return { ok: false, erro: "Cole o link do vídeo editado (começando com http)." };
+  }
 
   const linhas = await sql`
     UPDATE pautas
