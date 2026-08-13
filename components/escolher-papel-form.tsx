@@ -18,11 +18,9 @@ const OPCOES = [
 ];
 
 export function EscolherPapelForm({
-  token,
   nome,
   foto,
 }: {
-  token: string;
   nome: string;
   foto?: string;
 }) {
@@ -34,10 +32,12 @@ export function EscolherPapelForm({
     setErro("");
     setEnviando(papel);
 
+    // só o papel vai no corpo — a identidade confirmada pelo Google está num
+    // cookie httpOnly que este componente não enxerga, e é de lá que a rota lê
     const resp = await fetch("/api/auth/google/registrar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, papel }),
+      body: JSON.stringify({ papel }),
     });
     const dados = await resp.json();
 

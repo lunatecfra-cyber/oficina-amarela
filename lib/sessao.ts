@@ -65,24 +65,49 @@ export async function verificarTokenSessao(token: string): Promise<SessaoUsuario
   }
 }
 
-// estado assinado de curta duração — usado pelo fluxo OAuth do Google como
-// "state" (protege contra CSRF), sem precisar guardar nada no servidor. Não
-// carrega mais o papel: isso só é escolhido DEPOIS do Google confirmar quem
-// é a pessoa (ver criarIdentidadePendente abaixo) — antes, perguntar o papel
-// antes do Google e o botão de login (sem essa pergunta) divergiam, e uma
-// conta podia acabar criada com o papel errado sem avisar ninguém.
-export async function criarEstadoAssinado() {
-  return new SignJWT({})
+// "state" do fluxo OAuth do Google — é o que impede CSRF de login. Não
+// carrega o papel: isso só é escolhido DEPOIS do Google confirmar quem é a
+// pessoa (ver criarIdentidadePendente abaixo) — antes, perguntar o papel antes
+// do Google e o botão de login (sem essa pergunta) divergiam, e uma conta podia
+// acabar criada com o papel errado sem avisar ninguém.
+//
+// O state precisa de DUAS propriedades, e antes tinha zero:
+//
+//  1. Ser deste navegador. Assinatura sozinha não prova origem: o `state` ia
+//     na URL e valia pra qualquer um. Um atacante abria o fluxo, copiava o
+//     próprio `state` e `code`, e mandava o link pra vítima — que entrava na
+//     conta Google DELE achando que era a dela, e subia link de bruto ali
+//     dentro. Agora o state carrega um nonce que também vai num cookie
+//     httpOnly; o callback exige que os dois batam. Sem o cookie, não passa.
+//  2. Ser um state, e não outro token qualquer. O verificador antigo só
+//     conferia a assinatura, então QUALQUER JWT emitido com o AUTH_SECRET
+//     servia de state. Agora tem `uso` e ele é conferido.
+export const NOME_COOKIE_ESTADO = "confraria_oauth_estado";
+
+export const COOKIE_ESTADO_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 60 * 10,
+};
+
+export async function criarEstadoAssinado(nonce: string) {
+  return new SignJWT({ uso: "oauth-state", nonce })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("10m")
     .sign(chave());
 }
 
-export async function verificarEstadoAssinado(token: string): Promise<boolean> {
+export async function verificarEstadoAssinado(
+  token: string,
+  nonceDoCookie: string | undefined
+): Promise<boolean> {
+  if (!nonceDoCookie) return false;
   try {
-    await jwtVerify(token, chave());
-    return true;
+    const { payload } = await jwtVerify(token, chave());
+    return payload.uso === "oauth-state" && payload.nonce === nonceDoCookie;
   } catch {
     return false;
   }
@@ -92,6 +117,8 @@ export async function verificarEstadoAssinado(token: string): Promise<boolean> {
 // necessário pra criar a conta assim que a pessoa escolher o papel na tela
 // /escolher-papel. Curta duração de propósito: ninguém deveria demorar mais
 // que alguns minutos pra escolher "editor" ou "porta-voz".
+export const NOME_COOKIE_PENDENTE = "confraria_google_pendente";
+
 export type IdentidadeGooglePendente = {
   googleId: string;
   email: string;

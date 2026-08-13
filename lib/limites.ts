@@ -52,8 +52,16 @@ export function limitarLista(valor: unknown, maxItens: number): string[] {
  */
 export const MAX_FOTO_BYTES = 2_000_000;
 
+// Lista fechada de formatos. Antes bastava começar com `data:image/`, e aí
+// `data:image/svg+xml` passava — SVG é XML, aceita <script> dentro. Hoje isso
+// não executa, porque a foto só aparece em <img>, onde SVG é inerte; mas basta
+// alguém trocar por <object>/<iframe> um dia pra virar XSS no nosso domínio, e
+// a CSP não seguraria: ela está em Report-Only. É uma bomba já armada, e
+// recusar formato que ninguém usa custa uma linha.
+const FORMATOS_DE_FOTO = ["data:image/png", "data:image/jpeg", "data:image/webp", "data:image/gif"];
+
 export function fotoValida(dataUrl: string | undefined | null): boolean {
   if (!dataUrl) return true; // sem foto é permitido
-  if (!dataUrl.startsWith("data:image/")) return false;
+  if (!FORMATOS_DE_FOTO.some((f) => dataUrl.startsWith(f))) return false;
   return dataUrl.length <= MAX_FOTO_BYTES;
 }

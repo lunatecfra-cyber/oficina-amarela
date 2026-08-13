@@ -14,6 +14,11 @@ export type ContaUsuario = {
 const RE_APELIDO = /^[a-z0-9._]{3,24}$/i;
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Hash de uma senha que ninguém tem, no mesmo custo 10 usado no cadastro.
+// Serve só pra `autenticar` gastar o mesmo tempo quando o apelido não existe
+// (ver o comentário lá). Não é segredo: é justamente um hash que não abre nada.
+const HASH_FALSO = "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+
 export function apelidoValido(apelido: string) {
   return RE_APELIDO.test(apelido.trim());
 }
@@ -67,7 +72,15 @@ export async function autenticar(
     WHERE lower(apelido) = lower(${apelido.trim()})
   `;
 
-  if (!linha || !linha.senha_hash || !(await bcrypt.compare(senha, linha.senha_hash))) {
+  // O `||` fazia curto-circuito: sem conta, o bcrypt nunca rodava e a resposta
+  // voltava em 8ms; com conta, gastava os ~137ms do hash. A mensagem era a
+  // mesma, mas o relógio entregava quem tem cadastro aqui — e numa plataforma
+  // de campanha, saber quem está dentro já é informação. Agora compara sempre:
+  // sem conta, contra um hash descartável, só pra gastar o mesmo tempo.
+  const hash = linha?.senha_hash ?? HASH_FALSO;
+  const senhaConfere = await bcrypt.compare(senha, hash);
+
+  if (!linha || !linha.senha_hash || !senhaConfere) {
     return { ok: false, erro: "Apelido ou senha incorretos." };
   }
 
@@ -302,6 +315,19 @@ export async function registrarTentativa(
 export const loginTravado = (apelido: string) => taxaTravada(`login:${apelido}`);
 export const registrarFalhaLogin = (apelido: string) =>
   registrarTentativa(`login:${apelido}`);
+
+// Trava por apelido não segura ataque de senha única espalhada: uma senha
+// óbvia contra mil apelidos diferentes nunca chega a 5 erros em nenhum deles.
+// Medido: 8 apelidos seguidos do mesmo IP, 8 respostas 401, nenhum 429.
+//
+// O teto por IP é bem mais folgado que os 5 do apelido — escritório e família
+// saem pelo mesmo IP, e errar a senha algumas vezes é normal. O que ele corta
+// é a varredura: em volume, nenhum humano erra 30 logins em 15 minutos.
+const MAX_LOGINS_POR_IP = 30;
+
+export const loginTravadoPorIp = (ip: string) => taxaTravada(`loginip:${ip}`);
+export const registrarFalhaLoginIp = (ip: string) =>
+  registrarTentativa(`loginip:${ip}`, MAX_LOGINS_POR_IP);
 
 export async function limparTentativasLogin(apelido: string): Promise<void> {
   await sql`DELETE FROM tentativas_login WHERE chave = ${`login:${apelido}`.trim().toLowerCase()}`;

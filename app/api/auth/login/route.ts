@@ -4,8 +4,11 @@ import {
   autenticar,
   limparTentativasLogin,
   loginTravado,
+  loginTravadoPorIp,
   registrarFalhaLogin,
+  registrarFalhaLoginIp,
 } from "@/lib/contas";
+import { ipDaRequisicao } from "@/lib/ip";
 import { criarTokenSessao, NOME_COOKIE, COOKIE_OPTS } from "@/lib/sessao";
 
 export async function POST(request: Request) {
@@ -16,10 +19,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: "Preencha apelido e senha." }, { status: 400 });
   }
 
+  const ip = ipDaRequisicao(request);
+
+  // duas travas somadas: a do apelido protege uma conta de ser martelada; a do
+  // IP protege TODAS as contas de serem varridas com uma senha só, que é o
+  // ataque que passava batido por só existir a primeira
   const trava = await loginTravado(apelido);
-  if (trava.travado) {
+  const travaIp = await loginTravadoPorIp(ip);
+  if (trava.travado || travaIp.travado) {
+    const minutos = Math.max(trava.minutos, travaIp.minutos);
     return NextResponse.json(
-      { erro: `Muitas tentativas. Tenta de novo em ${trava.minutos} min.` },
+      { erro: `Muitas tentativas. Tenta de novo em ${minutos} min.` },
       { status: 429 }
     );
   }
@@ -27,6 +37,7 @@ export async function POST(request: Request) {
   const resultado = await autenticar(apelido, senha);
   if (!resultado.ok) {
     await registrarFalhaLogin(apelido);
+    await registrarFalhaLoginIp(ip);
     return NextResponse.json({ erro: resultado.erro }, { status: 401 });
   }
 

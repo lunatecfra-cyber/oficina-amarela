@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { googleConfigurado, montarUrlAutorizacao } from "@/lib/oauth-google";
-import { criarEstadoAssinado } from "@/lib/sessao";
+import { COOKIE_ESTADO_OPTS, criarEstadoAssinado, NOME_COOKIE_ESTADO } from "@/lib/sessao";
 
 // não pergunta mais o papel aqui — quem já tem conta entra direto no papel
 // que já tem, e quem é novo escolhe depois, em /escolher-papel (ver callback)
@@ -15,7 +16,15 @@ export async function GET(request: Request) {
   }
 
   const redirectUri = new URL("/api/auth/google/callback", url.origin).toString();
-  const state = await criarEstadoAssinado();
+
+  // o nonce vai em dois lugares: dentro do state (que viaja pelo Google, à
+  // vista) e num cookie httpOnly (que fica só neste navegador). O callback só
+  // aceita se os dois baterem — é isso que amarra o fluxo a quem o começou.
+  const nonce = crypto.randomUUID();
+  const state = await criarEstadoAssinado(nonce);
+
+  const jar = await cookies();
+  jar.set(NOME_COOKIE_ESTADO, nonce, COOKIE_ESTADO_OPTS);
 
   return NextResponse.redirect(montarUrlAutorizacao(redirectUri, state));
 }
