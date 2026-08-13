@@ -60,10 +60,17 @@ export async function trocarCodigoPorPerfil(
   const perfil = (await respPerfil.json()) as {
     sub?: string;
     email?: string;
+    email_verified?: boolean;
     name?: string;
     picture?: string;
   };
   if (!perfil.sub || !perfil.email) return null;
+
+  // E-mail não confirmado pelo Google não vale como prova de identidade. Isso
+  // passou a importar quando entrar com o Google virou caminho pra recuperar
+  // conta: sem esta linha, bastaria alguém abrir uma conta Google com o e-mail
+  // de outra pessoa, sem confirmar nada, pra entrar na conta dela aqui dentro.
+  if (perfil.email_verified === false) return null;
 
   return {
     googleId: perfil.sub,

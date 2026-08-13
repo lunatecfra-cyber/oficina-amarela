@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { EditarPerfilCandidatoForm } from "@/components/editar-perfil-candidato-form";
 import { ApagarConta } from "@/components/apagar-conta";
+import { DefinirSenha } from "@/components/definir-senha";
 import { lerOnboardingCandidato } from "@/lib/candidato-db";
 import { contaTemSenha } from "@/lib/contas";
 import { exigirSessao } from "@/lib/sessao-servidor";
@@ -52,6 +53,7 @@ export default async function EditarPerfilCandidatoPage() {
       <EditarPerfilCandidatoForm inicial={inicial} />
 
       <div className="max-w-lg">
+        <DefinirSenha temSenha={temSenha} />
         <ApagarConta temSenha={temSenha} />
       </div>
     </div>

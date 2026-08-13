@@ -106,9 +106,29 @@ export async function buscarContaGoogle(
   `;
   if (porGoogleId) return { ok: true, conta: porGoogleId as ContaUsuario };
 
+  // Conta criada com senha, e agora a pessoa chega pelo Google com o mesmo
+  // e-mail. Antes isso era recusado — "entra com apelido e senha" — e quem tinha
+  // esquecido a senha ficava sem saída nenhuma, porque a recuperação por e-mail
+  // também não funciona ainda. A conta virava perda total.
+  //
+  // Mas o Google acabou de confirmar que aquele e-mail é dela. É a mesma prova
+  // que o link de recuperação daria, e chega antes. Então em vez de recusar,
+  // amarra o google_id na conta que já existe e deixa entrar: a partir daí ela
+  // tem os dois caminhos, senha e Google.
+  //
+  // O `google_id IS NULL` no WHERE é a trava: se a conta já estiver amarrada a
+  // outro Google, nada é sobrescrito — some uma linha e ninguém entra.
+  const [vinculada] = await sql`
+    UPDATE users
+    SET google_id = ${googleId}
+    WHERE lower(email) = lower(${email}) AND google_id IS NULL
+    RETURNING id, apelido, nome, email, papel
+  `;
+  if (vinculada) return { ok: true, conta: vinculada as ContaUsuario };
+
   const [porEmail] = await sql`SELECT id FROM users WHERE lower(email) = lower(${email})`;
   if (porEmail) {
-    return { ok: false, erro: "Esse e-mail já tem conta na Oficina Amarela — entra com apelido e senha." };
+    return { ok: false, erro: "Esse e-mail já está ligado a outra conta Google." };
   }
 
   return { ok: true, conta: null };

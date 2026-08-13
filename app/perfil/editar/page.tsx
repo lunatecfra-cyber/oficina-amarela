@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
 import { EditarPerfilForm } from "@/components/editar-perfil-form";
 import { ApagarConta } from "@/components/apagar-conta";
+import { DefinirSenha } from "@/components/definir-senha";
 import { contaTemSenha } from "@/lib/contas";
 import { lerPerfilEditavel } from "@/lib/perfil-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
@@ -37,6 +38,7 @@ export default async function EditarPerfilPage() {
           <EditarPerfilForm inicial={perfil} />
 
           <div className="max-w-lg">
+            <DefinirSenha temSenha={temSenha} />
             <ApagarConta temSenha={temSenha} />
           </div>
         </div>

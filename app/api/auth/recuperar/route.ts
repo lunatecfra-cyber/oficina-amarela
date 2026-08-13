@@ -19,9 +19,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: "Digite seu e-mail." }, { status: 400 });
   }
 
+  // Dizia "falta RESEND_API_KEY" — nome de variável de ambiente na cara de quem
+  // só quer voltar pra própria conta. A pessoa não pode fazer nada com essa
+  // informação; o que ela precisa é do caminho que funciona.
   if (!emailConfigurado()) {
     return NextResponse.json(
-      { erro: "Recuperação de senha ainda não configurada (falta RESEND_API_KEY)." },
+      {
+        erro: "O envio de e-mail ainda não está ligado. Se sua conta usa e-mail do Google, entra pelo botão do Google aqui em cima — cai na mesma conta.",
+      },
       { status: 503 }
     );
   }
