@@ -17,7 +17,11 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "connect-src 'self'",
+  // o Sentry manda o evento do navegador direto pro ingest dele; com
+  // `connect-src 'self'` sozinho, todo erro de cliente morreria bloqueado
+  // pela CSP — e a gente ficaria cego sem perceber. Curinga de subdomínio em
+  // vez do host do projeto: assim não quebra se o DSN mudar.
+  "connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
   "form-action 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -32,9 +36,13 @@ const nextConfig: NextConfig = {
         headers: [
           // a Vercel já serve só HTTPS; isto impede a primeira visita em
           // texto puro depois que o navegador conhece o domínio
+          // sem `preload`: entrar na lista de preload dos navegadores é
+          // praticamente irreversível (sai em meses, não em horas). Com um
+          // domínio novo e ainda sem DNS configurado, é cedo demais pra
+          // assumir esse compromisso. O max-age já protege quem visita.
           {
             key: "Strict-Transport-Security",
-            value: "max-age=63072000; includeSubDomains; preload",
+            value: "max-age=63072000; includeSubDomains",
           },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },

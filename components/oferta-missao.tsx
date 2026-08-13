@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
+import { pareceLinkDrive } from "@/lib/validators";
 
 type Oferta = { pauta: Pauta; expiraEm: string; ordem: number };
 
@@ -274,7 +275,7 @@ export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) 
           >
             Passar
           </button>
-          {p.driveLink && (
+          {p.driveLink && pareceLinkDrive(p.driveLink) && (
             <a
               href={p.driveLink}
               target="_blank"

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
+import { pareceLinkDrive } from "@/lib/validators";
 
 // A missão que o editor aceitou e está fazendo agora.
 //
@@ -149,7 +150,7 @@ export function MissaoEmMaos({ missao }: { missao: Pauta | null }) {
         </div>
       )}
 
-      {missao.driveLink && (
+      {missao.driveLink && pareceLinkDrive(missao.driveLink) && (
         <div className="mt-5 rounded-2xl border border-line bg-surface/60 p-4">
           <p className="text-xs uppercase tracking-[0.12em] text-muted">
             Acesso ao bruto

@@ -208,6 +208,17 @@ export async function entregasAprovadas(editorId: number): Promise<Pauta[]> {
   return (linhas as unknown as LinhaPauta[]).map(paraPauta);
 }
 
+/** Pautas de um porta-voz público (página /candidato/[slug]).
+ *  Usa o apelido em vez do id porque a página pública não tem o userId. */
+export async function pautasDoCandidatoPublico(apelido: string): Promise<Pauta[]> {
+  const linhas = await sql`
+    ${SELECT_BASE}
+    WHERE lower(u.apelido) = lower(${apelido}) AND u.papel = 'voz' AND u.perfil_completo = true
+    ORDER BY p.criada_em DESC
+  `;
+  return (linhas as unknown as LinhaPauta[]).map(paraPauta);
+}
+
 /** Tudo aguardando o controle de qualidade. */
 export async function pautasEmRevisao(): Promise<Pauta[]> {
   const linhas = await sql`

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { TrabalhoEmMaos } from "@/lib/agenda";
 import { ROTULO_FORMATO } from "@/lib/pautas";
+import { pareceLinkDrive } from "@/lib/validators";
 
 function fmtRestante(ms: number) {
   if (ms <= 0) return "prazo vencido";
@@ -161,7 +162,7 @@ export function MesaAgora({
 
             {/* ações — Drive + ir pra fila onde ele entrega */}
             <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
-              {t.driveLink && (
+              {t.driveLink && pareceLinkDrive(t.driveLink) && (
                 <a
                   href={t.driveLink}
                   target="_blank"

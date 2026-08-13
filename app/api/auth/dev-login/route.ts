@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sql } from "@/lib/db";
-import { criarTokenSessao, NOME_COOKIE, type Papel } from "@/lib/sessao";
+import { criarTokenSessao, NOME_COOKIE, COOKIE_OPTS, type Papel } from "@/lib/sessao";
 
 // Atalho de login SÓ PRA DESENVOLVIMENTO — entra sem senha.
 //
@@ -64,12 +64,7 @@ export async function GET(request: Request) {
   });
 
   const jar = await cookies();
-  jar.set(NOME_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  jar.set(NOME_COOKIE, token, COOKIE_OPTS);
 
   return NextResponse.redirect(new URL(conta.destino, url.origin));
 }

@@ -1,4 +1,4 @@
-// ATENÇÃO: este arquivo é importado pelo proxy.ts, que roda em Edge runtime.
+// ATENÇÃO: este arquivo é importado pelo middleware.ts, que roda em Edge runtime.
 // NÃO importar nada de banco (lib/db, postgres.js) aqui — Edge não tem TCP e
 // quebraria o middleware inteiro. A checagem de revogação que precisa do banco
 // mora em lib/sessao-servidor.ts, que só roda em Node.
@@ -6,6 +6,17 @@ import { SignJWT, jwtVerify } from "jose";
 
 export const NOME_COOKIE = "confraria_sessao";
 const DURACAO = "30d";
+
+/** Opções padrão para setar o cookie de sessão. `secure` fica true só em
+ *  produção — em dev localhost não tem HTTPS e o navegador recusa cookies
+ *  seguros. Todas as rotas de auth devem usar isso em vez de repetir inline. */
+export const COOKIE_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 60 * 60 * 24 * 30,
+};
 
 function chave() {
   const segredo = process.env.AUTH_SECRET;

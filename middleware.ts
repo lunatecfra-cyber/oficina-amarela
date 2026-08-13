@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verificarTokenSessao, NOME_COOKIE } from "@/lib/sessao";
 
-export async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const token = request.cookies.get(NOME_COOKIE)?.value;
   const sessao = token ? await verificarTokenSessao(token) : null;
 

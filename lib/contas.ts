@@ -47,7 +47,7 @@ export async function criarConta(dados: {
   const [emailEmUso] = await sql`SELECT id FROM users WHERE lower(email) = lower(${email})`;
   if (emailEmUso) return { ok: false, erro: "Esse e-mail já está cadastrado." };
 
-  const senha_hash = bcrypt.hashSync(dados.senha, 10);
+  const senha_hash = await bcrypt.hash(dados.senha, 10);
   const [linha] = await sql`
     INSERT INTO users (apelido, nome, email, senha_hash, papel)
     VALUES (${apelido}, ${nome}, ${email}, ${senha_hash}, ${dados.papel})
@@ -67,7 +67,7 @@ export async function autenticar(
     WHERE lower(apelido) = lower(${apelido.trim()})
   `;
 
-  if (!linha || !linha.senha_hash || !bcrypt.compareSync(senha, linha.senha_hash)) {
+  if (!linha || !linha.senha_hash || !(await bcrypt.compare(senha, linha.senha_hash))) {
     return { ok: false, erro: "Apelido ou senha incorretos." };
   }
 
@@ -164,7 +164,7 @@ export async function apagarConta(
   // conta criada pelo Google não tem senha: a confirmação é digitar o
   // próprio apelido, que é o que ela tem de próprio
   const confere = linha.senha_hash
-    ? bcrypt.compareSync(confirmacao, linha.senha_hash)
+    ? await bcrypt.compare(confirmacao, linha.senha_hash)
     : confirmacao.trim().toLowerCase() === String(linha.apelido).toLowerCase();
 
   if (!confere) {
@@ -221,7 +221,7 @@ export async function atualizarSenha(
   novaSenha: string
 ): Promise<{ ok: true } | { ok: false; erro: string }> {
   if (novaSenha.length < 6) return { ok: false, erro: "Senha precisa de pelo menos 6 caracteres." };
-  const senha_hash = bcrypt.hashSync(novaSenha, 10);
+  const senha_hash = await bcrypt.hash(novaSenha, 10);
   // sessoes_validas_apos = now() derruba todos os cookies emitidos antes daqui
   // (quem confere isso é lerSessao() em lib/sessao-servidor.ts)
   await sql`
@@ -310,11 +310,17 @@ export async function limparTentativasLogin(apelido: string): Promise<void> {
 async function gerarApelidoUnico(email: string): Promise<string> {
   const base = email.split("@")[0].toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 20) || "usuario";
   let apelido = base;
-  let n = 1;
-  while (true) {
+
+  // O teto evita o pior caso: se a consulta passar a devolver linha sempre
+  // (base corrompida, coluna errada num refactor), o `while (true)` original
+  // martelaria o banco pra sempre e a requisição nunca responderia. Com 50
+  // colisões reais de um mesmo prefixo já é sinal de outra coisa errada.
+  for (let n = 1; n <= 50; n++) {
     const [existente] = await sql`SELECT id FROM users WHERE lower(apelido) = lower(${apelido})`;
     if (!existente) return apelido;
-    n += 1;
-    apelido = `${base}${n}`;
+    apelido = `${base}${n + 1}`;
   }
+
+  // desiste do prefixo e vai pro aleatório, em vez de falhar o cadastro
+  return `${base.slice(0, 12)}${Math.random().toString(36).slice(2, 8)}`;
 }

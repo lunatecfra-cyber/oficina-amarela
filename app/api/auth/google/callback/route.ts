@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { trocarCodigoPorPerfil } from "@/lib/oauth-google";
 import { buscarContaGoogle } from "@/lib/contas";
-import { criarIdentidadePendente, criarTokenSessao, verificarEstadoAssinado, NOME_COOKIE } from "@/lib/sessao";
+import { criarIdentidadePendente, criarTokenSessao, verificarEstadoAssinado, NOME_COOKIE, COOKIE_OPTS } from "@/lib/sessao";
 
 function erroRedirect(origin: string, motivo: string) {
   return NextResponse.redirect(`${origin}/login?erro_google=${encodeURIComponent(motivo)}`);
@@ -38,12 +38,7 @@ export async function GET(request: Request) {
   if (resultado.conta) {
     const token = await criarTokenSessao(resultado.conta);
     const jar = await cookies();
-    jar.set(NOME_COOKIE, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
+    jar.set(NOME_COOKIE, token, COOKIE_OPTS);
     const destino = resultado.conta.papel === "editor" ? "/editor" : "/porta-voz";
     return NextResponse.redirect(new URL(destino, url.origin));
   }

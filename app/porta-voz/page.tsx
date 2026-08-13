@@ -136,20 +136,23 @@ function CardMissao({
 export default async function PortaVozHome() {
   const sessao = await lerSessao();
 
-  // pautas de verdade (banco) + as de demonstração que batem com o nome —
-  // as fake existem só pra tela não ficar vazia numa conta nova
+  const MODO_DEMO = process.env.NODE_ENV !== "production";
+
+  // pautas de verdade (banco) +, só em dev, as de demonstração para a tela
+  // não ficar vazia numa conta nova
   const [reaisMinhas, reaisDisponiveis] = await Promise.all([
     sessao ? pautasDoPortaVoz(sessao.id) : Promise.resolve([]),
     pautasDisponiveis(),
   ]);
 
-  const demoMinhas = PAUTAS.filter((p) => p.portaVoz === sessao?.nome);
+  const demoMinhas = MODO_DEMO ? PAUTAS.filter((p) => p.portaVoz === sessao?.nome) : [];
   const minhas = [...reaisMinhas, ...demoMinhas];
 
   // fila compartilhada: todas as pautas disponíveis (de todo mundo), ordenadas por criação
+  const demoDisponiveis = MODO_DEMO ? PAUTAS.filter((p) => p.status === "disponivel") : [];
   const filaGeral = [
     ...reaisDisponiveis,
-    ...PAUTAS.filter((p) => p.status === "disponivel"),
+    ...demoDisponiveis,
   ].sort((a, b) => a.criadaEm.localeCompare(b.criadaEm));
 
   const naFila = minhas.filter((p) => p.status === "disponivel");

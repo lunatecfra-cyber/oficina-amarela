@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { pautaPorIdDoPortaVoz, posicaoNaFila, totalNaFila } from "@/lib/pautas-db";
 import { lerCandidatoProprio } from "@/lib/candidato-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
+import { pareceLinkDrive } from "@/lib/validators";
 import {
   ETAPAS_MISSAO,
   ROTULO_FORMATO,
@@ -207,7 +208,7 @@ export default async function DetalheMissaoPage({
       )}
 
       {/* material bruto */}
-      {pauta.driveLink && (
+      {pauta.driveLink && pareceLinkDrive(pauta.driveLink) && (
         <section className="mb-6">
           <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-gold">
             Vídeo bruto

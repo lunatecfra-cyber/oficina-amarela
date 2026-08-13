@@ -3,13 +3,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
-import { PAUTAS, ROTULO_FORMATO, ROTULO_STATUS } from "@/lib/pautas";
+import { PAUTAS, ROTULO_FORMATO, ROTULO_STATUS, type Pauta } from "@/lib/pautas";
 import { getCandidatoPorSlug, type Candidato } from "@/lib/candidatos";
 import { lerCandidatoPublico } from "@/lib/candidato-db";
+import { pautasDoCandidatoPublico } from "@/lib/pautas-db";
 import { Stat } from "@/components/stat";
 import { AvatarCandidato } from "@/components/avatar-candidato";
 import { DadosCandidato } from "@/components/dados-candidato";
 import { NomeCandidato } from "@/components/nome-candidato";
+import { lerSessao } from "@/lib/sessao-servidor";
 
 // os 2 candidatos fake de demonstração primeiro (têm slug fixo), senão
 // procura no banco por apelido — apelido já é único e URL-safe, dobra de slug
@@ -33,10 +35,21 @@ export default async function CandidatoPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const cand = await buscarCandidato(slug);
+  const [cand, sessao] = await Promise.all([
+    buscarCandidato(slug),
+    // a página é pública, então a sessão pode não existir — serve só pra
+    // decidir o link de volta e o cabeçalho
+    lerSessao(),
+  ]);
   if (!cand) notFound();
 
-  const pautas = PAUTAS.filter((p) => p.portaVoz === cand.nome);
+  const MODO_DEMO = process.env.NODE_ENV !== "production";
+
+  // em produção, busca pautas reais no banco; em dev, usa dados de demonstração
+  const pautas: Pauta[] = MODO_DEMO
+    ? PAUTAS.filter((p) => p.portaVoz === cand.nome)
+    : await pautasDoCandidatoPublico(slug);
+
   const naFila = pautas.filter((p) => p.status === "disponivel").length;
   const emAndamento = pautas.filter((p) =>
     ["reservada", "minha", "em_revisao", "reedicao"].includes(p.status)
@@ -47,11 +60,14 @@ export default async function CandidatoPage({
       <AppHeader />
       <main className="flex-1">
         <div className="mx-auto w-full max-w-4xl px-4 py-6 lg:px-8 lg:py-10">
+          {/* Esta página é pública. O link de volta apontava fixo pra /editor,
+              que é rota protegida: um visitante clicava e caía no login sem
+              entender por quê. Agora depende de quem está olhando. */}
           <Link
-            href="/editor"
+            href={sessao ? "/editor" : "/"}
             className="text-sm text-muted transition-colors hover:text-silver-hi"
           >
-            ← Fila
+            {sessao ? "← Fila" : "← Início"}
           </Link>
 
           <section className="reveal mt-4 overflow-hidden rounded-2xl border border-line bg-surface/60">

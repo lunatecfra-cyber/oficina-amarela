@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Formato } from "@/lib/pautas";
+import { pareceLink, pareceLinkDrive } from "@/lib/validators";
 
 type Dados = {
   titulo: string;
@@ -37,14 +38,6 @@ const PASSOS = [
   "Contexto",
   "Formato e prazo",
 ];
-
-function pareceLink(v: string) {
-  return /^(https?:\/\/|www\.)/i.test(v.trim());
-}
-
-function pareceLinkDrive(v: string) {
-  return /drive\.google\.com/i.test(v.trim());
-}
 
 export function NovaPautaForm() {
   const [passo, setPasso] = useState(0);

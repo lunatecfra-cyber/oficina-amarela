@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Logo } from "@/components/logo";
-import { INSPETOR_ATUAL } from "@/lib/pautas";
 import { exigirSessao } from "@/lib/sessao-servidor";
 
 export default async function InspetorLayout({
@@ -8,7 +8,11 @@ export default async function InspetorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
+
+  if (sessao.papel !== "admin") {
+    redirect("/login");
+  }
 
   return (
     <>
@@ -23,7 +27,7 @@ export default async function InspetorLayout({
 
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-muted sm:block">
-              {INSPETOR_ATUAL.apelido} · controle de qualidade
+              {sessao.nome} · controle de qualidade
             </span>
             <Link
               href="/"

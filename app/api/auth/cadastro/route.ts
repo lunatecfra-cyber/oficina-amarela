@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { criarConta, registrarTentativa, taxaTravada } from "@/lib/contas";
 import { ipDaRequisicao } from "@/lib/ip";
-import { criarTokenSessao, NOME_COOKIE } from "@/lib/sessao";
+import { criarTokenSessao, NOME_COOKIE, COOKIE_OPTS } from "@/lib/sessao";
 
 // Quantas contas o mesmo IP pode criar antes de esfriar. Mais folgado que o
 // login (5) porque família e escritório saem pelo mesmo IP.
@@ -46,12 +46,7 @@ export async function POST(request: Request) {
 
   const token = await criarTokenSessao(resultado.conta);
   const jar = await cookies();
-  jar.set(NOME_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  jar.set(NOME_COOKIE, token, COOKIE_OPTS);
 
   return NextResponse.json({ ok: true, ...resultado.conta });
 }

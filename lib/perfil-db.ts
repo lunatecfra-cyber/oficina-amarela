@@ -35,14 +35,20 @@ export async function lerPerfilEditavel(userId: number): Promise<PerfilEditavel 
 export async function salvarPerfilEditavel(
   userId: number,
   dados: { headline?: string[]; bio?: string; localizacao?: string }
-): Promise<void> {
-  await sql`
-    UPDATE users SET
-      headline = ${dados.headline ? sql.json(limitarLista(dados.headline, 5)) : null},
-      bio = ${limitarOuNulo(dados.bio, LIMITES.bio)},
-      localizacao = ${limitarOuNulo(dados.localizacao, LIMITES.localizacao)}
-    WHERE id = ${userId}
-  `;
+): Promise<{ ok: true } | { ok: false; erro: string }> {
+  try {
+    await sql`
+      UPDATE users SET
+        headline = ${dados.headline ? sql.json(limitarLista(dados.headline, 5)) : null},
+        bio = ${limitarOuNulo(dados.bio, LIMITES.bio)},
+        localizacao = ${limitarOuNulo(dados.localizacao, LIMITES.localizacao)}
+      WHERE id = ${userId}
+    `;
+    return { ok: true };
+  } catch (err) {
+    console.error("[perfil] erro ao salvar perfil editável:", err);
+    return { ok: false, erro: "Erro ao salvar perfil. Tente novamente." };
+  }
 }
 
 export type OnboardingEditor = {

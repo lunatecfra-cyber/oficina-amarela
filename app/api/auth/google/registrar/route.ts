@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { criarContaGoogle } from "@/lib/contas";
-import { criarTokenSessao, verificarIdentidadePendente, NOME_COOKIE } from "@/lib/sessao";
+import { criarTokenSessao, verificarIdentidadePendente, NOME_COOKIE, COOKIE_OPTS } from "@/lib/sessao";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -27,12 +27,7 @@ export async function POST(request: Request) {
 
   const sessaoToken = await criarTokenSessao(resultado.conta);
   const jar = await cookies();
-  jar.set(NOME_COOKIE, sessaoToken, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  jar.set(NOME_COOKIE, sessaoToken, COOKIE_OPTS);
 
   const destino = papel === "editor" ? "/editor/criar-perfil" : "/porta-voz/criar-perfil?via=google";
   return NextResponse.json({ ok: true, destino });
