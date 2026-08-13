@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verificarTokenSessao, NOME_COOKIE } from "@/lib/sessao";
 
-export default async function middleware(request: NextRequest) {
+// Arquivo `proxy`, não `middleware`: no Next 16 o nome antigo está depreciado e
+// dispara aviso em todo build. O runtime aqui é sempre Node — `proxy` não
+// aceita o runtime `edge`, e não precisamos dele: o `jose` que verifica o token
+// roda nos dois.
+export default async function proxy(request: NextRequest) {
   const token = request.cookies.get(NOME_COOKIE)?.value;
   const sessao = token ? await verificarTokenSessao(token) : null;
 
