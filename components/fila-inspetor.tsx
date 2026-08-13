@@ -18,7 +18,17 @@ export function FilaInspetor({
   candidatosPorApelido?: Record<string, Candidato>;
 }) {
   const router = useRouter();
-  const [pautas, setPautas] = useState<Pauta[]>([...pautasReais, ...PAUTAS]);
+
+  // As pautas de demonstração entravam SEMPRE, junto com as reais. Em produção
+  // isso enchia o controle de qualidade de missão que não existe: com o banco
+  // zerado, a tela ainda mostrava duas esperando aprovação, de candidatos
+  // inventados, entregues por editores que ninguém conhece. E clicar em
+  // "Aprovar" numa delas devolvia "essa é uma missão de demonstração", porque o
+  // id não é numérico — dava pra perder um tempo bom procurando o que estava
+  // errado. Elas existem pra tela não ficar vazia enquanto se mexe no layout,
+  // então ficam onde isso importa: em desenvolvimento.
+  const demo = process.env.NODE_ENV !== "production" ? PAUTAS : [];
+  const [pautas, setPautas] = useState<Pauta[]>([...pautasReais, ...demo]);
   const [erro, setErro] = useState("");
 
   const emRevisao = pautas.filter((p) => p.status === "em_revisao");

@@ -20,15 +20,22 @@ export const dynamic = "force-dynamic";
 export default async function PerfilPortaVozPage() {
   const sessao = await exigirSessao();
 
-  // perfil + missões de verdade (banco). PAUTAS só entra como demo quando o
-  // nome bate com um candidato de demonstração — pra um porta-voz real nunca
-  // casa, então as stats refletem só o que ele criou de fato.
   const [candOpt, reaisMinhas] = await Promise.all([
     lerCandidatoProprio(sessao.id),
     pautasDoPortaVoz(sessao.id),
   ]);
   const cand = candOpt ?? getCandidato(sessao.nome);
-  const minhas = [...reaisMinhas, ...PAUTAS.filter((p) => p.portaVoz === sessao.nome)];
+
+  // As pautas de demonstração ficam fora de produção. O filtro por nome dava
+  // uma proteção quase certa — só casaria com alguém chamado "Busnelo" ou
+  // "Marcia Lima" — mas "quase" aqui significa: essa pessoa veria missões que
+  // não são dela, e com os contadores errados por cima. Nome de gente repete;
+  // não é coisa pra deixar no acaso.
+  const demo =
+    process.env.NODE_ENV !== "production"
+      ? PAUTAS.filter((p) => p.portaVoz === sessao.nome)
+      : [];
+  const minhas = [...reaisMinhas, ...demo];
 
   // Os quatro contadores têm que somar o total, senão missão some da conta.
   // 'oferecida' (dispatch, ainda sem editor) conta como fila; 'finalizada'
