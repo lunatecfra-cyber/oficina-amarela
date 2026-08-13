@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { buscarContaPorEmail, registrarTentativa, taxaTravada } from "@/lib/contas";
 import { ipDaRequisicao } from "@/lib/ip";
 import { criarTokenRecuperacao } from "@/lib/sessao";
-import { emailConfigurado, enviarEmailRecuperacao } from "@/lib/email";
+import { emailConfigurado, enviarEmailRecuperacao, remetenteEhDeTeste } from "@/lib/email";
 
 // mensagem sempre igual, exista ou não a conta — evita que alguém descubra
 // quais e-mails têm cadastro só tentando recuperar senha
@@ -22,7 +22,15 @@ export async function POST(request: Request) {
   // Dizia "falta RESEND_API_KEY" — nome de variável de ambiente na cara de quem
   // só quer voltar pra própria conta. A pessoa não pode fazer nada com essa
   // informação; o que ela precisa é do caminho que funciona.
-  if (!emailConfigurado()) {
+  //
+  // O `remetenteEhDeTeste()` está aqui pra evitar a repetição de um erro que já
+  // aconteceu neste projeto: a chave era o literal "dummy", `!!chave` dava true,
+  // o envio ia até o Resend, tomava 401 — e a tela dizia "mandamos o link" de um
+  // e-mail que nunca saiu. Com chave real e domínio ainda não verificado, o
+  // resultado seria o mesmo tipo de mentira: o Resend aceita a requisição, mas
+  // só entrega no e-mail do dono da conta. Antes de prometer, tem que poder
+  // cumprir.
+  if (!emailConfigurado() || remetenteEhDeTeste()) {
     return NextResponse.json(
       {
         erro: "O envio de e-mail ainda não está ligado. Se sua conta usa e-mail do Google, entra pelo botão do Google aqui em cima — cai na mesma conta.",

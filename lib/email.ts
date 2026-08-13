@@ -30,9 +30,21 @@ function escaparHtml(texto: string) {
     .replace(/"/g, "&quot;");
 }
 
-// remetente padrão do Resend enquanto o domínio próprio não está verificado
-// lá — trocar pra algo em oficinaamarela.com.br assim que o DNS propagar
-const REMETENTE = "Oficina Amarela <onboarding@resend.dev>";
+// Remetente. Vem de variável de ambiente pra que verificar o domínio no Resend
+// seja só configurar EMAIL_REMETENTE na Vercel — sem mexer em código, sem
+// publicar de novo.
+//
+// O padrão abaixo é o endereço de teste do Resend, e ele NÃO serve pra uso
+// real: enquanto o domínio não estiver verificado lá, o Resend só entrega no
+// e-mail de quem abriu a conta. É sandbox. Com ele configurado, quem pedir
+// recuperação e não for você não recebe nada.
+const REMETENTE = process.env.EMAIL_REMETENTE?.trim() || "Oficina Amarela <onboarding@resend.dev>";
+
+/** O remetente ainda é o de sandbox do Resend? Se sim, só o dono da conta do
+ *  Resend recebe — não dá pra prometer entrega a mais ninguém. */
+export function remetenteEhDeTeste() {
+  return REMETENTE.includes("resend.dev");
+}
 
 /**
  * Devolve se o envio deu certo.
