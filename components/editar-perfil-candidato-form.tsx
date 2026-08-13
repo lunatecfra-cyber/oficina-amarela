@@ -256,7 +256,7 @@ export function EditarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCand
 
           <div>
             <label htmlFor="disputaPor" className={rotuloCampo}>
-              Estado (opcional)
+              Onde disputa
             </label>
             <select
               id="disputaPor"
@@ -297,6 +297,7 @@ export function EditarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCand
           valorCidade={cidadeNome}
           onChangeEstado={setEstadoUf}
           onChangeCidade={setCidadeNome}
+          labelEstado="Onde você mora"
           labelCidade="Região"
         />
       </section>

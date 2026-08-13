@@ -110,6 +110,14 @@ export function MissaoEmMaos({ missao }: { missao: Pauta | null }) {
     missao.extras ||
     missao.motivo;
 
+  // A missão continua "em mãos" depois de entregue — ela só sai daqui quando o
+  // controle de qualidade aprova. Mas o card mostrava "Missão aceita" e o campo
+  // de entrega nos três estados, então quem entregava via a tela idêntica: nada
+  // dizia que tinha dado certo. O caminho natural era clicar de novo, e aí vinha
+  // "Essa missão não está com você" — mensagem que soa como missão perdida,
+  // quando na verdade estava tudo certo e só faltava avisar.
+  const aguardandoRevisao = missao.status === "em_revisao";
+
   return (
     <section className="mb-10 rounded-2xl border border-gold-lo/50 bg-gradient-to-b from-gold/[0.07] to-transparent p-6 lg:p-8">
       <FileteDourado />
@@ -118,9 +126,14 @@ export function MissaoEmMaos({ missao }: { missao: Pauta | null }) {
           Sua missão
         </span>
         <span className="text-xs uppercase tracking-[0.15em] text-gold-hi">
-          Missão aceita
+          {aguardandoRevisao
+            ? "Entregue · em revisão"
+            : missao.status === "reedicao"
+              ? "Ajuste pedido"
+              : "Missão aceita"}
         </span>
-        {missao.reservadaAte && agora !== null && (
+        {/* o relógio é prazo de entrega: depois de entregue não conta mais nada */}
+        {missao.reservadaAte && agora !== null && !aguardandoRevisao && (
           <span className="ml-auto text-sm text-muted">
             ⏳ {restante(missao.reservadaAte)}
           </span>
@@ -155,17 +168,25 @@ export function MissaoEmMaos({ missao }: { missao: Pauta | null }) {
           <p className="text-xs uppercase tracking-[0.12em] text-muted">
             Acesso ao bruto
           </p>
+          {/* Dizia "✓ Acesso liberado no Drive para seu e-mail", com check
+              verde. Não era verdade: o login com Google pede só
+              `openid email profile`, e não existe uma única chamada à API do
+              Drive no projeto — ninguém libera pasta nenhuma. O editor clicava,
+              batia num "você precisa de acesso" do Google e não entendia por
+              quê. Enquanto a liberação for manual, a tela diz isso. */}
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-text">
-            <span className="text-ok">✓</span> Acesso liberado no Drive para seu
-            e-mail.
             <a
               href={missao.driveLink}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-gold-hi hover:underline"
             >
-              Abrir pasta
+              Abrir pasta no Drive
             </a>
+          </p>
+          <p className="mt-2 text-xs text-muted-2">
+            Se o Drive pedir permissão, peça a liberação a quem criou a missão —
+            hoje esse acesso ainda é liberado à mão.
           </p>
         </div>
       )}
@@ -208,48 +229,76 @@ export function MissaoEmMaos({ missao }: { missao: Pauta | null }) {
         </div>
       )}
 
-      <div className="mt-5">
-        <label
-          htmlFor="entrega"
-          className="mb-2 block text-xs uppercase tracking-[0.12em] text-muted"
-        >
-          Link do vídeo pronto
-        </label>
-        <input
-          id="entrega"
-          className="field-input !pl-4"
-          placeholder="cole aqui o link do Drive"
-          value={linkEntrega}
-          onChange={(e) => {
-            setLinkEntrega(e.target.value);
-            setAviso("");
-          }}
-        />
-      </div>
+      {aguardandoRevisao ? (
+        <>
+          <div className="mt-5 rounded-2xl border border-ok/40 bg-ok/[0.06] p-4">
+            <p className="flex flex-wrap items-center gap-2 text-sm text-text">
+              <span className="text-ok">✓</span> Entregue. Agora é com o controle
+              de qualidade — assim que aprovarem, a próxima missão chega pra você.
+              {missao.entregaLink && (
+                <a
+                  href={missao.entregaLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-gold-hi hover:underline"
+                >
+                  Ver o que você entregou
+                </a>
+              )}
+            </p>
+          </div>
 
-      {aviso && (
-        <p role="alert" className="mt-3 text-sm text-danger">
-          {aviso}
-        </p>
+          <p className="mt-3 text-xs text-muted-2">
+            Precisa trocar o vídeo? Fale com quem pediu a missão — depois de
+            aprovada, ela não volta pra edição sozinha.
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="mt-5">
+            <label
+              htmlFor="entrega"
+              className="mb-2 block text-xs uppercase tracking-[0.12em] text-muted"
+            >
+              Link do vídeo pronto
+            </label>
+            <input
+              id="entrega"
+              className="field-input !pl-4"
+              placeholder="cole aqui o link do Drive"
+              value={linkEntrega}
+              onChange={(e) => {
+                setLinkEntrega(e.target.value);
+                setAviso("");
+              }}
+            />
+          </div>
+
+          {aviso && (
+            <p role="alert" className="mt-3 text-sm text-danger">
+              {aviso}
+            </p>
+          )}
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <button className="btn-gold sm:flex-1" onClick={entregar} disabled={processando}>
+              {processando ? "Enviando…" : "Confirmar entrega"}
+            </button>
+            <button
+              className="btn-ghost sm:w-52"
+              onClick={() => chamar("cancelar")}
+              disabled={processando}
+            >
+              {processando ? "…" : "Devolver missão"}
+            </button>
+          </div>
+
+          <p className="mt-3 text-xs text-muted-2">
+            Prazo de {PRAZO_HORAS}h pra entregar. Devolver libera a missão pra outro
+            editor.
+          </p>
+        </>
       )}
-
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <button className="btn-gold sm:flex-1" onClick={entregar} disabled={processando}>
-          {processando ? "Enviando…" : "Confirmar entrega"}
-        </button>
-        <button
-          className="btn-ghost sm:w-52"
-          onClick={() => chamar("cancelar")}
-          disabled={processando}
-        >
-          {processando ? "…" : "Devolver missão"}
-        </button>
-      </div>
-
-      <p className="mt-3 text-xs text-muted-2">
-        Prazo de {PRAZO_HORAS}h pra entregar. Devolver libera a missão pra outro
-        editor.
-      </p>
     </section>
   );
 }

@@ -350,7 +350,7 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
                   htmlFor="disputaPor"
                   className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
                 >
-                  Estado (opcional)
+                  Onde disputa
                 </label>
                 <select
                   id="disputaPor"
@@ -395,6 +395,7 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
                 valorCidade={cidadeNome}
                 onChangeEstado={setEstadoUf}
                 onChangeCidade={setCidadeNome}
+                labelEstado="Onde você mora"
                 labelCidade="Região"
               />
             </div>
