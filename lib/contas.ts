@@ -23,34 +23,60 @@ export function apelidoValido(apelido: string) {
   return RE_APELIDO.test(apelido.trim());
 }
 
+/**
+ * `conflito` separa duas coisas que estavam no mesmo balaio:
+ *
+ *  - erro de preenchimento (senha curta, apelido com espaço, e-mail sem @):
+ *    é a pessoa digitando, e nem chega no banco.
+ *  - conflito de verdade (apelido ou e-mail já em uso): a requisição estava
+ *    bem formada e o banco disse não.
+ *
+ * A rota precisa da diferença por dois motivos: devolver 400 no primeiro caso
+ * em vez de 409 pra tudo, e não gastar tentativa do freio de cadastro com quem
+ * só errou de digitar.
+ */
+type FalhaConta = { ok: false; erro: string; conflito: boolean };
+
 export async function criarConta(dados: {
   nome: string;
   apelido: string;
   email: string;
   senha: string;
   papel: Papel;
-}): Promise<{ ok: true; conta: ContaUsuario } | { ok: false; erro: string }> {
+}): Promise<{ ok: true; conta: ContaUsuario } | FalhaConta> {
   const nome = limitar(dados.nome, LIMITES.nome);
   const apelido = limitar(dados.apelido, LIMITES.apelido);
   const email = limitar(dados.email, LIMITES.email);
 
-  if (!nome) return { ok: false, erro: "Digite seu nome." };
+  if (!nome) return { ok: false, erro: "Digite seu nome.", conflito: false };
   // senha longa demais também é problema: bcrypt fica caro e vira porta de
   // negação de serviço barata
   if (dados.senha.length > 200) {
-    return { ok: false, erro: "Senha longa demais." };
+    return { ok: false, erro: "Senha longa demais.", conflito: false };
   }
   if (!apelidoValido(apelido)) {
-    return { ok: false, erro: "Apelido deve ter 3-24 letras, números, ponto ou underline." };
+    return {
+      ok: false,
+      erro: "Apelido deve ter 3-24 letras, números, ponto ou underline.",
+      conflito: false,
+    };
   }
-  if (!RE_EMAIL.test(email)) return { ok: false, erro: "Digite um e-mail válido." };
-  if (dados.senha.length < 6) return { ok: false, erro: "Senha precisa de pelo menos 6 caracteres." };
+  if (!RE_EMAIL.test(email)) {
+    return { ok: false, erro: "Digite um e-mail válido.", conflito: false };
+  }
+  if (dados.senha.length < 6) {
+    return { ok: false, erro: "Senha precisa de pelo menos 6 caracteres.", conflito: false };
+  }
 
   const [apelidoEmUso] = await sql`SELECT id FROM users WHERE lower(apelido) = lower(${apelido})`;
-  if (apelidoEmUso) return { ok: false, erro: "Esse apelido já está em uso." };
+  if (apelidoEmUso) {
+    return { ok: false, erro: "Esse apelido já está em uso.", conflito: true };
+  }
 
   const [emailEmUso] = await sql`SELECT id FROM users WHERE lower(email) = lower(${email})`;
-  if (emailEmUso) return { ok: false, erro: "Esse e-mail já está cadastrado." };
+  if (emailEmUso) {
+    return { ok: false, erro: "Esse e-mail já está cadastrado.", conflito: true };
+  }
 
   const senha_hash = await bcrypt.hash(dados.senha, 10);
   const [linha] = await sql`

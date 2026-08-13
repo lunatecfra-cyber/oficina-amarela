@@ -35,14 +35,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: "Escolha se você é porta-voz ou editor." }, { status: 400 });
   }
 
-  // conta a tentativa antes de saber se deu certo: quem varre apelidos pra
-  // descobrir quais já existem também precisa ser freado
-  await registrarTentativa(chave, MAX_CADASTROS_POR_IP);
-
   const resultado = await criarConta({ nome, apelido, email, senha, papel });
+
   if (!resultado.ok) {
-    return NextResponse.json({ erro: resultado.erro }, { status: 409 });
+    // Erro de digitação não gasta tentativa. Antes gastava, e o efeito era
+    // este: oito formulários mal preenchidos — senha curta, apelido com
+    // espaço, nome vazio — travavam o cadastro por 15 minutos sem que uma
+    // única conta tivesse sido criada. Quem paga isso é justamente quem está
+    // com dificuldade de preencher, e num escritório com wi-fi compartilhado
+    // as tentativas ainda somam entre pessoas diferentes.
+    //
+    // O freio continua valendo pro que ele existia pra impedir: quem varre
+    // apelidos pra descobrir quais já existem passa por aqui como conflito,
+    // porque a requisição dele é bem formada.
+    if (resultado.conflito) {
+      await registrarTentativa(chave, MAX_CADASTROS_POR_IP);
+    }
+    return NextResponse.json(
+      { erro: resultado.erro },
+      // 409 é "conflito com o que já existe" — só cabe em apelido ou e-mail
+      // repetido. Preenchimento inválido é 400.
+      { status: resultado.conflito ? 409 : 400 }
+    );
   }
+
+  await registrarTentativa(chave, MAX_CADASTROS_POR_IP);
 
   const token = await criarTokenSessao(resultado.conta);
   const jar = await cookies();
