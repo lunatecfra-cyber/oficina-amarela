@@ -36,7 +36,7 @@ const PASSOS = [
   "Cortes específicos",
   "O estilo",
   "Contexto",
-  "Formato e prazo",
+  "Formato",
 ];
 
 export function NovaPautaForm() {
@@ -273,7 +273,7 @@ export function NovaPautaForm() {
         )}
 
         {passo === 4 && (
-          <Passo titulo="Formato e prazo" sub="Como e pra quando você precisa.">
+          <Passo titulo="Formato" sub="Como você precisa do vídeo.">
             <Campo label="Formato">
               <div className="grid grid-cols-2 gap-3">
                 {(
@@ -298,14 +298,6 @@ export function NovaPautaForm() {
                   </button>
                 ))}
               </div>
-            </Campo>
-            <Campo label="Prazo desejado (opcional)">
-              <input
-                type="date"
-                className="field-input !pl-4"
-                value={dados.prazo}
-                onChange={(e) => set("prazo", e.target.value)}
-              />
             </Campo>
           </Passo>
         )}
