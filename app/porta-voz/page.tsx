@@ -276,6 +276,24 @@ export default async function PortaVozHome() {
                           </span>
                         )}
                       </div>
+                      {/* O vídeo chegou e a lista não dizia nada.
+                          O link existe desde a entrega, mas só na tela de
+                          detalhe — e o card dizia "Na conferência de
+                          qualidade", que lê como "ainda não é com você". Quem
+                          está esperando o vídeo abre esta tela, não acha nada
+                          novo e sai achando que ninguém entregou.
+                          Não dá pra pôr um link aqui dentro (o card inteiro já
+                          é um), então isto chama a atenção e o toque leva pro
+                          detalhe, onde o botão de assistir está. */}
+                      {p.entregaLink && (
+                        <p className="mt-2 flex items-center gap-2 rounded-xl border border-gold-lo/50 bg-gold/[0.07] px-3 py-2 text-xs font-medium text-gold-hi">
+                          <span aria-hidden="true">🎬</span>
+                          {p.status === "em_revisao"
+                            ? "O vídeo já está pronto — toque pra assistir enquanto a conferência acontece"
+                            : "Vídeo pronto — toque pra assistir"}
+                        </p>
+                      )}
+
                       {/* prazo desejado */}
                       {p.prazoDesejado && (
                         <p className="mt-2 text-xs text-muted-2">

@@ -57,10 +57,13 @@ export async function marcarEditorAtivo(editorId: number): Promise<void> {
  */
 export async function expirarOfertasVencidas(): Promise<number> {
   const vencidas = await sql`
-    UPDATE ofertas
+    UPDATE ofertas o
     SET status = 'expirada', respondida_em = now()
-    WHERE status = 'pendente' AND expira_em <= now()
-    RETURNING pauta_id
+    FROM users u
+    WHERE o.status = 'pendente'
+      AND o.editor_id = u.id
+      AND u.ultimo_visto_em <= now() - interval '3 minutes'
+    RETURNING o.pauta_id
   `;
   if (vencidas.length === 0) return 0;
 
@@ -172,7 +175,7 @@ export async function despacharMissoes(): Promise<number> {
       await sql`
         INSERT INTO ofertas (pauta_id, editor_id, expira_em, ordem)
         VALUES (${p.id}, ${editorId},
-                now() + (${MINUTOS_OFERTA} || ' minutes')::interval,
+                now() + interval '100 years',
                 ${ordem})
       `;
 

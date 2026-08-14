@@ -17,37 +17,18 @@ function Chip({ k, v }: { k: string; v: string }) {
   );
 }
 
-function contagem(ms: number) {
-  if (ms <= 0) return "0:00";
-  const m = Math.floor(ms / 60_000);
-  const s = Math.floor((ms % 60_000) / 1000);
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
 /**
  * O dispatch do lado do editor.
- *
- * Fica no topo da fila e pergunta ao servidor de tempos em tempos se tem
- * missão pra ele. O próprio polling é o sinal de presença: parar de chamar
- * é o mesmo que ficar offline, e o servidor deixa de oferecer.
- *
- * O contador roda a cada segundo só na tela; quem decide se a oferta ainda
- * vale é sempre o banco (`expira_em > now()`), pra relógio adiantado do
- * cliente não conseguir aceitar oferta vencida.
+ * Agora o editor controla explicitamente se está na fila ou não.
  */
 export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) {
   const router = useRouter();
+  const [isNaFila, setIsNaFila] = useState(false);
   const [oferta, setOferta] = useState<Oferta | null>(null);
-  const [agora, setAgora] = useState<number | null>(null);
   const [processando, setProcessando] = useState(false);
   const [aviso, setAviso] = useState("");
-  // evita duas chamadas se a rede demorar mais que o intervalo
   const buscando = useRef(false);
-  // qual missão estava na mão no ciclo anterior, pra saber quando mudou
   const ultimoId = useRef<string | null>(null);
-  // quando o editor entrou em espera — só existe no cliente, senão o
-  // servidor mandaria um horário diferente e quebraria a hidratação
-  const [esperandoDesde, setEsperandoDesde] = useState<number | null>(null);
 
   const buscar = useCallback(async () => {
     if (buscando.current) return;
@@ -60,10 +41,6 @@ export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) 
 
       setOferta(nova);
 
-      // A lista aberta é renderizada no servidor, antes deste polling rodar.
-      // Sem isto, a missão recém-oferecida aparecia DUAS vezes: no card de
-      // oferta e na lista, com um "Reservar" que já não funcionava.
-      // Só recarrega quando a oferta muda de fato — não a cada ciclo.
       const idAtual = nova?.pauta.id ?? null;
       if (idAtual !== ultimoId.current) {
         ultimoId.current = idAtual;
@@ -76,44 +53,15 @@ export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) 
     }
   }, [router]);
 
-  // com missão em mãos o editor não recebe oferta — não faz sentido bater
-  // no servidor a cada 15s só pra ouvir "nada".
-  //
-  // A primeira busca vai num setTimeout(0) em vez de direto: assim o
-  // setState dela não acontece dentro do commit do efeito (que é o que
-  // dispara render em cascata). O atraso é de um tick, imperceptível.
   useEffect(() => {
-    if (temMissaoEmMaos) return;
+    if (temMissaoEmMaos || !isNaFila) return;
     const inicial = setTimeout(buscar, 0);
     const t = setInterval(buscar, INTERVALO_POLL_MS);
     return () => {
       clearTimeout(inicial);
       clearInterval(t);
     };
-  }, [buscar, temMissaoEmMaos]);
-
-  // o relógio só existe no cliente: ler Date.now() na renderização do
-  // servidor daria um valor diferente e quebraria a hidratação
-  useEffect(() => {
-    const tick = () => setAgora(Date.now());
-    const inicial = setTimeout(tick, 0);
-    // com oferta na mão o contador precisa correr de segundo em segundo;
-    // esperando, de minuto em minuto já basta
-    const t = setInterval(tick, oferta ? 1000 : 30_000);
-    return () => {
-      clearTimeout(inicial);
-      clearInterval(t);
-    };
-  }, [oferta]);
-
-  // reinicia o cronômetro de espera toda vez que ele volta a ficar sem
-  // oferta. O setTimeout(0) tira o setState de dentro do commit do efeito,
-  // que é o que dispararia render em cascata.
-  useEffect(() => {
-    const emEspera = !oferta && !temMissaoEmMaos;
-    const t = setTimeout(() => setEsperandoDesde(emEspera ? Date.now() : null), 0);
-    return () => clearTimeout(t);
-  }, [oferta, temMissaoEmMaos]);
+  }, [buscar, temMissaoEmMaos, isNaFila]);
 
   async function responder(acao: "aceitar" | "recusar") {
     if (!oferta) return;
@@ -127,7 +75,6 @@ export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) 
     });
 
     setProcessando(false);
-
     setOferta(null);
     ultimoId.current = null;
 
@@ -138,25 +85,52 @@ export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) 
       return;
     }
 
-    // aceitou: a página inteira muda (a missão vira "em mãos"), então
-    // recarrega. Passou: só busca a próxima, que já recarrega se vier algo.
     if (acao === "aceitar") router.refresh();
     else buscar();
   }
 
+  function sairDaFila() {
+    setIsNaFila(false);
+    if (oferta) {
+      setOferta(null);
+      ultimoId.current = null;
+      // recusa silenciosamente para liberar a missão
+      fetch("/api/editor/fila/proxima", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pautaId: oferta.pauta.id, acao: "recusar" }),
+      }).catch(() => {});
+    }
+  }
+
   if (temMissaoEmMaos) return null;
 
-  const esperandoHa =
-    agora === null || esperandoDesde === null
-      ? null
-      : Math.floor((agora - esperandoDesde) / 60_000);
+  if (!isNaFila) {
+    return (
+      <section className="mb-8 rounded-2xl border border-line bg-surface/40 px-6 py-10 text-center">
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
+          Você está fora da fila
+        </h2>
+        <p className="mx-auto mt-2 mb-6 max-w-sm text-sm text-muted">
+          Clique abaixo quando estiver pronto para receber missões. Sem pressa e sem cronômetro.
+        </p>
+        <button className="btn-gold mx-auto px-8" onClick={() => setIsNaFila(true)}>
+          ▶ Entrar na fila
+        </button>
+      </section>
+    );
+  }
 
   if (!oferta) {
     return (
-      <section className="mb-8 rounded-2xl border border-line bg-surface/40 px-6 py-10 text-center">
+      <section className="mb-8 rounded-2xl border border-line bg-surface/40 px-6 py-10 text-center relative">
+        <button
+          onClick={sairDaFila}
+          className="absolute top-4 right-4 text-xs font-medium text-muted hover:text-text"
+        >
+          ⏹ Sair da fila
+        </button>
         <span className="relative mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-gold-lo/40 bg-gold/[0.06] text-2xl">
-          {/* o halo pulsando é o único sinal de que o sistema está vivo:
-              sem ele a tela parada parece travada */}
           <span
             aria-hidden="true"
             className="absolute inset-0 animate-ping rounded-2xl border border-gold-lo/30"
@@ -166,34 +140,30 @@ export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) 
         </span>
 
         <p className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
-          A bancada está pronta
+          Buscando missões...
         </p>
         <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
-          Assim que entrar uma missão com a sua cara, ela aparece aqui. Pode
-          deixar essa aba aberta.
+          Assim que entrar uma missão com a sua cara, ela aparece aqui.
         </p>
-
         <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-ink-2 px-3 py-1 text-xs text-muted-2">
           <span className="h-2 w-2 rounded-full bg-ok" />
           Online
-          {esperandoHa !== null && esperandoHa > 0 && (
-            <>
-              <span aria-hidden="true">·</span>
-              esperando há {esperandoHa} min
-            </>
-          )}
         </p>
       </section>
     );
   }
 
-  const restanteMs = agora === null ? null : new Date(oferta.expiraEm).getTime() - agora;
-  const apertado = restanteMs !== null && restanteMs < 60_000;
   const p = oferta.pauta;
   const temBrief = p.brief.tom || p.brief.cor || p.brief.fonte || p.brief.refs;
 
   return (
-    <section className="mb-8 overflow-hidden rounded-2xl border border-gold-lo/60 bg-gradient-to-b from-gold/[0.09] to-transparent">
+    <section className="mb-8 overflow-hidden rounded-2xl border border-gold-lo/60 bg-gradient-to-b from-gold/[0.09] to-transparent relative">
+      <button
+        onClick={sairDaFila}
+        className="absolute top-6 right-6 text-xs font-medium text-muted hover:text-text z-10"
+      >
+        ⏹ Sair da fila
+      </button>
       <div
         className="h-1 w-full"
         style={{
@@ -202,22 +172,14 @@ export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) 
         }}
         aria-hidden="true"
       />
-      <div className="p-6 lg:p-7">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="p-6 lg:p-7 relative">
+        <div className="flex flex-wrap items-center justify-between gap-3 pr-24">
           <span className="text-xs uppercase tracking-[0.15em] text-gold-hi">
             🎬 Nova missão pra você
           </span>
-          <span
-            aria-live="polite"
-            className={`text-sm font-medium tabular-nums ${
-              apertado ? "text-danger" : "text-muted"
-            }`}
-          >
-            ⏳ expira em {restanteMs === null ? "—" : contagem(restanteMs)}
-          </span>
         </div>
 
-        <h2 className="mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
+        <h2 className="mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl pr-20">
           {p.titulo}
         </h2>
         <p className="mt-1 text-sm text-muted">

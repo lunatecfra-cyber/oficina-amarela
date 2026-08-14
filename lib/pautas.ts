@@ -159,8 +159,12 @@ export function mensagemStatusPortaVoz(status: StatusPauta): {
     case "reservada":
     case "minha":
       return { texto: "🎬 Seu vídeo começou a ser feito", cor: "text-gold-hi" };
+    // Dizia só "Na conferência de qualidade". Verdade, mas escondia a notícia
+    // que interessa a quem está esperando: o vídeo ficou pronto. Do jeito
+    // antigo lia-se como "ainda não é com você", e a pessoa saía da tela sem
+    // saber que já dava pra assistir.
     case "em_revisao":
-      return { texto: "🔎 Na conferência de qualidade", cor: "text-silver-hi" };
+      return { texto: "🎬 Vídeo entregue — conferindo a qualidade", cor: "text-gold-hi" };
     case "reedicao":
       return { texto: "💬 Voltou pro editor com um ajuste", cor: "text-silver-hi" };
     case "aprovada":
