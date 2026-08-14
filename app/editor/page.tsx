@@ -4,6 +4,7 @@ import { DesafiosDia } from "@/components/desafios-dia";
 import { MissaoEmMaos } from "@/components/missao-em-maos";
 import { OfertaMissao } from "@/components/oferta-missao";
 import { pautaReservadaPor } from "@/lib/pautas-db";
+import { mensagensDaPauta } from "@/lib/chat-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
 
 export const metadata: Metadata = { title: "Fila — Oficina Amarela" };
@@ -20,6 +21,10 @@ export const dynamic = "force-dynamic";
 export default async function EditorPage() {
   const sessao = await exigirSessao();
   const minhaAtual = await pautaReservadaPor(sessao.id);
+  // thread da missão em mãos — sem missão, sem conversa (nada pra buscar)
+  const mensagens = minhaAtual
+    ? await mensagensDaPauta(Number(minhaAtual.id.replace(/^db-/, "")))
+    : [];
 
   return (
     <>
@@ -37,7 +42,7 @@ export default async function EditorPage() {
             </p>
           </div>
 
-          <MissaoEmMaos missao={minhaAtual} />
+          <MissaoEmMaos missao={minhaAtual} mensagens={mensagens} />
           {/* com missão em mãos o componente some sozinho — não há o que
               oferecer a quem já está trabalhando */}
           <OfertaMissao temMissaoEmMaos={!!minhaAtual} />

@@ -7,15 +7,20 @@ import { PAUTAS, ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
 import { iniciais, type Candidato } from "@/lib/candidatos";
 import { LocalProximidade } from "@/components/local-proximidade";
 import { Selo, Chip, candidatoDaPauta } from "@/components/pauta-ui";
+import { ChatMissao } from "@/components/chat-missao";
+import type { Mensagem } from "@/lib/chat-db";
 import { pareceLink } from "@/lib/validators";
 
 export function FilaInspetor({
   pautasReais = [],
   candidatosPorApelido = {},
+  mensagensPorPauta = {},
 }: {
   pautasReais?: Pauta[];
   /** perfil real dos porta-vozes das pautas acima, por apelido (vem do banco) */
   candidatosPorApelido?: Record<string, Candidato>;
+  /** conversa de cada missão em revisão, por pautaId numérico (lote único) */
+  mensagensPorPauta?: Record<number, Mensagem[]>;
 }) {
   const router = useRouter();
 
@@ -106,6 +111,7 @@ export function FilaInspetor({
               onAprovar={(estrelas) => aprovar(p.id, estrelas)}
               onPedirReedicao={(nota) => pedirReedicao(p.id, nota)}
               candidatosPorApelido={candidatosPorApelido}
+              mensagens={mensagensPorPauta[Number(p.id.replace(/^db-/, ""))] ?? []}
             />
           ))}
         </ul>
@@ -119,13 +125,16 @@ function CardRevisao({
   onAprovar,
   onPedirReedicao,
   candidatosPorApelido = {},
+  mensagens = [],
 }: {
   pauta: Pauta;
   onAprovar: (estrelas?: number) => void;
   onPedirReedicao: (nota: string) => void;
   candidatosPorApelido?: Record<string, Candidato>;
+  mensagens?: Mensagem[];
 }) {
   const [abrindoReedicao, setAbrindoReedicao] = useState(false);
+  const [abrindoConversa, setAbrindoConversa] = useState(false);
   const [nota, setNota] = useState("");
   const [estrelas, setEstrelas] = useState<number | undefined>(undefined);
   const [aviso, setAviso] = useState("");
@@ -197,8 +206,23 @@ function CardRevisao({
                 </a>
               </>
             )}
+            {" · "}
+            <button
+              type="button"
+              onClick={() => setAbrindoConversa((v) => !v)}
+              className="font-medium text-gold-hi hover:underline"
+            >
+              💬 Conversa ({mensagens.length})
+            </button>
           </p>
         </div>
+
+        {/* conversa da missão — o inspetor lê tudo e pode entrar nela */}
+        {abrindoConversa && (
+          <div className="mt-4">
+            <ChatMissao pautaId={p.id} mensagens={mensagens} compacto />
+          </div>
+        )}
 
         {!abrindoReedicao && (
           <div className="flex flex-none items-center gap-2 lg:w-56 lg:flex-col lg:items-stretch">

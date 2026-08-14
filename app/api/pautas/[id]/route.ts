@@ -8,6 +8,8 @@ import {
   pedirReedicao,
   reservarPauta,
 } from "@/lib/pautas-db";
+import { enviarMensagem } from "@/lib/chat-db";
+import { criarDenuncia } from "@/lib/denuncias-db";
 import { lerSessao } from "@/lib/sessao-servidor";
 
 // Uma rota só pra todas as transições da pauta, escolhida por "acao".
@@ -81,6 +83,23 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
         return NextResponse.json({ erro: "Só o porta-voz pede ajuste." }, { status: 403 });
       }
       r = await pedirAjuste(pautaId, sessao.id, String(body?.notas ?? ""));
+      break;
+
+    // chat da missão: qualquer papel entra na chave, mas o VÍNCULO com a
+    // pauta (dono / editor que reservou / inspetor) é conferido dentro da
+    // enviarMensagem — mesmo princípio do ownership das ações acima
+    case "mensagem":
+      if (typeof body?.texto !== "string") {
+        return NextResponse.json({ erro: "Mensagem vazia." }, { status: 400 });
+      }
+      r = await enviarMensagem(pautaId, sessao, body.texto);
+      break;
+
+    case "denunciar":
+      if (typeof body?.texto !== "string") {
+        return NextResponse.json({ erro: "Descreva o problema." }, { status: 400 });
+      }
+      r = await criarDenuncia(pautaId, sessao, body.texto);
       break;
 
     default:

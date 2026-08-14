@@ -7,7 +7,8 @@ export type TrabalhoEmMaos = {
   portaVoz: string;
   formato: Formato;
   inicioIso: string;
-  prazoIso: string;
+  /** prazo de entrega foi REMOVIDO do produto — só missões antigas têm */
+  prazoIso?: string;
   etapa: string;
   // brief criativo + acesso — o editor precisa disso sem voltar pra fila
   tom?: string;
@@ -17,8 +18,6 @@ export type TrabalhoEmMaos = {
   driveLink?: string;
   prazoDesejado?: string;
 };
-
-const PRAZO_HORAS = 24;
 
 const ETAPA_POR_STATUS: Record<string, string> = {
   reservada: "Com você",
@@ -30,19 +29,19 @@ const ETAPA_POR_STATUS: Record<string, string> = {
 /**
  * Converte a missão reservada (banco) no formato que a "Mesa agora" desenha.
  *
- * O início vem de `reservadaAte - 24h` porque é assim que `reservarPauta`
- * grava o prazo — não existe coluna separada de "reservada em".
+ * O início vem de `reservada_em` (coluna própria desde o fim do prazo de
+ * entrega). Antes era derivado de `reservadaAte - 24h`, que deixou de existir
+ * — missão sem prazo é do editor até entregar ou devolver.
  */
 export function trabalhoDaPauta(p: Pauta | null): TrabalhoEmMaos[] {
-  if (!p?.reservadaAte) return [];
-  const prazo = new Date(p.reservadaAte).getTime();
+  if (!p?.reservadaEm) return [];
   return [
     {
       id: p.id,
       titulo: p.titulo,
       portaVoz: p.portaVoz,
       formato: p.formato,
-      inicioIso: new Date(prazo - PRAZO_HORAS * 3_600_000).toISOString(),
+      inicioIso: p.reservadaEm,
       prazoIso: p.reservadaAte,
       etapa: ETAPA_POR_STATUS[p.status] ?? "Com você",
       tom: p.brief.tom,

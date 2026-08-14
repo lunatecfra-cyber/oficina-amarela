@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
 import { pareceLink, pareceLinkDrive } from "@/lib/validators";
+import { ChatMissao } from "@/components/chat-missao";
+import { DenunciaBotao } from "@/components/denuncia-botao";
+import type { Mensagem } from "@/lib/chat-db";
 
 // A missão que o editor aceitou e está fazendo agora.
 //
@@ -11,8 +14,6 @@ import { pareceLink, pareceLinkDrive } from "@/lib/validators";
 // Com o dispatch, o editor não navega mais por lista nenhuma — ele recebe
 // oferta e trabalha. Então este bloco virou componente próprio: é a única
 // coisa que sobra na tela depois que ele aceita.
-
-const PRAZO_HORAS = 24;
 
 function Chip({ k, v }: { k: string; v: string }) {
   return (
@@ -35,14 +36,6 @@ function FileteDourado() {
   );
 }
 
-function restante(ate: string) {
-  const ms = new Date(ate).getTime() - Date.now();
-  if (ms <= 0) return "prazo vencido";
-  const h = Math.floor(ms / 3_600_000);
-  const m = Math.floor((ms % 3_600_000) / 60_000);
-  return h > 0 ? `${h}h ${m}min restantes` : `${m}min restantes`;
-}
-
 // prazo desejado é data pura ("AAAA-MM-DD"), lida em UTC: no fuso do Brasil
 // a meia-noite UTC cai no dia anterior
 function dataCurta(ymd: string) {
@@ -53,25 +46,18 @@ function dataCurta(ymd: string) {
   });
 }
 
-export function MissaoEmMaos({ missao }: { missao: Pauta | null }) {
+export function MissaoEmMaos({
+  missao,
+  mensagens = [],
+}: {
+  missao: Pauta | null;
+  /** thread da missão — o editor conversa com quem pediu o vídeo */
+  mensagens?: Mensagem[];
+}) {
   const router = useRouter();
   const [linkEntrega, setLinkEntrega] = useState("");
   const [aviso, setAviso] = useState("");
   const [processando, setProcessando] = useState(false);
-  const [agora, setAgora] = useState<number | null>(null);
-
-  // o relógio só existe no cliente: ler Date.now() no servidor daria valor
-  // diferente e quebraria a hidratação
-  useEffect(() => {
-    if (!missao?.reservadaAte) return;
-    const tick = () => setAgora(Date.now());
-    const inicial = setTimeout(tick, 0);
-    const t = setInterval(tick, 60_000);
-    return () => {
-      clearTimeout(inicial);
-      clearInterval(t);
-    };
-  }, [missao?.reservadaAte]);
 
   if (!missao) return null;
 
@@ -132,12 +118,7 @@ export function MissaoEmMaos({ missao }: { missao: Pauta | null }) {
               ? "Ajuste pedido"
               : "Missão aceita"}
         </span>
-        {/* o relógio é prazo de entrega: depois de entregue não conta mais nada */}
-        {missao.reservadaAte && agora !== null && !aguardandoRevisao && (
-          <span className="ml-auto text-sm text-muted">
-            ⏳ {restante(missao.reservadaAte)}
-          </span>
-        )}
+        {/* sem prazo de entrega: a missão é do editor até entregar ou devolver */}
       </div>
 
       <h2 className="mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
@@ -294,11 +275,18 @@ export function MissaoEmMaos({ missao }: { missao: Pauta | null }) {
           </div>
 
           <p className="mt-3 text-xs text-muted-2">
-            Prazo de {PRAZO_HORAS}h pra entregar. Devolver libera a missão pra outro
-            editor.
+            Sem prazo — a missão é sua até entregar. Devolver libera pra outro editor.
           </p>
         </>
       )}
+
+      {/* conversa com quem pediu o vídeo — dúvida vai aqui, não se perde no chat pessoal */}
+      <div className="mt-6">
+        <ChatMissao pautaId={missao.id} mensagens={mensagens} />
+      </div>
+      <div className="mt-4">
+        <DenunciaBotao pautaId={missao.id} />
+      </div>
     </section>
   );
 }

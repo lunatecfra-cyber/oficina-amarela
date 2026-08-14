@@ -17,6 +17,8 @@ export const LIMITES = {
   textoLongo: 2000, // cortes específicos, motivo, notas de reedição
   link: 500,
   tag: 60, // item de software/estilo/bandeira/palavra-chave
+  mensagem: 800, // chat por missão
+  denuncia: 1000, // reclamação pro inspetor
 } as const;
 
 /** Corta e tira espaço das pontas. `undefined` e `null` passam batido. */

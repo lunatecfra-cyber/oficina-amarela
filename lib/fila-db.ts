@@ -238,9 +238,7 @@ export async function ofertaPendente(editorId: number): Promise<Oferta | null> {
   };
 }
 
-const PRAZO_ENTREGA_HORAS = 24;
-
-/** Editor aceita: a missão vira dele, com o mesmo prazo de sempre. */
+/** Editor aceita: a missão vira dele — sem prazo, é dele até entregar/devolver. */
 export async function aceitarOferta(
   pautaId: number,
   editorId: number
@@ -259,7 +257,7 @@ export async function aceitarOferta(
     UPDATE pautas
     SET status = 'reservada',
         reservada_por_id = ${editorId},
-        reservada_ate = now() + (${PRAZO_ENTREGA_HORAS} || ' hours')::interval
+        reservada_em = now()
     WHERE id = ${pautaId} AND status = 'oferecida'
   `;
   return { ok: true };

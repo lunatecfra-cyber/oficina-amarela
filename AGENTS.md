@@ -56,3 +56,32 @@ arquitetura. Levante a cabeça e questione o desenho.
 
 Na tela é **missão**. No código é `pauta` (tabela `pautas`, `lib/pautas.ts`,
 rota `/api/pautas`). Ver `docs/PLANO.md` pra história dessa decisão.
+
+## 3. Produção, beta e pacotes de atualização (REGRA DO DONO)
+
+- **Este workspace é área de desenvolvimento (beta).** O que roda aqui é
+  trabalho em andamento, não lançamento.
+- **Produção (`oficinaamarela.com.br`, banco Neon) é intocada por padrão.**
+  Deploys são MANUAIS (`vercel --prod`) — nada sobe sozinho, e não sobe nada
+  sem o dono aprovar o pacote primeiro.
+- **O próximo lançamento é um PACOTE DE ATUALIZAÇÃO** — um conjunto completo
+  e testado de mudanças (ex.: chat + denúncias + migrações), nunca peças
+  soltas aos pedaços.
+- **Migração de banco ANTES do deploy, sempre.** Toda tabela/coluna nova no
+  `supabase/schema.sql` tem script em `scripts/` — rodar no Neon antes de
+  publicar, senão a tela quebra em produção (o `banido` quase quebrou assim
+  uma vez; `mensagens`/`denuncias` são o caso atual).
+- **Papel viaja no cookie (30 dias).** Promover/degradar conta só faz
+  efeito quando a pessoa re-loga. Não é bug — é desenho. Ao mudar papel de
+  alguém, avisar pra sair e entrar.
+
+## 3. Modo Caveman
+
+Seja extremamente conciso, direto e curto nas respostas. Sem introduções longas ou "blá-blá-blá". Use tópicos rápidos.
+
+## 4. Papéis dos Agentes
+
+- **Antigravity (Eu):** Sou o "operário". Faço código rápido, pontual e direto (assento o tijolo). Não tomo decisões de arquitetura.
+- **ZCode:** É o "arquiteto/consultor principal". Ele define a estrutura, atualizações complexas e cria os planos.
+- **Claude:** Operário secundário/apoio.
+- Sempre respeitar a ponte (`PONTE_CLAUDE.md`) e os planos do ZCode (`.zcode/plans`).

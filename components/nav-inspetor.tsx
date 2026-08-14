@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 const ABAS = [
   { href: "/inspetor", rotulo: "Missões" },
   { href: "/inspetor/contas", rotulo: "Pessoas" },
+  { href: "/inspetor/denuncias", rotulo: "Denúncias" },
 ];
 
 export function NavInspetor() {

@@ -23,6 +23,7 @@ type LinhaPauta = {
   status: StatusPauta;
   reservada_por_apelido: string | null;
   reservada_ate: string | null;
+  reservada_em: string | null;
   entrega_link: string | null;
   notas_inspetor: string | null;
   criada_em: string;
@@ -52,6 +53,7 @@ function paraPauta(l: LinhaPauta): Pauta {
     criadaEm: new Date(l.criada_em).toISOString(),
     reservadaPor: l.reservada_por_apelido ?? undefined,
     reservadaAte: l.reservada_ate ? new Date(l.reservada_ate).toISOString() : undefined,
+    reservadaEm: l.reservada_em ? new Date(l.reservada_em).toISOString() : undefined,
     driveLink: l.drive_link ?? undefined,
     entregaLink: l.entrega_link ?? undefined,
     notasInspetor: l.notas_inspetor ?? undefined,
@@ -70,7 +72,7 @@ function paraPauta(l: LinhaPauta): Pauta {
 const SELECT_BASE = sql`
   SELECT p.id, u.nome AS porta_voz_nome, u.apelido AS porta_voz_apelido, p.titulo, p.formato,
          p.brief_tom, p.brief_cor, p.brief_fonte, p.brief_refs,
-         p.drive_link, p.status, p.reservada_ate, p.entrega_link,
+         p.drive_link, p.status, p.reservada_ate, p.reservada_em, p.entrega_link,
          p.notas_inspetor, p.criada_em,
          p.extras, p.motivo, p.prazo_desejado, p.reedicao_pedida_por,
          e.apelido AS reservada_por_apelido
@@ -228,14 +230,17 @@ export async function pautasEmRevisao(): Promise<Pauta[]> {
   return (linhas as unknown as LinhaPauta[]).map(paraPauta);
 }
 
-const PRAZO_HORAS = 24;
-
 /**
  * Reserva a pauta pro editor.
  *
  * O UPDATE só casa se a pauta ainda estiver 'disponivel'. Isso é a trava
  * contra dois editores pegarem a mesma pauta ao mesmo tempo: o banco
  * serializa, o segundo não encontra linha e recebe o erro.
+ *
+ * Sem prazo de entrega: a missão é do editor até entregar ou devolver.
+ * O antigo `reservada_ate` (24h) vencia sem devolver nada — missão presa
+ * com editor sumido. Gravamos só QUANDO pegou (`reservada_em`), que a
+ * agenda usa pra mostrar "há quanto tempo está na mesa".
  */
 export async function reservarPauta(
   pautaId: number,
@@ -256,7 +261,7 @@ export async function reservarPauta(
     UPDATE pautas
     SET status = 'reservada',
         reservada_por_id = ${editorId},
-        reservada_ate = now() + (${PRAZO_HORAS} || ' hours')::interval
+        reservada_em = now()
     WHERE id = ${pautaId} AND status = 'disponivel'
     RETURNING id
   `;
@@ -273,7 +278,7 @@ export async function cancelarReserva(
 ): Promise<{ ok: true } | { ok: false; erro: string }> {
   const linhas = await sql`
     UPDATE pautas
-    SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL
+    SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL, reservada_em = NULL
     WHERE id = ${pautaId} AND reservada_por_id = ${editorId}
       AND status IN ('reservada','reedicao')
     RETURNING id

@@ -274,7 +274,7 @@ export async function apagarConta(
   // com o inspetor. Devolver pra fila jogaria fora trabalho pronto.
   await sql`
     UPDATE pautas
-    SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL
+    SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL, reservada_em = NULL
     WHERE reservada_por_id = ${userId} AND status IN ('reservada','reedicao','oferecida')
   `;
 

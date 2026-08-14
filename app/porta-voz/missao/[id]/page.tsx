@@ -14,6 +14,9 @@ import {
 } from "@/lib/pautas";
 import { AcoesMissao } from "@/components/acoes-missao";
 import { AvatarCandidato } from "@/components/avatar-candidato";
+import { ChatMissao } from "@/components/chat-missao";
+import { DenunciaBotao } from "@/components/denuncia-botao";
+import { mensagensDaPauta } from "@/lib/chat-db";
 
 export const metadata: Metadata = { title: "Missão — Oficina Amarela" };
 export const dynamic = "force-dynamic";
@@ -67,11 +70,12 @@ export default async function DetalheMissaoPage({
   const idNum = Number(String(idBruto).replace(/^db-/, ""));
   if (!Number.isInteger(idNum)) notFound();
 
-  const [pauta, posicao, total, candidato] = await Promise.all([
+  const [pauta, posicao, total, candidato, mensagens] = await Promise.all([
     pautaPorIdDoPortaVoz(idNum, sessao.id),
     posicaoNaFila(idNum),
     totalNaFila(),
     lerCandidatoProprio(sessao.id),
+    mensagensDaPauta(idNum),
   ]);
   if (!pauta) notFound();
 
@@ -189,9 +193,10 @@ export default async function DetalheMissaoPage({
               <span className="font-medium text-text">{pauta.reservadaPor}</span>
             </p>
           )}
-          {pauta.reservadaAte && (
+          {pauta.reservadaEm && (
             <p className="mt-1 text-xs text-muted-2">
-              Prazo do editor até {formatarData(pauta.reservadaAte, false)}
+              Com o editor desde {formatarData(pauta.reservadaEm, false)} · sem prazo —
+              é dele até entregar ou devolver
             </p>
           )}
           {pauta.entregaLink && pareceLink(pauta.entregaLink) && (
@@ -281,6 +286,14 @@ export default async function DetalheMissaoPage({
           </p>
         </section>
       )}
+
+      {/* conversa com o editor desta missão — e com o controle de qualidade */}
+      <div className="mb-6">
+        <ChatMissao pautaId={pauta.id} mensagens={mensagens} />
+      </div>
+
+      {/* denúncia — discreta de propósito: é a válvula, não o caminho */}
+      <DenunciaBotao pautaId={pauta.id} />
     </div>
   );
 }

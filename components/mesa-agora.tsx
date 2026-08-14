@@ -49,10 +49,21 @@ export function MesaAgora({
   const calc = (t: TrabalhoEmMaos) => {
     if (agora === null) return { pct: 0, restanteMs: null as number | null };
     const inicio = new Date(t.inicioIso).getTime();
+    // sem prazo de entrega (regra nova): só contamos tempo decorrido
+    if (!t.prazoIso) return { pct: 0, restanteMs: null };
     const prazo = new Date(t.prazoIso).getTime();
     const total = prazo - inicio;
     const pct = Math.min(100, Math.max(0, Math.round(((agora - inicio) / total) * 100)));
     return { pct, restanteMs: prazo - agora };
+  };
+
+  const fmtDesde = (iso: string) => {
+    const ms = (agora ?? 0) - new Date(iso).getTime();
+    const h = Math.max(0, Math.floor(ms / 3_600_000));
+    if (h < 1) return "agora mesmo";
+    if (h < 24) return `há ${h}h na mesa`;
+    const d = Math.floor(h / 24);
+    return `há ${d} dia${d > 1 ? "s" : ""} na mesa`;
   };
 
   if (trabalhos.length === 0) {
@@ -80,7 +91,7 @@ export function MesaAgora({
                 <p className="text-xs text-muted-2">
                   {t.etapa} ·{" "}
                   {restanteMs === null ? (
-                    <span>—</span>
+                    <span>{agora === null ? "—" : fmtDesde(t.inicioIso)}</span>
                   ) : (
                     <span className={corUrgencia(restanteMs)}>
                       faltam {fmtRestante(restanteMs)}
@@ -126,28 +137,32 @@ export function MesaAgora({
 
             <div className="mt-4 flex items-center justify-between text-xs">
               <span className="text-muted">{t.etapa}</span>
-              <span className="text-muted-2">{agora === null ? "—" : `${pct}% do prazo`}</span>
+              <span className="text-muted-2">
+                {restanteMs === null
+                  ? agora === null ? "—" : fmtDesde(t.inicioIso)
+                  : `${pct}% do prazo`}
+              </span>
             </div>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
-              <div
-                className={`h-full rounded-full ${
-                  apertado
-                    ? "bg-gradient-to-r from-[#c85a5a] to-[#e08a8a]"
-                    : "bg-gradient-to-r from-gold-lo to-gold-hi"
-                }`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
+            {restanteMs !== null && (
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
+                <div
+                  className={`h-full rounded-full ${
+                    apertado
+                      ? "bg-gradient-to-r from-[#c85a5a] to-[#e08a8a]"
+                      : "bg-gradient-to-r from-gold-lo to-gold-hi"
+                  }`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            )}
 
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <span>
-                <span className="text-muted-2">Prazo: </span>
-                {restanteMs === null ? (
-                  <span className="text-muted">—</span>
-                ) : (
+              {restanteMs !== null && (
+                <span>
+                  <span className="text-muted-2">Prazo: </span>
                   <span className={corUrgencia(restanteMs)}>⏳ {fmtRestante(restanteMs)} restantes</span>
-                )}
-              </span>
+                </span>
+              )}
               {t.prazoDesejado && (
                 <span className="text-xs text-muted-2">
                   ⏰ Desejado:{" "}

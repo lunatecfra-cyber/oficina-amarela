@@ -30,7 +30,12 @@ export type Pauta = {
   };
   status: StatusPauta;
   criadaEm: string;
+  // prazo de entrega REMOVIDO do produto: vencia sem devolver a missão pra
+  // fila e o vídeo "se perdia" com um editor sumido. Mantido no tipo só
+  // porque missões antigas podem carregar o valor — telas novas ignoram.
   reservadaAte?: string;
+  // quando o editor pegou a missão (sem prazo: é dela até entregar/devolver)
+  reservadaEm?: string;
   reservadaPor?: string;
   driveLink?: string;
   entregaLink?: string;

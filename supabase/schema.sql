@@ -73,6 +73,18 @@ ALTER TABLE users ADD COLUMN nivel TEXT
 -- pauta nova (usada como penalidade por abandono/atraso)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS travado_reservas_ate TIMESTAMPTZ;
 
+-- Quando a missão foi reservada. O prazo de entrega (reservada_ate, 24h)
+-- foi REMOVIDO do produto: vencia e nada acontecia — a missão ficava presa
+-- com um editor sumido, e o vídeo "se perdia". Agora a missão é do editor
+-- até entregar ou devolver; o início explícito substitui o cálculo que a
+-- agenda fazia (reservada_ate - 24h) pra saber quando começou.
+ALTER TABLE pautas ADD COLUMN IF NOT EXISTS reservada_em TIMESTAMPTZ;
+-- backfill: missões antigas ganham início derivado do prazo que tinham
+UPDATE pautas SET reservada_em = reservada_ate - interval '24 hours'
+  WHERE reservada_em IS NULL AND reservada_ate IS NOT NULL;
+-- o prazo morre: limpa o que existia pra nenhuma tela mostrar "vencido"
+UPDATE pautas SET reservada_ate = NULL WHERE reservada_ate IS NOT NULL;
+
 -- Banimento de conta pelo inspetor (controle de qualidade). `banido` recusa
 -- o login (autenticar e Google) e `sessoes_validas_apos = now()` derruba a
 -- sessão atual imediatamente — a checagem acontece em lib/sessao-servidor.ts
@@ -250,3 +262,46 @@ CREATE TABLE IF NOT EXISTS avaliacoes (
 
 CREATE INDEX IF NOT EXISTS idx_avaliacoes_editor ON avaliacoes (editor_id);
 CREATE INDEX IF NOT EXISTS idx_avaliacoes_pauta ON avaliacoes (pauta_id);
+
+-- ─────────────────────────────────────────────────────────────────────
+-- Chat por missão
+-- ─────────────────────────────────────────────────────────────────────
+--
+-- A conversa entre candidato e editor acontece PRESA À MISSÃO — não é
+-- mensagem solta entre contas. Quem participa: o dono da pauta, o editor
+-- que a reservou (enquanto for dele) e o inspetor (controle máximo — lê
+-- tudo, pode escrever). O acesso é validado em enviarMensagem(), não só
+-- na rota: papel diz "é um editor", o WHERE por reservada_por_id diz
+-- "é O editor desta missão".
+CREATE TABLE IF NOT EXISTS mensagens (
+  id SERIAL PRIMARY KEY,
+  pauta_id INT NOT NULL REFERENCES pautas(id) ON DELETE CASCADE,
+  autor_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  texto TEXT NOT NULL,
+  criada_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_mensagens_pauta ON mensagens (pauta_id);
+
+-- ─────────────────────────────────────────────────────────────────────
+-- Denúncias (reclamações que chegam ao inspetor)
+-- ─────────────────────────────────────────────────────────────────────
+--
+-- A denúncia nasce DENTRO de uma missão: quem reporta é sempre um dos
+-- participantes, e o acusado é DEDUZIDO (candidato denuncia → acusado é o
+-- editor que reservou; editor denuncia → acusado é o candidato dono).
+-- denunciado_id é SET NULL de propósito: se a conta acusada for apagada,
+-- o registro da denúncia sobrevive (histórico do inspetor não some junto).
+CREATE TABLE IF NOT EXISTS denuncias (
+  id SERIAL PRIMARY KEY,
+  pauta_id INT NOT NULL REFERENCES pautas(id) ON DELETE CASCADE,
+  denunciante_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  denunciado_id INT REFERENCES users(id) ON DELETE SET NULL,
+  texto TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'aberta'
+    CHECK (status IN ('aberta','resolvida','ignorada')),
+  criada_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resolvida_em TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_denuncias_status ON denuncias (status);
