@@ -42,6 +42,7 @@ export const config = {
     "/editor/:path*",
     "/perfil/:path*",
     "/inspetor/:path*",
+    "/admin/:path*",
     "/agenda/:path*",
     "/ranking/:path*",
     "/aulas/:path*",

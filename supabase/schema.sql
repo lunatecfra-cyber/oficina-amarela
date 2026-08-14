@@ -73,6 +73,15 @@ ALTER TABLE users ADD COLUMN nivel TEXT
 -- pauta nova (usada como penalidade por abandono/atraso)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS travado_reservas_ate TIMESTAMPTZ;
 
+-- Banimento de conta pelo inspetor (controle de qualidade). `banido` recusa
+-- o login (autenticar e Google) e `sessoes_validas_apos = now()` derruba a
+-- sessão atual imediatamente — a checagem acontece em lib/sessao-servidor.ts
+-- (lerSessao) e lib/contas.ts (autenticar). `motivo_banimento` é o registro
+-- do porquê, visível só ao inspetor.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS banido BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS banido_em TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS motivo_banimento TEXT;
+
 -- Onboarding do editor: o que ele domina, o estilo que faz e quando pode
 -- pegar trabalho. Alimenta o match e a agenda.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS softwares TEXT[];

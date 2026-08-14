@@ -31,7 +31,7 @@ const CONTAS: Record<Papel, { apelido: string; nome: string; email: string; dest
     apelido: "dev.admin",
     nome: "Admin de Teste",
     email: "dev.admin@oficinaamarela.local",
-    destino: "/porta-voz",
+    destino: "/inspetor",
   },
 };
 

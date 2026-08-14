@@ -68,6 +68,12 @@ function LoginFormConteudo() {
           >
             Entrar como Porta-voz
           </a>
+          <a
+            href="/api/auth/dev-login?papel=admin"
+            className="btn-ghost grid flex-1 place-items-center !py-2 text-xs"
+          >
+            Entrar como Inspetor
+          </a>
         </div>
       </div>
     ) : null;

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Logo } from "@/components/logo";
+import { NavInspetor } from "@/components/nav-inspetor";
 import { exigirSessao } from "@/lib/sessao-servidor";
 
 export default async function InspetorLayout({
@@ -36,6 +37,9 @@ export default async function InspetorLayout({
               Sair
             </Link>
           </div>
+        </div>
+        <div className="mx-auto w-full max-w-5xl px-5 lg:px-8">
+          <NavInspetor />
         </div>
       </header>
       <main className="flex-1">{children}</main>

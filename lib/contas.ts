@@ -93,7 +93,7 @@ export async function autenticar(
   senha: string
 ): Promise<{ ok: true; conta: ContaUsuario } | { ok: false; erro: string }> {
   const [linha] = await sql`
-    SELECT id, apelido, nome, email, papel, senha_hash
+    SELECT id, apelido, nome, email, papel, senha_hash, banido
     FROM users
     WHERE lower(apelido) = lower(${apelido.trim()})
   `;
@@ -108,6 +108,15 @@ export async function autenticar(
 
   if (!linha || !linha.senha_hash || !senhaConfere) {
     return { ok: false, erro: "Apelido ou senha incorretos." };
+  }
+
+  // Banido só é checado DEPOIS de a senha conferir. Se viesse antes, o tempo
+  // de resposta entregaria "essa conta existe e foi suspensa" pra quem nem
+  // senha certa digitou — a mesma fuga que o bcrypt constante acima evita.
+  // Aqui já sabemos que a pessoa acertou a senha, então dizer "suspensa" não
+  // vaza nada que ela já não soubesse ao entrar.
+  if (linha.banido) {
+    return { ok: false, erro: "Conta suspensa. Fale com o controle de qualidade." };
   }
 
   return {
@@ -128,9 +137,14 @@ export async function buscarContaGoogle(
   email: string
 ): Promise<{ ok: true; conta: ContaUsuario | null } | { ok: false; erro: string }> {
   const [porGoogleId] = await sql`
-    SELECT id, apelido, nome, email, papel FROM users WHERE google_id = ${googleId}
+    SELECT id, apelido, nome, email, papel, banido FROM users WHERE google_id = ${googleId}
   `;
-  if (porGoogleId) return { ok: true, conta: porGoogleId as ContaUsuario };
+  if (porGoogleId) {
+    if (porGoogleId.banido) {
+      return { ok: false, erro: "Conta suspensa. Fale com o controle de qualidade." };
+    }
+    return { ok: true, conta: porGoogleId as ContaUsuario };
+  }
 
   // Conta criada com senha, e agora a pessoa chega pelo Google com o mesmo
   // e-mail. Antes isso era recusado — "entra com apelido e senha" — e quem tinha
@@ -144,13 +158,26 @@ export async function buscarContaGoogle(
   //
   // O `google_id IS NULL` no WHERE é a trava: se a conta já estiver amarrada a
   // outro Google, nada é sobrescrito — some uma linha e ninguém entra.
+  // `banido = false` também: não dá pra vincular e entrar por outra porta.
   const [vinculada] = await sql`
     UPDATE users
     SET google_id = ${googleId}
-    WHERE lower(email) = lower(${email}) AND google_id IS NULL
+    WHERE lower(email) = lower(${email}) AND google_id IS NULL AND banido = false
     RETURNING id, apelido, nome, email, papel
   `;
   if (vinculada) return { ok: true, conta: vinculada as ContaUsuario };
+
+  // conta existe, está banida, e o Google acabou de confirmar o e-mail — não
+  // deixa entrar pela porta dos fundos. Precisa checar de novo aqui porque a
+  // vinculação acima recusa banido silenciosamente, e o fluxo trata `null`
+  // como "identidade nova" (abriria a tela de escolher papel). Esse SELECT
+  // distingue "novo" de "suspenso".
+  const [banidaPorEmail] = await sql`
+    SELECT id FROM users WHERE lower(email) = lower(${email}) AND banido = true
+  `;
+  if (banidaPorEmail) {
+    return { ok: false, erro: "Conta suspensa. Fale com o controle de qualidade." };
+  }
 
   const [porEmail] = await sql`SELECT id FROM users WHERE lower(email) = lower(${email})`;
   if (porEmail) {
