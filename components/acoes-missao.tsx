@@ -6,18 +6,31 @@ import { useRouter } from "next/navigation";
 /**
  * O último passo do ciclo, do lado de quem pediu o vídeo.
  *
- * Só aparece quando a missão está 'aprovada' — ou seja, o inspetor já liberou
- * e agora falta o porta-voz conferir. Daqui saem os dois caminhos: aceitar
- * (fecha a missão) ou pedir um ajuste (devolve pro mesmo editor).
+ * Aparece em dois momentos, e a diferença importa:
+ *
+ *  - 'em_revisao': o editor acabou de entregar. Antes esta tela ficava calada
+ *    aqui e a missão esperava o inspetor aparecer — com o vídeo pronto e o
+ *    editor sem receber a próxima nem a pontuação. Agora quem pediu já libera,
+ *    dando a nota, e a missão fecha na hora.
+ *  - 'aprovada': o inspetor passou primeiro. Aí falta só o aceite, sem nota
+ *    (ela já foi dada por ele).
  *
  * Fala com a mesma rota que o editor e o inspetor usam (/api/pautas/[id]),
  * que é onde todas as transições vivem.
  */
-export function AcoesMissao({ id }: { id: string }) {
+export function AcoesMissao({
+  id,
+  emRevisao = false,
+}: {
+  id: string;
+  /** true quando o vídeo acabou de ser entregue e ninguém conferiu ainda */
+  emRevisao?: boolean;
+}) {
   const router = useRouter();
   const [processando, setProcessando] = useState<"aceitar" | "ajuste" | null>(null);
   const [abrindoAjuste, setAbrindoAjuste] = useState(false);
   const [notas, setNotas] = useState("");
+  const [estrelas, setEstrelas] = useState<number | undefined>(undefined);
   const [aviso, setAviso] = useState("");
 
   async function enviar(acao: "aceitar" | "ajuste") {
@@ -28,10 +41,19 @@ export function AcoesMissao({ id }: { id: string }) {
     setAviso("");
     setProcessando(acao);
 
+    // com o vídeo ainda em revisão, aceitar é aprovar: fecha a missão e
+    // pontua o editor de uma vez. Já aprovada, é só o aceite final.
+    const corpo =
+      acao === "ajuste"
+        ? { acao, notas: notas.trim() }
+        : emRevisao
+          ? { acao: "aprovar", nota: estrelas }
+          : { acao };
+
     const resp = await fetch(`/api/pautas/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(acao === "ajuste" ? { acao, notas: notas.trim() } : { acao }),
+      body: JSON.stringify(corpo),
     });
 
     if (!resp.ok) {
@@ -53,9 +75,50 @@ export function AcoesMissao({ id }: { id: string }) {
         Sua vez de conferir
       </p>
       <p className="mt-2 text-sm text-muted">
-        O controle de qualidade já aprovou. Assista ao vídeo e diga se pode ir
-        pro ar — ou peça um ajuste antes.
+        {emRevisao
+          ? "O editor entregou. Assista e diga se pode ir pro ar — ou peça um ajuste antes."
+          : "O controle de qualidade já aprovou. Assista ao vídeo e diga se pode ir pro ar — ou peça um ajuste antes."}
       </p>
+
+      {/* A nota só aparece pra quem está fechando a missão pela primeira vez.
+          Com a missão já 'aprovada', o inspetor passou antes e a nota dele já
+          está registrada — pedir de novo criaria duas avaliações do mesmo
+          trabalho. Opcional de propósito: obrigar nota faria gente clicar
+          qualquer estrela pra se livrar da tela, e aí o ranking mente. */}
+      {emRevisao && !abrindoAjuste && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted">
+            Que nota o editor merece? <span className="text-muted-2">(opcional)</span>
+          </p>
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                aria-label={`${n} de 5`}
+                aria-pressed={estrelas === n}
+                onClick={() => setEstrelas(estrelas === n ? undefined : n)}
+                className={`text-2xl leading-none transition-colors ${
+                  estrelas !== undefined && n <= estrelas
+                    ? "text-gold"
+                    : "text-line hover:text-gold-lo"
+                }`}
+              >
+                ★
+              </button>
+            ))}
+            {estrelas !== undefined && (
+              <button
+                type="button"
+                className="ml-2 text-xs text-muted-2 underline hover:text-muted"
+                onClick={() => setEstrelas(undefined)}
+              >
+                limpar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {abrindoAjuste ? (
         <div className="mt-5">
@@ -117,7 +180,11 @@ export function AcoesMissao({ id }: { id: string }) {
               onClick={() => enviar("aceitar")}
               disabled={processando !== null}
             >
-              {processando === "aceitar" ? "Fechando…" : "✅ Aceitar e postar"}
+              {processando === "aceitar"
+                ? "Fechando…"
+                : emRevisao
+                  ? "✅ Aprovar e fechar"
+                  : "✅ Aceitar e postar"}
             </button>
             <button
               className="btn-ghost sm:w-48"

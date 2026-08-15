@@ -50,16 +50,32 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       r = await entregarPauta(pautaId, sessao.id, String(body?.link ?? ""));
       break;
 
-    case "aprovar":
-      if (!ehQualidade) {
-        return NextResponse.json({ erro: "Só o controle de qualidade aprova." }, { status: 403 });
+    // Aprovar deixou de ser exclusividade do inspetor: quem pediu o vídeo
+    // também libera. Antes a missão parava em "em revisão" até alguém do
+    // controle de qualidade aparecer — e enquanto isso o editor não recebia a
+    // próxima nem a pontuação, por um trabalho que já estava entregue.
+    //
+    // A diferença entre os dois está em `aprovarPauta`: o inspetor aprova
+    // qualquer missão e ela vira 'aprovada' (o dono ainda dá o aceite final);
+    // o porta-voz só aprova a DELE, e aí já vira 'finalizada' — ele acabou de
+    // aceitar, não faz sentido pedir o mesmo clique duas vezes.
+    case "aprovar": {
+      if (!ehQualidade && !ehPortaVoz) {
+        return NextResponse.json(
+          { erro: "Só quem pediu o vídeo ou o controle de qualidade aprova." },
+          { status: 403 }
+        );
       }
+      // admin aprova como inspetor (sem amarrar a dono); porta-voz, como dono
+      const comoDono = !ehQualidade;
       r = await aprovarPauta(
         pautaId,
         typeof body?.nota === "number" ? body.nota : undefined,
-        typeof body?.comentario === "string" ? body.comentario : undefined
+        typeof body?.comentario === "string" ? body.comentario : undefined,
+        comoDono ? sessao.id : undefined
       );
       break;
+    }
 
     case "reedicao":
       if (!ehQualidade) {

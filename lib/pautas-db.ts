@@ -323,11 +323,31 @@ export async function entregarPauta(
 export async function aprovarPauta(
   pautaId: number,
   nota?: number,
-  comentario?: string
+  comentario?: string,
+  /**
+   * Quem está aprovando, quando não é o inspetor.
+   *
+   * O porta-voz passou a poder aprovar a própria entrega, pra missão não ficar
+   * parada esperando alguém do controle de qualidade aparecer. Isso abre duas
+   * perguntas que o inspetor não tinha:
+   *
+   *  - de quem é a missão? O inspetor aprova qualquer uma; o porta-voz só a
+   *    dele. Por isso o id vem por aqui e entra no WHERE.
+   *  - e depois? Quando o próprio dono aprova, não faz sentido ele "aceitar a
+   *    entrega" logo em seguida — ele acabou de aceitar. Então vai direto pra
+   *    'finalizada', em vez de parar em 'aprovada' esperando um segundo
+   *    clique dele mesmo.
+   */
+  portaVozId?: number
 ): Promise<{ ok: true } | { ok: false; erro: string }> {
-  const [pauta] = await sql`
-    SELECT reservada_por_id FROM pautas WHERE id = ${pautaId} AND status = 'em_revisao'
-  `;
+  const [pauta] = portaVozId
+    ? await sql`
+        SELECT reservada_por_id FROM pautas
+        WHERE id = ${pautaId} AND status = 'em_revisao' AND porta_voz_id = ${portaVozId}
+      `
+    : await sql`
+        SELECT reservada_por_id FROM pautas WHERE id = ${pautaId} AND status = 'em_revisao'
+      `;
   if (!pauta?.reservada_por_id) return { ok: false, erro: "Essa missão não está em revisão." };
   const editorId = pauta.reservada_por_id as number;
 
@@ -335,12 +355,14 @@ export async function aprovarPauta(
     return { ok: false, erro: "A nota vai de 1 a 5." };
   }
 
+  const statusFinal: StatusPauta = portaVozId ? "finalizada" : "aprovada";
+
   // O `AND pontuada = false` é a trava: depois que o porta-voz devolve uma
   // missão já aprovada pra reedição, o inspetor aprova a MESMA missão de novo.
   // Só a primeira aprovação pode valer ponto pro editor.
   const primeiraVez = await sql`
     UPDATE pautas
-    SET status = 'aprovada', notas_inspetor = NULL, reedicao_pedida_por = NULL,
+    SET status = ${statusFinal}, notas_inspetor = NULL, reedicao_pedida_por = NULL,
         pontuada = true
     WHERE id = ${pautaId} AND pontuada = false
     RETURNING id
@@ -350,7 +372,7 @@ export async function aprovarPauta(
     // já pontuou antes: muda o status e para por aqui
     await sql`
       UPDATE pautas
-      SET status = 'aprovada', notas_inspetor = NULL, reedicao_pedida_por = NULL
+      SET status = ${statusFinal}, notas_inspetor = NULL, reedicao_pedida_por = NULL
       WHERE id = ${pautaId}
     `;
     return { ok: true };

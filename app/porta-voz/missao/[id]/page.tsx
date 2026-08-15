@@ -163,8 +163,12 @@ export default async function DetalheMissaoPage({
         </div>
       </header>
 
-      {/* aceitar ou pedir ajuste — o inspetor já liberou, falta o porta-voz */}
-      {pauta.status === "aprovada" && <AcoesMissao id={pauta.id} />}
+      {/* Quem pediu o vídeo decide, e não precisa mais esperar o inspetor.
+          Em revisão, aprovar já fecha a missão; aprovada, o inspetor passou
+          antes e falta só o aceite. */}
+      {(pauta.status === "em_revisao" || pauta.status === "aprovada") && (
+        <AcoesMissao id={pauta.id} emRevisao={pauta.status === "em_revisao"} />
+      )}
 
       {/* card do porta-voz — quem criou essa missão */}
       {candidato && (
