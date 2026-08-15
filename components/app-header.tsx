@@ -71,6 +71,20 @@ export async function AppHeader() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Até aqui não existia link nenhum pra área do inspetor: só se
+              chegava digitando /inspetor na barra de endereço. Quem não sabia
+              a URL procurava o botão de aprovar em telas onde ele não existe.
+              Só aparece pra quem é admin — pra todo mundo mais seria uma porta
+              que não abre. */}
+          {sessao.papel === "admin" && (
+            <Link
+              href="/inspetor"
+              className="rounded-full border border-line px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-gold-lo/60 hover:text-gold-hi"
+            >
+              Inspetor
+            </Link>
+          )}
+
           <Link
             href="/perfil"
             className="hidden text-right transition-opacity hover:opacity-80 sm:block"

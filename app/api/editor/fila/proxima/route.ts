@@ -7,6 +7,8 @@ import {
   ofertaPendente,
   recusarOferta,
 } from "@/lib/fila-db";
+import { contatosDaPauta } from "@/lib/pautas-db";
+import { avisarMissaoAceita } from "@/lib/email";
 import { lerSessao } from "@/lib/sessao-servidor";
 
 // O motor da fila. Não existe cron nem worker: cada chamada do editor
@@ -67,6 +69,24 @@ export async function POST(request: Request) {
   // recusou -> tenta passar pro próximo já nesta requisição, pra missão não
   // esperar o próximo poll de outra pessoa
   if (body.acao === "recusar") await despacharMissoes();
+
+  // Aceitou: avisa quem pediu o vídeo. É o primeiro sinal de vida depois de
+  // criar a missão — sem ele, a pessoa fica sem saber se alguém pegou ou se
+  // caiu num buraco. Sem `await` no resultado: e-mail fora do ar não pode
+  // atrasar nem desfazer o aceite, que já está gravado.
+  if (body.acao === "aceitar") {
+    void (async () => {
+      const c = await contatosDaPauta(pautaId);
+      if (!c?.portaVoz) return;
+      await avisarMissaoAceita(
+        c.portaVoz.email,
+        c.portaVoz.nome,
+        c.titulo,
+        r.sessao.apelido,
+        `${new URL(request.url).origin}/porta-voz/missao/db-${pautaId}`
+      );
+    })().catch((e) => console.error("[aviso] falhou ao avisar aceite", e));
+  }
 
   return NextResponse.json({ ok: true });
 }

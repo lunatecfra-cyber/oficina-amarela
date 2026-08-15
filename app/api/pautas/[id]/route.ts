@@ -3,11 +3,17 @@ import {
   aceitarEntrega,
   aprovarPauta,
   cancelarReserva,
+  contatosDaPauta,
   entregarPauta,
   pedirAjuste,
   pedirReedicao,
   reservarPauta,
 } from "@/lib/pautas-db";
+import {
+  avisarEntregaAprovada,
+  avisarEntregaPronta,
+  avisarReedicaoPedida,
+} from "@/lib/email";
 import { enviarMensagem } from "@/lib/chat-db";
 import { criarDenuncia } from "@/lib/denuncias-db";
 import { lerSessao } from "@/lib/sessao-servidor";
@@ -123,5 +129,47 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   if (!r.ok) return NextResponse.json({ erro: r.erro }, { status: 409 });
+
+  // Avisa quem está do outro lado. Fica DEPOIS do sucesso e sem `await` no
+  // resultado: a missão já foi entregue/aprovada no banco, e o Resent fora do
+  // ar não pode desfazer isso nem segurar a resposta na cara de quem clicou.
+  // Falha vira log, não erro na tela.
+  void notificar(acao, pautaId, new URL(request.url).origin, body).catch((e) =>
+    console.error("[aviso] falhou depois de", acao, e)
+  );
+
   return NextResponse.json({ ok: true });
+}
+
+/** Monta e dispara o aviso certo pra cada transição. Silencioso por dentro. */
+async function notificar(
+  acao: string,
+  pautaId: number,
+  origem: string,
+  body: Record<string, unknown> | null
+): Promise<void> {
+  const c = await contatosDaPauta(pautaId);
+  if (!c) return;
+
+  const linkDoPortaVoz = `${origem}/porta-voz/missao/db-${pautaId}`;
+  const linkDoEditor = `${origem}/editor`;
+
+  if (acao === "entregar" && c.portaVoz) {
+    await avisarEntregaPronta(c.portaVoz.email, c.portaVoz.nome, c.titulo, linkDoPortaVoz);
+    return;
+  }
+
+  if (acao === "aprovar" && c.editor) {
+    const nota = typeof body?.nota === "number" ? body.nota : undefined;
+    await avisarEntregaAprovada(c.editor.email, c.editor.nome, c.titulo, nota, linkDoEditor);
+    return;
+  }
+
+  // as duas devolvem a missão pro editor, por caminhos diferentes: o inspetor
+  // reprova por qualidade, o porta-voz quer outra coisa. Pra quem recebe, o
+  // que importa é o mesmo — voltou pra sua mão, e por quê.
+  if ((acao === "reedicao" || acao === "ajuste") && c.editor) {
+    const notas = String(body?.notas ?? "");
+    await avisarReedicaoPedida(c.editor.email, c.editor.nome, c.titulo, notas, linkDoEditor);
+  }
 }

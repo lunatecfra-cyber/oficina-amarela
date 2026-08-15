@@ -30,9 +30,26 @@ export default async function PortaVozLayout({
               href="/porta-voz/perfil"
               className="text-sm text-muted transition-colors hover:text-text"
             >
-              <span className="hidden sm:inline">{sessao.nome} · porta-voz</span>
+              {/* dizia "· porta-voz" pra qualquer um. O inspetor entrava aqui,
+                  lia que era porta-voz, e o chat da mesma tela o marcava como
+                  INSPETOR — duas respostas diferentes pra "que papel eu tenho
+                  agora". Agora o rótulo segue o papel de verdade. */}
+              <span className="hidden sm:inline">
+                {sessao.nome} · {sessao.papel === "admin" ? "inspetor" : "porta-voz"}
+              </span>
               <span className="sm:hidden">Perfil</span>
             </Link>
+
+            {/* mesmo caminho de volta que existe na área do editor */}
+            {sessao.papel === "admin" && (
+              <Link
+                href="/inspetor"
+                className="rounded-full border border-line px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-gold-lo/60 hover:text-gold-hi"
+              >
+                Inspetor
+              </Link>
+            )}
+
             <BotaoSair className="text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-silver-hi" />
           </div>
         </div>

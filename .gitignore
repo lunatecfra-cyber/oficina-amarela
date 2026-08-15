@@ -52,3 +52,6 @@ next-env.d.ts
 # editor metadata
 .zcode/
 nul
+
+# backup do banco: tem e-mail e hash de senha, nunca vai pro repositorio
+backups/

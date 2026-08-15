@@ -465,3 +465,33 @@ export async function pedirAjuste(
   }
   return { ok: true };
 }
+
+/**
+ * Quem precisa ser avisado quando a missão muda de estado.
+ *
+ * Fica aqui, e não dentro de cada transição, por dois motivos: as funções de
+ * transição já fazem o trabalho delas e não deviam saber o que é e-mail; e
+ * assim quem dispara o aviso é a rota, que é onde existe a URL do site pra
+ * montar o link de volta.
+ */
+export async function contatosDaPauta(pautaId: number): Promise<{
+  titulo: string;
+  portaVoz: { nome: string; email: string } | null;
+  editor: { nome: string; email: string } | null;
+} | null> {
+  const [l] = await sql`
+    SELECT p.titulo,
+           v.nome AS voz_nome, v.email AS voz_email,
+           e.nome AS ed_nome, e.email AS ed_email
+    FROM pautas p
+    JOIN users v ON v.id = p.porta_voz_id
+    LEFT JOIN users e ON e.id = p.reservada_por_id
+    WHERE p.id = ${pautaId}
+  `;
+  if (!l) return null;
+  return {
+    titulo: String(l.titulo),
+    portaVoz: l.voz_email ? { nome: String(l.voz_nome), email: String(l.voz_email) } : null,
+    editor: l.ed_email ? { nome: String(l.ed_nome), email: String(l.ed_email) } : null,
+  };
+}
