@@ -222,11 +222,11 @@ export function CriarContaForm() {
           quando) — ver docs/OBRIGATORIO-LEGAL.md. */}
       <p className="mt-5 text-center text-xs leading-relaxed text-muted-2">
         Ao criar sua conta você concorda com os{" "}
-        <Link href="/termos" className="text-muted hover:text-gold-hi hover:underline">
+        <Link href="/termos" className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline">
           Termos de Uso
         </Link>{" "}
         e a{" "}
-        <Link href="/privacidade" className="text-muted hover:text-gold-hi hover:underline">
+        <Link href="/privacidade" className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline">
           Política de Privacidade
         </Link>
         .
@@ -234,7 +234,7 @@ export function CriarContaForm() {
 
       <p className="mt-5 text-center text-sm text-muted">
         Já é membro?{" "}
-        <Link href="/login" className="font-medium text-gold-hi hover:underline">
+        <Link href="/login" className="inline-block px-2 py-2 font-medium text-gold-hi hover:underline">
           Entrar
         </Link>
       </p>

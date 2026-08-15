@@ -239,18 +239,18 @@ function LoginFormConteudo() {
 
       <p className="mt-6 text-center text-sm text-muted">
         Ainda não é membro?{" "}
-        <Link href="/criar-conta" className="font-medium text-gold-hi hover:underline">
+        <Link href="/criar-conta" className="inline-block px-2 py-2 font-medium text-gold-hi hover:underline">
           Crie uma conta
         </Link>
       </p>
 
       <p className="mt-4 text-center text-xs text-muted-2">
         Ao entrar, você concorda com os{" "}
-        <Link href="/termos" className="text-muted hover:text-silver-hi hover:underline">
+        <Link href="/termos" className="inline-block py-1.5 text-muted hover:text-silver-hi hover:underline">
           Termos de Uso
         </Link>{" "}
         e a{" "}
-        <Link href="/privacidade" className="text-muted hover:text-silver-hi hover:underline">
+        <Link href="/privacidade" className="inline-block py-1.5 text-muted hover:text-silver-hi hover:underline">
           Política de Privacidade
         </Link>
         .
