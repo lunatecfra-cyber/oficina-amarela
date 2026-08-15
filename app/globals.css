@@ -197,6 +197,101 @@ body {
   animation-delay: var(--reveal-delay, 0ms);
 }
 
+/* ---- abertura ----------------------------------------------------------
+   Cada peça entra de um jeito, em vez de todas subirem igual. Movimento
+   uniforme lê como uma coisa só deslizando; movimentos diferentes leem como
+   uma cena se montando, que é o que dá vida à abertura.
+
+   A ordem é a de leitura: selo, marca, nome, frase, botão. */
+
+/* o selo desce de cima, curtinho — é a primeira coisa e não pode demorar */
+.entra-selo {
+  opacity: 0;
+  animation: selo-desce 0.55s var(--ease-guild) 0.05s forwards;
+}
+
+@keyframes selo-desce {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A onça se materializa: vem menor e desfocada, como se ganhasse forma. O
+   pequeno passo além de 1 no fim dá o peso de algo que assentou no lugar. */
+.entra-marca {
+  opacity: 0;
+  animation: marca-forma 1s var(--ease-guild) 0.15s forwards;
+}
+
+@keyframes marca-forma {
+  from {
+    opacity: 0;
+    transform: scale(0.84);
+    filter: blur(7px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.03);
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+/* As duas linhas do nome entram em sequência, com um respiro entre elas: o
+   olho lê OFICINA e AMARELA em vez de receber o bloco pronto. */
+.entra-linha {
+  display: block;
+  opacity: 0;
+  animation: linha-sobe 0.7s var(--ease-guild) forwards;
+  animation-delay: var(--linha-atraso, 0ms);
+}
+
+@keyframes linha-sobe {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Profundidade ao rolar: a onça sobe mais devagar que o texto em volta. É o
+   que faz a abertura ter camadas em vez de ser um plano só.
+
+   Feito com a linha do tempo de rolagem do próprio navegador, sem JavaScript
+   nenhum. Onde não houver suporte, simplesmente não acontece — o `@supports`
+   garante que nada quebra. */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .profundidade {
+      animation: sobe-devagar linear both;
+      /* `root`, e não o padrão: sem isso o navegador procura o container de
+         rolagem mais próximo, não acha nenhum (quem rola aqui é a página) e a
+         animação fica parada em zero — testado, o deslocamento não saía do
+         lugar. */
+      animation-timeline: scroll(root block);
+      animation-range: 0 80vh;
+    }
+  }
+}
+
+@keyframes sobe-devagar {
+  to {
+    transform: translateY(-38px);
+  }
+}
+
 /* Lustro que varre o nome uma vez, logo depois dele aparecer — como luz
    passando em metal polido. Uma vez só: repetir vira letreiro de vitrine e
    rouba a atenção de quem está tentando ler. */
@@ -218,7 +313,10 @@ body {
     transparent 58%
   );
   transform: translateX(-120%);
-  animation: lustro-passa 1.5s var(--ease-guild) 0.9s 1 both;
+  /* espera o nome terminar de entrar. A segunda linha só assenta por volta de
+     1,16s — o lustro passando antes disso atravessaria letra ainda em
+     movimento, e as duas coisas brigariam pela atenção. */
+  animation: lustro-passa 1.5s var(--ease-guild) 1.3s 1 both;
   /* clareia o que já é dourado, em vez de pintar por cima */
   mix-blend-mode: overlay;
 }
@@ -243,6 +341,29 @@ body {
   50% {
     transform: scale(1.028);
   }
+}
+
+/* Brilho que atravessa o botão principal — só quando o mouse chega perto.
+   Não é decoração solta: este é o único caminho da abertura, e o reflexo
+   confirma que ele responde. */
+.btn-brilho::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    100deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 60%
+  );
+  transform: translateX(-130%);
+  transition: transform 0.75s var(--ease-guild);
+  pointer-events: none;
+}
+
+.btn-brilho:hover::before {
+  transform: translateX(130%);
 }
 
 /* Selo de guilda: brilho dourado que desliza pela divisória (uma vez, ao revelar) */
@@ -457,6 +578,24 @@ body {
 
   .respira {
     animation: none;
+  }
+
+  /* a abertura aparece montada, sem a cena se armando */
+  .entra-selo,
+  .entra-marca,
+  .entra-linha {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  .profundidade {
+    animation: none;
+  }
+
+  .btn-brilho::before {
+    display: none;
   }
 
   .role-card::after {

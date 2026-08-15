@@ -108,10 +108,7 @@ export default async function Home() {
         <BrilhoDoMouse />
 
         <div className="relative mx-auto w-full max-w-5xl">
-          <span
-            className="reveal mx-auto flex w-fit items-center gap-2 rounded-full border border-gold-lo/40 bg-gold/[0.07] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-gold-hi"
-            style={{ "--reveal-delay": "0ms" } as React.CSSProperties}
-          >
+          <span className="entra-selo mx-auto flex w-fit items-center gap-2 rounded-full border border-gold-lo/40 bg-gold/[0.07] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-gold-hi">
             <span aria-hidden="true" className="text-gold">
               ✦
             </span>
@@ -128,43 +125,45 @@ export default async function Home() {
                 dela que traz de volta, juntar as duas deixava a onça invisível.
                 Por isso o respiro fica no bloco de fora e a revelação na
                 imagem. */}
-            <div
-              className="respira relative flex-none"
-              style={{ willChange: "transform" }}
-            >
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 -m-8"
-                style={{
-                  background:
-                    "radial-gradient(50% 50% at 50% 50%, rgba(244,206,31,0.20), transparent 70%)",
-                }}
-              />
-              <Image
-                src="/emblema.png"
-                alt=""
-                aria-hidden="true"
-                width={365}
-                height={365}
-                priority
-                className="reveal relative w-36 select-none sm:w-44 lg:w-60"
-                style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
-              />
+            {/* Três animações, três elementos — nunca duas no mesmo, porque
+                `animation` é propriedade única e a segunda apaga a primeira.
+                De fora pra dentro: profundidade ao rolar, respiro contínuo,
+                entrada. */}
+            <div className="profundidade relative flex-none">
+              <div className="respira" style={{ willChange: "transform" }}>
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 -m-8"
+                  style={{
+                    background:
+                      "radial-gradient(50% 50% at 50% 50%, rgba(244,206,31,0.20), transparent 70%)",
+                  }}
+                />
+                <Image
+                  src="/emblema.png"
+                  alt=""
+                  aria-hidden="true"
+                  width={365}
+                  height={365}
+                  priority
+                  className="entra-marca relative w-36 select-none sm:w-44 lg:w-60"
+                />
+              </div>
             </div>
 
-            <h1
-              className="text-gold-grad titulo-lustro reveal text-center font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.92] tracking-[0.1em] sm:text-left sm:text-6xl lg:text-7xl"
-              style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
-            >
-              OFICINA
-              <br />
-              AMARELA
+            <h1 className="text-gold-grad titulo-lustro text-center font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.92] tracking-[0.1em] sm:text-left sm:text-6xl lg:text-7xl">
+              <span className="entra-linha" style={{ "--linha-atraso": "340ms" } as React.CSSProperties}>
+                OFICINA
+              </span>
+              <span className="entra-linha" style={{ "--linha-atraso": "460ms" } as React.CSSProperties}>
+                AMARELA
+              </span>
             </h1>
           </div>
 
           <p
             className="reveal mx-auto mt-7 max-w-md text-center text-base leading-relaxed text-muted lg:text-lg"
-            style={{ "--reveal-delay": "220ms" } as React.CSSProperties}
+            style={{ "--reveal-delay": "620ms" } as React.CSSProperties}
           >
             A guilda de quem edita. Candidatos mandam o bruto, editores recebem
             missões e entregam.
@@ -172,9 +171,9 @@ export default async function Home() {
 
           <div
             className="reveal mx-auto mt-8 flex w-full max-w-xs flex-col items-center gap-3"
-            style={{ "--reveal-delay": "300ms" } as React.CSSProperties}
+            style={{ "--reveal-delay": "740ms" } as React.CSSProperties}
           >
-            <Link href="/criar-conta" className="btn-gold w-full">
+            <Link href="/criar-conta" className="btn-gold btn-brilho w-full overflow-hidden">
               Criar minha conta
             </Link>
             <Link
