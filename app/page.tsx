@@ -17,21 +17,30 @@ export const revalidate = 300;
 // o que é isso, como funciona, serve pra mim, tem gente mexendo nisso, e como
 // eu entro.
 
-const PASSOS = [
+// Duas trilhas que correm em paralelo e se encontram no fim. Antes eram três
+// passos em fila, e a fila escondia o principal: são duas pessoas diferentes
+// fazendo coisas diferentes ao mesmo tempo. Quem chega quer saber o que ELE vai
+// fazer, não o processo inteiro em ordem cronológica.
+const TRILHAS = [
   {
-    n: "01",
-    titulo: "O candidato manda o bruto",
-    desc: "Grava no celular, joga no Google Drive e abre uma missão dizendo o que quer. O vídeo nunca sai do Drive dele.",
+    lado: "Do lado de quem pede",
+    quem: "Candidato",
+    passos: [
+      { t: "Grava no celular", d: "Sem estúdio, sem equipe. O celular resolve." },
+      { t: "Joga no Google Drive", d: "O vídeo fica no seu Drive. Nunca sai de lá." },
+      { t: "Abre a missão", d: "Diz o tom, a cor, o formato — e manda pra guilda." },
+      { t: "Recebe pronto", d: "Assiste, aprova e posta. Ou pede um ajuste." },
+    ],
   },
   {
-    n: "02",
-    titulo: "A missão chega a um editor",
-    desc: "Não é lista pra disputar: a Oficina oferece a missão a um editor por vez. Ele aceita ou passa adiante.",
-  },
-  {
-    n: "03",
-    titulo: "O vídeo volta pronto",
-    desc: "O editor entrega, o candidato assiste e libera. Cada entrega aprovada sobe a reputação de quem editou.",
+    lado: "Do lado de quem edita",
+    quem: "Editor",
+    passos: [
+      { t: "Faz as aulas", d: "Aprende o que a Oficina espera de uma entrega." },
+      { t: "Entra na fila", d: "Fica disponível e espera. Sem disputar com ninguém." },
+      { t: "Aceita a missão", d: "Ela chega até você, uma por vez. Aceita ou passa." },
+      { t: "Entrega e sobe", d: "Cada aprovação vira nota, reputação e nível." },
+    ],
   },
 ];
 
@@ -92,9 +101,9 @@ export default async function Home() {
           }}
         />
 
-        <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center text-center">
+        <div className="relative mx-auto w-full max-w-5xl">
           <span
-            className="reveal inline-flex items-center gap-2 rounded-full border border-gold-lo/40 bg-gold/[0.07] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-gold-hi"
+            className="reveal mx-auto flex w-fit items-center gap-2 rounded-full border border-gold-lo/40 bg-gold/[0.07] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-gold-hi"
             style={{ "--reveal-delay": "0ms" } as React.CSSProperties}
           >
             <span aria-hidden="true" className="text-gold">
@@ -103,28 +112,54 @@ export default async function Home() {
             Do vídeo bruto ao vídeo pronto
           </span>
 
-          <h1
-            className="text-gold-grad reveal mt-7 font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.95] tracking-[0.14em] sm:text-6xl lg:text-8xl"
-            style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
-          >
-            OFICINA
-            <br />
-            AMARELA
-          </h1>
+          {/* A onça ao lado do nome, não embaixo dele. Assim a marca inteira —
+              símbolo mais palavra — é a primeira coisa que se lê, num bloco só.
+              No celular empilha: lado a lado sobraria letra pequena demais. */}
+          <div className="mt-8 flex flex-col items-center gap-5 sm:flex-row sm:justify-center sm:gap-8 lg:gap-10">
+            <div className="relative flex-none">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 -m-8"
+                style={{
+                  background:
+                    "radial-gradient(50% 50% at 50% 50%, rgba(244,206,31,0.20), transparent 70%)",
+                }}
+              />
+              <Image
+                src="/emblema.png"
+                alt=""
+                aria-hidden="true"
+                width={365}
+                height={365}
+                priority
+                className="reveal relative w-28 select-none sm:w-36 lg:w-48"
+                style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
+              />
+            </div>
+
+            <h1
+              className="text-gold-grad reveal text-center font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.92] tracking-[0.1em] sm:text-left sm:text-6xl lg:text-7xl"
+              style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
+            >
+              OFICINA
+              <br />
+              AMARELA
+            </h1>
+          </div>
 
           <p
-            className="reveal mt-6 max-w-md text-base leading-relaxed text-muted lg:text-lg"
-            style={{ "--reveal-delay": "160ms" } as React.CSSProperties}
+            className="reveal mx-auto mt-7 max-w-md text-center text-base leading-relaxed text-muted lg:text-lg"
+            style={{ "--reveal-delay": "220ms" } as React.CSSProperties}
           >
             A guilda de quem edita. Candidatos mandam o bruto, editores recebem
             missões e entregam.
           </p>
 
           <div
-            className="reveal mt-8 flex w-full flex-col items-center gap-4 sm:w-auto"
-            style={{ "--reveal-delay": "240ms" } as React.CSSProperties}
+            className="reveal mx-auto mt-8 flex w-full max-w-xs flex-col items-center gap-3"
+            style={{ "--reveal-delay": "300ms" } as React.CSSProperties}
           >
-            <Link href="/criar-conta" className="btn-gold w-full sm:w-64">
+            <Link href="/criar-conta" className="btn-gold w-full">
               Criar minha conta
             </Link>
             <Link
@@ -136,68 +171,87 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* A onça, grande e cortada embaixo — no lugar onde a referência põe a
-            figura. O corte é de propósito: dá a sensação de que ela continua
-            pra fora da tela, e puxa o olho pra baixo, pro resto da página.
-            `select-none` porque é imagem de marca, não conteúdo pra copiar. */}
-        <div className="relative mt-12 flex justify-center lg:mt-16">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute bottom-0 h-48 w-full max-w-2xl"
-            style={{
-              background:
-                "radial-gradient(60% 100% at 50% 100%, rgba(244,206,31,0.18), transparent 70%)",
-            }}
-          />
-          <Image
-            src="/emblema.png"
-            alt="Oficina Amarela"
-            width={365}
-            height={365}
-            priority
-            className="reveal relative w-64 max-w-[74vw] select-none sm:w-80 lg:w-[26rem]"
-            style={{
-              "--reveal-delay": "320ms",
-              // a base da casa some na borda da seção. Um quarto cortado é o
-              // limite: mais que isso e a casa deixa de ser reconhecível — o
-              // emblema não é uma figura qualquer, é a marca.
-              marginBottom: "-11%",
-            } as React.CSSProperties}
-          />
-        </div>
+        {/* fecho da seção: um fio dourado que some nas pontas, em vez de a
+            abertura terminar no vazio */}
+        <div
+          aria-hidden="true"
+          className="divider-glint mx-auto mt-16 h-px w-full max-w-md bg-gradient-to-r from-transparent via-gold-lo/60 to-transparent lg:mt-20"
+        />
       </section>
 
-      {/* ---- como funciona ---- */}
-      <section className="border-t border-line-soft px-6 py-16 lg:py-20">
+      {/* ---- como funciona: duas trilhas ---- */}
+      <section className="px-6 py-16 lg:py-24">
         <div className="mx-auto w-full max-w-5xl">
-          <h2 className="text-center text-xs uppercase tracking-[0.2em] text-gold">
+          <h2 className="text-center font-[family-name:var(--font-display)] text-3xl font-semibold text-text lg:text-4xl">
             Como funciona
           </h2>
-          <p className="mx-auto mt-3 max-w-lg text-center text-sm text-muted">
-            Três passos, do celular do candidato até o vídeo pronto pra postar.
+          <p className="mx-auto mt-3 max-w-md text-center text-sm text-muted">
+            São dois caminhos correndo ao mesmo tempo. Eles se encontram no
+            vídeo pronto.
           </p>
 
-          <ol className="mt-10 grid gap-4 md:grid-cols-3">
-            {PASSOS.map((p, i) => (
-              <li
-                key={p.n}
-                className="reveal rounded-2xl border border-line bg-surface/60 p-6"
-                style={{ "--reveal-delay": `${i * 90}ms` } as React.CSSProperties}
+          <div className="relative mt-12 grid gap-8 md:grid-cols-2 md:gap-10">
+            {/* fio vertical entre as duas colunas: mostra que correm em
+                paralelo, sem precisar dizer. Só no PC — no celular as trilhas
+                ficam uma embaixo da outra e o fio mentiria. */}
+            <div
+              aria-hidden="true"
+              className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-line to-transparent md:block"
+            />
+
+            {TRILHAS.map((trilha, iT) => (
+              <div
+                key={trilha.quem}
+                className="reveal"
+                style={{ "--reveal-delay": `${iT * 120}ms` } as React.CSSProperties}
               >
-                <span className="font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.2em] text-gold-lo">
-                  {p.n}
-                </span>
-                <h3 className="mt-3 font-[family-name:var(--font-display)] text-lg font-semibold text-text">
-                  {p.titulo}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{p.desc}</p>
-              </li>
+                <div className="mb-6 text-center md:text-left">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-2">
+                    {trilha.lado}
+                  </p>
+                  <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold text-gold-hi">
+                    {trilha.quem}
+                  </p>
+                </div>
+
+                <ol className="relative flex flex-col gap-5 pl-9">
+                  {/* fio que costura os passos da trilha */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute bottom-4 left-[11px] top-3 w-px bg-gradient-to-b from-gold-lo/50 via-line to-transparent"
+                  />
+
+                  {trilha.passos.map((p, i) => (
+                    <li key={p.t} className="relative">
+                      <span
+                        aria-hidden="true"
+                        className="absolute -left-9 top-1 grid h-6 w-6 place-items-center rounded-full border border-gold-lo/50 bg-ink-2 font-[family-name:var(--font-display)] text-[11px] font-semibold text-gold-hi"
+                      >
+                        {i + 1}
+                      </span>
+                      <h3 className="font-medium text-text">{p.t}</h3>
+                      <p className="mt-0.5 text-sm leading-relaxed text-muted">{p.d}</p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             ))}
-          </ol>
+          </div>
+
+          {/* o ponto onde as duas trilhas se encontram */}
+          <div className="reveal mt-12 flex flex-col items-center">
+            <span
+              aria-hidden="true"
+              className="h-8 w-px bg-gradient-to-b from-transparent to-gold-lo/60"
+            />
+            <p className="mt-4 rounded-full border border-gold-lo/50 bg-gold/[0.07] px-5 py-2 text-sm font-medium text-gold-hi">
+              O vídeo volta pronto
+            </p>
+          </div>
 
           {/* A promessa que mais importa e que ninguém pergunta em voz alta:
               onde fica o vídeo. Vale dizer antes de pedir cadastro. */}
-          <p className="mx-auto mt-8 max-w-xl text-center text-xs leading-relaxed text-muted-2">
+          <p className="mx-auto mt-10 max-w-xl text-center text-xs leading-relaxed text-muted-2">
             O vídeo fica no Google Drive de quem gravou, do começo ao fim. A
             Oficina Amarela não guarda arquivo de ninguém.
           </p>
@@ -205,11 +259,14 @@ export default async function Home() {
       </section>
 
       {/* ---- para quem ---- */}
-      <section className="border-t border-line-soft px-6 py-16 lg:py-20">
+      <section className="border-t border-line-soft px-6 py-16 lg:py-24">
         <div className="mx-auto w-full max-w-4xl">
-          <h2 className="text-center text-xs uppercase tracking-[0.2em] text-gold">
-            De que lado você está?
+          <h2 className="text-center font-[family-name:var(--font-display)] text-3xl font-semibold text-text lg:text-4xl">
+            O que você é?
           </h2>
+          <p className="mx-auto mt-3 max-w-sm text-center text-sm text-muted">
+            Escolhe de onde você entra. Dá pra mudar depois.
+          </p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             {PARA_QUEM.map((q, i) => (
@@ -260,8 +317,8 @@ export default async function Home() {
       {/* ---- novidades ---- */}
       <section className="border-t border-line-soft px-6 py-16 lg:py-20">
         <div className="mx-auto w-full max-w-3xl">
-          <h2 className="text-center text-xs uppercase tracking-[0.2em] text-gold">
-            O que mudou por aqui
+          <h2 className="text-center font-[family-name:var(--font-display)] text-3xl font-semibold text-text lg:text-4xl">
+            Atualizações
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-center text-sm text-muted">
             A Oficina é mexida quase todo dia. Isso é o mais recente.
@@ -300,8 +357,8 @@ export default async function Home() {
           className="pointer-events-none absolute -right-10 top-1/2 w-48 -translate-y-1/2 opacity-[0.06] lg:w-64"
         />
         <div className="relative mx-auto w-full max-w-2xl text-center">
-          <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
-            Entra pra guilda
+          <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-text lg:text-4xl">
+            Entrar para a Oficina
           </h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
             Criar conta leva menos de um minuto. Dá pra entrar com o Google ou
