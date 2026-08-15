@@ -122,7 +122,16 @@ export default async function Home() {
               símbolo mais palavra — é a primeira coisa que se lê, num bloco só.
               No celular empilha: lado a lado sobraria letra pequena demais. */}
           <div className="mt-8 flex flex-col items-center gap-5 sm:flex-row sm:justify-center sm:gap-8 lg:gap-10">
-            <div className="relative flex-none">
+            {/* `reveal` e `respira` NÃO podem ficar no mesmo elemento: as duas
+                declaram `animation`, que é propriedade única — a segunda apaga
+                a primeira. Como `reveal` começa em `opacity: 0` e é a animação
+                dela que traz de volta, juntar as duas deixava a onça invisível.
+                Por isso o respiro fica no bloco de fora e a revelação na
+                imagem. */}
+            <div
+              className="respira relative flex-none"
+              style={{ willChange: "transform" }}
+            >
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 -m-8"
@@ -138,7 +147,7 @@ export default async function Home() {
                 width={365}
                 height={365}
                 priority
-                className="reveal respira relative w-36 select-none sm:w-44 lg:w-60"
+                className="reveal relative w-36 select-none sm:w-44 lg:w-60"
                 style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
               />
             </div>
