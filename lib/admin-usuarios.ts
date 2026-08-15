@@ -190,3 +190,45 @@ export async function desbanirUsuario(
   if (!atualizada) return { ok: false, erro: "Conta não encontrada." };
   return { ok: true };
 }
+
+/**
+ * Apaga a conta pra valer. Só o inspetor chama isto, e não tem volta.
+ *
+ * Diferente de `apagarConta` (lib/contas.ts), que é a pessoa apagando a
+ * própria e por isso pede senha: aqui quem apaga é outro alguém, então a
+ * autorização é o papel, conferido na rota.
+ *
+ * Duas travas, e as duas existem porque isto é irreversível:
+ *
+ *  - `papel <> 'admin'`: mesma regra do banimento. Sem ela, um inspetor apaga
+ *    o outro — ou a si mesmo — e o sistema fica sem ninguém pra aprovar
+ *    entrega, com o trabalho de todo mundo parado em "em revisão".
+ *  - devolver a missão pra fila ANTES de apagar. O `ON DELETE SET NULL` do
+ *    schema limpa o dono mas não mexe no status: a missão ficaria 'reservada'
+ *    sem reservante, invisível pra fila e nunca mais despachada. Missão zumbi,
+ *    e o porta-voz sem entender por que o vídeo dele parou. Foi assim que o
+ *    bug apareceu da primeira vez, na exclusão da própria conta.
+ *
+ * 'em_revisao' fica de fora de propósito: o vídeo já foi entregue e está com o
+ * inspetor. Devolver pra fila jogaria fora trabalho pronto.
+ */
+export async function removerUsuario(
+  userId: number
+): Promise<{ ok: true; apelido: string } | { ok: false; erro: string }> {
+  const [alvo] = await sql`
+    SELECT id, apelido, papel FROM users WHERE id = ${userId}
+  `;
+  if (!alvo) return { ok: false, erro: "Conta não encontrada." };
+  if (alvo.papel === "admin") {
+    return { ok: false, erro: "Conta de inspetor não pode ser apagada por aqui." };
+  }
+
+  await sql`
+    UPDATE pautas
+    SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL, reservada_em = NULL
+    WHERE reservada_por_id = ${userId} AND status IN ('reservada','reedicao','oferecida')
+  `;
+
+  await sql`DELETE FROM users WHERE id = ${userId}`;
+  return { ok: true, apelido: String(alvo.apelido) };
+}

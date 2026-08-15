@@ -150,6 +150,12 @@ export function PainelContas() {
             <PainelDetalhe
               detalhe={selecionado}
               onAtualizado={(novo) => setSelecionado(novo)}
+              onApagado={() => {
+                // tira da lista na hora, sem esperar nova busca: a conta não
+                // existe mais e clicar nela de novo daria erro
+                setResultados((lista) => lista.filter((u) => u.id !== selecionado.id));
+                setSelecionado(null);
+              }}
             />
           ) : (
             <div className="rounded-2xl border border-line-soft bg-surface/40 p-6 text-center text-sm text-muted">
@@ -238,16 +244,31 @@ function SeloBanido() {
 function PainelDetalhe({
   detalhe: d,
   onAtualizado,
+  onApagado,
 }: {
   detalhe: DetalheUsuario;
   onAtualizado: (novo: DetalheUsuario) => void;
+  /** conta apagada some do painel: quem chama tira da lista e fecha o detalhe */
+  onApagado: () => void;
 }) {
-  const [confirmando, setConfirmando] = useState<null | "banir" | "desbanir">(null);
+  const [confirmando, setConfirmando] = useState<null | "banir" | "desbanir" | "apagar">(null);
   const [motivo, setMotivo] = useState("");
+  const [apelidoDigitado, setApelidoDigitado] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState("");
 
+  // Apagar não volta. Banir dá pra desfazer com um clique; isto some com a
+  // conta, com o histórico e com a nota da pessoa. Digitar o apelido é o que
+  // separa "quis apagar" de "clicou no botão errado" — o mesmo cuidado que a
+  // exclusão da própria conta já pede.
+  const apelidoConfere =
+    apelidoDigitado.trim().toLowerCase() === d.apelido.toLowerCase();
+
   async function confirmar() {
+    if (confirmando === "apagar" && !apelidoConfere) {
+      setAviso("Digite o apelido exatamente como aparece acima.");
+      return;
+    }
     setSalvando(true);
     setAviso("");
     try {
@@ -257,7 +278,9 @@ function PainelDetalhe({
         body: JSON.stringify(
           confirmando === "banir"
             ? { userId: d.id, acao: "banir", motivo }
-            : { userId: d.id, acao: "desbanir" }
+            : confirmando === "apagar"
+              ? { userId: d.id, acao: "apagar" }
+              : { userId: d.id, acao: "desbanir" }
         ),
       });
       if (!resp.ok) {
@@ -265,6 +288,13 @@ function PainelDetalhe({
         setAviso(dados?.erro ?? "Não deu pra concluir.");
         return;
       }
+
+      // conta apagada não tem detalhe pra recarregar: volta pra lista
+      if (confirmando === "apagar") {
+        onApagado();
+        return;
+      }
+
       // recarrega o detalhe pra refletir o novo estado
       const det = await fetch(`/api/admin/usuarios/${d.id}`);
       if (det.ok) {
@@ -365,6 +395,76 @@ function PainelDetalhe({
               Banir
             </button>
           )}
+
+          {/* Apagar fica ao lado do banir, mas discreto de propósito: banir
+              resolve quase todo caso e dá pra desfazer. Isto some com a conta,
+              o histórico e a nota da pessoa, pra sempre. */}
+          <button
+            className="btn-ghost w-32 !text-muted-2 hover:!border-danger/40 hover:!text-danger"
+            onClick={() => {
+              setConfirmando("apagar");
+              setApelidoDigitado("");
+              setAviso("");
+            }}
+            disabled={salvando}
+          >
+            Apagar
+          </button>
+        </div>
+      )}
+
+      {confirmando === "apagar" && (
+        <div className="mt-5 rounded-xl border border-danger/40 bg-danger/[0.06] p-3">
+          <p className="text-sm text-text">
+            Apagar a conta de <b>{d.apelido}</b> não tem volta. Some o cadastro,
+            o histórico de entregas e a nota.
+          </p>
+          <p className="mt-1.5 text-xs text-muted">
+            Missão que essa pessoa tiver em mãos volta pra fila. O que já foi
+            entregue e está em revisão continua com você.
+          </p>
+          <p className="mt-3 text-xs text-muted">
+            Se for só afastar por um tempo, <b>Banir</b> resolve e dá pra desfazer.
+          </p>
+
+          <label
+            htmlFor="confirmar-apelido"
+            className="mt-3 mb-2 block text-xs uppercase tracking-[0.12em] text-muted"
+          >
+            Digite {d.apelido} pra confirmar
+          </label>
+          <input
+            id="confirmar-apelido"
+            className="field-input !pl-4"
+            value={apelidoDigitado}
+            onChange={(e) => {
+              setApelidoDigitado(e.target.value);
+              setAviso("");
+            }}
+            autoComplete="off"
+            spellCheck={false}
+          />
+
+          <div className="mt-3 flex gap-2">
+            <button
+              className="btn-ghost flex-1 !border-danger/50 !text-danger hover:!bg-danger/10"
+              onClick={confirmar}
+              disabled={salvando || !apelidoConfere}
+            >
+              {salvando ? "Apagando…" : "Apagar pra sempre"}
+            </button>
+            <button
+              className="btn-ghost w-32"
+              onClick={() => {
+                setConfirmando(null);
+                setApelidoDigitado("");
+                setAviso("");
+              }}
+              disabled={salvando}
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       )}
 
