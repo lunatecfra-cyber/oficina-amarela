@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import {
   alternarPublicacao,
   apagarNovidade,
   criarNovidade,
 } from "@/lib/novidades-db";
 import { lerSessao } from "@/lib/sessao-servidor";
+
+/**
+ * A página inicial guarda a versão pronta por 5 minutos, pra não consultar o
+ * banco a cada visita. Ótimo pra quem lê, péssimo pra quem escreve: publicava
+ * e não via nada mudar, o que parece defeito. Isto joga fora a versão guardada
+ * no instante da mudança — o cache continua valendo pra todo o resto do tempo.
+ */
+function atualizarPaginaInicial() {
+  revalidatePath("/");
+}
 
 /** As novidades aparecem numa página pública, sem login. Quem escreve tem que
  *  ser inspetor — senão qualquer conta publicaria texto na porta de entrada. */
@@ -35,6 +46,7 @@ export async function POST(request: Request) {
       String(body?.texto ?? "")
     );
     if (!r.ok) return NextResponse.json({ erro: r.erro }, { status: 400 });
+    atualizarPaginaInicial();
     return NextResponse.json({ ok: true, id: r.id });
   }
 
@@ -46,12 +58,14 @@ export async function POST(request: Request) {
   if (acao === "alternar") {
     const r = await alternarPublicacao(id);
     if (!r.ok) return NextResponse.json({ erro: r.erro }, { status: 400 });
+    atualizarPaginaInicial();
     return NextResponse.json({ ok: true, publicada: r.publicada });
   }
 
   if (acao === "apagar") {
     const r = await apagarNovidade(id);
     if (!r.ok) return NextResponse.json({ erro: r.erro }, { status: 400 });
+    atualizarPaginaInicial();
     return NextResponse.json({ ok: true });
   }
 
