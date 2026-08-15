@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Logo } from "@/components/logo";
 import { NOVIDADES, dataCurta } from "@/lib/novidades";
 import { novidadesPublicadas } from "@/lib/novidades-db";
 
@@ -76,55 +75,95 @@ export default async function Home() {
 
   return (
     <main className="flex-1">
-      {/* ---- abertura ---- */}
-      <section className="relative overflow-hidden px-6 pb-16 pt-16 lg:pb-24 lg:pt-24">
+      {/* ---- abertura ----
+          O peso está em três coisas, nesta ordem: o nome, uma frase que diz o
+          que é, e um caminho só pra seguir. A onça vem depois, grande e
+          cortada na base — ela não é enfeite no canto, é a última coisa que a
+          pessoa vê antes de rolar, e o que faz a marca ficar. */}
+      <section className="relative overflow-hidden px-6 pt-12 lg:pt-16">
+        {/* clarão dourado atrás do texto: dá profundidade ao preto sem clarear
+            o fundo, que é travado na identidade */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[70%]"
           style={{
             background:
-              "radial-gradient(90% 60% at 50% 0%, rgba(244,206,31,0.10), transparent 60%)",
+              "radial-gradient(70% 55% at 50% 12%, rgba(244,206,31,0.13), transparent 68%)",
           }}
         />
-        <div className="relative mx-auto w-full max-w-3xl">
-          <div className="flex flex-col items-center text-center">
-            <Logo
-              className="reveal w-28 lg:w-36"
-              style={{ "--reveal-delay": "0ms" } as React.CSSProperties}
-            />
 
-            <h1
-              className="text-gold-grad reveal mt-7 font-[family-name:var(--font-display)] text-4xl font-semibold tracking-[0.22em] lg:text-6xl"
-              style={{ "--reveal-delay": "90ms" } as React.CSSProperties}
+        <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center text-center">
+          <span
+            className="reveal inline-flex items-center gap-2 rounded-full border border-gold-lo/40 bg-gold/[0.07] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-gold-hi"
+            style={{ "--reveal-delay": "0ms" } as React.CSSProperties}
+          >
+            <span aria-hidden="true" className="text-gold">
+              ✦
+            </span>
+            Do vídeo bruto ao vídeo pronto
+          </span>
+
+          <h1
+            className="text-gold-grad reveal mt-7 font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.95] tracking-[0.14em] sm:text-6xl lg:text-8xl"
+            style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
+          >
+            OFICINA
+            <br />
+            AMARELA
+          </h1>
+
+          <p
+            className="reveal mt-6 max-w-md text-base leading-relaxed text-muted lg:text-lg"
+            style={{ "--reveal-delay": "160ms" } as React.CSSProperties}
+          >
+            A guilda de quem edita. Candidatos mandam o bruto, editores recebem
+            missões e entregam.
+          </p>
+
+          <div
+            className="reveal mt-8 flex w-full flex-col items-center gap-4 sm:w-auto"
+            style={{ "--reveal-delay": "240ms" } as React.CSSProperties}
+          >
+            <Link href="/criar-conta" className="btn-gold w-full sm:w-64">
+              Criar minha conta
+            </Link>
+            <Link
+              href="/login"
+              className="inline-block px-3 py-2 text-sm text-muted transition-colors hover:text-gold-hi"
             >
-              OFICINA AMARELA
-            </h1>
-
-            <p
-              className="reveal mt-5 max-w-xl text-base leading-relaxed text-muted lg:text-lg"
-              style={{ "--reveal-delay": "170ms" } as React.CSSProperties}
-            >
-              A guilda de quem edita. Candidatos mandam o vídeo bruto, editores
-              recebem missões, entregam e sobem de nível.
-            </p>
-
-            <div
-              className="divider-glint reveal mt-8 h-px w-14 bg-gradient-to-r from-transparent via-gold-lo to-transparent"
-              style={{ "--reveal-delay": "260ms" } as React.CSSProperties}
-            />
-
-            <div
-              className="reveal mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row"
-              style={{ "--reveal-delay": "340ms" } as React.CSSProperties}
-            >
-              <Link href="/criar-conta" className="btn-gold sm:w-52">
-                Criar minha conta
-              </Link>
-              <Link href="/login" className="btn-ghost sm:w-40 text-center">
-                Já sou membro
-              </Link>
-            </div>
+              Já sou membro
+            </Link>
           </div>
+        </div>
+
+        {/* A onça, grande e cortada embaixo — no lugar onde a referência põe a
+            figura. O corte é de propósito: dá a sensação de que ela continua
+            pra fora da tela, e puxa o olho pra baixo, pro resto da página.
+            `select-none` porque é imagem de marca, não conteúdo pra copiar. */}
+        <div className="relative mt-12 flex justify-center lg:mt-16">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-0 h-48 w-full max-w-2xl"
+            style={{
+              background:
+                "radial-gradient(60% 100% at 50% 100%, rgba(244,206,31,0.18), transparent 70%)",
+            }}
+          />
+          <Image
+            src="/emblema.png"
+            alt="Oficina Amarela"
+            width={365}
+            height={365}
+            priority
+            className="reveal relative w-64 max-w-[74vw] select-none sm:w-80 lg:w-[26rem]"
+            style={{
+              "--reveal-delay": "320ms",
+              // a base da casa some na borda da seção. Um quarto cortado é o
+              // limite: mais que isso e a casa deixa de ser reconhecível — o
+              // emblema não é uma figura qualquer, é a marca.
+              marginBottom: "-11%",
+            } as React.CSSProperties}
+          />
         </div>
       </section>
 
