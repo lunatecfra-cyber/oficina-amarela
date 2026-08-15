@@ -85,3 +85,16 @@ Seja extremamente conciso, direto e curto nas respostas. Sem introduções longa
 - **ZCode:** É o "arquiteto/consultor principal". Ele define a estrutura, atualizações complexas e cria os planos.
 - **Claude:** Operário secundário/apoio.
 - Sempre respeitar a ponte (`PONTE_CLAUDE.md`) e os planos do ZCode (`.zcode/plans`).
+
+## 5. Design e proporção
+
+Antes de dizer que uma tela está pronta, meça em **390px com toque emulado**.
+As regras e o comando de medição estão em [`docs/DESIGN.md`](docs/DESIGN.md).
+
+O que mais aparece, e já apareceu aqui:
+
+- **Campo com menos de 16px** faz o iPhone dar zoom sozinho ao focar.
+- **Alvo com menos de 44px de altura** o dedo erra. Link dentro de frase e
+  checkbox nascem abaixo disso.
+- **Fonte do Google no build** deixa o CI vermelho quando o Google demora. As
+  fontes deste projeto moram em `public/fontes/`.
