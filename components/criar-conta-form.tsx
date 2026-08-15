@@ -83,7 +83,7 @@ export function CriarContaForm() {
         <button
           type="button"
           onClick={() => setPapel("voz")}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             papel === "voz" ? "bg-gold/10 text-gold-hi" : "text-muted hover:text-text"
           }`}
         >
@@ -92,7 +92,7 @@ export function CriarContaForm() {
         <button
           type="button"
           onClick={() => setPapel("editor")}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             papel === "editor" ? "bg-gold/10 text-gold-hi" : "text-muted hover:text-text"
           }`}
         >

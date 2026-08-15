@@ -278,12 +278,15 @@ export default async function Home() {
             </Link>
           </div>
 
-          <p className="mt-8 text-xs text-muted-2">
-            <Link href="/termos" className="hover:text-muted">
+          {/* inline-block com py: sem isso o link tinha 15px de altura e virava
+              uma linha fina que o dedo erra. O padding não muda o desenho —
+              só aumenta a área que responde ao toque. */}
+          <p className="mt-6 text-xs text-muted-2">
+            <Link href="/termos" className="inline-block py-2 hover:text-muted">
               Termos de uso
             </Link>
-            {" · "}
-            <Link href="/privacidade" className="hover:text-muted">
+            <span className="px-1">·</span>
+            <Link href="/privacidade" className="inline-block py-2 hover:text-muted">
               Política de privacidade
             </Link>
           </p>

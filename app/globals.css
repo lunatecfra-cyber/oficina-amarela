@@ -94,7 +94,15 @@ body {
   border: 1px solid var(--color-line);
   border-radius: 0.75rem;
   color: var(--color-text);
-  font-size: 0.95rem;
+  /* 16px cravado, e não 0.95rem.
+     Abaixo disso o Safari do iPhone dá zoom sozinho quando o campo recebe
+     foco: a tela salta, o resto do formulário sai de vista e a pessoa precisa
+     voltar com o dedo. 16px é o limite exato em que ele deixa quieto. */
+  font-size: 16px;
+  /* área de toque: 44px é o mínimo que a mão acerta sem errar. O padding acima
+     já leva além disso, mas o mínimo protege se alguém apertar o padding
+     depois. */
+  min-height: 44px;
   transition: border-color 0.25s var(--ease-guild), box-shadow 0.25s var(--ease-guild), background 0.25s;
 }
 
@@ -122,6 +130,10 @@ body {
   position: relative;
   width: 100%;
   padding: 0.9rem 1rem;
+  /* 44px é o menor alvo que o dedo acerta de primeira. O padding já passa
+     disso na maioria dos casos, mas botão com texto curto encolhia abaixo —
+     e errar o botão principal é o pior lugar pra economizar espaço. */
+  min-height: 44px;
   border: 0;
   border-radius: 0.75rem;
   background: linear-gradient(180deg, #fbe9a6, #f4ce1f 55%, #c79c12);
@@ -147,6 +159,7 @@ body {
 .btn-ghost {
   width: 100%;
   padding: 0.85rem 1rem;
+  min-height: 44px;
   border: 1px solid var(--color-line);
   border-radius: 0.75rem;
   background: var(--color-surface);
