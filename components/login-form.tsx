@@ -185,7 +185,7 @@ function LoginFormConteudo() {
               onClick={() => setShowPw((v) => !v)}
               aria-pressed={showPw}
               aria-label={showPw ? "Ocultar senha" : "Mostrar senha"}
-              className="absolute right-2 grid h-9 w-9 place-items-center rounded-lg text-muted-2 transition-colors hover:bg-white/5 hover:text-silver"
+              className="absolute right-1 grid h-11 w-11 place-items-center rounded-lg text-muted-2 transition-colors hover:bg-white/5 hover:text-silver"
             >
               {showPw ? (
                 <svg
@@ -216,12 +216,19 @@ function LoginFormConteudo() {
           </div>
         </div>
 
-        <div className="mb-5 flex items-center justify-between">
-          <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-muted">
-            <input type="checkbox" name="lembrar" className="accent-gold" />
+        {/* O quadradinho do checkbox nasce com 13px — menos de um terço do que
+            um dedo acerta. Aumentar só ele deixaria desalinhado com o resto, e
+            o padding no label resolve melhor: a área que responde ao toque
+            passa a ser a frase inteira, não o quadrado. */}
+        <div className="mb-5 flex items-center justify-between gap-2">
+          <label className="-ml-1 flex min-h-11 cursor-pointer select-none items-center gap-2 px-1 text-sm text-muted">
+            <input type="checkbox" name="lembrar" className="h-4 w-4 accent-gold" />
             Manter conectado
           </label>
-          <Link href="/recuperar" className="text-sm text-muted hover:text-silver-hi">
+          <Link
+            href="/recuperar"
+            className="-mr-1 flex min-h-11 items-center px-1 text-sm text-muted hover:text-silver-hi"
+          >
             Esqueci a senha
           </Link>
         </div>
