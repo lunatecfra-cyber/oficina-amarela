@@ -10,6 +10,7 @@ const ABAS = [
   { href: "/inspetor", rotulo: "Missões" },
   { href: "/inspetor/contas", rotulo: "Pessoas" },
   { href: "/inspetor/denuncias", rotulo: "Denúncias" },
+  { href: "/inspetor/novidades", rotulo: "Novidades" },
 ];
 
 export function NavInspetor() {

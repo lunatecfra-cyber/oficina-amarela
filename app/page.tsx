@@ -2,6 +2,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { Logo } from "@/components/logo";
 import { NOVIDADES, dataCurta } from "@/lib/novidades";
+import { novidadesPublicadas } from "@/lib/novidades-db";
+
+// Esta página é pública e é a mais visitada — consultar o banco a cada visita
+// gastaria cota do Neon à toa. Cinco minutos de cache: novidade não é notícia
+// de última hora, e quem publica vê o resultado no painel na hora.
+export const revalidate = 300;
 
 // Esta é a porta de entrada: quem chega aqui ainda não tem conta e não sabe o
 // que é a Oficina Amarela. Antes a página só perguntava "o que você é?" e
@@ -54,8 +60,19 @@ const PARA_QUEM = [
   },
 ];
 
-export default function Home() {
-  const novidades = NOVIDADES.slice(0, 4);
+export default async function Home() {
+  // O que o inspetor escreveu manda. O texto do arquivo é só o que a página
+  // mostra enquanto ninguém publicou nada — melhor do que uma seção vazia numa
+  // porta de entrada. Publicou a primeira, o arquivo sai de cena.
+  const doBanco = await novidadesPublicadas(4).catch(() => []);
+  const novidades =
+    doBanco.length > 0
+      ? doBanco.map((n) => ({
+          data: n.criadaEm.slice(0, 10),
+          titulo: n.titulo,
+          texto: n.texto,
+        }))
+      : NOVIDADES.slice(0, 4);
 
   return (
     <main className="flex-1">
