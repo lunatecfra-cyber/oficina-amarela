@@ -151,7 +151,7 @@ export default async function Home() {
               </div>
             </div>
 
-            <h1 className="text-gold-grad titulo-lustro text-center font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.92] tracking-[0.1em] sm:text-left sm:text-6xl lg:text-7xl">
+            <h1 className="text-gold-grad text-center font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.92] tracking-[0.1em] sm:text-left sm:text-6xl lg:text-7xl">
               <span className="entra-linha" style={{ "--linha-atraso": "340ms" } as React.CSSProperties}>
                 OFICINA
               </span>

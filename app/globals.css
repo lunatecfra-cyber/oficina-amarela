@@ -292,41 +292,6 @@ body {
   }
 }
 
-/* Lustro que varre o nome uma vez, logo depois dele aparecer — como luz
-   passando em metal polido. Uma vez só: repetir vira letreiro de vitrine e
-   rouba a atenção de quem está tentando ler. */
-.titulo-lustro {
-  position: relative;
-  isolation: isolate;
-}
-
-.titulo-lustro::after {
-  content: "";
-  position: absolute;
-  inset: -10% -20%;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(
-    105deg,
-    transparent 42%,
-    rgba(255, 249, 214, 0.45) 50%,
-    transparent 58%
-  );
-  transform: translateX(-120%);
-  /* espera o nome terminar de entrar. A segunda linha só assenta por volta de
-     1,16s — o lustro passando antes disso atravessaria letra ainda em
-     movimento, e as duas coisas brigariam pela atenção. */
-  animation: lustro-passa 1.5s var(--ease-guild) 1.3s 1 both;
-  /* clareia o que já é dourado, em vez de pintar por cima */
-  mix-blend-mode: overlay;
-}
-
-@keyframes lustro-passa {
-  to {
-    transform: translateX(120%);
-  }
-}
-
 /* A onça respira: escala quase imperceptível, bem devagar. É o que separa
    "logo colada na tela" de "marca viva" sem virar animação de banner. */
 .respira {
@@ -569,13 +534,7 @@ body {
     opacity: 0;
   }
 
-  /* quem pediu menos movimento fica com o dourado parado: sem lustro passando
-     e sem a onça respirando */
-  .titulo-lustro::after {
-    animation: none;
-    opacity: 0;
-  }
-
+  /* a onça fica parada */
   .respira {
     animation: none;
   }
