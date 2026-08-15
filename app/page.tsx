@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { NOVIDADES, dataCurta } from "@/lib/novidades";
+import { AoAparecer } from "@/components/ao-aparecer";
+import { BrilhoDoMouse } from "@/components/brilho-do-mouse";
 import { novidadesPublicadas } from "@/lib/novidades-db";
 
 // Esta página é pública e é a mais visitada — consultar o banco a cada visita
@@ -101,6 +103,10 @@ export default async function Home() {
           }}
         />
 
+        {/* halo que acompanha o mouse. Só onde existe mouse — em celular o
+            componente nem se monta. */}
+        <BrilhoDoMouse />
+
         <div className="relative mx-auto w-full max-w-5xl">
           <span
             className="reveal mx-auto flex w-fit items-center gap-2 rounded-full border border-gold-lo/40 bg-gold/[0.07] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-gold-hi"
@@ -132,13 +138,13 @@ export default async function Home() {
                 width={365}
                 height={365}
                 priority
-                className="reveal relative w-28 select-none sm:w-36 lg:w-48"
+                className="reveal respira relative w-36 select-none sm:w-44 lg:w-60"
                 style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
               />
             </div>
 
             <h1
-              className="text-gold-grad reveal text-center font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.92] tracking-[0.1em] sm:text-left sm:text-6xl lg:text-7xl"
+              className="text-gold-grad titulo-lustro reveal text-center font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.92] tracking-[0.1em] sm:text-left sm:text-6xl lg:text-7xl"
               style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
             >
               OFICINA
@@ -200,11 +206,7 @@ export default async function Home() {
             />
 
             {TRILHAS.map((trilha, iT) => (
-              <div
-                key={trilha.quem}
-                className="reveal"
-                style={{ "--reveal-delay": `${iT * 120}ms` } as React.CSSProperties}
-              >
+              <AoAparecer key={trilha.quem} atraso={iT * 140}>
                 <div className="mb-6 text-center md:text-left">
                   <p className="text-[11px] uppercase tracking-[0.16em] text-muted-2">
                     {trilha.lado}
@@ -234,12 +236,12 @@ export default async function Home() {
                     </li>
                   ))}
                 </ol>
-              </div>
+              </AoAparecer>
             ))}
           </div>
 
           {/* o ponto onde as duas trilhas se encontram */}
-          <div className="reveal mt-12 flex flex-col items-center">
+          <div className="mt-12 flex flex-col items-center">
             <span
               aria-hidden="true"
               className="h-8 w-px bg-gradient-to-b from-transparent to-gold-lo/60"
@@ -270,11 +272,10 @@ export default async function Home() {
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             {PARA_QUEM.map((q, i) => (
+              <AoAparecer key={q.titulo} atraso={i * 120} className="flex">
               <Link
-                key={q.titulo}
                 href={q.href}
-                className="role-card reveal group flex flex-col rounded-2xl border border-line bg-surface/70 p-6 transition-colors hover:border-gold/60 hover:bg-surface-2 lg:p-8"
-                style={{ "--reveal-delay": `${i * 90}ms` } as React.CSSProperties}
+                className="role-card group flex flex-1 flex-col rounded-2xl border border-line bg-surface/70 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-gold/60 hover:bg-surface-2 hover:shadow-[0_18px_40px_rgba(0,0,0,0.45)] lg:p-8"
               >
                 <span className="inline-grid h-11 w-11 place-items-center rounded-xl border border-line bg-ink-2 text-silver transition-colors group-hover:border-gold/50 group-hover:text-gold">
                   <svg
@@ -305,10 +306,19 @@ export default async function Home() {
                   ))}
                 </ul>
 
-                <span className="mt-5 text-sm font-medium text-gold-hi transition-colors group-hover:text-gold">
-                  Começar por aqui →
+                <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-gold-hi transition-colors group-hover:text-gold">
+                  Começar por aqui
+                  {/* a seta anda um passo quando o mouse chega: dá a sensação
+                      de que o card leva pra algum lugar */}
+                  <span
+                    aria-hidden="true"
+                    className="transition-transform duration-300 group-hover:translate-x-1"
+                  >
+                    →
+                  </span>
                 </span>
               </Link>
+              </AoAparecer>
             ))}
           </div>
         </div>
@@ -326,21 +336,19 @@ export default async function Home() {
 
           <ul className="mt-10 flex flex-col gap-3">
             {novidades.map((n, i) => (
-              <li
-                key={n.titulo}
-                className="reveal flex flex-col gap-1 rounded-2xl border border-line bg-surface/60 p-5 sm:flex-row sm:gap-5"
-                style={{ "--reveal-delay": `${i * 70}ms` } as React.CSSProperties}
-              >
-                <span className="flex-none font-[family-name:var(--font-mono,inherit)] text-xs uppercase tracking-[0.12em] text-gold-lo sm:w-16 sm:pt-0.5">
-                  {dataCurta(n.data)}
-                </span>
-                <div className="min-w-0">
-                  <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-text">
-                    {n.titulo}
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-muted">{n.texto}</p>
-                </div>
-              </li>
+              <AoAparecer key={n.titulo} atraso={i * 90}>
+                <li className="group flex flex-col gap-1 rounded-2xl border border-line bg-surface/60 p-5 transition-colors duration-300 hover:border-gold-lo/40 sm:flex-row sm:gap-5">
+                  <span className="flex-none text-xs uppercase tracking-[0.12em] text-gold-lo sm:w-16 sm:pt-0.5">
+                    {dataCurta(n.data)}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-text">
+                      {n.titulo}
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted">{n.texto}</p>
+                  </div>
+                </li>
+              </AoAparecer>
             ))}
           </ul>
         </div>
