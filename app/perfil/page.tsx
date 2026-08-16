@@ -120,7 +120,11 @@ export default async function PerfilPage() {
               </p>
 
               {/* stats */}
-              <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-3">
+              {/* Grade de 2 no celular. Com `flex-wrap`, os quatro números
+                  caíam três numa linha e "ritmo da forja" sobrava sozinho
+                  embaixo, torto. Grade fixa dá duas colunas parelhas; da
+                  largura de tablet em diante volta a ser uma linha só. */}
+              <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-3">
                 <Stat valor={String(p.entregues)} rotulo="entregues" />
                 <Stat
                   valor={p.nota === null ? "—" : p.nota.toFixed(1).replace(".", ",")}

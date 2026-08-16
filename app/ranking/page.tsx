@@ -69,7 +69,8 @@ export default async function RankingPage() {
                       {eu ? "Você" : `@${e.apelido}`}
                     </p>
                     <p className="text-xs text-muted-2">
-                      {e.nivel} · {e.entregues} entregues
+                      {e.nivel} · {e.entregues}{" "}
+                      {e.entregues === 1 ? "entregue" : "entregues"}
                       {e.streak > 0 && (
                         <>
                           {" "}
