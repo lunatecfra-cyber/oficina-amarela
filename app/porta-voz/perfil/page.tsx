@@ -81,7 +81,11 @@ export default async function PerfilPortaVozPage() {
         <div className="px-5 pb-6 lg:px-8">
           <div className="relative z-10 -mt-12 flex items-end justify-between gap-4 lg:-mt-14">
             <AvatarCandidato candidato={cand} className="h-24 w-24 text-3xl lg:h-28 lg:w-28 lg:text-4xl" />
-            <Link href="/porta-voz/perfil/editar" className="btn-ghost mb-1 w-auto px-4 text-sm">
+            <Link
+              href="/porta-voz/perfil/editar"
+              className="btn-ghost mb-1 w-auto px-4 text-sm"
+              data-guia="editar-perfil"
+            >
               Editar perfil
             </Link>
           </div>

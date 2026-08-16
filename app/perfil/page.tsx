@@ -153,7 +153,7 @@ export default async function PerfilPage() {
                 )}
               </Card>
 
-              <Card titulo="Portfólio" delay={0.1}>
+              <Card titulo="Portfólio" delay={0.1} guia="cartao-portfolio">
                 {p.portfolio.length === 0 && (
                   <p className="text-sm text-muted-2">
                     Seu portfólio se preenche sozinho: cada entrega aprovada
@@ -224,7 +224,7 @@ export default async function PerfilPage() {
 
             {/* ---- sidebar ---- */}
             <aside className="flex flex-col gap-6">
-              <Card titulo="Nível" delay={0.1}>
+              <Card titulo="Nível" delay={0.1} guia="cartao-nivel">
                 <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-gold-hi">
                   {nivel.atual.nome}
                 </p>

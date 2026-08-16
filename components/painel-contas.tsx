@@ -102,7 +102,7 @@ export function PainelContas() {
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6" data-guia="busca-pessoas">
         <label htmlFor="busca-pessoas" className="sr-only">
           Buscar pessoas
         </label>

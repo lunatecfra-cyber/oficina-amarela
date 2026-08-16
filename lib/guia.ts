@@ -128,6 +128,73 @@ const ROTEIROS: readonly (Roteiro & { casa: (rota: string) => boolean })[] = [
     ],
   },
   {
+    chave: "agenda",
+    versao: 1,
+    titulo: "Sua agenda",
+    casa: (r) => r === "/agenda",
+    passos: [
+      {
+        alvo: "grade-semana",
+        titulo: "Por que a missão não chega",
+        texto:
+          "Duas coisas decidem: esta grade e a aba aberta. O sistema só chama quem apareceu nos últimos minutos — com a Oficina fechada, a oferta vai pro próximo. Bloco desmarcado aqui também tira você da vez naquele horário.",
+      },
+      {
+        alvo: "mesa-agora",
+        titulo: "O que está na sua mesa",
+        texto:
+          "Uma missão de cada vez. Enquanto esta não for entregue ou devolvida, nenhuma outra é oferecida a você.",
+      },
+    ],
+  },
+  {
+    chave: "perfil-editor",
+    versao: 1,
+    titulo: "Seu perfil",
+    casa: (r) => r === "/perfil",
+    passos: [
+      {
+        alvo: "cartao-nivel",
+        titulo: "O nível sobe sozinho",
+        texto:
+          "É o número de entregas aprovadas que manda: 10 vira Oficial, 30 Artífice, 60 Mestre-Artesão. Não tem como pedir promoção — e nem precisa.",
+      },
+      {
+        alvo: "cartao-portfolio",
+        titulo: "O portfólio se preenche sozinho",
+        texto:
+          "Cada entrega aprovada entra aqui. É o que o candidato olha antes de confiar um vídeo a você.",
+      },
+    ],
+  },
+  {
+    chave: "contas",
+    versao: 1,
+    titulo: "Gerenciar pessoas",
+    casa: (r) => r === "/inspetor/contas",
+    passos: [
+      {
+        alvo: "busca-pessoas",
+        titulo: "Ache pela conta, não pela memória",
+        texto: "Busca por nome, apelido ou e-mail. Toque na pessoa pra abrir o que dá pra fazer.",
+      },
+    ],
+  },
+  {
+    chave: "perfil-candidato",
+    versao: 1,
+    titulo: "Seu perfil",
+    casa: (r) => r === "/porta-voz/perfil",
+    passos: [
+      {
+        alvo: "editar-perfil",
+        titulo: "Isto é o que o editor vê",
+        texto:
+          "Bandeiras, tom e palavras-chave não são enfeite: é por aqui que o editor entende o seu jeito antes de cortar o primeiro vídeo.",
+      },
+    ],
+  },
+  {
     chave: "panorama",
     versao: 1,
     titulo: "Panorama",

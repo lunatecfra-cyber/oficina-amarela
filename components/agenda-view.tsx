@@ -103,7 +103,7 @@ export function AgendaView({
       </div>
 
       {/* ---- trabalhos em andamento ---- */}
-      <section className="mt-8">
+      <section className="mt-8" data-guia="mesa-agora">
         <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-gold">
           Na sua mesa agora
         </h2>
@@ -144,7 +144,10 @@ export function AgendaView({
           </span>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-line bg-surface/60 p-4 lg:p-5">
+        <div
+          className="overflow-x-auto rounded-2xl border border-line bg-surface/60 p-4 lg:p-5"
+          data-guia="grade-semana"
+        >
           <div className="min-w-[420px]">
             <div className="mb-2 grid grid-cols-[64px_repeat(7,1fr)] gap-1.5">
               <span />
