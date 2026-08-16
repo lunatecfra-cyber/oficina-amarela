@@ -585,6 +585,231 @@ body {
   border-right: 0;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Screencast do Drive — a "gravação de tela" que não é vídeo
+
+   Cinco cenas de 3s num ciclo de 15s. Todos os elementos animados —
+   cena, cursor, menu, diálogo — usam a MESMA duração e o MESMO atraso
+   negativo da cena a que pertencem. Assim o cursor nunca sai de sincronia
+   com o clique: não são cinco animações que precisam concordar, é uma
+   linha do tempo só, deslocada.
+   ───────────────────────────────────────────────────────────── */
+.cast {
+  position: relative;
+  height: 208px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  background: #101014;
+}
+
+.cast-cena {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: cast-cena 15s linear infinite;
+}
+
+@keyframes cast-cena {
+  0%,
+  0.5% {
+    opacity: 0;
+  }
+  3%,
+  17% {
+    opacity: 1;
+  }
+  19.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* a janelinha do Drive: clara de propósito — quem olha tem que entender
+   na hora que aquilo é o Google, não a Oficina */
+.cast-janela {
+  position: absolute;
+  /* a faixa de baixo é da legenda: com `inset: 10px` a janela cobria o texto
+     e a explicação de cada passo ficava ilegível atrás do branco */
+  inset: 8px 8px 30px;
+  border-radius: 8px;
+  background: #fff;
+  color: #202124;
+  font-size: 11px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.cast-barra {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border-bottom: 1px solid #e3e3e6;
+  font-weight: 500;
+  color: #444746;
+}
+
+.cast-linha {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border-bottom: 1px solid #f1f1f3;
+}
+
+.cast-linha--alvo {
+  background: #e8f0fe;
+}
+
+/* o cursor. Cada cena dá o seu percurso; a duração e o atraso vêm de fora. */
+.cast-cursor {
+  position: absolute;
+  width: 13px;
+  height: 18px;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  animation-duration: 15s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation-iteration-count: infinite;
+}
+
+/* menus e diálogos entram um instante depois do clique */
+.cast-surge {
+  animation: cast-surge 15s linear infinite;
+  opacity: 0;
+}
+
+@keyframes cast-surge {
+  0%,
+  7% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  9%,
+  19.5% {
+    opacity: 1;
+    transform: none;
+  }
+  20%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* cena 2: o cursor desce até o arquivo */
+@keyframes cast-ate-arquivo {
+  0% {
+    left: 60%;
+    top: 22%;
+  }
+  7%,
+  20% {
+    left: 26%;
+    top: 52%;
+  }
+}
+
+/* cena 3: vai até o seletor de acesso */
+@keyframes cast-ate-acesso {
+  0% {
+    left: 30%;
+    top: 30%;
+  }
+  7%,
+  20% {
+    left: 22%;
+    top: 62%;
+  }
+}
+
+/* cena 4: vai até "Copiar link" */
+@keyframes cast-ate-copiar {
+  0% {
+    left: 25%;
+    top: 45%;
+  }
+  7%,
+  20% {
+    left: 62%;
+    top: 74%;
+  }
+}
+
+.cast-legenda {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 6px 10px 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.cast-legenda b {
+  color: var(--color-gold);
+  font-weight: 600;
+}
+
+/* a régua de progresso: cinco tracinhos, o da vez acende */
+.cast-regua {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.cast-tic {
+  height: 3px;
+  flex: 1;
+  border-radius: 999px;
+  background: var(--color-line);
+  overflow: hidden;
+}
+
+/* o preenchimento é um filho de verdade, não um ::after: o atraso de cada
+   tracinho vem inline do componente, e pseudo-elemento não recebe style */
+.cast-tic > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--color-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: cast-tic 15s linear infinite;
+}
+
+@keyframes cast-tic {
+  0% {
+    transform: scaleX(0);
+  }
+  20% {
+    transform: scaleX(1);
+  }
+  20.01%,
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cast-cena,
+  .cast-cursor,
+  .cast-surge,
+  .cast-tic > span {
+    animation: none !important;
+  }
+
+  /* sem movimento sobra a última cena, que é o resultado */
+  .cast-cena:last-of-type,
+  .cast-surge {
+    opacity: 1;
+  }
+}
+
 /* ── palquinho das demonstrações ──────────────────────────────
    Cada cena aparece por uma fatia do ciclo. Em vez de um keyframe por
    cena, é o MESMO keyframe com atraso negativo — a cena 2 entra no ciclo

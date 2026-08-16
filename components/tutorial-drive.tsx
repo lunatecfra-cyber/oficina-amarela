@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { DemoGuia } from "@/components/demo-guia";
+import { ScreencastDrive } from "@/components/screencast-drive";
 import { urlDeEmbutir, VIDEOS, type TipoTutorial } from "@/lib/tutoriais";
 
 /**
@@ -113,6 +114,10 @@ export function TutorialDrive({
                 allowFullScreen
               />
             </div>
+          ) : tipo === "drive" ? (
+            /* na janela cheia cabe a encenação inteira do Drive; o balão do
+               guia, que é estreito, continua com a versão curta */
+            <ScreencastDrive />
           ) : (
             <DemoGuia tipo={tipo} />
           )}
