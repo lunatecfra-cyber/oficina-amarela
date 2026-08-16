@@ -58,19 +58,29 @@ export async function AppHeader() {
 
   return (
     <header className="border-b border-line-soft">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-4 lg:px-8">
-        <div className="flex items-center gap-6">
-          <Link href="/editor" className="flex items-center gap-3">
+      {/* No celular isto vira DUAS linhas. Numa só, os seis itens somavam 461px
+          numa tela de 390: o botão de sair ficava inteiro fora da tela, o selo
+          de nível cortado na borda, e a página inteira deslizava pro lado.
+          Quem entrava pelo celular não conseguia sair da conta.
+
+          Agora: identidade em cima, navegação embaixo. No PC volta a ser uma
+          linha só, que é onde sempre coube. */}
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-8">
+        <div className="flex min-w-0 items-center gap-6">
+          <Link href="/editor" className="flex flex-none items-center gap-3">
             <Logo className="w-9" />
             <span className="hidden font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold sm:inline">
               OFICINA AMARELA
             </span>
           </Link>
 
-          <NavEditor />
+          {/* no celular a navegação desce pra própria linha, logo abaixo */}
+          <div className="hidden sm:block">
+            <NavEditor />
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-none items-center gap-2 sm:gap-4">
           {/* Até aqui não existia link nenhum pra área do inspetor: só se
               chegava digitando /inspetor na barra de endereço. Quem não sabia
               a URL procurava o botão de aprovar em telas onde ele não existe.
@@ -98,13 +108,18 @@ export async function AppHeader() {
 
           <Link
             href="/perfil"
-            className="rounded-full border border-gold-lo/60 bg-gold/10 px-3 py-1 text-xs font-medium text-gold-hi transition-colors hover:bg-gold/20"
+            className="flex min-h-11 flex-none items-center rounded-full border border-gold-lo/60 bg-gold/10 px-3 text-xs font-medium text-gold-hi transition-colors hover:bg-gold/20"
           >
             {editor.nivel}
           </Link>
 
-          <BotaoSair className="text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-silver-hi" />
+          <BotaoSair className="flex min-h-11 flex-none items-center px-1 text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-silver-hi" />
         </div>
+      </div>
+
+      {/* segunda linha, só no celular: a navegação com espaço pra respirar */}
+      <div className="border-t border-line-soft px-2 pb-1 sm:hidden">
+        <NavEditor />
       </div>
     </header>
   );

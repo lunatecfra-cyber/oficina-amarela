@@ -232,7 +232,7 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
             key={a.chave}
             type="button"
             onClick={() => abrirAba(a.chave)}
-            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            className={`min-h-11 flex-1 rounded-lg px-1.5 py-2 text-xs font-medium leading-tight transition-colors sm:px-3 sm:text-sm ${
               aba === a.chave ? "bg-gold/10 text-gold-hi" : "text-muted hover:text-text"
             }`}
           >
