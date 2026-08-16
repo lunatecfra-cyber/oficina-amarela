@@ -104,7 +104,10 @@ export default async function CandidatoPage({
                 <span className="text-[#5a5a64]">●</span> longe
               </p>
 
-              <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-3">
+              {/* aqui são três, então cabem na linha do celular — mas a grade
+                  mantém as colunas alinhadas em vez de dependerem do tamanho
+                  da palavra embaixo de cada número */}
+              <dl className="mt-5 grid grid-cols-3 gap-x-4 gap-y-3 sm:flex sm:flex-wrap sm:gap-x-8">
                 <Stat valor={String(pautas.length)} rotulo="missões" />
                 <Stat valor={String(naFila)} rotulo="na fila" />
                 <Stat valor={String(emAndamento)} rotulo="em produção" />

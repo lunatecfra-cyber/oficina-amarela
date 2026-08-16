@@ -95,7 +95,9 @@ export default async function PerfilPortaVozPage() {
             <p className="mt-1 text-sm text-muted-2">na guilda desde {cand.desde}</p>
           )}
 
-          <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-3">
+          {/* mesma razão do perfil do editor: com flex-wrap os quatro números
+              caíam três numa linha e "prontas" sobrava sozinho embaixo */}
+          <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-3">
             <Stat valor={String(minhas.length)} rotulo="missões" />
             <Stat valor={String(naFila)} rotulo="na fila" />
             <Stat valor={String(emProducao)} rotulo="em produção" />
