@@ -224,8 +224,14 @@ function CardRevisao({
           </div>
         )}
 
+        {/* No celular as estrelas e os dois botões dividiam UMA linha de
+            390px: "Pedir reedição" não encolhe (whitespace-nowrap) e o
+            "Aprovar" era esmagado até sobrar a letra "A". O botão principal
+            do inspetor ficava impossível de acertar com o dedo.
+            Agora as estrelas ficam na própria linha e os botões dividem a
+            de baixo; no PC volta a ser a coluna lateral de sempre. */}
         {!abrindoReedicao && (
-          <div className="flex flex-none items-center gap-2 lg:w-56 lg:flex-col lg:items-stretch">
+          <div className="flex flex-none flex-col gap-2 lg:w-56">
             <div className="flex items-center justify-center gap-1">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
@@ -234,7 +240,7 @@ function CardRevisao({
                   aria-label={`Dar nota ${n}`}
                   aria-pressed={estrelas === n}
                   onClick={() => setEstrelas(n)}
-                  className={`text-lg leading-none transition-opacity ${
+                  className={`grid h-11 w-11 place-items-center text-lg leading-none transition-opacity lg:h-auto lg:w-auto ${
                     estrelas && n <= estrelas ? "opacity-100" : "opacity-30 hover:opacity-60"
                   }`}
                 >
@@ -242,15 +248,20 @@ function CardRevisao({
                 </button>
               ))}
             </div>
-            <button className="btn-gold whitespace-nowrap" onClick={() => onAprovar(estrelas)}>
-              Aprovar
-            </button>
-            <button
-              className="btn-ghost whitespace-nowrap"
-              onClick={() => setAbrindoReedicao(true)}
-            >
-              Pedir reedição
-            </button>
+            <div className="flex gap-2 lg:flex-col">
+              <button
+                className="btn-gold flex-1 whitespace-nowrap"
+                onClick={() => onAprovar(estrelas)}
+              >
+                Aprovar
+              </button>
+              <button
+                className="btn-ghost flex-1 whitespace-nowrap"
+                onClick={() => setAbrindoReedicao(true)}
+              >
+                Pedir reedição
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -68,7 +68,7 @@ export function ChatMissao({
         <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
           Conversa da missão
         </h2>
-        <span className="text-xs text-muted">{mensagens.length} mensagem{mensagens.length === 1 ? "" : "es"}</span>
+        <span className="text-xs text-muted">{mensagens.length} {mensagens.length === 1 ? "mensagem" : "mensagens"}</span>
       </div>
 
       {mensagens.length === 0 ? (

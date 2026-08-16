@@ -123,8 +123,16 @@ export function PainelContas() {
         </p>
       )}
 
+      {/* min-w-0 nos dois filhos da grade não é enfeite: item de grid tem
+          min-width:auto, ou seja, não encolhe abaixo do próprio min-content.
+          O e-mail de cada linha é `truncate` (nowrap), então o min-content da
+          lista virava a largura do e-mail MAIS COMPRIDO — 506px. No celular a
+          coluna nascia com 506, o Chrome esticava a viewport pra 526 e a tela
+          inteira aparecia cortada na direita: cartões sem borda, e-mails sem
+          reticências e os botões de banir/apagar fora do alcance. Com min-w-0
+          a coluna passa a valer 350 e o truncate volta a fazer o trabalho. */}
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <ul className="flex flex-col gap-2">
+        <ul className="flex min-w-0 flex-col gap-2">
           {carregando && resultados.length === 0 && (
             <li className="rounded-2xl border border-line-soft bg-surface/40 p-6 text-center text-sm text-muted">
               Carregando…
@@ -145,7 +153,7 @@ export function PainelContas() {
           ))}
         </ul>
 
-        <aside className="lg:sticky lg:top-6 lg:self-start">
+        <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start">
           {selecionado ? (
             <PainelDetalhe
               detalhe={selecionado}

@@ -242,7 +242,13 @@ export default async function PortaVozHome() {
                   const real = ehReal(p.id);
                   return (
                     <CardMissao key={p.id} pauta={p}>
-                      <div className="flex flex-wrap items-start justify-between gap-2">
+                      {/* Empilha no celular. Lado a lado, o título tinha
+                          flex-1 (base 0) e a mensagem de status ocupava uns
+                          220px fixos — sobrava menos de 120px pro título, que
+                          descia UMA PALAVRA POR LINHA. flex-wrap não salvava:
+                          com base 0 o título encolhe em vez de quebrar a
+                          linha. Da largura do tablet em diante volta ao lado. */}
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 flex-1">
                           <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text transition-colors group-hover:text-gold-hi">
                             {p.titulo}
@@ -270,7 +276,7 @@ export default async function PortaVozHome() {
                         {/* mensagem de status colorida */}
                         {msg.texto && (
                           <span
-                            className={`mt-1 text-right text-sm font-medium sm:mt-0 ${msg.cor}`}
+                            className={`flex-none text-sm font-medium sm:text-right ${msg.cor}`}
                           >
                             {msg.texto}
                           </span>
