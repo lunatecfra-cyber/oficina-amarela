@@ -401,6 +401,10 @@ export default async function Home() {
             <Link href="/privacidade" className="inline-block py-2 hover:text-muted">
               Política de privacidade
             </Link>
+            <span className="px-1">·</span>
+            <Link href="/parceiros" className="inline-block py-2 hover:text-muted">
+              Parceiros
+            </Link>
           </p>
         </div>
       </section>
