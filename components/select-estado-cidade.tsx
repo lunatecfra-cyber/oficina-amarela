@@ -43,7 +43,10 @@ export function SelectEstadoCidade({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    // Empilha no celular. Lado a lado em 390px sobra menos de 170px por campo,
+    // e o texto era cortado no meio — "Selecione o es…". Da largura do tablet
+    // em diante voltam a dividir a linha.
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
         <label
           htmlFor="estado-uf"
