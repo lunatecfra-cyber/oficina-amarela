@@ -4,8 +4,12 @@ import { redirect } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { EscolherPapelForm } from "@/components/escolher-papel-form";
 import { NOME_COOKIE_PENDENTE, verificarIdentidadePendente } from "@/lib/sessao";
+import { contarInscritos } from "@/lib/contas";
+import { VAGAS } from "@/lib/limites";
 
 export const metadata: Metadata = { title: "Quase lá — Oficina Amarela" };
+
+export const dynamic = "force-dynamic";
 
 // O token da identidade confirmada pelo Google vem de cookie httpOnly, não mais
 // da query string: ele cria uma conta com aquele e-mail, então na URL ficava
@@ -20,6 +24,16 @@ export default async function EscolherPapelPage() {
     redirect(`/login?erro_google=${encodeURIComponent("Sessão expirou, tenta de novo.")}`);
   }
 
+  const [totalEditores, totalVoz] = await Promise.all([
+    contarInscritos("editor"),
+    contarInscritos("voz"),
+  ]);
+
+  const vagas = {
+    editor: { total: VAGAS.editor, livres: Math.max(0, VAGAS.editor - totalEditores) },
+    voz: { total: VAGAS.voz, livres: Math.max(0, VAGAS.voz - totalVoz) },
+  };
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
       <div className="mb-8 flex flex-col items-center text-center">
@@ -28,7 +42,7 @@ export default async function EscolherPapelPage() {
           OFICINA AMARELA
         </p>
       </div>
-      <EscolherPapelForm nome={pendente.nome} foto={pendente.foto} />
+      <EscolherPapelForm nome={pendente.nome} foto={pendente.foto} vagas={vagas} />
     </main>
   );
 }

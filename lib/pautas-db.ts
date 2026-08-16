@@ -472,6 +472,29 @@ export async function pedirAjuste(
 }
 
 /**
+ * Apaga uma missão. Usado pelo inspetor no Panorama.
+ *
+ * Primeiro limpa o editor assignado (se tiver) pra não deixar o registro
+ * inconsistente. Depois deleta a pauta; CASCADE apaga ofertas, avaliações
+ * e mensagens junto.
+ */
+export async function apagarPauta(
+  pautaId: number
+): Promise<{ ok: true } | { ok: false; erro: string }> {
+  // limpa editor assignado antes de deletar
+  await sql`
+    UPDATE pautas SET reservada_por_id = NULL WHERE id = ${pautaId}
+  `;
+  const linhas = await sql`
+    DELETE FROM pautas WHERE id = ${pautaId} RETURNING id
+  `;
+  if (linhas.length === 0) {
+    return { ok: false, erro: "Missão não encontrada." };
+  }
+  return { ok: true };
+}
+
+/**
  * Quem precisa ser avisado quando a missão muda de estado.
  *
  * Fica aqui, e não dentro de cada transição, por dois motivos: as funções de

@@ -21,6 +21,14 @@ export const LIMITES = {
   denuncia: 1000, // reclamação pro inspetor
 } as const;
 
+// Teto de contas por papel. Evita que o site fique lento quando a base cresce
+// demais. Inspetores (admin) ficam de fora — são criados só pelo dev-login.
+// Contas banidas contam: se o inspetor quiser liberar vaga, ele apaga a conta.
+export const VAGAS = {
+  editor: 50,
+  voz: 80,
+} as const;
+
 /** Corta e tira espaço das pontas. `undefined` e `null` passam batido. */
 export function limitar(valor: string | null | undefined, max: number): string {
   if (typeof valor !== "string") return "";

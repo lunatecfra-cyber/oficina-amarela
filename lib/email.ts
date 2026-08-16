@@ -186,3 +186,33 @@ export function avisarReedicaoPedida(destino: string, nome: string, titulo: stri
     )
   );
 }
+
+// ---- avisos em massa pelo inspetor -----------------------------------------
+
+/** Pra editores: tem missões na fila esperando alguém pra pegar. */
+export function avisarEditoresFila(destino: string, nome: string, naFila: number, url: string) {
+  return avisar(
+    destino,
+    `Tem ${naFila} miss${naFila === 1 ? "ão" : "ões"} esperando editor`,
+    moldura(
+      "Tem missões na fila de edição",
+      `<p>Oi, ${escaparHtml(nome)}. Tem <b>${naFila} miss${naFila === 1 ? "ão" : "ões"}</b> na fila esperando alguém pra pegar.</p>
+       <p>Acesse o site e pegue a próxima.</p>`,
+      { url, texto: "Ver a fila" }
+    )
+  );
+}
+
+/** Pra candidatos (porta-vozes): tem editores livres pra trabalhar. */
+export function avisarCandidatosEditoresLivres(destino: string, nome: string, editoresLivres: number, url: string) {
+  return avisar(
+    destino,
+    "Tem editores disponíveis pra sua missão",
+    moldura(
+      "Editores livres esperando uma missão",
+      `<p>Oi, ${escaparHtml(nome)}. Tem <b>${editoresLivres} editor${editoresLivres === 1 ? "" : "es"}</b> disponíveis agora.</p>
+       <p>Se você tem um vídeo pra editar, é só criar.</p>`,
+      { url, texto: "Criar missão" }
+    )
+  );
+}

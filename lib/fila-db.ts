@@ -56,13 +56,24 @@ export async function marcarEditorAtivo(editorId: number): Promise<void> {
  * importe — a missão volta assim que o primeiro editor aparecer.
  */
 export async function expirarOfertasVencidas(): Promise<number> {
+  // Duas causas de expiração:
+  //  1) Prazo absoluto da oferta (MINUTOS_OFERTA): o editor teve seu tempo e
+  //     não respondeu — a missão volta pra fila independente de ele estar
+  //     online ou não. É o mecanismo principal.
+  //  2) Editor sumiu (MINUTOS_PRESENCA): fechou o navegador, perdeu internet.
+  //     Nesse caso nem precisa esperar o prazo da oferta.
   const vencidas = await sql`
     UPDATE ofertas o
     SET status = 'expirada', respondida_em = now()
     FROM users u
     WHERE o.status = 'pendente'
-      AND o.editor_id = u.id
-      AND u.ultimo_visto_em <= now() - interval '3 minutes'
+      AND (
+        -- prazo absoluto: 5 minutos desde a criação da oferta
+        o.oferecida_em <= now() - (${MINUTOS_OFERTA} || ' minutes')::interval
+        OR
+        -- editor offline: não dá sinal há 3 minutos
+        (o.editor_id = u.id AND u.ultimo_visto_em <= now() - interval '3 minutes')
+      )
     RETURNING o.pauta_id
   `;
   if (vencidas.length === 0) return 0;
@@ -178,7 +189,7 @@ export async function despacharMissoes(): Promise<number> {
       await sql`
         INSERT INTO ofertas (pauta_id, editor_id, expira_em, ordem)
         VALUES (${p.id}, ${editorId},
-                now() + interval '100 years',
+                now() + (${MINUTOS_OFERTA} || ' minutes')::interval,
                 ${ordem})
       `;
 

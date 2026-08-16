@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { criarContaGoogle } from "@/lib/contas";
+import { criarContaGoogle, checarVagaPapel } from "@/lib/contas";
 import {
   COOKIE_OPTS,
   criarTokenSessao,
@@ -25,6 +25,13 @@ export async function POST(request: Request) {
   const pendente = token ? await verificarIdentidadePendente(token) : null;
   if (!pendente) {
     return NextResponse.json({ erro: "Sessão expirou, tenta de novo." }, { status: 400 });
+  }
+
+  // checa teto de vagas — se lotou, limpa o cookie pendente e recusa.
+  const vaga = await checarVagaPapel(papel);
+  if (!vaga.ok) {
+    jar.delete(NOME_COOKIE_PENDENTE);
+    return NextResponse.json({ erro: vaga.erro }, { status: 403 });
   }
 
   const resultado = await criarContaGoogle({ ...pendente, papel });

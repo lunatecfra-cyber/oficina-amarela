@@ -196,3 +196,25 @@ export async function moverNaFila(
 
   return { ok: true };
 }
+
+// ---- e-mails pra notificação em massa -------------------------------------
+
+/** E-mails dos editores ativos (usado pra notificar que há missões na fila). */
+export async function emailsDosEditores(): Promise<{ nome: string; email: string }[]> {
+  const linhas = await sql`
+    SELECT nome, email FROM users
+    WHERE papel = 'editor' AND banido = false
+    ORDER BY nome ASC
+  `;
+  return linhas.map((l) => ({ nome: String(l.nome), email: String(l.email) }));
+}
+
+/** E-mails dos candidatos ativos (usado pra notificar que há editores livres). */
+export async function emailsDosCandidatos(): Promise<{ nome: string; email: string }[]> {
+  const linhas = await sql`
+    SELECT nome, email FROM users
+    WHERE papel = 'voz' AND banido = false
+    ORDER BY nome ASC
+  `;
+  return linhas.map((l) => ({ nome: String(l.nome), email: String(l.email) }));
+}

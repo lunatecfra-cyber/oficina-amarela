@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { criarConta, registrarTentativa, taxaTravada } from "@/lib/contas";
+import { criarConta, checarVagaPapel, registrarTentativa, taxaTravada } from "@/lib/contas";
 import { ipDaRequisicao } from "@/lib/ip";
 import { criarTokenSessao, NOME_COOKIE, COOKIE_OPTS } from "@/lib/sessao";
 
@@ -33,6 +33,13 @@ export async function POST(request: Request) {
   }
   if (papel !== "voz" && papel !== "editor") {
     return NextResponse.json({ erro: "Escolha se você é porta-voz ou editor." }, { status: 400 });
+  }
+
+  // checa teto de vagas ANTES de criar — se lotou, não gasta tentativa do
+  // freio de IP, porque não é culpa de quem está tentando se cadastrar.
+  const vaga = await checarVagaPapel(papel);
+  if (!vaga.ok) {
+    return NextResponse.json({ erro: vaga.erro }, { status: 403 });
   }
 
   const resultado = await criarConta({ nome, apelido, email, senha, papel });

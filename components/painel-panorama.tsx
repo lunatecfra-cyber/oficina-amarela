@@ -67,6 +67,10 @@ export function PainelPanorama({
   const router = useRouter();
   const [fila, setFila] = useState(filaInicial);
   const [mexendo, setMexendo] = useState<number | null>(null);
+  const [apagando, setApagando] = useState<number | null>(null);
+  const [confirmaApagar, setConfirmaApagar] = useState<number | null>(null);
+  const [notificando, setNotificando] = useState<"editores" | "candidatos" | null>(null);
+  const [notificado, setNotificado] = useState<string>("");
   const [aviso, setAviso] = useState("");
 
   async function mover(id: number, movimento: "subir" | "descer" | "topo") {
@@ -98,6 +102,43 @@ export function PainelPanorama({
     router.refresh();
   }
 
+  async function apagar(id: number) {
+    setApagando(id);
+    setAviso("");
+
+    const resp = await fetch(`/api/admin/pautas/${id}`, { method: "DELETE" });
+    if (!resp.ok) {
+      const d = await resp.json().catch(() => null);
+      setAviso(d?.erro ?? "Não deu pra apagar.");
+    } else {
+      setConfirmaApagar(null);
+    }
+    setApagando(null);
+    router.refresh();
+  }
+
+  async function notificar(tipo: "editores" | "candidatos") {
+    setNotificando(tipo);
+    setAviso("");
+    setNotificado("");
+
+    const resp = await fetch("/api/admin/avisar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tipo }),
+    });
+    if (!resp.ok) {
+      const d = await resp.json().catch(() => null);
+      setAviso(d?.erro ?? "Não deu pra enviar.");
+    } else {
+      const d = await resp.json().catch(() => null);
+      const n = d?.enviados ?? "?";
+      setNotificado(`${n} e-mail${n !== 1 ? "s" : ""} enviado${n !== 1 ? "s" : ""}.`);
+      setTimeout(() => setNotificado(""), 4000);
+    }
+    setNotificando(null);
+  }
+
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
       <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
@@ -112,6 +153,15 @@ export function PainelPanorama({
         <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
           Missões
         </h2>
+        <button
+          type="button"
+          onClick={() => notificar("editores")}
+          disabled={notificando !== null || resumo.naFila === 0}
+          className="mb-3 text-xs text-muted hover:text-gold disabled:opacity-40"
+          title={resumo.naFila === 0 ? "Sem missões na fila" : "Enviar e-mail pra todos os editores"}
+        >
+          ✉ Avisar editores que há missões na fila
+        </button>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           <Numero valor={resumo.naFila} rotulo="na fila" destaque />
           <Numero valor={resumo.oferecidas} rotulo="oferecidas" />
@@ -124,6 +174,15 @@ export function PainelPanorama({
         <h2 className="mb-3 mt-6 text-xs font-medium uppercase tracking-[0.14em] text-gold">
           Gente
         </h2>
+        <button
+          type="button"
+          onClick={() => notificar("candidatos")}
+          disabled={notificando !== null || resumo.editoresLivres === 0}
+          className="mb-3 text-xs text-muted hover:text-gold disabled:opacity-40"
+          title={resumo.editoresLivres === 0 ? "Sem editores livres" : "Enviar e-mail pra todos os candidatos"}
+        >
+          ✉ Avisar candidatos que há editores livres
+        </button>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Numero valor={resumo.candidatos} rotulo="candidatos" />
           <Numero valor={resumo.editores} rotulo="editores" />
@@ -135,6 +194,11 @@ export function PainelPanorama({
       {aviso && (
         <p role="alert" className="mt-4 text-sm text-danger">
           {aviso}
+        </p>
+      )}
+      {notificado && (
+        <p className="mt-4 text-sm text-gold-hi">
+          {notificado}
         </p>
       )}
 
@@ -229,6 +293,15 @@ export function PainelPanorama({
                       </button>
                     </div>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={() => setConfirmaApagar(f.id)}
+                    disabled={mexendo !== null}
+                    className="btn-ghost mt-2 w-full py-1.5 text-xs text-muted hover:text-danger disabled:opacity-40"
+                  >
+                    Apagar missão
+                  </button>
                 </li>
               );
             })}
@@ -292,12 +365,57 @@ export function PainelPanorama({
                       Conferir agora →
                     </Link>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setConfirmaApagar(m.id)}
+                    className="mt-2 text-xs text-muted hover:text-danger"
+                  >
+                    Apagar missão
+                  </button>
                 </li>
               );
             })}
           </ul>
         )}
       </section>
+
+      {/* ── dialog de confirmação de exclusão ──────────────────── */}
+      {confirmaApagar !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 backdrop-blur-sm"
+          onClick={() => setConfirmaApagar(null)}
+        >
+          <div
+            className="mx-4 w-full max-w-sm rounded-2xl border border-line bg-surface p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
+              Apagar missão?
+            </h3>
+            <p className="mt-2 text-sm text-muted">
+              A missão e todo o histórico (chat, avaliações) vão sumir pra
+              sempre. Essa ação não tem volta.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmaApagar(null)}
+                className="btn-ghost min-h-11 flex-1 py-2 text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => apagar(confirmaApagar)}
+                disabled={apagando !== null}
+                className="btn-danger min-h-11 flex-1 py-2 text-sm disabled:opacity-50"
+              >
+                {apagando !== null ? "Apagando…" : "Apagar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

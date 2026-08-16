@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+
+type VagasInfo = {
+  editor: { total: number; inscritos: number; livres: number };
+  voz: { total: number; inscritos: number; livres: number };
+};
 
 export function CriarContaForm() {
   const router = useRouter();
@@ -17,6 +22,14 @@ export function CriarContaForm() {
   const [confirmar, setConfirmar] = useState("");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [vagas, setVagas] = useState<VagasInfo | null>(null);
+
+  useEffect(() => {
+    fetch("/api/vagas")
+      .then((r) => r.json())
+      .then((d: VagasInfo) => setVagas(d))
+      .catch(() => {});
+  }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -99,6 +112,40 @@ export function CriarContaForm() {
           Sou editor
         </button>
       </div>
+
+      {vagas && (
+        <p className="mb-4 text-center text-xs text-muted-2">
+          {papel === "editor" ? (
+            <>
+              {vagas.editor.livres === 0 ? (
+                <span className="text-danger">Sem vagas de editor no momento.</span>
+              ) : (
+                <>
+                  <span className="font-semibold text-gold">{vagas.editor.livres}</span> vaga
+                  {vagas.editor.livres !== 1 ? "s" : ""} de editor{" "}
+                  <span className="text-muted-2">
+                    ({vagas.editor.inscritos}/{vagas.editor.total})
+                  </span>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {vagas.voz.livres === 0 ? (
+                <span className="text-danger">Sem vagas de candidato no momento.</span>
+              ) : (
+                <>
+                  <span className="font-semibold text-gold">{vagas.voz.livres}</span> vaga
+                  {vagas.voz.livres !== 1 ? "s" : ""} de candidato{" "}
+                  <span className="text-muted-2">
+                    ({vagas.voz.inscritos}/{vagas.voz.total})
+                  </span>
+                </>
+              )}
+            </>
+          )}
+        </p>
+      )}
 
       <form onSubmit={onSubmit} noValidate>
         <div className="mb-4">

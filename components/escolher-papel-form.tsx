@@ -20,9 +20,14 @@ const OPCOES = [
 export function EscolherPapelForm({
   nome,
   foto,
+  vagas,
 }: {
   nome: string;
   foto?: string;
+  vagas: {
+    editor: { total: number; livres: number };
+    voz: { total: number; livres: number };
+  };
 }) {
   const router = useRouter();
   const [enviando, setEnviando] = useState<string | null>(null);
@@ -79,20 +84,34 @@ export function EscolherPapelForm({
       <p className="mt-1 text-sm text-muted">Falta só uma coisa: você é editor ou porta-voz?</p>
 
       <div className="mt-6 flex flex-col gap-3">
-        {OPCOES.map((o) => (
-          <button
-            key={o.papel}
-            type="button"
-            onClick={() => escolher(o.papel)}
-            disabled={enviando !== null}
-            className="rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:border-gold/40 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <p className="font-[family-name:var(--font-display)] text-base font-semibold text-text">
-              {enviando === o.papel ? "Entrando…" : o.titulo}
-            </p>
-            <p className="mt-0.5 text-xs text-muted">{o.descricao}</p>
-          </button>
-        ))}
+        {OPCOES.map((o) => {
+          const v = vagas[o.papel];
+          return (
+            <button
+              key={o.papel}
+              type="button"
+              onClick={() => escolher(o.papel)}
+              disabled={enviando !== null || v.livres === 0}
+              className="rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:border-gold/40 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-[family-name:var(--font-display)] text-base font-semibold text-text">
+                  {enviando === o.papel ? "Entrando…" : o.titulo}
+                </p>
+                {v.livres === 0 ? (
+                  <span className="shrink-0 rounded-full border border-danger/30 bg-danger/10 px-2.5 py-0.5 text-[11px] font-medium text-danger">
+                    lotado
+                  </span>
+                ) : (
+                  <span className="shrink-0 rounded-full border border-gold/30 bg-gold/10 px-2.5 py-0.5 text-[11px] font-medium text-gold">
+                    {v.livres} vaga{v.livres !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs text-muted">{o.descricao}</p>
+            </button>
+          );
+        })}
       </div>
 
       {erro && (

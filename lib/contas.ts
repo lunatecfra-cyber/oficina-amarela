@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { LIMITES, limitar } from "@/lib/limites";
+import { LIMITES, VAGAS, limitar } from "@/lib/limites";
 import { sql } from "@/lib/db";
 import type { Papel } from "@/lib/sessao";
 
@@ -404,6 +404,35 @@ export const registrarFalhaLoginIp = (ip: string) =>
 
 export async function limparTentativasLogin(apelido: string): Promise<void> {
   await sql`DELETE FROM tentativas_login WHERE chave = ${`login:${apelido}`.trim().toLowerCase()}`;
+}
+
+// ---- vagas por papel ---------------------------------------------------------
+
+/** Quantas contas existem com esse papel? Usado para checar VAGAS antes de criar. */
+export async function contarInscritos(papel: Papel): Promise<number> {
+  const [{ n }] = await sql`SELECT count(*)::int AS n FROM users WHERE papel = ${papel}`;
+  return n;
+}
+
+/**
+ * O papel ainda tem vaga? Se não tiver (ou se o papel não tem teto, como admin),
+ * devolve mensagem de erro. `null` significa "pode criar".
+ */
+export async function checarVagaPapel(
+  papel: Papel
+): Promise<{ ok: true } | { ok: false; erro: string }> {
+  const teto = VAGAS[papel as keyof typeof VAGAS];
+  if (teto === undefined) return { ok: true }; // admin e qualquer outro sem limite
+
+  const total = await contarInscritos(papel);
+  if (total >= teto) {
+    const rotulo = papel === "editor" ? "editores" : "candidatos";
+    return {
+      ok: false,
+      erro: `Lotado: atingimos o limite de ${teto} ${rotulo}. Tente novamente mais tarde.`,
+    };
+  }
+  return { ok: true };
 }
 
 async function gerarApelidoUnico(email: string): Promise<string> {
