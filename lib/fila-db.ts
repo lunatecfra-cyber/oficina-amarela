@@ -146,7 +146,8 @@ async function proximoEditor(
 }
 
 /**
- * Distribui as missões paradas. Mais antiga primeiro.
+ * Distribui as missões paradas. Prioridade do inspetor primeiro; empate
+ * desempata pela mais antiga.
  *
  * Duas chamadas simultâneas não conseguem oferecer a mesma missão pra dois
  * editores: os índices únicos parciais de `ofertas` (um pendente por pauta,
@@ -155,10 +156,12 @@ async function proximoEditor(
  * o resultado desejado.
  */
 export async function despacharMissoes(): Promise<number> {
+  // mesma ordem de `pautasDisponiveis` — o que o inspetor vê no Panorama é o
+  // que o despacho vai entregar
   const paradas = await sql`
     SELECT id, porta_voz_id FROM pautas
     WHERE status = 'disponivel'
-    ORDER BY criada_em ASC
+    ORDER BY prioridade DESC, criada_em ASC
     LIMIT 20
   `;
 

@@ -55,3 +55,7 @@ nul
 
 # backup do banco: tem e-mail e hash de senha, nunca vai pro repositorio
 backups/
+
+# arquivos temporarios de teste (tokens de sessao, dumps)
+*.tmp.txt
+*.tmp.mjs

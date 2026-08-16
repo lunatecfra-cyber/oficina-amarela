@@ -179,10 +179,15 @@ export async function totalNaFila(): Promise<number> {
   return linha?.total ?? 0;
 }
 
-/** Tudo que está livre pra qualquer editor pegar (a fila). */
+/** Tudo que está livre pra qualquer editor pegar (a fila).
+ *
+ *  A ordem é a MESMA de `despacharMissoes` em lib/fila-db.ts. Se as duas
+ *  divergirem, o inspetor sobe uma missão no Panorama, a lista mostra ela em
+ *  primeiro e o despacho entrega outra — e ninguém entende o que aconteceu. */
 export async function pautasDisponiveis(): Promise<Pauta[]> {
   const linhas = await sql`
-    ${SELECT_BASE} WHERE p.status = 'disponivel' ORDER BY p.criada_em ASC
+    ${SELECT_BASE} WHERE p.status = 'disponivel'
+    ORDER BY p.prioridade DESC, p.criada_em ASC
   `;
   return (linhas as unknown as LinhaPauta[]).map(paraPauta);
 }

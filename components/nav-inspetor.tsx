@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 
 const ABAS = [
   { href: "/inspetor", rotulo: "Missões" },
+  { href: "/inspetor/panorama", rotulo: "Panorama" },
   { href: "/inspetor/contas", rotulo: "Pessoas" },
   { href: "/inspetor/denuncias", rotulo: "Denúncias" },
   { href: "/inspetor/novidades", rotulo: "Novidades" },
@@ -17,7 +18,10 @@ export function NavInspetor() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-1 text-sm">
+    // Com cinco abas os rótulos não cabem em 390px. Em vez de encolher a
+    // fonte (e perder o alvo do dedo), a tira rola sozinha — só ela, nunca a
+    // página. `min-h-11` mantém os 44px que a mão acerta.
+    <nav className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {ABAS.map((aba) => {
         const ativa = pathname === aba.href || pathname.startsWith(`${aba.href}/`);
         return (
@@ -25,7 +29,7 @@ export function NavInspetor() {
             key={aba.href}
             href={aba.href}
             aria-current={ativa ? "page" : undefined}
-            className={`relative rounded-lg px-2.5 py-1.5 transition-colors ${
+            className={`relative flex min-h-11 flex-none items-center whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-colors ${
               ativa ? "text-text" : "text-muted hover:text-text"
             }`}
           >

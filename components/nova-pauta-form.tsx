@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Formato } from "@/lib/pautas";
+import { DemoGuia } from "@/components/demo-guia";
 import { pareceLink, pareceLinkDrive } from "@/lib/validators";
 
 type Dados = {
@@ -45,6 +46,16 @@ export function NovaPautaForm() {
   const [erro, setErro] = useState("");
   const [enviado, setEnviado] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [tutorialAberto, setTutorialAberto] = useState(false);
+
+  useEffect(() => {
+    if (!tutorialAberto) return;
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTutorialAberto(false);
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [tutorialAberto]);
 
   const set = <K extends keyof Dados>(k: K, v: Dados[K]) => {
     setDados((d) => ({ ...d, [k]: v }));
@@ -194,6 +205,14 @@ export function NovaPautaForm() {
                 autoCapitalize="none"
                 spellCheck={false}
               />
+              <button
+                type="button"
+                onClick={() => setTutorialAberto(true)}
+                className="mt-3 flex items-center gap-1.5 text-xs font-medium text-gold-hi hover:text-gold transition-colors"
+              >
+                <span aria-hidden="true" className="grid h-[18px] w-[18px] place-items-center rounded-full bg-gold/15 text-[8px] border border-gold/30">▶</span>
+                Como pegar o link correto?
+              </button>
             </Campo>
           </Passo>
         )}
@@ -323,6 +342,59 @@ export function NovaPautaForm() {
           {enviando ? "Enviando…" : ultimo ? "Enviar missão" : "Continuar"}
         </button>
       </div>
+
+      {tutorialAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default bg-black/80 backdrop-blur-sm"
+            onClick={() => setTutorialAberto(false)}
+            aria-label="Fechar tutorial"
+          />
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-gold-lo/60 bg-surface shadow-2xl">
+            <div className="flex items-center justify-between border-b border-line px-5 py-4">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
+                Como pegar o link do Drive
+              </h2>
+              <button
+                type="button"
+                className="text-muted hover:text-text"
+                onClick={() => setTutorialAberto(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="flex flex-col gap-6 p-5 sm:p-6">
+              {/* Era um <iframe src=""> esperando um vídeo. `src=""` não fica
+                  em branco: o navegador resolve pra URL da página atual e
+                  carrega a Oficina dentro dela mesma. Enquanto não existir
+                  vídeo, quem ensina é a mesma animação do guia "Como usar" —
+                  já pronta, sem arquivo pra hospedar. */}
+              <DemoGuia tipo="drive" />
+
+              <div className="grid gap-3 sm:grid-cols-4 text-center text-sm">
+                <div className="flex flex-col items-center gap-2 rounded-xl border border-line-soft bg-surface-2 p-3">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-gold/10 text-xs font-semibold text-gold">1</span>
+                  <span className="text-muted">Suba o vídeo na sua pasta</span>
+                </div>
+                <div className="flex flex-col items-center gap-2 rounded-xl border border-line-soft bg-surface-2 p-3">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-gold/10 text-xs font-semibold text-gold">2</span>
+                  <span className="text-muted">Clique em <b className="font-medium text-text">Compartilhar</b></span>
+                </div>
+                <div className="flex flex-col items-center gap-2 rounded-xl border border-line-soft bg-surface-2 p-3">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-gold/10 text-xs font-semibold text-gold">3</span>
+                  <span className="text-muted">Acesso: <b className="font-medium text-text">Qualquer pessoa</b></span>
+                </div>
+                <div className="flex flex-col items-center gap-2 rounded-xl border border-line-soft bg-surface-2 p-3">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-gold/10 text-xs font-semibold text-gold">4</span>
+                  <span className="text-muted">Copie o link e cole na Oficina</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -183,6 +183,16 @@ CREATE INDEX IF NOT EXISTS idx_pautas_porta_voz ON pautas (porta_voz_id);
 -- extras = cortes/trechos específicos (textarea, passo 2)
 -- motivo = contexto/porquê do vídeo (textarea, passo 4)
 -- prazo_desejado = quando o porta-voz gostaria de receber (date, passo 5)
+-- Lugar na fila de edição, mexível pelo inspetor no Panorama. Maior vem
+-- antes; 0 é o padrão e mantém a ordem de sempre (mais antiga primeiro).
+-- A ordenação de verdade é (prioridade DESC, criada_em ASC), tanto na lista
+-- aberta quanto na rodada de despacho — as duas TÊM que concordar, senão o
+-- inspetor sobe uma missão e o despacho continua entregando outra.
+ALTER TABLE pautas ADD COLUMN IF NOT EXISTS prioridade INT NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_pautas_fila
+  ON pautas (prioridade DESC, criada_em ASC)
+  WHERE status IN ('disponivel','oferecida');
+
 ALTER TABLE pautas ADD COLUMN IF NOT EXISTS extras TEXT;
 ALTER TABLE pautas ADD COLUMN IF NOT EXISTS motivo TEXT;
 ALTER TABLE pautas ADD COLUMN IF NOT EXISTS prazo_desejado DATE;

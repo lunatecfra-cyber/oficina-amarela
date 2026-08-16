@@ -128,6 +128,32 @@ const ROTEIROS: readonly (Roteiro & { casa: (rota: string) => boolean })[] = [
     ],
   },
   {
+    chave: "panorama",
+    versao: 1,
+    titulo: "Panorama",
+    casa: (r) => r === "/inspetor/panorama",
+    passos: [
+      {
+        alvo: "numeros-panorama",
+        titulo: "O sistema num relance",
+        texto:
+          "“Editores livres” é quem pode receber missão agora: sem nada em mãos e sem oferta pendente. Fila cheia com esse número em zero significa que falta gente, não que o sistema travou.",
+      },
+      {
+        alvo: "fila-edicao",
+        titulo: "Esta é a ordem de entrega",
+        texto:
+          "O sistema oferece de cima pra baixo. Suba o que for urgente — vale já na próxima rodada. Missão parada há 3 dias ou mais fica marcada em dourado.",
+      },
+      {
+        alvo: "em-voo",
+        titulo: "O que já saiu da fila",
+        texto:
+          "A mais parada vem primeiro. Passou de 5 dias no mesmo lugar, a borda fica vermelha — normalmente é editor sumido ou candidato que não respondeu.",
+      },
+    ],
+  },
+  {
     chave: "inspetor",
     versao: 1,
     titulo: "Controle de qualidade",
