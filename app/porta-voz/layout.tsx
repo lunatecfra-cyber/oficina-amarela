@@ -45,6 +45,13 @@ export default async function PortaVozLayout({
               <span className="sm:hidden">Perfil</span>
             </Link>
 
+            <Link
+              href="/parceiros"
+              className="text-sm text-muted transition-colors hover:text-text"
+            >
+              Parceiros
+            </Link>
+
             {/* mesmo caminho de volta que existe na área do editor */}
             {sessao.papel === "admin" && (
               <Link

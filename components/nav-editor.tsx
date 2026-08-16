@@ -12,6 +12,7 @@ const ABAS = [
   { href: "/agenda", rotulo: "Agenda" },
   { href: "/aulas", rotulo: "Aulas" },
   { href: "/ranking", rotulo: "Ranking" },
+  { href: "/parceiros", rotulo: "Parceiros" },
 ];
 
 export function NavEditor() {
