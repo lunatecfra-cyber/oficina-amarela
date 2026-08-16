@@ -6,6 +6,7 @@ import { ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
 import { pareceLink, pareceLinkDrive } from "@/lib/validators";
 import { ChatMissao } from "@/components/chat-missao";
 import { DenunciaBotao } from "@/components/denuncia-botao";
+import { BotaoTutorial, TutorialDrive } from "@/components/tutorial-drive";
 import type { Mensagem } from "@/lib/chat-db";
 
 // A missão que o editor aceitou e está fazendo agora.
@@ -58,6 +59,7 @@ export function MissaoEmMaos({
   const [linkEntrega, setLinkEntrega] = useState("");
   const [aviso, setAviso] = useState("");
   const [processando, setProcessando] = useState(false);
+  const [tutorialAberto, setTutorialAberto] = useState(false);
 
   if (!missao) return null;
 
@@ -256,7 +258,19 @@ export function MissaoEmMaos({
                 setAviso("");
               }}
             />
+            {/* mesma ajuda que o candidato tem na hora de criar a missão: o
+                erro é o mesmo dos dois lados — colar link de pasta fechada */}
+            <BotaoTutorial
+              onClick={() => setTutorialAberto(true)}
+              texto="Como liberar o link do meu Drive?"
+            />
           </div>
+
+          <TutorialDrive
+            tipo="entrega"
+            aberto={tutorialAberto}
+            aoFechar={() => setTutorialAberto(false)}
+          />
 
           {aviso && (
             <p role="alert" className="mt-3 text-sm text-danger">

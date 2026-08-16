@@ -23,6 +23,12 @@ const CSP = [
   // vez do host do projeto: assim não quebra se o DSN mudar.
   "connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
   "form-action 'self'",
+  // o tutorial do Drive embute o vídeo (lib/tutoriais.ts). Sem esta linha ele
+  // cai no `default-src 'self'` e nasce bloqueado — hoje só no relatório,
+  // mas quebrado de verdade no dia em que a CSP passar a valer.
+  // Só estes dois hosts: `urlDeEmbutir` já recusa qualquer outro, e a CSP é a
+  // segunda tranca caso alguém mexa naquela função.
+  "frame-src https://www.youtube-nocookie.com https://drive.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "object-src 'none'",
