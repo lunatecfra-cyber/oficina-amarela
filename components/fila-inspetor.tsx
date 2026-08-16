@@ -232,7 +232,7 @@ function CardRevisao({
             de baixo; no PC volta a ser a coluna lateral de sempre. */}
         {!abrindoReedicao && (
           <div className="flex flex-none flex-col gap-2 lg:w-56">
-            <div className="flex items-center justify-center gap-1">
+            <div className="flex items-center justify-center gap-1" data-guia="nota-editor">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
                   key={n}
@@ -248,7 +248,7 @@ function CardRevisao({
                 </button>
               ))}
             </div>
-            <div className="flex gap-2 lg:flex-col">
+            <div className="flex gap-2 lg:flex-col" data-guia="decisao-inspetor">
               <button
                 className="btn-gold flex-1 whitespace-nowrap"
                 onClick={() => onAprovar(estrelas)}

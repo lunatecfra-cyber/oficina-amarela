@@ -523,7 +523,183 @@ body {
   animation: carta-item-in 0.4s var(--ease-guild) forwards;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Guia "Como usar" — o balão, o foco na tela e as demonstrações
+   ───────────────────────────────────────────────────────────── */
+
+/* o recorte de luz: a sombra gigante escurece TUDO menos o retângulo do
+   alvo. Um overlay com furo de verdade daria quatro divs e um bug de
+   arredondamento em cada canto. */
+.guia-foco {
+  position: fixed;
+  z-index: 60;
+  border-radius: 14px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 9999px rgba(6, 6, 8, 0.78),
+    0 0 0 2px var(--color-gold),
+    0 0 22px 2px rgba(244, 206, 31, 0.35);
+  transition:
+    top 0.32s var(--ease-guild),
+    left 0.32s var(--ease-guild),
+    width 0.32s var(--ease-guild),
+    height 0.32s var(--ease-guild);
+}
+
+.guia-balao {
+  position: fixed;
+  z-index: 61;
+  animation: guia-balao-in 0.28s var(--ease-guild) both;
+}
+
+@keyframes guia-balao-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* a setinha que liga o balão ao alvo */
+.guia-bico {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  rotate: 45deg;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-gold-lo);
+}
+
+.guia-bico[data-lado="cima"] {
+  bottom: -7px;
+  border-top: 0;
+  border-left: 0;
+}
+
+.guia-bico[data-lado="baixo"] {
+  top: -7px;
+  border-bottom: 0;
+  border-right: 0;
+}
+
+/* ── palquinho das demonstrações ──────────────────────────────
+   Cada cena aparece por uma fatia do ciclo. Em vez de um keyframe por
+   cena, é o MESMO keyframe com atraso negativo — a cena 2 entra no ciclo
+   já rodado até o ponto dela. Menos CSS e nenhum risco de as cenas
+   saírem de sincronia entre si. */
+.guia-palco {
+  position: relative;
+  height: 116px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  background: linear-gradient(160deg, #101014, #08080a);
+}
+
+.guia-cena {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  opacity: 0;
+}
+
+@keyframes guia-cena-4 {
+  0%,
+  1% {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  6%,
+  21% {
+    opacity: 1;
+    transform: none;
+  }
+  26%,
+  100% {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes guia-cena-3 {
+  0%,
+  1% {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  8%,
+  28% {
+    opacity: 1;
+    transform: none;
+  }
+  35%,
+  100% {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+}
+
+.guia-palco[data-cenas="4"] .guia-cena {
+  animation: guia-cena-4 9.6s linear infinite;
+}
+
+.guia-palco[data-cenas="3"] .guia-cena {
+  animation: guia-cena-3 7.2s linear infinite;
+}
+
+/* o dedo que toca o botão dentro da cena */
+.guia-toque {
+  animation: guia-toque 9.6s linear infinite;
+}
+
+@keyframes guia-toque {
+  0%,
+  8% {
+    transform: translate(8px, 10px) scale(0.9);
+    opacity: 0;
+  }
+  12%,
+  16% {
+    transform: none;
+    opacity: 1;
+  }
+  20%,
+  100% {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .guia-foco {
+    transition: none;
+  }
+
+  .guia-balao {
+    animation: none;
+  }
+
+  /* sem movimento, a demonstração vira uma figura só: o resultado */
+  .guia-cena {
+    animation: none !important;
+  }
+
+  .guia-cena:last-child {
+    opacity: 1;
+  }
+
+  .guia-toque {
+    animation: none;
+    opacity: 1;
+  }
+
   .reveal {
     animation: none;
     opacity: 1;

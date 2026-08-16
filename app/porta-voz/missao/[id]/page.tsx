@@ -209,6 +209,7 @@ export default async function DetalheMissaoPage({
               target="_blank"
               rel="noopener noreferrer"
               className="btn-gold mt-3 inline-block w-auto px-5"
+              data-guia="ver-entrega"
             >
               ▶ Ver vídeo entregue
             </a>
@@ -292,7 +293,7 @@ export default async function DetalheMissaoPage({
       )}
 
       {/* conversa com o editor desta missão — e com o controle de qualidade */}
-      <div className="mb-6">
+      <div className="mb-6" data-guia="conversa-missao">
         <ChatMissao pautaId={pauta.id} mensagens={mensagens} />
       </div>
 

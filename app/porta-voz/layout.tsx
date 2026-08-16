@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { BotaoSair } from "@/components/botao-sair";
+import { GuiaDoLocal } from "@/components/guia-do-local";
 import { exigirSessao } from "@/lib/sessao-servidor";
 
 export default async function PortaVozLayout({
@@ -17,12 +18,16 @@ export default async function PortaVozLayout({
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4 lg:px-8">
           <Link href="/porta-voz" className="flex items-center gap-3">
             <Logo className="w-9" />
-            <span className="font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold">
+            {/* escondido no celular desde que o "Como usar" entrou nesta
+                linha: os dois juntos passavam de 390px e a barra deslizava */}
+            <span className="hidden font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold sm:inline">
               OFICINA AMARELA
             </span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <GuiaDoLocal />
+
             {/* no mobile só o "Perfil" cabe, mas ele PRECISA aparecer: este é
                 o único caminho pro perfil e, por tabela, pro criar-perfil.
                 Escondido no celular, o porta-voz ficava sem como se editar. */}

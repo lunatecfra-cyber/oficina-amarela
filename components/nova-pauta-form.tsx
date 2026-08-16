@@ -153,7 +153,7 @@ export function NovaPautaForm() {
   return (
     <div className="mx-auto w-full max-w-xl py-8 lg:py-12">
       {/* progresso */}
-      <div className="mb-8">
+      <div className="mb-8" data-guia="passos-briefing">
         <div className="flex items-center justify-between text-xs text-muted">
           <span className="uppercase tracking-[0.14em] text-gold">
             Passo {passo + 1} de {PASSOS.length}
@@ -184,7 +184,7 @@ export function NovaPautaForm() {
                 autoFocus
               />
             </Campo>
-            <Campo label="Link do Drive com o bruto">
+            <Campo label="Link do Drive com o bruto" guia="campo-drive">
               <input
                 className="field-input !pl-4"
                 placeholder="cole o link de compartilhamento"
@@ -349,13 +349,16 @@ function Passo({
 
 function Campo({
   label,
+  guia,
   children,
 }: {
   label: string;
+  /** alvo do guia "Como usar", quando este campo é ensinado */
+  guia?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
+    <label className="block" data-guia={guia}>
       <span className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
         {label}
       </span>

@@ -222,7 +222,7 @@ export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) 
           </p>
         )}
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row" data-guia="aceitar-missao">
           <button
             className="btn-gold sm:flex-[1.4]"
             onClick={() => responder("aceitar")}

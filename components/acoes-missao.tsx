@@ -174,7 +174,7 @@ export function AcoesMissao({
             </p>
           )}
 
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row" data-guia="aprovar-missao">
             <button
               className="btn-gold sm:flex-1"
               onClick={() => enviar("aceitar")}

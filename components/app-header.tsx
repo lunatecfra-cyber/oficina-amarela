@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { BotaoSair } from "@/components/botao-sair";
 import { NavEditor } from "@/components/nav-editor";
+import { GuiaDoLocal } from "@/components/guia-do-local";
 import type { Editor } from "@/lib/pautas";
 import { lerPerfilEditor } from "@/lib/perfil-db";
 import { lerSessao } from "@/lib/sessao-servidor";
@@ -81,6 +82,10 @@ export async function AppHeader() {
         </div>
 
         <div className="flex flex-none items-center gap-2 sm:gap-4">
+          {/* no celular só o "?" — o texto sozinho já custaria os 70px que
+              faltam pro selo de "Mestre-Artesão" caber na mesma linha */}
+          <GuiaDoLocal />
+
           {/* Até aqui não existia link nenhum pra área do inspetor: só se
               chegava digitando /inspetor na barra de endereço. Quem não sabia
               a URL procurava o botão de aprovar em telas onde ele não existe.

@@ -155,7 +155,10 @@ export function MissaoEmMaos({
               Drive no projeto — ninguém libera pasta nenhuma. O editor clicava,
               batia num "você precisa de acesso" do Google e não entendia por
               quê. Enquanto a liberação for manual, a tela diz isso. */}
-          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-text">
+          <p
+            className="mt-2 flex flex-wrap items-center gap-2 text-sm text-text"
+            data-guia="abrir-bruto"
+          >
             <a
               href={missao.driveLink}
               target="_blank"
@@ -236,7 +239,7 @@ export function MissaoEmMaos({
         </>
       ) : (
         <>
-          <div className="mt-5">
+          <div className="mt-5" data-guia="campo-entrega">
             <label
               htmlFor="entrega"
               className="mb-2 block text-xs uppercase tracking-[0.12em] text-muted"

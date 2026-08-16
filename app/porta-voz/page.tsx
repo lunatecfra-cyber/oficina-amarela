@@ -104,14 +104,18 @@ const ehReal = (id: string) => id.startsWith("db-");
  */
 function CardMissao({
   pauta,
+  guia,
   children,
 }: {
   pauta: Pauta;
+  /** marca o cartão que o guia "Como usar" aponta — só o primeiro leva */
+  guia?: string;
   children: React.ReactNode;
 }) {
   const real = ehReal(pauta.id);
   return (
     <li
+      data-guia={guia}
       className={`overflow-hidden rounded-2xl border border-l-[3px] border-line bg-surface/60 ${
         corBordaStatus(pauta.status)
       } ${real ? "transition-colors hover:border-gold/40 hover:bg-surface-2" : ""}`}
@@ -170,7 +174,11 @@ export default async function PortaVozHome() {
             Acompanhe o status de cada vídeo que você mandou pra guilda.
           </p>
         </div>
-        <Link href="/porta-voz/nova-pauta" className="btn-gold w-auto px-6">
+        <Link
+          href="/porta-voz/nova-pauta"
+          className="btn-gold w-auto px-6"
+          data-guia="nova-missao"
+        >
           + Nova missão
         </Link>
       </div>
@@ -195,13 +203,19 @@ export default async function PortaVozHome() {
                 Na fila
               </h2>
               <ul className="flex flex-col gap-3">
-                {naFila.map((p) => {
+                {naFila.map((p, n) => {
                   const idx = filaGeral.findIndex((f) => f.id === p.id);
                   const posicao = idx >= 0 ? idx + 1 : 0;
                   const total = filaGeral.length;
                   const real = ehReal(p.id);
                   return (
-                    <CardMissao key={p.id} pauta={p}>
+                    <CardMissao
+                      key={p.id}
+                      pauta={p}
+                      guia={
+                        n === 0 && emAndamento.length === 0 ? "cartao-missao" : undefined
+                      }
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text transition-colors group-hover:text-gold-hi">
                           {p.titulo}
@@ -237,11 +251,15 @@ export default async function PortaVozHome() {
                 Em andamento e concluídas
               </h2>
               <ul className="flex flex-col gap-3">
-                {emAndamento.map((p) => {
+                {emAndamento.map((p, n) => {
                   const msg = mensagemStatusPortaVoz(p.status);
                   const real = ehReal(p.id);
                   return (
-                    <CardMissao key={p.id} pauta={p}>
+                    <CardMissao
+                      key={p.id}
+                      pauta={p}
+                      guia={n === 0 ? "cartao-missao" : undefined}
+                    >
                       {/* Empilha no celular. Lado a lado, o título tinha
                           flex-1 (base 0) e a mensagem de status ocupava uns
                           220px fixos — sobrava menos de 120px pro título, que
