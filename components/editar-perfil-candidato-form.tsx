@@ -19,6 +19,7 @@ import {
 import type { OnboardingCandidato } from "@/lib/candidato-db";
 import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/icones-redes";
 import { SelectEstadoCidade } from "@/components/select-estado-cidade";
+import { comprimirFoto } from "@/lib/comprimir-foto";
 
 // Mesma forma de edição do wizard de criar-perfil, mas num página só — sem
 // etapas, sem "Avançar". O porta-voz que só quer trocar a bio não refaz o
@@ -49,6 +50,8 @@ export function EditarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCand
 
   const [nome, setNome] = useState(inicial.nome);
   const [foto, setFoto] = useState<string | undefined>(inicial.fotoUrl || undefined);
+  const [fotoProcessando, setFotoProcessando] = useState(false);
+  const [erroFoto, setErroFoto] = useState("");
   const [cargo, setCargo] = useState(inicial.cargo);
   const [disputaPor, setDisputaPor] = useState(inicial.disputaPor);
   const [anoEleicao, setAnoEleicao] = useState(inicial.anoEleicao || "2026");
@@ -67,12 +70,23 @@ export function EditarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCand
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
 
-  function onEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
+  // A foto é encolhida aqui, no aparelho, antes de subir. Antes ia crua: foto
+  // de celular tem 3 a 8 MB, o teto de gravação é 1,5 MB, e quase toda foto era
+  // recusada com uma mensagem que a pessoa não tinha como cumprir.
+  async function onEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0];
     if (!arquivo) return;
-    const leitor = new FileReader();
-    leitor.onload = () => setFoto(leitor.result as string);
-    leitor.readAsDataURL(arquivo);
+
+    setFotoProcessando(true);
+    setErroFoto("");
+    const r = await comprimirFoto(arquivo);
+    setFotoProcessando(false);
+
+    if (!r.ok) {
+      setErroFoto(r.erro);
+      return;
+    }
+    setFoto(r.dataUrl);
   }
 
   function alternarBandeira(b: string) {
@@ -197,6 +211,18 @@ export function EditarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCand
               className="hidden"
               onChange={onEscolherFoto}
             />
+
+            {/* encolher uma foto grande leva um instante; sem sinal a pessoa
+                acha que o clique não pegou e tenta de novo */}
+            {fotoProcessando && (
+              <p className="mt-2 text-[11px] text-muted">Preparando a foto…</p>
+            )}
+            {erroFoto && (
+              <p role="alert" className="mt-2 max-w-[11rem] text-center text-[11px] text-danger">
+                {erroFoto}
+              </p>
+            )}
+
             {foto && (
               <button
                 type="button"

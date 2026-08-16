@@ -16,6 +16,7 @@ import {
 import { iniciais, TINT_PADRAO } from "@/lib/candidatos";
 import type { OnboardingEditor } from "@/lib/perfil-db";
 import { SelectEstadoCidade } from "@/components/select-estado-cidade";
+import { comprimirFoto } from "@/lib/comprimir-foto";
 
 /** extrai UF e cidade de um valor salvo no formato "Cidade/UF" ou "Cidade, UF" */
 function parseLocalizacao(valor: string): { uf: string; cidade: string } {
@@ -86,6 +87,8 @@ export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }
 
   const [nome, setNome] = useState(inicial.nome);
   const [foto, setFoto] = useState<string | undefined>(inicial.fotoUrl || undefined);
+  const [fotoProcessando, setFotoProcessando] = useState(false);
+  const [erroFoto, setErroFoto] = useState("");
   const parsed = parseLocalizacao(inicial.localizacao);
   const [estadoUf, setEstadoUf] = useState(parsed.uf);
   const [cidadeNome, setCidadeNome] = useState(parsed.cidade);
@@ -103,12 +106,23 @@ export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
 
-  function onEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
+  // A foto é encolhida aqui, no aparelho, antes de subir. Antes ia crua: foto
+  // de celular tem 3 a 8 MB, o teto de gravação é 1,5 MB, e quase toda foto era
+  // recusada com uma mensagem que a pessoa não tinha como cumprir.
+  async function onEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0];
     if (!arquivo) return;
-    const leitor = new FileReader();
-    leitor.onload = () => setFoto(leitor.result as string);
-    leitor.readAsDataURL(arquivo);
+
+    setFotoProcessando(true);
+    setErroFoto("");
+    const r = await comprimirFoto(arquivo);
+    setFotoProcessando(false);
+
+    if (!r.ok) {
+      setErroFoto(r.erro);
+      return;
+    }
+    setFoto(r.dataUrl);
   }
 
   function alternarSoftware(s: string) {
@@ -271,10 +285,23 @@ export function CriarPerfilEditorForm({ inicial }: { inicial: OnboardingEditor }
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="mt-2 text-xs font-medium text-gold-hi hover:underline"
+                  disabled={fotoProcessando}
+                  className="mt-2 text-xs font-medium text-gold-hi hover:underline disabled:opacity-60"
                 >
-                  {foto ? "Escolher outra" : "Escolher da galeria"}
+                  {fotoProcessando
+                    ? "Preparando…"
+                    : foto
+                      ? "Escolher outra"
+                      : "Escolher da galeria"}
                 </button>
+
+                {/* encolher uma foto grande leva um instante; sem sinal a pessoa
+                    acha que o clique não pegou e tenta de novo */}
+                {erroFoto && (
+                  <p role="alert" className="mt-2 max-w-[11rem] text-center text-[11px] text-danger">
+                    {erroFoto}
+                  </p>
+                )}
                 {foto && (
                   <button
                     type="button"
