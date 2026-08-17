@@ -179,12 +179,12 @@ export function PainelPanorama({
           onClick={() => notificar("candidatos")}
           disabled={notificando !== null || resumo.editoresLivres === 0}
           className="mb-3 text-xs text-muted hover:text-gold disabled:opacity-40"
-          title={resumo.editoresLivres === 0 ? "Sem editores livres" : "Enviar e-mail pra todos os candidatos"}
+          title={resumo.editoresLivres === 0 ? "Sem editores livres" : "Enviar e-mail pra todos os porta-vozes"}
         >
-          ✉ Avisar candidatos que há editores livres
+          ✉ Avisar porta-vozes que há editores livres
         </button>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Numero valor={resumo.candidatos} rotulo="candidatos" />
+          <Numero valor={resumo.candidatos} rotulo="porta-vozes" />
           <Numero valor={resumo.editores} rotulo="editores" />
           <Numero valor={resumo.editoresLivres} rotulo="editores livres" />
           <Numero valor={resumo.banidos} rotulo="suspensos" />

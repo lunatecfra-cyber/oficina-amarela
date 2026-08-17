@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
-import { pareceLinkDrive } from "@/lib/validators";
+import { pareceLinkDrive, pareceLinkYoutube } from "@/lib/validators";
 
 type Oferta = { pauta: Pauta; expiraEm: string; ordem: number };
 
@@ -245,6 +245,16 @@ export function OfertaMissao({ temMissaoEmMaos }: { temMissaoEmMaos: boolean }) 
               className="btn-ghost grid place-items-center sm:w-36"
             >
               Ver o bruto
+            </a>
+          )}
+          {p.youtubeLink && pareceLinkYoutube(p.youtubeLink) && (
+            <a
+              href={p.youtubeLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost grid place-items-center sm:w-36"
+            >
+              Ver no YouTube
             </a>
           )}
         </div>

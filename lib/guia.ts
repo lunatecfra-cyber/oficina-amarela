@@ -163,7 +163,7 @@ const ROTEIROS: readonly (Roteiro & { casa: (rota: string) => boolean })[] = [
         alvo: "cartao-portfolio",
         titulo: "O portfólio se preenche sozinho",
         texto:
-          "Cada entrega aprovada entra aqui. É o que o candidato olha antes de confiar um vídeo a você.",
+          "Cada entrega aprovada entra aqui. É o que o porta-voz olha antes de confiar um vídeo a você.",
       },
     ],
   },
@@ -216,7 +216,7 @@ const ROTEIROS: readonly (Roteiro & { casa: (rota: string) => boolean })[] = [
         alvo: "em-voo",
         titulo: "O que já saiu da fila",
         texto:
-          "A mais parada vem primeiro. Passou de 5 dias no mesmo lugar, a borda fica vermelha — normalmente é editor sumido ou candidato que não respondeu.",
+          "A mais parada vem primeiro. Passou de 5 dias no mesmo lugar, a borda fica vermelha — normalmente é editor sumido ou porta-voz que não respondeu.",
       },
     ],
   },

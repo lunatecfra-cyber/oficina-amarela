@@ -20,6 +20,7 @@ type LinhaPauta = {
   brief_fonte: string | null;
   brief_refs: string | null;
   drive_link: string | null;
+  youtube_link: string | null;
   status: StatusPauta;
   reservada_por_apelido: string | null;
   reservada_ate: string | null;
@@ -55,6 +56,7 @@ function paraPauta(l: LinhaPauta): Pauta {
     reservadaAte: l.reservada_ate ? new Date(l.reservada_ate).toISOString() : undefined,
     reservadaEm: l.reservada_em ? new Date(l.reservada_em).toISOString() : undefined,
     driveLink: l.drive_link ?? undefined,
+    youtubeLink: l.youtube_link ?? undefined,
     entregaLink: l.entrega_link ?? undefined,
     notasInspetor: l.notas_inspetor ?? undefined,
     extras: l.extras ?? undefined,
@@ -72,7 +74,7 @@ function paraPauta(l: LinhaPauta): Pauta {
 const SELECT_BASE = sql`
   SELECT p.id, u.nome AS porta_voz_nome, u.apelido AS porta_voz_apelido, p.titulo, p.formato,
          p.brief_tom, p.brief_cor, p.brief_fonte, p.brief_refs,
-         p.drive_link, p.status, p.reservada_ate, p.reservada_em, p.entrega_link,
+         p.drive_link, p.youtube_link, p.status, p.reservada_ate, p.reservada_em, p.entrega_link,
          p.notas_inspetor, p.criada_em,
          p.extras, p.motivo, p.prazo_desejado, p.reedicao_pedida_por,
          e.apelido AS reservada_por_apelido
@@ -86,6 +88,7 @@ export async function criarPauta(dados: {
   titulo: string;
   formato: Formato;
   driveLink?: string;
+  youtubeLink?: string;
   tom?: string;
   cor?: string;
   fonte?: string;
@@ -110,15 +113,16 @@ export async function criarPauta(dados: {
     extras: limitarOuNulo(dados.extras, LIMITES.textoLongo),
     motivo: limitarOuNulo(dados.motivo, LIMITES.textoLongo),
     driveLink: limitarOuNulo(dados.driveLink, LIMITES.link),
+    youtubeLink: limitarOuNulo(dados.youtubeLink, LIMITES.link),
     prazo: limitarOuNulo(dados.prazo, 10), // "AAAA-MM-DD"
   };
 
   const [linha] = await sql`
-    INSERT INTO pautas (porta_voz_id, titulo, formato, drive_link,
+    INSERT INTO pautas (porta_voz_id, titulo, formato, drive_link, youtube_link,
                         brief_tom, brief_cor, brief_fonte, brief_refs,
                         extras, motivo, prazo_desejado)
     VALUES (${dados.portaVozId}, ${titulo}, ${dados.formato},
-            ${brief.driveLink},
+            ${brief.driveLink}, ${brief.youtubeLink},
             ${brief.tom}, ${brief.cor},
             ${brief.fonte}, ${brief.refs},
             ${brief.extras},
@@ -194,14 +198,18 @@ export async function pautasDisponiveis(): Promise<Pauta[]> {
 
 /** A pauta que este editor tem em mãos agora (regra: 1 por vez). */
 export async function pautaReservadaPor(editorId: number): Promise<Pauta | null> {
-  const linhas = await sql`
-    ${SELECT_BASE}
-    WHERE p.reservada_por_id = ${editorId}
-      AND p.status IN ('reservada','em_revisao','reedicao')
-    LIMIT 1
-  `;
-  const l = (linhas as unknown as LinhaPauta[])[0];
-  return l ? paraPauta(l) : null;
+  try {
+    const linhas = await sql`
+      ${SELECT_BASE}
+      WHERE p.reservada_por_id = ${editorId}
+        AND p.status IN ('reservada','em_revisao','reedicao')
+      LIMIT 1
+    `;
+    const l = (linhas as unknown as LinhaPauta[])[0];
+    return l ? paraPauta(l) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Entregas já aprovadas de um editor — é o portfólio real dele.

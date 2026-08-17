@@ -29,15 +29,15 @@ const GRUPOS: Grupo[] = [
     ],
   },
   {
-    titulo: "Candidato / Porta-voz",
+    titulo: "Porta-voz",
     rotulo: "Papel: voz",
     itens: [
       { href: "/porta-voz/criar-perfil", titulo: "Criar perfil (3 etapas)", desc: "Onboarding revisado e aprovado.", protegida: true, ok: true },
       { href: "/porta-voz", titulo: "Painel", desc: "Missões na fila e em andamento. Todo card real abre o detalhe.", protegida: true, ok: true },
       { href: "/porta-voz", titulo: "Detalhe da missão", desc: "Clique num card do painel. Tem linha do tempo, briefing completo e, quando o inspetor libera, os botões de aceitar / pedir ajuste.", protegida: true, ok: true },
       { href: "/porta-voz/nova-pauta", titulo: "Nova missão", desc: "Subir bruto + brief (5 passos). Os 3 campos que antes sumiam (cortes, motivo, prazo) já aparecem no detalhe e pro editor.", protegida: true, ok: true },
-      { href: "/porta-voz/perfil", titulo: "Meu perfil", desc: "Perfil do candidato — stats e histórico do banco.", protegida: true, ok: true },
-      { href: "/porta-voz/perfil/editar", titulo: "Editar perfil do candidato", desc: "Edição dedicada (uma página só).", protegida: true, ok: true },
+      { href: "/porta-voz/perfil", titulo: "Meu perfil", desc: "Perfil do porta-voz — stats e histórico do banco.", protegida: true, ok: true },
+      { href: "/porta-voz/perfil/editar", titulo: "Editar perfil do porta-voz", desc: "Edição dedicada (uma página só).", protegida: true, ok: true },
     ],
   },
   {

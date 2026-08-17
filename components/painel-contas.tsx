@@ -32,7 +32,7 @@ type DetalheUsuario = UsuarioLista & {
 };
 
 const ROTULO_PAPEL: Record<Papel, string> = {
-  voz: "Candidato",
+  voz: "Porta-voz",
   editor: "Editor",
   admin: "Inspetor",
 };
@@ -97,7 +97,7 @@ export function PainelContas() {
             Gerenciar Pessoas
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Veja contas, confirme candidatos e suspenda quem precisar.
+            Veja contas, confirme porta-vozes e suspenda quem precisar.
           </p>
         </div>
       </div>
@@ -361,7 +361,7 @@ function PainelDetalhe({
         )}
         {d.papel === "voz" && !ehCandidato && (
           <p className="rounded-lg border border-line-soft bg-ink-2/50 px-3 py-2 text-xs text-muted">
-            Candidato sem perfil preenchido.
+            Porta-voz sem perfil preenchido.
           </p>
         )}
       </dl>

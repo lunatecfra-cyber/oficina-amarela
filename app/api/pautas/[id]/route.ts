@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sql } from "@/lib/db";
 import {
   aceitarEntrega,
   aprovarPauta,
@@ -14,9 +15,44 @@ import {
   avisarEntregaPronta,
   avisarReedicaoPedida,
 } from "@/lib/email";
-import { enviarMensagem } from "@/lib/chat-db";
+import { enviarMensagem, mensagensDaPauta, mensagensDaPautaApos } from "@/lib/chat-db";
 import { criarDenuncia } from "@/lib/denuncias-db";
 import { lerSessao } from "@/lib/sessao-servidor";
+
+// GET — polling do chat. Retorna mensagens de uma missão, opcionalmente
+// só as que vieram depois de ?depois=<ISO timestamp>.
+//
+// Acesso: mesma regra do chat — dono da pauta, editor que reservou, ou admin.
+export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
+  const sessao = await lerSessao();
+  if (!sessao) return NextResponse.json({ erro: "Faça login primeiro." }, { status: 401 });
+
+  const { id } = await ctx.params;
+  const pautaId = Number(String(id).replace(/^db-/, ""));
+  if (!Number.isInteger(pautaId)) {
+    return NextResponse.json({ erro: "Missão inválida." }, { status: 400 });
+  }
+
+  // checa vínculo — mesmo critério de enviarMensagem
+  const [pauta] = await sql`
+    SELECT porta_voz_id, reservada_por_id FROM pautas WHERE id = ${pautaId}
+  `;
+  if (!pauta) return NextResponse.json({ erro: "Missão não encontrada." }, { status: 404 });
+
+  const ehDono = pauta.porta_voz_id === sessao.id;
+  const ehEditorDaMissao = pauta.reservada_por_id === sessao.id;
+  if (!ehDono && !ehEditorDaMissao && sessao.papel !== "admin") {
+    return NextResponse.json({ erro: "Sem acesso a esta missão." }, { status: 403 });
+  }
+
+  const url = new URL(request.url);
+  const depois = url.searchParams.get("depois");
+  const mensagens = depois
+    ? await mensagensDaPautaApos(pautaId, depois)
+    : await mensagensDaPauta(pautaId);
+
+  return NextResponse.json({ mensagens });
+}
 
 // Uma rota só pra todas as transições da pauta, escolhida por "acao".
 // Mantém o ciclo inteiro em um lugar: reservar -> entregar -> aprovar/reedicao.

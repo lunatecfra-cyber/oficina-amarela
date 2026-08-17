@@ -7,3 +7,8 @@ export function pareceLink(v: string) {
 export function pareceLinkDrive(v: string) {
   return /drive\.google\.com/i.test(v.trim());
 }
+
+/** Verifica se a string é um link do YouTube. */
+export function pareceLinkYoutube(v: string) {
+  return /(youtube\.com|youtu\.be)/i.test(v.trim());
+}

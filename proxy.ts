@@ -10,6 +10,9 @@ export default async function proxy(request: NextRequest) {
   const sessao = token ? await verificarTokenSessao(token) : null;
 
   if (!sessao) {
+    if (process.env.NODE_ENV === "development" && !process.env.VERCEL) {
+      return NextResponse.next();
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -46,5 +49,6 @@ export const config = {
     "/agenda/:path*",
     "/ranking/:path*",
     "/aulas/:path*",
+    "/ferramentas/:path*",
   ],
 };

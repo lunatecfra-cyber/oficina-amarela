@@ -11,6 +11,7 @@ const ABAS = [
   { href: "/editor", rotulo: "Fila" },
   { href: "/agenda", rotulo: "Agenda" },
   { href: "/aulas", rotulo: "Aulas" },
+  { href: "/ferramentas", rotulo: "Ferramentas" },
   { href: "/ranking", rotulo: "Ranking" },
   { href: "/parceiros", rotulo: "Parceiros" },
 ];

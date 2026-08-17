@@ -38,6 +38,7 @@ export type Pauta = {
   reservadaEm?: string;
   reservadaPor?: string;
   driveLink?: string;
+  youtubeLink?: string;
   entregaLink?: string;
   notasInspetor?: string;
   // campos do brief que antes eram perdidos no POST — agora persistidos

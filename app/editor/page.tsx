@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
+import { BannerPerfilIncompleto } from "@/components/banner-perfil-incompleto";
 import { DesafiosDia } from "@/components/desafios-dia";
 import { MissaoEmMaos } from "@/components/missao-em-maos";
 import { OfertaMissao } from "@/components/oferta-missao";
 import { pautaReservadaPor } from "@/lib/pautas-db";
 import { mensagensDaPauta } from "@/lib/chat-db";
+import { lerOnboardingEditor } from "@/lib/perfil-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
 
 export const metadata: Metadata = { title: "Fila — Oficina Amarela" };
@@ -20,7 +22,11 @@ export const dynamic = "force-dynamic";
 // um "Reservar" que já não funcionava.
 export default async function EditorPage() {
   const sessao = await exigirSessao();
-  const minhaAtual = await pautaReservadaPor(sessao.id);
+  const [minhaAtual, onboarding] = await Promise.all([
+    pautaReservadaPor(sessao.id),
+    lerOnboardingEditor(sessao.id),
+  ]);
+  const perfilIncompleto = onboarding ? !onboarding.perfilCompleto : true;
   // thread da missão em mãos — sem missão, sem conversa (nada pra buscar)
   const mensagens = minhaAtual
     ? await mensagensDaPauta(Number(minhaAtual.id.replace(/^db-/, "")))
@@ -41,6 +47,12 @@ export default async function EditorPage() {
                 : "As missões chegam até você, uma por vez. Aceite ou passe — se passar, vai pro próximo editor."}
             </p>
           </div>
+
+          {perfilIncompleto && (
+            <div className="mb-6">
+              <BannerPerfilIncompleto papel="editor" />
+            </div>
+          )}
 
           <MissaoEmMaos missao={minhaAtual} mensagens={mensagens} />
           {/* com missão em mãos o componente some sozinho — não há o que

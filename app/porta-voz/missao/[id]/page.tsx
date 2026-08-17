@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { pautaPorIdDoPortaVoz, posicaoNaFila, totalNaFila } from "@/lib/pautas-db";
 import { lerCandidatoProprio } from "@/lib/candidato-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
-import { pareceLink, pareceLinkDrive } from "@/lib/validators";
+import { pareceLink, pareceLinkDrive, pareceLinkYoutube } from "@/lib/validators";
 import {
   ETAPAS_MISSAO,
   ROTULO_FORMATO,
@@ -218,19 +218,33 @@ export default async function DetalheMissaoPage({
       )}
 
       {/* material bruto */}
-      {pauta.driveLink && pareceLinkDrive(pauta.driveLink) && (
+      {(pauta.driveLink && pareceLinkDrive(pauta.driveLink) || pauta.youtubeLink && pareceLinkYoutube(pauta.youtubeLink)) && (
         <section className="mb-6">
           <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-gold">
             Vídeo bruto
           </h2>
-          <a
-            href={pauta.driveLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
-          >
-            📁 Abrir no Google Drive
-          </a>
+          <div className="flex flex-wrap gap-2">
+            {pauta.driveLink && pareceLinkDrive(pauta.driveLink) && (
+              <a
+                href={pauta.driveLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
+              >
+                📁 Abrir no Google Drive
+              </a>
+            )}
+            {pauta.youtubeLink && pareceLinkYoutube(pauta.youtubeLink) && (
+              <a
+                href={pauta.youtubeLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
+              >
+                ▶ Abrir no YouTube
+              </a>
+            )}
+          </div>
         </section>
       )}
 

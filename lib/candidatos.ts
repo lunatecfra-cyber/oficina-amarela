@@ -127,7 +127,7 @@ export const CANDIDATOS: Record<string, Candidato> = {
   Busnelo: {
     slug: "busnelo",
     nome: "Busnelo",
-    cargo: "Candidato",
+    cargo: "Porta-voz",
     local: "Petrópolis, RJ",
     proximidade: 0.9,
     bio: "Segurança pública e comunidade. Fala direta, muito conteúdo de rua.",
@@ -141,7 +141,7 @@ export const CANDIDATOS: Record<string, Candidato> = {
   "Marcia Lima": {
     slug: "marcia-lima",
     nome: "Marcia Lima",
-    cargo: "Candidata",
+    cargo: "Porta-voz",
     local: "Nova Friburgo, RJ",
     proximidade: 0.5,
     bio: "Saúde e educação. Tom sóbrio, gosta de entrevista e depoimento.",

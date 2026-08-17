@@ -16,6 +16,7 @@ export type TrabalhoEmMaos = {
   fonte?: string;
   refs?: string;
   driveLink?: string;
+  youtubeLink?: string;
   prazoDesejado?: string;
 };
 
@@ -49,6 +50,7 @@ export function trabalhoDaPauta(p: Pauta | null): TrabalhoEmMaos[] {
       fonte: p.brief.fonte,
       refs: p.brief.refs,
       driveLink: p.driveLink,
+      youtubeLink: p.youtubeLink,
       prazoDesejado: p.prazoDesejado,
     },
   ];

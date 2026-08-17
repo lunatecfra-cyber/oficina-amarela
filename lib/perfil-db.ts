@@ -114,27 +114,31 @@ function normalizarGrade(valor: unknown): boolean[][] {
 }
 
 export async function lerOnboardingEditor(userId: number): Promise<OnboardingEditor | null> {
-  const [l] = await sql`
-    SELECT nome, foto_url, localizacao, headline, bio, softwares, estilos, nivel_edicao,
-           setup_pc, portfolio_link, nicho, disponibilidade, perfil_completo
-    FROM users WHERE id = ${userId}
-  `;
-  if (!l) return null;
-  return {
-    nome: l.nome ?? "",
-    fotoUrl: l.foto_url ?? "",
-    localizacao: l.localizacao ?? "",
-    headline: normalizarLista(l.headline),
-    bio: l.bio ?? "",
-    softwares: l.softwares ?? [],
-    estilos: l.estilos ?? [],
-    nivelEdicao: l.nivel_edicao ?? "",
-    setupPc: l.setup_pc ?? "",
-    portfolioLink: l.portfolio_link ?? "",
-    nicho: l.nicho ?? [],
-    disponibilidade: normalizarGrade(l.disponibilidade),
-    perfilCompleto: l.perfil_completo ?? false,
-  };
+  try {
+    const [l] = await sql`
+      SELECT nome, foto_url, localizacao, headline, bio, softwares, estilos, nivel_edicao,
+             setup_pc, portfolio_link, nicho, disponibilidade, perfil_completo
+      FROM users WHERE id = ${userId}
+    `;
+    if (!l) return null;
+    return {
+      nome: l.nome ?? "",
+      fotoUrl: l.foto_url ?? "",
+      localizacao: l.localizacao ?? "",
+      headline: normalizarLista(l.headline),
+      bio: l.bio ?? "",
+      softwares: l.softwares ?? [],
+      estilos: l.estilos ?? [],
+      nivelEdicao: l.nivel_edicao ?? "",
+      setupPc: l.setup_pc ?? "",
+      portfolioLink: l.portfolio_link ?? "",
+      nicho: l.nicho ?? [],
+      disponibilidade: normalizarGrade(l.disponibilidade),
+      perfilCompleto: l.perfil_completo ?? false,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function salvarOnboardingEditor(
@@ -199,78 +203,76 @@ export async function salvarOnboardingEditor(
 
 /** Perfil completo do editor: conta + números + portfólio + conquistas. */
 export async function lerPerfilEditor(userId: number): Promise<PerfilEditor | null> {
-  const [conta] = await sql`
-    SELECT apelido, nome, headline, bio, localizacao, criado_em,
-           entregues, reputacao, streak, nota, nivel,
-           -- tudo isto o onboarding já salvava e o perfil nunca lia:
-           -- a foto aparecia como iniciais mesmo existindo, e a "caixa de
-           -- ferramentas" não mostrava ferramenta nenhuma
-           foto_url, softwares, estilos, nicho, nivel_edicao, setup_pc
-    FROM users WHERE id = ${userId}
-  `;
-  if (!conta) return null;
+  try {
+    const [conta] = await sql`
+      SELECT apelido, nome, headline, bio, localizacao, criado_em,
+             entregues, reputacao, streak, nota, nivel,
+             foto_url, softwares, estilos, nicho, nivel_edicao, setup_pc
+      FROM users WHERE id = ${userId}
+    `;
+    if (!conta) return null;
 
-  const [itens, medalhas, entregas] = await Promise.all([
-    sql`SELECT id, titulo, formato, porta_voz, tint, link_video
-        FROM portfolio WHERE user_id = ${userId} ORDER BY criado_em DESC`,
-    sql`SELECT nome, icone FROM conquistas WHERE user_id = ${userId}
-        ORDER BY conquistado_em DESC`,
-    // histórico real: as missões que este editor entregou. 'reedicao' entra
-    // porque faz parte da história do trabalho, não só os acertos.
-    sql`SELECT p.id, p.titulo, p.status, p.criada_em, u.nome AS porta_voz
-        FROM pautas p
-        JOIN users u ON u.id = p.porta_voz_id
-        WHERE p.reservada_por_id = ${userId}
-          AND p.status IN ('aprovada','finalizada','reedicao')
-        ORDER BY p.criada_em DESC`,
-  ]);
+    const [itens, medalhas, entregas] = await Promise.all([
+      sql`SELECT id, titulo, formato, porta_voz, tint, link_video
+          FROM portfolio WHERE user_id = ${userId} ORDER BY criado_em DESC`,
+      sql`SELECT nome, icone FROM conquistas WHERE user_id = ${userId}
+          ORDER BY conquistado_em DESC`,
+      sql`SELECT p.id, p.titulo, p.status, p.criada_em, u.nome AS porta_voz
+          FROM pautas p
+          JOIN users u ON u.id = p.porta_voz_id
+          WHERE p.reservada_por_id = ${userId}
+            AND p.status IN ('aprovada','finalizada','reedicao')
+          ORDER BY p.criada_em DESC`,
+    ]);
 
-  const portfolio: ItemPortfolio[] = itens.map((i) => ({
-    id: `pf-${i.id}`,
-    titulo: i.titulo,
-    formato: i.formato,
-    portaVoz: i.porta_voz,
-    tint: i.tint ?? "linear-gradient(135deg,#3a3a42,#12121a)",
-  }));
+    const portfolio: ItemPortfolio[] = itens.map((i) => ({
+      id: `pf-${i.id}`,
+      titulo: i.titulo,
+      formato: i.formato,
+      portaVoz: i.porta_voz,
+      tint: i.tint ?? "linear-gradient(135deg,#3a3a42,#12121a)",
+    }));
 
-  return {
-    apelido: conta.apelido,
-    nome: conta.nome,
-    headline: normalizarLista(conta.headline),
-    local: conta.localizacao ?? "",
-    desde: new Date(conta.criado_em).toLocaleDateString("pt-BR", {
-      month: "long",
-      year: "numeric",
-    }),
-    bio: conta.bio ?? "",
-    fotoUrl: conta.foto_url ?? undefined,
-    softwares: normalizarLista(conta.softwares),
-    estilos: normalizarLista(conta.estilos),
-    nicho: normalizarLista(conta.nicho),
-    nivelEdicao: conta.nivel_edicao ?? undefined,
-    setupPc: conta.setup_pc ?? undefined,
-    entregues: conta.entregues,
-    // nota é NULL até existir avaliação — a tela decide como mostrar isso
-    nota: conta.nota === null ? null : Number(conta.nota),
-    reputacao: conta.reputacao,
-    streak: conta.streak,
-    nivel: conta.nivel as Nivel,
-    portfolio,
-    conquistas: medalhas.map((m) => ({ icone: m.icone, nome: m.nome })),
-    historico: entregas.map(
-      (e): ItemHistorico => ({
-        id: `db-${e.id}`,
-        titulo: e.titulo,
-        portaVoz: e.porta_voz,
-        data: new Date(e.criada_em).toLocaleDateString("pt-BR", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }),
-        resultado: e.status === "reedicao" ? "reedicao" : "aprovada",
-      })
-    ),
-  };
+    return {
+      apelido: conta.apelido,
+      nome: conta.nome,
+      headline: normalizarLista(conta.headline),
+      local: conta.localizacao ?? "",
+      desde: new Date(conta.criado_em).toLocaleDateString("pt-BR", {
+        month: "long",
+        year: "numeric",
+      }),
+      bio: conta.bio ?? "",
+      fotoUrl: conta.foto_url ?? undefined,
+      softwares: normalizarLista(conta.softwares),
+      estilos: normalizarLista(conta.estilos),
+      nicho: normalizarLista(conta.nicho),
+      nivelEdicao: conta.nivel_edicao ?? undefined,
+      setupPc: conta.setup_pc ?? undefined,
+      entregues: conta.entregues,
+      nota: conta.nota === null ? null : Number(conta.nota),
+      reputacao: conta.reputacao,
+      streak: conta.streak,
+      nivel: conta.nivel as Nivel,
+      portfolio,
+      conquistas: medalhas.map((m) => ({ icone: m.icone, nome: m.nome })),
+      historico: entregas.map(
+        (e): ItemHistorico => ({
+          id: `db-${e.id}`,
+          titulo: e.titulo,
+          portaVoz: e.porta_voz,
+          data: new Date(e.criada_em).toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }),
+          resultado: e.status === "reedicao" ? "reedicao" : "aprovada",
+        })
+      ),
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**

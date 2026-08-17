@@ -9,7 +9,9 @@ import {
   type StatusPauta,
 } from "@/lib/pautas";
 import { pautasDisponiveis, pautasDoPortaVoz } from "@/lib/pautas-db";
+import { lerOnboardingCandidato } from "@/lib/candidato-db";
 import { lerSessao } from "@/lib/sessao-servidor";
+import { BannerPerfilIncompleto } from "@/components/banner-perfil-incompleto";
 
 // esta tela precisa refletir a pauta que acabou de ser criada, então não pode
 // servir versão em cache
@@ -144,10 +146,12 @@ export default async function PortaVozHome() {
 
   // pautas de verdade (banco) +, só em dev, as de demonstração para a tela
   // não ficar vazia numa conta nova
-  const [reaisMinhas, reaisDisponiveis] = await Promise.all([
+  const [reaisMinhas, reaisDisponiveis, onboarding] = await Promise.all([
     sessao ? pautasDoPortaVoz(sessao.id) : Promise.resolve([]),
     pautasDisponiveis(),
+    sessao ? lerOnboardingCandidato(sessao.id) : Promise.resolve(null),
   ]);
+  const perfilIncompleto = onboarding ? !onboarding.perfilCompleto : true;
 
   const demoMinhas = MODO_DEMO ? PAUTAS.filter((p) => p.portaVoz === sessao?.nome) : [];
   const minhas = [...reaisMinhas, ...demoMinhas];
@@ -164,6 +168,12 @@ export default async function PortaVozHome() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
+      {perfilIncompleto && (
+        <div className="mb-6">
+          <BannerPerfilIncompleto papel="voz" />
+        </div>
+      )}
+
       {/* header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

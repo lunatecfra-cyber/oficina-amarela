@@ -166,6 +166,7 @@ CREATE TABLE IF NOT EXISTS pautas (
   brief_fonte TEXT,
   brief_refs TEXT,
   drive_link TEXT,
+  youtube_link TEXT,
   status TEXT NOT NULL DEFAULT 'disponivel'
     CHECK (status IN ('disponivel','reservada','em_revisao','reedicao','aprovada','finalizada')),
   reservada_por_id INT REFERENCES users(id) ON DELETE SET NULL,
@@ -315,3 +316,23 @@ CREATE TABLE IF NOT EXISTS denuncias (
 );
 
 CREATE INDEX IF NOT EXISTS idx_denuncias_status ON denuncias (status);
+
+-- ─────────────────────────────────────────────────────────────────────
+-- Biblioteca de Músicas (upload MP3, tags, player inline)
+-- ─────────────────────────────────────────────────────────────────────
+--
+-- Qualquer editor logado adiciona músicas. Ninguém remove.
+-- O arquivo fica no Vercel Blob; a URL pública é guardada aqui.
+
+CREATE TABLE IF NOT EXISTS musicas (
+  id              TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  nome            TEXT NOT NULL,
+  tags            TEXT[] DEFAULT '{}',
+  url             TEXT NOT NULL,
+  tamanho         INTEGER,
+  adicionado_por  INT REFERENCES users(id) ON DELETE SET NULL,
+  criado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_musicas_tags ON musicas USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_musicas_criado ON musicas (criado_em DESC);

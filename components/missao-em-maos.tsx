@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
-import { pareceLink, pareceLinkDrive } from "@/lib/validators";
+import { pareceLink, pareceLinkDrive, pareceLinkYoutube } from "@/lib/validators";
 import { ChatMissao } from "@/components/chat-missao";
 import { DenunciaBotao } from "@/components/denuncia-botao";
 import { BotaoTutorial, TutorialDrive } from "@/components/tutorial-drive";
@@ -146,31 +146,43 @@ export function MissaoEmMaos({
         </div>
       )}
 
-      {missao.driveLink && pareceLinkDrive(missao.driveLink) && (
-        <div className="mt-5 rounded-2xl border border-line bg-surface/60 p-4">
-          <p className="text-xs uppercase tracking-[0.12em] text-muted">
+      {(missao.driveLink && pareceLinkDrive(missao.driveLink) || missao.youtubeLink && pareceLinkYoutube(missao.youtubeLink)) && (
+        <div className="mt-5 rounded-2xl border border-gold/30 bg-gradient-to-r from-gold/[0.08] to-gold/[0.03] p-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-gold">
             Acesso ao bruto
           </p>
-          {/* Dizia "✓ Acesso liberado no Drive para seu e-mail", com check
-              verde. Não era verdade: o login com Google pede só
-              `openid email profile`, e não existe uma única chamada à API do
-              Drive no projeto — ninguém libera pasta nenhuma. O editor clicava,
-              batia num "você precisa de acesso" do Google e não entendia por
-              quê. Enquanto a liberação for manual, a tela diz isso. */}
           <p
-            className="mt-2 flex flex-wrap items-center gap-2 text-sm text-text"
+            className="mt-3 flex flex-wrap items-center gap-2"
             data-guia="abrir-bruto"
           >
-            <a
-              href={missao.driveLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-gold-hi hover:underline"
-            >
-              Abrir pasta no Drive
-            </a>
+            {missao.driveLink && pareceLinkDrive(missao.driveLink) && (
+              <a
+                href={missao.driveLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 px-5 py-2.5 text-base font-semibold text-gold-hi transition-colors hover:bg-gold/20"
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4" aria-hidden="true">
+                  <path d="M5 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Abrir pasta no Drive
+              </a>
+            )}
+            {missao.youtubeLink && pareceLinkYoutube(missao.youtubeLink) && (
+              <a
+                href={missao.youtubeLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 px-5 py-2.5 text-base font-semibold text-gold-hi transition-colors hover:bg-gold/20"
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4" aria-hidden="true">
+                  <path d="M5 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Abrir no YouTube
+              </a>
+            )}
           </p>
-          <p className="mt-2 text-xs text-muted-2">
+          <p className="mt-3 text-xs text-muted-2">
             Se o Drive pedir permissão, peça a liberação a quem criou a missão —
             hoje esse acesso ainda é liberado à mão.
           </p>

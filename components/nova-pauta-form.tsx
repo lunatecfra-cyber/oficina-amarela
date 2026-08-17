@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Formato } from "@/lib/pautas";
 import { BotaoTutorial, TutorialDrive } from "@/components/tutorial-drive";
-import { pareceLink, pareceLinkDrive } from "@/lib/validators";
+import { pareceLink, pareceLinkDrive, pareceLinkYoutube } from "@/lib/validators";
 
 type Dados = {
   titulo: string;
   driveLink: string;
+  youtubeLink: string;
   extras: string;
   tom: string;
   cor: string;
@@ -22,6 +23,7 @@ type Dados = {
 const VAZIO: Dados = {
   titulo: "",
   driveLink: "",
+  youtubeLink: "",
   extras: "",
   tom: "",
   cor: "",
@@ -65,10 +67,16 @@ export function NovaPautaForm() {
   function validar(p: number): string {
     if (p === 0) {
       if (!dados.titulo.trim()) return "Dê um título pra missão.";
-      if (!dados.driveLink.trim()) return "Cole o link do Drive com o vídeo bruto.";
-      if (!pareceLink(dados.driveLink)) return "Isso não parece um link. Confere?";
-      if (!pareceLinkDrive(dados.driveLink))
-        return "Isso não parece um link do Google Drive. Cole o link de compartilhamento do Drive (drive.google.com).";
+      const temDrive = dados.driveLink.trim().length > 0;
+      const temYoutube = dados.youtubeLink.trim().length > 0;
+      if (!temDrive && !temYoutube)
+        return "Cole pelo menos um link: Drive, YouTube ou ambos.";
+      if (temDrive && !pareceLink(dados.driveLink))
+        return "O link do Drive não parece um link válido. Confere?";
+      if (temDrive && !pareceLinkDrive(dados.driveLink))
+        return "Isso não parece um link do Google Drive. Cole o link de compartilhamento (drive.google.com).";
+      if (temYoutube && !pareceLinkYoutube(dados.youtubeLink))
+        return "Isso não parece um link do YouTube. Cole o link (youtube.com ou youtu.be).";
     }
     if (p === 4 && !dados.formato) return "Escolha o formato.";
     return "";
@@ -99,6 +107,7 @@ export function NovaPautaForm() {
         titulo: dados.titulo,
         formato: dados.formato,
         driveLink: dados.driveLink,
+        youtubeLink: dados.youtubeLink,
         tom: dados.tom,
         cor: dados.cor,
         fonte: dados.fonte,
@@ -195,10 +204,10 @@ export function NovaPautaForm() {
                 autoFocus
               />
             </Campo>
-            <Campo label="Link do Drive com o bruto" guia="campo-drive">
+            <Campo label="Link do Drive (opcional)" guia="campo-drive">
               <input
                 className="field-input !pl-4"
-                placeholder="cole o link de compartilhamento"
+                placeholder="cole o link de compartilhamento, se tiver"
                 value={dados.driveLink}
                 onChange={(e) => set("driveLink", e.target.value)}
                 inputMode="url"
@@ -206,6 +215,17 @@ export function NovaPautaForm() {
                 spellCheck={false}
               />
               <BotaoTutorial onClick={() => setTutorialAberto(true)} />
+            </Campo>
+            <Campo label="Link do YouTube (opcional)">
+              <input
+                className="field-input !pl-4"
+                placeholder="cole o link do vídeo no YouTube, se tiver"
+                value={dados.youtubeLink}
+                onChange={(e) => set("youtubeLink", e.target.value)}
+                inputMode="url"
+                autoCapitalize="none"
+                spellCheck={false}
+              />
             </Campo>
           </Passo>
         )}

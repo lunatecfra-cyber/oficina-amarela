@@ -57,6 +57,20 @@ export async function mensagensDaPauta(pautaId: number): Promise<Mensagem[]> {
 }
 
 /**
+ * Retorna apenas mensagens criadas depois do timestamp informado.
+ * Usado pelo polling do chat — a cada ciclo só baixa o que mudou.
+ */
+export async function mensagensDaPautaApos(pautaId: number, depoisIso: string): Promise<Mensagem[]> {
+  const linhas = await sql`${SELECT_BASE}
+    WHERE m.pauta_id = ${pautaId}
+      AND m.criada_em > ${depoisIso}
+    ORDER BY m.criada_em ASC
+    LIMIT 200
+  `;
+  return (linhas as unknown as LinhaMensagem[]).map(paraMensagem);
+}
+
+/**
  * Leitura em lote pros cards do inspetor — uma query só, não uma por missão.
  * Devolve um mapa por pautaId.
  */

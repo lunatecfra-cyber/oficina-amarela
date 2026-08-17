@@ -216,7 +216,7 @@ export async function despacharMissoes(): Promise<number> {
 export async function ofertaPendente(editorId: number): Promise<Oferta | null> {
   const [l] = await sql`
     SELECT o.expira_em, o.ordem,
-           p.id, p.titulo, p.formato, p.drive_link, p.status,
+           p.id, p.titulo, p.formato, p.drive_link, p.youtube_link, p.status,
            p.brief_tom, p.brief_cor, p.brief_fonte, p.brief_refs,
            p.extras, p.motivo, p.prazo_desejado, p.criada_em,
            u.nome AS porta_voz_nome, u.apelido AS porta_voz_apelido
@@ -246,6 +246,7 @@ export async function ofertaPendente(editorId: number): Promise<Oferta | null> {
       status: l.status,
       criadaEm: new Date(l.criada_em).toISOString(),
       driveLink: l.drive_link ?? undefined,
+      youtubeLink: l.youtube_link ?? undefined,
       extras: l.extras ?? undefined,
       motivo: l.motivo ?? undefined,
       prazoDesejado: l.prazo_desejado

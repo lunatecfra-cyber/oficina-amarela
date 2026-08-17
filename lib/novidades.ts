@@ -28,13 +28,13 @@ export const NOVIDADES: Novidade[] = [
     data: "2026-08-15",
     titulo: "Quem pediu o vídeo também aprova",
     texto:
-      "O candidato não precisa mais esperar o controle de qualidade: assiste, dá a nota e fecha a missão na hora. O inspetor continua podendo aprovar quando for preciso.",
+      "O porta-voz não precisa mais esperar o controle de qualidade: assiste, dá a nota e fecha a missão na hora. O inspetor continua podendo aprovar quando for preciso.",
   },
   {
     data: "2026-08-14",
     titulo: "Conversa dentro da missão",
     texto:
-      "Candidato, editor e inspetor conversam na própria missão — sem sair pro WhatsApp e sem perder o contexto do que foi combinado.",
+      "Porta-voz, editor e inspetor conversam na própria missão — sem sair pro WhatsApp e sem perder o contexto do que foi combinado.",
   },
   {
     data: "2026-08-13",

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { TrabalhoEmMaos } from "@/lib/agenda";
 import { ROTULO_FORMATO } from "@/lib/pautas";
-import { pareceLinkDrive } from "@/lib/validators";
+import { pareceLinkDrive, pareceLinkYoutube } from "@/lib/validators";
 
 function fmtRestante(ms: number) {
   if (ms <= 0) return "prazo vencido";
@@ -175,7 +175,7 @@ export function MesaAgora({
               )}
             </div>
 
-            {/* ações — Drive + ir pra fila onde ele entrega */}
+            {/* ações — Drive + YouTube + ir pra fila onde ele entrega */}
             <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
               {t.driveLink && pareceLinkDrive(t.driveLink) && (
                 <a
@@ -185,6 +185,16 @@ export function MesaAgora({
                   className="inline-flex items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
                 >
                   📁 Abrir bruto no Drive
+                </a>
+              )}
+              {t.youtubeLink && pareceLinkYoutube(t.youtubeLink) && (
+                <a
+                  href={t.youtubeLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
+                >
+                  ▶ Abrir no YouTube
                 </a>
               )}
               <Link

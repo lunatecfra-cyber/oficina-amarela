@@ -13,7 +13,7 @@ const OPCOES = [
   {
     papel: "voz" as const,
     titulo: "Sou porta-voz",
-    descricao: "Sou candidato(a). Mando o bruto e recebo o vídeo editado.",
+    descricao: "Mando o bruto e recebo o vídeo editado.",
   },
 ];
 

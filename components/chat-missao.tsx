@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Mensagem } from "@/lib/chat-db";
 import { LIMITES } from "@/lib/limites";
 
@@ -15,15 +14,41 @@ function hora(iso: string): string {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+/** Converte URLs no texto em links clicáveis (abrem em nova aba). */
+function textoComLinks(texto: string): React.ReactNode[] {
+  const partes = texto.split(/(https?:\/\/\S+)/g);
+  if (partes.length === 1) return [texto];
+  return partes.map((parte, i) =>
+    /^https?:\/\//.test(parte) ? (
+      <a
+        key={i}
+        href={parte}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-gold-hi underline underline-offset-2 hover:no-underline"
+      >
+        {parte}
+      </a>
+    ) : (
+      parte
+    )
+  );
+}
+
+/** Intervalo de polling (ms). */
+const POLL_MS = 5_000;
+
 /**
  * Thread da missão: candidato, editor (enquanto a missão for dele) e inspetor
- * conversam preso ao contexto. Sem tempo real — após enviar, router.refresh()
- * traz a mensagem nova junto com o resto da página (mesmo padrão das ações
- * de missão que já existem).
+ * conversam preso ao contexto.
+ *
+ * Auto-atualiza a cada 5s via polling na API — sem F5.
+ * Pausa quando a aba não está visível e volta quando o usuário volta.
+ * Faz auto-scroll suave quando chegam mensagens novas.
  */
 export function ChatMissao({
   pautaId,
-  mensagens,
+  mensagens: mensagensIniciais,
   podeEnviar = true,
   compacto = false,
 }: {
@@ -32,10 +57,83 @@ export function ChatMissao({
   podeEnviar?: boolean;
   compacto?: boolean;
 }) {
-  const router = useRouter();
+  // mensagens em estado local — o componente gerencia o próprio conteúdo via polling
+  const [mensagens, setMensagens] = useState<Mensagem[]>(mensagensIniciais);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+
+  // ref pro scroll: última mensagem da lista
+  const fimRef = useRef<HTMLLIElement>(null);
+  // ref pro timer de polling
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // último timestamp conhecido — base pra pedir só o que vem depois
+  const ultimoTs = mensagens.length > 0 ? mensagens[mensagens.length - 1].criadaEm : null;
+
+  /** Busca mensagens novas e adiciona ao estado local. */
+  const poll = useCallback(async () => {
+    try {
+      const params = ultimoTs ? `?depois=${encodeURIComponent(ultimoTs)}` : "";
+      const resp = await fetch(`/api/pautas/${pautaId}${params}`);
+      if (!resp.ok) return;
+      const { mensagens: novas } = (await resp.json()) as { mensagens: Mensagem[] };
+      if (novas.length > 0) {
+        setMensagens((prev) => {
+          // evita duplicatas usando o id
+          const existentes = new Set(prev.map((m) => m.id));
+          const filtradas = novas.filter((m) => !existentes.has(m.id));
+          return filtradas.length > 0 ? [...prev, ...filtradas] : prev;
+        });
+      }
+    } catch {
+      // rede caiu? tenta de novo no próximo ciclo
+    }
+  }, [pautaId, ultimoTs]);
+
+  // polling: monta timer, pausa quando aba não está visível
+  useEffect(() => {
+    if (!pautaId || !/^\d+$/.test(pautaId.replace(/^db-/, ""))) return;
+
+    function iniciar() {
+      // poll imediato, depois a cada POLL_MS
+      void poll();
+      timerRef.current = setInterval(() => void poll(), POLL_MS);
+    }
+
+    function parar() {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    iniciar();
+
+    // pausa quando o usuário troca de aba — economiza requests
+    function onVisibility() {
+      if (document.visibilityState === "hidden") {
+        parar();
+      } else {
+        // quando volta, poll imediato pra pegar o que perdeu
+        void poll();
+        iniciar();
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      parar();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [pautaId, poll]);
+
+  // auto-scroll suave quando chegam mensagens novas
+  useEffect(() => {
+    if (mensagens.length > 0) {
+      fimRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [mensagens.length]);
 
   async function enviar() {
     const t = texto.trim();
@@ -54,7 +152,8 @@ export function ChatMissao({
         return;
       }
       setTexto("");
-      router.refresh();
+      // poll imediato pra mostrar a mensagem que acabou de enviar
+      void poll();
     } catch {
       setErro("Sem conexão. Tenta de novo.");
     } finally {
@@ -92,9 +191,11 @@ export function ChatMissao({
                 </span>
                 <span className="ml-auto text-[11px] text-muted-2">{hora(m.criadaEm)}</span>
               </div>
-              <p className="mt-1 whitespace-pre-line break-words text-sm text-text/90">{m.texto}</p>
+              <p className="mt-1 whitespace-pre-line break-words text-sm text-text/90">{textoComLinks(m.texto)}</p>
             </li>
           ))}
+          {/* âncora invisível pro auto-scroll */}
+          <li ref={fimRef} className="h-0" aria-hidden="true" />
         </ul>
       )}
 
