@@ -80,17 +80,20 @@ export async function resumoDoSistema(): Promise<Resumo> {
     FROM users
   `;
 
+  // Agregações sempre devolvem uma linha no banco real, mas sem DATABASE_URL
+  // local o Stub Proxy devolve [] (regra da DevToolbar: God Mode com UI pura).
+  // Zeros mantêm o Panorama de pé em vez de explodir na tela de erro.
   return {
-    naFila: p.na_fila,
-    oferecidas: p.oferecidas,
-    emEdicao: p.em_edicao,
-    emConferencia: p.em_conferencia,
-    emReedicao: p.em_reedicao,
-    concluidas: p.concluidas,
-    candidatos: u.candidatos,
-    editores: u.editores,
-    editoresLivres: u.editores_livres,
-    banidos: u.banidos,
+    naFila: p?.na_fila ?? 0,
+    oferecidas: p?.oferecidas ?? 0,
+    emEdicao: p?.em_edicao ?? 0,
+    emConferencia: p?.em_conferencia ?? 0,
+    emReedicao: p?.em_reedicao ?? 0,
+    concluidas: p?.concluidas ?? 0,
+    candidatos: u?.candidatos ?? 0,
+    editores: u?.editores ?? 0,
+    editoresLivres: u?.editores_livres ?? 0,
+    banidos: u?.banidos ?? 0,
   };
 }
 

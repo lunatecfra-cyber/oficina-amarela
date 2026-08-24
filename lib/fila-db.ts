@@ -182,9 +182,11 @@ export async function despacharMissoes(): Promise<number> {
     if (!editorId) continue; // ninguém elegível agora: fica na lista aberta
 
     try {
-      const [{ ordem }] = await sql`
+      const [linhaOrdem] = await sql`
         SELECT COALESCE(MAX(ordem), 0) + 1 AS ordem FROM ofertas WHERE pauta_id = ${p.id}
       `;
+      // sem banco local o Stub Proxy devolve [] — ordem 0 segue o fluxo
+      const ordem = linhaOrdem?.ordem ?? 0;
 
       await sql`
         INSERT INTO ofertas (pauta_id, editor_id, expira_em, ordem)
