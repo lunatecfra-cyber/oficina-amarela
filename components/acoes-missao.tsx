@@ -27,13 +27,13 @@ export function AcoesMissao({
   emRevisao?: boolean;
 }) {
   const router = useRouter();
-  const [processando, setProcessando] = useState<"aceitar" | "ajuste" | null>(null);
+  const [processando, setProcessando] = useState<"aceitar" | "ajuste" | "aprovar" | null>(null);
   const [abrindoAjuste, setAbrindoAjuste] = useState(false);
   const [notas, setNotas] = useState("");
   const [estrelas, setEstrelas] = useState<number | undefined>(undefined);
   const [aviso, setAviso] = useState("");
 
-  async function enviar(acao: "aceitar" | "ajuste") {
+  async function enviar(acao: "aceitar" | "ajuste" | "aprovar") {
     if (acao === "ajuste" && !notas.trim()) {
       setAviso("Escreva o que precisa mudar.");
       return;
@@ -177,7 +177,7 @@ export function AcoesMissao({
           <div className="mt-5 flex flex-col gap-3 sm:flex-row" data-guia="aprovar-missao">
             <button
               className="btn-gold sm:flex-1"
-              onClick={() => enviar("aceitar")}
+              onClick={() => enviar(emRevisao ? "aprovar" : "aceitar")}
               disabled={processando !== null}
             >
               {processando === "aceitar"

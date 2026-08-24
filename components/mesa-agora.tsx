@@ -41,6 +41,8 @@ export function MesaAgora({
   const [agora, setAgora] = useState<number | null>(null);
 
   useEffect(() => {
+    // O relógio começa depois da hidratação para não gerar HTML divergente.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAgora(Date.now());
     const id = setInterval(() => setAgora(Date.now()), 60_000);
     return () => clearInterval(id);

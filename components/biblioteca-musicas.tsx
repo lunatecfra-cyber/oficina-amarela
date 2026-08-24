@@ -54,6 +54,8 @@ export function BibliotecaMusicas() {
   }, []);
 
   useEffect(() => {
+    // A busca inicial sincroniza o estado com a API ao montar o componente.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar();
   }, [carregar]);
 

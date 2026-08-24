@@ -20,6 +20,7 @@ import type { OnboardingCandidato } from "@/lib/candidato-db";
 import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/icones-redes";
 import { SelectEstadoCidade } from "@/components/select-estado-cidade";
 import { comprimirFoto } from "@/lib/comprimir-foto";
+import { AvisoTse } from "@/components/aviso-tse";
 
 // Mesma forma de edição do wizard de criar-perfil, mas num página só — sem
 // etapas, sem "Avançar". O porta-voz que só quer trocar a bio não refaz o
@@ -64,6 +65,9 @@ export function EditarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCand
   const [palavrasChave, setPalavrasChave] = useState<string[]>(inicial.palavrasChave);
   const [novaPalavraChave, setNovaPalavraChave] = useState("");
   const [bio, setBio] = useState(inicial.bio);
+  const [marcaDagua, setMarcaDagua] = useState(inicial.marcaDagua || "");
+  const [cnpjCampanha, setCnpjCampanha] = useState(inicial.cnpjCampanha || "");
+  const [tituloEleitor, setTituloEleitor] = useState(inicial.tituloEleitor || "");
 
   const [redes, setRedes] = useState<RedesSociais>(inicial.redes);
 
@@ -157,6 +161,9 @@ export function EditarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCand
         palavrasChave,
         redes,
         bio,
+        marcaDagua,
+        cnpjCampanha,
+        tituloEleitor,
       }),
     });
     setSalvando(false);
@@ -466,6 +473,66 @@ export function EditarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCand
           value={bio}
           onChange={(e) => setBio(e.target.value)}
         />
+      </section>
+
+      {/* ---- tse ---- */}
+      <section className="reveal flex flex-col gap-3">
+        <div>
+          <h2 className={tituloSecao}>Regras Eleitorais (TSE)</h2>
+          <p className="mt-1 text-sm text-muted">
+            Essas informações serão preenchidas automaticamente nas suas missões para que o editor inclua nos vídeos.
+          </p>
+        </div>
+        
+        <AvisoTse />
+
+        <div className="grid gap-4 sm:grid-cols-2 mt-2">
+          <div>
+            <label htmlFor="marcaDagua" className={rotuloCampo}>
+              Marca d&apos;água
+            </label>
+            <input
+              id="marcaDagua"
+              className="field-input !pl-4"
+              placeholder="ex.: Candidato Oficial - #12345"
+              value={marcaDagua}
+              onChange={(e) => {
+                setMarcaDagua(e.target.value);
+                setErro("");
+              }}
+            />
+          </div>
+          <div>
+            <label htmlFor="cnpjCampanha" className={rotuloCampo}>
+              CNPJ da Campanha
+            </label>
+            <input
+              id="cnpjCampanha"
+              className="field-input !pl-4"
+              placeholder="00.000.000/0000-00"
+              value={cnpjCampanha}
+              onChange={(e) => {
+                setCnpjCampanha(e.target.value);
+                setErro("");
+              }}
+            />
+          </div>
+        </div>
+        <div>
+          <label htmlFor="tituloEleitor" className={rotuloCampo}>
+            Título de Eleitor
+          </label>
+          <input
+            id="tituloEleitor"
+            className="field-input !pl-4"
+            placeholder="0000 0000 0000"
+            value={tituloEleitor}
+            onChange={(e) => {
+              setTituloEleitor(e.target.value);
+              setErro("");
+            }}
+          />
+        </div>
       </section>
 
       {/* ---- redes ---- */}

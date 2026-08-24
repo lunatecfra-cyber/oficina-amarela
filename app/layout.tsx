@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { DevToolbar } from "@/components/dev-toolbar";
 
 // As duas fontes moram no repositório, não no Google.
 //
@@ -47,6 +48,7 @@ export default function RootLayout({
         <div className="texture" aria-hidden="true" />
         <div className="relative z-10 flex min-h-full flex-1 flex-col">
           {children}
+          <DevToolbar />
         </div>
       </body>
     </html>

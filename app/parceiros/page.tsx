@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
+import { AppHeaderPortaVoz } from "@/components/app-header-porta-voz";
+import { lerSessao } from "@/lib/sessao-servidor";
+import { cabecalhoParceiros } from "@/lib/navegacao";
 
 export const metadata: Metadata = { title: "Parceiros — Oficina Amarela" };
 
@@ -22,10 +25,13 @@ const PARCEIROS = [
   },
 ];
 
-export default function ParceirosPage() {
+export default async function ParceirosPage() {
+  const sessao = await lerSessao();
+  const cabecalho = cabecalhoParceiros(sessao?.papel);
+
   return (
     <>
-      <AppHeader />
+      {cabecalho === "porta-voz" ? <AppHeaderPortaVoz /> : <AppHeader />}
       <main className="flex-1">
         <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
           <div className="mb-8">
@@ -42,12 +48,12 @@ export default function ParceirosPage() {
               const isWsp = c.nome.toLowerCase().includes("whatsapp");
               const corMarca = isWsp ? "#25D366" : "#5865F2";
               return (
-                <li key={c.nome}>
+                <li key={c.nome} className="min-w-0">
                   <a
                     href={c.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group relative flex items-center gap-4 overflow-hidden rounded-2xl border p-5 transition-all duration-300"
+                    className="group relative flex min-w-0 items-center gap-4 overflow-hidden rounded-2xl border p-5 transition-all duration-300"
                     style={{
                       borderColor: `${corMarca}40`,
                       background: `linear-gradient(135deg, ${corMarca}12 0%, rgba(20,20,25,0.7) 100%)`,

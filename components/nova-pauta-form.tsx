@@ -5,6 +5,8 @@ import Link from "next/link";
 import type { Formato } from "@/lib/pautas";
 import { BotaoTutorial, TutorialDrive } from "@/components/tutorial-drive";
 import { pareceLink, pareceLinkDrive, pareceLinkYoutube } from "@/lib/validators";
+import { UploadDropzone } from "@/components/upload-dropzone";
+import { AvisoTse } from "@/components/aviso-tse";
 
 type Dados = {
   titulo: string;
@@ -18,6 +20,10 @@ type Dados = {
   motivo: string;
   formato: Formato | "";
   prazo: string;
+  videoBrutoUrl: string;
+  marcaDagua: string;
+  cnpjCampanha: string;
+  tituloEleitor: string;
 };
 
 const VAZIO: Dados = {
@@ -32,6 +38,10 @@ const VAZIO: Dados = {
   motivo: "",
   formato: "",
   prazo: "",
+  videoBrutoUrl: "",
+  marcaDagua: "",
+  cnpjCampanha: "",
+  tituloEleitor: "",
 };
 
 const PASSOS = [
@@ -42,7 +52,13 @@ const PASSOS = [
   "Formato",
 ];
 
-export function NovaPautaForm() {
+interface NovaPautaFormProps {
+  marcaDaguaPadrao?: string;
+  cnpjCampanhaPadrao?: string;
+  tituloEleitorPadrao?: string;
+}
+
+export function NovaPautaForm({ marcaDaguaPadrao, cnpjCampanhaPadrao, tituloEleitorPadrao }: NovaPautaFormProps = {}) {
   const [passo, setPasso] = useState(0);
   const [dados, setDados] = useState<Dados>(VAZIO);
   const [erro, setErro] = useState("");
@@ -59,6 +75,17 @@ export function NovaPautaForm() {
     return () => window.removeEventListener("keydown", tecla);
   }, [tutorialAberto]);
 
+  useEffect(() => {
+    // Pré-preenche os dados se foram passados por prop e os campos estão vazios
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDados((d) => ({
+      ...d,
+      marcaDagua: d.marcaDagua || marcaDaguaPadrao || "",
+      cnpjCampanha: d.cnpjCampanha || cnpjCampanhaPadrao || "",
+      tituloEleitor: d.tituloEleitor || tituloEleitorPadrao || "",
+    }));
+  }, [marcaDaguaPadrao, cnpjCampanhaPadrao, tituloEleitorPadrao]);
+
   const set = <K extends keyof Dados>(k: K, v: Dados[K]) => {
     setDados((d) => ({ ...d, [k]: v }));
     setErro("");
@@ -69,8 +96,9 @@ export function NovaPautaForm() {
       if (!dados.titulo.trim()) return "Dê um título pra missão.";
       const temDrive = dados.driveLink.trim().length > 0;
       const temYoutube = dados.youtubeLink.trim().length > 0;
-      if (!temDrive && !temYoutube)
-        return "Cole pelo menos um link: Drive, YouTube ou ambos.";
+      const temUpload = dados.videoBrutoUrl.trim().length > 0;
+      if (!temDrive && !temYoutube && !temUpload)
+        return "Faça o upload do vídeo ou cole um link do Drive/YouTube.";
       if (temDrive && !pareceLink(dados.driveLink))
         return "O link do Drive não parece um link válido. Confere?";
       if (temDrive && !pareceLinkDrive(dados.driveLink))
@@ -115,6 +143,10 @@ export function NovaPautaForm() {
         extras: dados.extras,
         motivo: dados.motivo,
         prazo: dados.prazo,
+        videoBrutoUrl: dados.videoBrutoUrl,
+        marcaDagua: dados.marcaDagua,
+        cnpjCampanha: dados.cnpjCampanha,
+        tituloEleitor: dados.tituloEleitor,
       }),
     });
     const corpo = await resp.json().catch(() => null);
@@ -195,6 +227,36 @@ export function NovaPautaForm() {
       <div className="min-h-[280px]">
         {passo === 0 && (
           <Passo titulo="O vídeo bruto" sub="O material que o editor vai trabalhar.">
+            <AvisoTse />
+            
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Campo label="Marca d'água">
+                <input
+                  className="field-input !pl-4"
+                  placeholder="ex.: Candidato Oficial - #12345"
+                  value={dados.marcaDagua}
+                  onChange={(e) => set("marcaDagua", e.target.value)}
+                />
+              </Campo>
+              <Campo label="CNPJ da campanha">
+                <input
+                  className="field-input !pl-4"
+                  placeholder="00.000.000/0000-00"
+                  value={dados.cnpjCampanha}
+                  onChange={(e) => set("cnpjCampanha", e.target.value)}
+                />
+              </Campo>
+            </div>
+            
+            <Campo label="Título de Eleitor (TSE)">
+              <input
+                className="field-input !pl-4"
+                placeholder="0000 0000 0000"
+                value={dados.tituloEleitor}
+                onChange={(e) => set("tituloEleitor", e.target.value)}
+              />
+            </Campo>
+
             <Campo label="Título da missão">
               <input
                 className="field-input !pl-4"
@@ -204,29 +266,44 @@ export function NovaPautaForm() {
                 autoFocus
               />
             </Campo>
-            <Campo label="Link do Drive (opcional)" guia="campo-drive">
-              <input
-                className="field-input !pl-4"
-                placeholder="cole o link de compartilhamento, se tiver"
-                value={dados.driveLink}
-                onChange={(e) => set("driveLink", e.target.value)}
-                inputMode="url"
-                autoCapitalize="none"
-                spellCheck={false}
+
+            <div className="mt-4">
+              <UploadDropzone
+                onUploadSuccess={(url) => set("videoBrutoUrl", url)}
               />
-              <BotaoTutorial onClick={() => setTutorialAberto(true)} />
-            </Campo>
-            <Campo label="Link do YouTube (opcional)">
-              <input
-                className="field-input !pl-4"
-                placeholder="cole o link do vídeo no YouTube, se tiver"
-                value={dados.youtubeLink}
-                onChange={(e) => set("youtubeLink", e.target.value)}
-                inputMode="url"
-                autoCapitalize="none"
-                spellCheck={false}
-              />
-            </Campo>
+            </div>
+
+            <div className="mt-4 flex items-center gap-4">
+              <div className="h-px flex-1 bg-line" />
+              <span className="text-xs text-muted font-medium">OU COLE LINKS MANUALMENTE</span>
+              <div className="h-px flex-1 bg-line" />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 mt-2">
+              <Campo label="Link do Drive (opcional)" guia="campo-drive">
+                <input
+                  className="field-input !pl-4"
+                  placeholder="cole o link de compartilhamento, se tiver"
+                  value={dados.driveLink}
+                  onChange={(e) => set("driveLink", e.target.value)}
+                  inputMode="url"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                />
+                <BotaoTutorial onClick={() => setTutorialAberto(true)} />
+              </Campo>
+              <Campo label="Link do YouTube (opcional)">
+                <input
+                  className="field-input !pl-4"
+                  placeholder="cole o link do vídeo no YouTube, se tiver"
+                  value={dados.youtubeLink}
+                  onChange={(e) => set("youtubeLink", e.target.value)}
+                  inputMode="url"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                />
+              </Campo>
+            </div>
           </Passo>
         )}
 

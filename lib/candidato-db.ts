@@ -19,13 +19,16 @@ export type OnboardingCandidato = {
   redes: RedesSociais;
   bio: string;
   perfilCompleto: boolean;
+  marcaDagua?: string;
+  cnpjCampanha?: string;
+  tituloEleitor?: string;
 };
 
 export async function lerOnboardingCandidato(userId: number): Promise<OnboardingCandidato | null> {
   const [l] = await sql`
     SELECT nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
            bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-           perfil_completo
+           perfil_completo, marca_dagua, cnpj_campanha, titulo_eleitor
     FROM users WHERE id = ${userId}
   `;
   if (!l) return null;
@@ -42,6 +45,9 @@ export async function lerOnboardingCandidato(userId: number): Promise<Onboarding
     redes: (l.redes_sociais ?? {}) as RedesSociais,
     bio: l.bio ?? "",
     perfilCompleto: l.perfil_completo ?? false,
+    marcaDagua: l.marca_dagua ?? undefined,
+    cnpjCampanha: l.cnpj_campanha ?? undefined,
+    tituloEleitor: l.titulo_eleitor ?? undefined,
   };
 }
 
@@ -59,6 +65,9 @@ export async function salvarOnboardingCandidato(
     palavrasChave?: string[];
     redes?: RedesSociais;
     bio?: string;
+    marcaDagua?: string;
+    cnpjCampanha?: string;
+    tituloEleitor?: string;
   }
 ): Promise<{ ok: true } | { ok: false; erro: string }> {
   const nome = limitar(dados.nome, LIMITES.nome);
@@ -89,6 +98,9 @@ export async function salvarOnboardingCandidato(
       -- onboarding do editor (JSON.stringify()::jsonb guarda string, nao objeto)
       redes_sociais = ${sql.json(dados.redes ?? {})},
       bio = ${limitarOuNulo(dados.bio, LIMITES.bio)},
+      marca_dagua = ${limitarOuNulo(dados.marcaDagua, LIMITES.briefCampo)},
+      cnpj_campanha = ${limitarOuNulo(dados.cnpjCampanha, LIMITES.briefCampo)},
+      titulo_eleitor = ${limitarOuNulo(dados.tituloEleitor, LIMITES.briefCampo)},
       perfil_completo = true
     WHERE id = ${userId}
   `;
@@ -109,6 +121,9 @@ type LinhaCandidato = {
   redes_sociais: RedesSociais | null;
   bio: string | null;
   criado_em: string;
+  marca_dagua: string | null;
+  cnpj_campanha: string | null;
+  titulo_eleitor: string | null;
 };
 
 function linhaParaCandidato(l: LinhaCandidato): Candidato {
@@ -128,6 +143,9 @@ function linhaParaCandidato(l: LinhaCandidato): Candidato {
     palavrasChave: l.palavras_chave ?? [],
     redes: l.redes_sociais ?? {},
     desde: new Date(l.criado_em).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+    marcaDagua: l.marca_dagua ?? undefined,
+    cnpjCampanha: l.cnpj_campanha ?? undefined,
+    tituloEleitor: l.titulo_eleitor ?? undefined,
   };
 }
 
@@ -137,7 +155,8 @@ function linhaParaCandidato(l: LinhaCandidato): Candidato {
 export async function lerCandidatoProprio(userId: number): Promise<Candidato | null> {
   const [l] = await sql`
     SELECT apelido, nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
-           bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio, criado_em
+           bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio, criado_em,
+           marca_dagua, cnpj_campanha, titulo_eleitor
     FROM users WHERE id = ${userId} AND papel = 'voz'
   `;
   return l ? linhaParaCandidato(l as unknown as LinhaCandidato) : null;
@@ -148,7 +167,8 @@ export async function lerCandidatoProprio(userId: number): Promise<Candidato | n
 export async function lerCandidatoPublico(apelido: string): Promise<Candidato | null> {
   const [l] = await sql`
     SELECT apelido, nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
-           bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio, criado_em
+           bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio, criado_em,
+           marca_dagua, cnpj_campanha, titulo_eleitor
     FROM users
     WHERE lower(apelido) = lower(${apelido}) AND papel = 'voz' AND perfil_completo = true
   `;
@@ -160,7 +180,8 @@ export async function lerCandidatosPorApelidos(apelidos: string[]): Promise<Map<
   if (apelidos.length === 0) return new Map();
   const linhas = await sql`
     SELECT apelido, nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
-           bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio, criado_em
+           bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio, criado_em,
+           marca_dagua, cnpj_campanha, titulo_eleitor
     FROM users
     WHERE apelido = ANY(${apelidos}) AND papel = 'voz'
   `;

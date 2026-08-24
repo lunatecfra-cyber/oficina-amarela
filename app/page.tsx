@@ -173,7 +173,7 @@ export default async function Home() {
             className="reveal mx-auto mt-8 flex w-full max-w-xs flex-col items-center gap-3"
             style={{ "--reveal-delay": "740ms" } as React.CSSProperties}
           >
-            <Link href="/criar-conta" className="btn-gold btn-brilho w-full overflow-hidden">
+            <Link href="/criar-conta" className="btn-gold btn-brilho w-full overflow-hidden text-center text-lg flex items-center justify-center">
               Criar minha conta
             </Link>
             <Link
@@ -378,22 +378,31 @@ export default async function Home() {
                 href="https://discord.gg/NA3BJAsYfK"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-4 rounded-2xl border border-line bg-surface/70 p-4 transition-all duration-300 hover:border-gold/60 hover:bg-surface-2 sm:p-5"
+                className="group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-[#5865F2]/30 bg-gradient-to-r from-[#5865F2]/[0.08] via-surface/60 to-surface/40 p-5 transition-all duration-300 hover:border-[#5865F2]/70 hover:shadow-[0_0_32px_rgba(88,101,242,0.18)]"
               >
-                <span className="inline-grid h-10 w-10 flex-none place-items-center rounded-xl border border-line bg-ink-2 text-silver transition-colors group-hover:border-gold/50 group-hover:text-gold">
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
+                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#5865F2]/10 blur-xl transition-all duration-500 group-hover:bg-[#5865F2]/20" />
+                <span className="inline-grid h-12 w-12 flex-none place-items-center rounded-xl border border-[#5865F2]/40 bg-[#5865F2]/15 text-[#5865F2] transition-all duration-300 group-hover:scale-105 group-hover:bg-[#5865F2]/25 group-hover:text-white">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6" aria-hidden="true">
                     <path d="M20.317 4.37a19.8 19.8 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.3 18.3 0 0 0-5.487 0 12.6 12.6 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.7 19.7 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.9 19.9 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
                   </svg>
                 </span>
+
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-text sm:text-lg">
-                    Discord
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-text sm:text-lg">
+                      Discord
+                    </h3>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#5865F2]/40 bg-[#5865F2]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#5865F2]">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#5865F2]" />
+                      Ativo
+                    </span>
+                  </div>
                   <p className="mt-0.5 text-sm leading-relaxed text-muted">
                     Servidor pra conversar, tirar dúvidas e acompanhar o que tá rolando.
                   </p>
                 </div>
-                <span className="flex-none text-sm font-medium text-gold-hi opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+
+                <span className="flex-none text-xs font-semibold uppercase tracking-wide text-[#5865F2] transition-transform duration-300 group-hover:translate-x-1">
                   Entrar →
                 </span>
               </a>
@@ -456,10 +465,10 @@ export default async function Home() {
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link href="/criar-conta" className="btn-gold sm:w-52">
+            <Link href="/criar-conta" className="btn-gold sm:w-52 text-center flex items-center justify-center">
               Criar minha conta
             </Link>
-            <Link href="/login" className="btn-ghost sm:w-40 text-center">
+            <Link href="/login" className="btn-ghost sm:w-40 text-center flex items-center justify-center">
               Fazer login
             </Link>
           </div>

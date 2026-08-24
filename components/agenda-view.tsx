@@ -53,7 +53,11 @@ export function AgendaView({
     if (doBanco && doBanco.length === DISPONIBILIDADE_PADRAO.length) return;
     try {
       const salvo = localStorage.getItem(CHAVE_STORAGE);
-      if (salvo) setDisp(JSON.parse(salvo));
+      // Hidrata a grade persistida no navegador depois do primeiro render.
+      if (salvo) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDisp(JSON.parse(salvo));
+      }
     } catch {
       // localStorage indisponivel ou dado corrompido - mantem o padrao
     }

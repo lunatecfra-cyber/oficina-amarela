@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const { titulo, formato, driveLink, youtubeLink, tom, cor, fonte, refs, extras, motivo, prazo } = body ?? {};
+  const { titulo, formato, driveLink, youtubeLink, videoBrutoUrl, tom, cor, fonte, refs, extras, motivo, prazo, marcaDagua, cnpjCampanha, tituloEleitor } = body ?? {};
 
   if (typeof titulo !== "string" || (formato !== "short" && formato !== "longo")) {
     return NextResponse.json({ erro: "Preencha título e formato." }, { status: 400 });
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     formato,
     driveLink: typeof driveLink === "string" ? driveLink : undefined,
     youtubeLink: typeof youtubeLink === "string" ? youtubeLink : undefined,
+    videoBrutoUrl: typeof videoBrutoUrl === "string" ? videoBrutoUrl : undefined,
     tom: typeof tom === "string" ? tom : undefined,
     cor: typeof cor === "string" ? cor : undefined,
     fonte: typeof fonte === "string" ? fonte : undefined,
@@ -31,6 +32,9 @@ export async function POST(request: Request) {
     extras: typeof extras === "string" ? extras : undefined,
     motivo: typeof motivo === "string" ? motivo : undefined,
     prazo: typeof prazo === "string" ? prazo : undefined,
+    marcaDagua: typeof marcaDagua === "string" ? marcaDagua : undefined,
+    cnpjCampanha: typeof cnpjCampanha === "string" ? cnpjCampanha : undefined,
+    tituloEleitor: typeof tituloEleitor === "string" ? tituloEleitor : undefined,
   });
 
   if (!resultado.ok) {

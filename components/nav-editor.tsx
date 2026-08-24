@@ -23,7 +23,7 @@ export function NavEditor() {
     // No celular as abas dividem a largura por igual, o que dá alvo grande pro
     // dedo sem depender do tamanho da palavra. `min-h-11` garante os 44px que
     // a mão acerta de primeira.
-    <nav className="flex items-center gap-1 text-sm">
+    <nav className="flex w-full min-w-0 items-center gap-1 text-[11px] sm:w-auto sm:text-sm">
       {ABAS.map((aba) => {
         const ativa = pathname === aba.href || pathname.startsWith(`${aba.href}/`);
         return (
@@ -31,7 +31,7 @@ export function NavEditor() {
             key={aba.href}
             href={aba.href}
             aria-current={ativa ? "page" : undefined}
-            className={`relative flex min-h-11 flex-1 items-center justify-center rounded-lg px-2.5 py-1.5 transition-colors sm:flex-none ${
+            className={`relative flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-lg px-1 py-1.5 transition-colors sm:flex-none sm:px-2.5 ${
               ativa ? "text-text" : "text-muted hover:text-text"
             }`}
           >

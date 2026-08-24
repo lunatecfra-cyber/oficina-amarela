@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 export const metadata: Metadata = { title: "Dev — Oficina Amarela" };
 
@@ -126,11 +127,7 @@ function Fluxo({
 
 export default function DevPage() {
   if (!AMBIENTE_DEV) {
-    return (
-      <main className="flex flex-1 items-center justify-center px-6 py-20">
-        <p className="text-sm text-muted">Página de dev disponível só em ambiente de desenvolvimento.</p>
-      </main>
-    );
+    notFound();
   }
 
   return (

@@ -1,7 +1,11 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 # Como trabalhar neste projeto
@@ -376,3 +380,19 @@ npm run build              # Build (TypeScript check)
 - Sistema de 10 níveis de XP
 - Nuvem/depósito de vídeos na plataforma
 - Webhooks tempo real (substituir polling)
+
+## Uso econômico do agente
+
+- Preferir inspeções focadas e comandos paralelos quando forem independentes.
+- Fazer mudanças pequenas, sem deploy, migração ou alteração de serviço externo sem aprovação explícita do dono.
+- Rodar primeiro os testes mais baratos e só depois lint, TypeScript e build quando a mudança justificar.
+- Não acessar caixas de e-mail ou outras contas externas sem conexão e autorização específicas.
+
+### Ferramentas preferenciais
+
+- Priorizar `superpowers` para organizar, implementar e verificar tarefas.
+- Priorizar browser/Playwright para testar fluxos reais e responsividade.
+- Usar as integrações de Supabase, Vercel e Sites somente quando a tarefa exigir backend, infraestrutura ou publicação.
+- Usar skills de design apenas para mudanças visuais concretas, evitando carregar contexto de ferramentas que não serão usadas.
+- Não instalar ou invocar skills/plugins da lista de referências sem uma necessidade específica e autorização compatível.
+- Em tarefas de código, aplicar `caveman` para respostas enxutas e `ponytail` para evitar abstrações, dependências e código desnecessários; suspender ambos quando a compressão puder causar ambiguidade.

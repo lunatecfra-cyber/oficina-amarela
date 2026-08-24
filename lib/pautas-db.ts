@@ -33,6 +33,11 @@ type LinhaPauta = {
   // coluna DATE: o driver devolve Date (meia-noite UTC), não string
   prazo_desejado: Date | string | null;
   reedicao_pedida_por: "inspetor" | "porta_voz" | null;
+  video_bruto_url: string | null;
+  video_entrega_url: string | null;
+  marca_dagua: string | null;
+  cnpj_campanha: string | null;
+  titulo_eleitor: string | null;
 };
 
 // converte a linha do banco pro mesmo formato que as telas já usam,
@@ -68,6 +73,11 @@ function paraPauta(l: LinhaPauta): Pauta {
       ? new Date(l.prazo_desejado).toISOString().slice(0, 10)
       : undefined,
     reedicaoPedidaPor: l.reedicao_pedida_por ?? undefined,
+    videoBrutoUrl: l.video_bruto_url ?? undefined,
+    videoEntregaUrl: l.video_entrega_url ?? undefined,
+    marcaDagua: l.marca_dagua ?? undefined,
+    cnpjCampanha: l.cnpj_campanha ?? undefined,
+    tituloEleitor: l.titulo_eleitor ?? undefined,
   };
 }
 
@@ -77,6 +87,7 @@ const SELECT_BASE = sql`
          p.drive_link, p.youtube_link, p.status, p.reservada_ate, p.reservada_em, p.entrega_link,
          p.notas_inspetor, p.criada_em,
          p.extras, p.motivo, p.prazo_desejado, p.reedicao_pedida_por,
+         p.video_bruto_url, p.video_entrega_url, p.marca_dagua, p.cnpj_campanha, p.titulo_eleitor,
          e.apelido AS reservada_por_apelido
   FROM pautas p
   JOIN users u ON u.id = p.porta_voz_id
@@ -96,6 +107,10 @@ export async function criarPauta(dados: {
   extras?: string;
   motivo?: string;
   prazo?: string;
+  videoBrutoUrl?: string;
+  marcaDagua?: string;
+  cnpjCampanha?: string;
+  tituloEleitor?: string;
 }): Promise<{ ok: true; id: number } | { ok: false; erro: string }> {
   const titulo = limitar(dados.titulo, LIMITES.titulo);
   if (!titulo) return { ok: false, erro: "Dê um título pra missão." };
@@ -115,19 +130,28 @@ export async function criarPauta(dados: {
     driveLink: limitarOuNulo(dados.driveLink, LIMITES.link),
     youtubeLink: limitarOuNulo(dados.youtubeLink, LIMITES.link),
     prazo: limitarOuNulo(dados.prazo, 10), // "AAAA-MM-DD"
+    videoBrutoUrl: limitarOuNulo(dados.videoBrutoUrl, LIMITES.link),
+    marcaDagua: limitarOuNulo(dados.marcaDagua, LIMITES.briefCampo),
+    cnpjCampanha: limitarOuNulo(dados.cnpjCampanha, LIMITES.briefCampo),
+    tituloEleitor: limitarOuNulo(dados.tituloEleitor, LIMITES.briefCampo),
   };
 
   const [linha] = await sql`
     INSERT INTO pautas (porta_voz_id, titulo, formato, drive_link, youtube_link,
                         brief_tom, brief_cor, brief_fonte, brief_refs,
-                        extras, motivo, prazo_desejado)
+                        extras, motivo, prazo_desejado, video_bruto_url,
+                        marca_dagua, cnpj_campanha, titulo_eleitor)
     VALUES (${dados.portaVozId}, ${titulo}, ${dados.formato},
             ${brief.driveLink}, ${brief.youtubeLink},
             ${brief.tom}, ${brief.cor},
             ${brief.fonte}, ${brief.refs},
             ${brief.extras},
             ${brief.motivo},
-            ${brief.prazo})
+            ${brief.prazo},
+            ${brief.videoBrutoUrl},
+            ${brief.marcaDagua},
+            ${brief.cnpjCampanha},
+            ${brief.tituloEleitor})
     RETURNING id
   `;
   return { ok: true, id: linha.id };
@@ -313,13 +337,19 @@ export async function entregarPauta(
   // conferia o formato na entrada. Aqui vale mais pelo produto do que pela
   // segurança: sem isso, o porta-voz recebia um "link" que não abria nada e só
   // descobria ao clicar. Agora o editor é avisado na hora de entregar.
-  if (!pareceLink(link)) {
-    return { ok: false, erro: "Cole o link do vídeo editado (começando com http)." };
+  if (!pareceLink(link) && !link.includes('r2.dev') && !link.includes('amazonaws.com') && !link.includes('storage.googleapis.com')) {
+    return { ok: false, erro: "Cole o link do vídeo editado ou faça o upload." };
   }
+
+  // Identifica se é link de entrega (R2/S3) ou link manual
+  const isVideoEntregaUrl = link.includes('r2.dev') || link.includes('amazonaws.com') || link.includes('storage.googleapis.com');
 
   const linhas = await sql`
     UPDATE pautas
-    SET status = 'em_revisao', entrega_link = ${link.trim()}, notas_inspetor = NULL
+    SET status = 'em_revisao', 
+        entrega_link = ${!isVideoEntregaUrl ? link.trim() : null}, 
+        video_entrega_url = ${isVideoEntregaUrl ? link.trim() : null},
+        notas_inspetor = NULL
     WHERE id = ${pautaId} AND reservada_por_id = ${editorId}
       AND status IN ('reservada','reedicao')
     RETURNING id
@@ -470,7 +500,7 @@ export async function pedirAjuste(
   const linhas = await sql`
     UPDATE pautas SET status = 'reedicao', notas_inspetor = ${notas.trim()},
                       reedicao_pedida_por = 'porta_voz'
-    WHERE id = ${pautaId} AND porta_voz_id = ${portaVozId} AND status = 'aprovada'
+    WHERE id = ${pautaId} AND porta_voz_id = ${portaVozId} AND status IN ('em_revisao', 'aprovada')
     RETURNING id
   `;
   if (linhas.length === 0) {

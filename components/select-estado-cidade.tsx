@@ -24,6 +24,7 @@ export function SelectEstadoCidade({
   // carrega as cidades do estado selecionado via dynamic import
   useEffect(() => {
     if (!valorEstado) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCidades([]);
       return;
     }

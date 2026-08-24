@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Músicas — Oficina Amarela" };
 export const dynamic = "force-dynamic";
 
 export default async function MusicasPage() {
-  const sessao = await exigirSessao();
+  await exigirSessao();
 
   return (
     <>

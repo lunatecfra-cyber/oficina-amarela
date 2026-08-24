@@ -40,6 +40,9 @@ export async function POST(request: Request) {
     palavrasChave: soLista(body.palavrasChave),
     redes: soRedes(body.redes),
     bio: soTexto(body.bio),
+    marcaDagua: soTexto(body.marcaDagua),
+    cnpjCampanha: soTexto(body.cnpjCampanha),
+    tituloEleitor: soTexto(body.tituloEleitor),
   });
 
   if (!r.ok) return NextResponse.json({ erro: r.erro }, { status: 400 });

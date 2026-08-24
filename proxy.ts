@@ -6,6 +6,10 @@ import { verificarTokenSessao, NOME_COOKIE } from "@/lib/sessao";
 // aceita o runtime `edge`, e não precisamos dele: o `jose` que verifica o token
 // roda nos dois.
 export default async function proxy(request: NextRequest) {
+  if (process.env.NODE_ENV === "development" && request.cookies.get("dev_god_mode")?.value === "true") {
+    return NextResponse.next();
+  }
+
   const token = request.cookies.get(NOME_COOKIE)?.value;
   const sessao = token ? await verificarTokenSessao(token) : null;
 

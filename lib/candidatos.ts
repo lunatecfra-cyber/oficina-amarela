@@ -21,6 +21,10 @@ export type Candidato = {
   tint: string; // fundo do avatar
   foto?: string; // foto de perfil (data URL), quando o candidato monta o próprio perfil
   desde?: string; // na guilda desde quando (porta-voz)
+  // padrões para regras do TSE
+  marcaDagua?: string;
+  cnpjCampanha?: string;
+  tituloEleitor?: string;
 };
 
 // tint padrão pra candidato real (sem noção de "proximidade" — isso sempre

@@ -18,6 +18,7 @@ import {
 import { enviarMensagem, mensagensDaPauta, mensagensDaPautaApos } from "@/lib/chat-db";
 import { criarDenuncia } from "@/lib/denuncias-db";
 import { lerSessao } from "@/lib/sessao-servidor";
+import { podeExecutarAcao } from "@/lib/transicoes-pauta";
 
 // GET — polling do chat. Retorna mensagens de uma missão, opcionalmente
 // só as que vieram depois de ?depois=<ISO timestamp>.
@@ -69,6 +70,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
   const body = await request.json().catch(() => null);
   const acao = body?.acao;
+
+  const [pautaAtual] = await sql`
+    SELECT status FROM pautas WHERE id = ${pautaId}
+  `;
+  if (!pautaAtual) return NextResponse.json({ erro: "Missão não encontrada." }, { status: 404 });
+  if (!podeExecutarAcao(String(pautaAtual.status), sessao.papel, String(acao))) {
+    return NextResponse.json({ erro: "Essa ação não combina com o estado atual da missão." }, { status: 409 });
+  }
 
   const ehEditor = sessao.papel === "editor" || sessao.papel === "admin";
   const ehQualidade = sessao.papel === "admin"; // controle de qualidade hoje é só admin

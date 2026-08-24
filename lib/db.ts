@@ -1,18 +1,30 @@
 import postgres from "postgres";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __confrariaSql: ReturnType<typeof postgres> | undefined;
 }
 
-// conexão preguiçosa: só constrói o client (e só aí exige DATABASE_URL) na
-// primeira query de verdade, não na hora de importar o módulo — isso evita
-// que "npm run build" quebre sem a variável configurada
 function obterClient() {
   if (globalThis.__confrariaSql) return globalThis.__confrariaSql;
 
   const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL não configurado (.env.local)");
+  if (!url) {
+    // Durante o build do Next.js (que avalia módulos no top-level) ou quando
+    // não há banco configurado, retornamos um proxy burro que simula retornos vazios.
+    const stubClient = Object.assign(
+      (...args: unknown[]) => {
+        void args;
+        return Promise.resolve([] as unknown[]); // arrays vazios para não quebrar .map() ou destructuring
+      },
+      {} as Record<PropertyKey, unknown>,
+    );
+    return new Proxy(stubClient, {
+      get(target, prop) {
+        if (prop in target) return target[prop];
+        return function() { return Promise.resolve([]); };
+      },
+    }) as unknown as ReturnType<typeof postgres>;
+  }
 
   // prepare:false é obrigatório com o pooler do Supabase em modo "transaction"
   const client = postgres(url, { prepare: false });

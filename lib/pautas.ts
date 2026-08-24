@@ -45,6 +45,13 @@ export type Pauta = {
   extras?: string; // cortes/trechos específicos (passo 2 do wizard)
   motivo?: string; // contexto/porquê do vídeo (passo 4)
   prazoDesejado?: string; // ISO date (passo 5)
+  // links de arquivos R2 upados
+  videoBrutoUrl?: string;
+  videoEntregaUrl?: string;
+  // regras TSE da missão
+  marcaDagua?: string;
+  cnpjCampanha?: string;
+  tituloEleitor?: string;
   // quem mandou de volta pra reedição — muda o texto que o editor lê
   reedicaoPedidaPor?: "inspetor" | "porta_voz";
 };

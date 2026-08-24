@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROTULO_FORMATO, type Pauta } from "@/lib/pautas";
-import { pareceLink, pareceLinkDrive, pareceLinkYoutube } from "@/lib/validators";
+import { pareceLinkDrive, pareceLinkYoutube } from "@/lib/validators";
 import { ChatMissao } from "@/components/chat-missao";
-import { DenunciaBotao } from "@/components/denuncia-botao";
 import { BotaoTutorial, TutorialDrive } from "@/components/tutorial-drive";
+import { UploadDropzone } from "@/components/upload-dropzone";
 import type { Mensagem } from "@/lib/chat-db";
+import { DenunciaBotao } from "@/components/denuncia-botao";
 
 // A missão que o editor aceitou e está fazendo agora.
 //
@@ -131,8 +132,6 @@ export function MissaoEmMaos({
         {missao.prazoDesejado && <> · pra {dataCurta(missao.prazoDesejado)}</>}
       </p>
 
-      {/* quem pediu a reedição muda a conversa: o inspetor reprovou por
-          qualidade, o porta-voz quer outra coisa */}
       {missao.status === "reedicao" && missao.notasInspetor && (
         <div className="mt-4 rounded-2xl border border-danger/40 bg-danger/[0.06] p-4">
           <p className="text-xs uppercase tracking-[0.12em] text-danger">
@@ -146,7 +145,30 @@ export function MissaoEmMaos({
         </div>
       )}
 
-      {(missao.driveLink && pareceLinkDrive(missao.driveLink) || missao.youtubeLink && pareceLinkYoutube(missao.youtubeLink)) && (
+      {(missao.marcaDagua || missao.cnpjCampanha || missao.tituloEleitor) && (
+        <div className="mt-4 rounded-2xl border border-gold/40 bg-gold/[0.06] p-4 flex gap-3">
+          <div className="mt-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-gold">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gold">
+              Inclusão Obrigatória (TSE)
+            </p>
+            <p className="mt-1 text-sm text-silver-lo">
+              As seguintes informações devem aparecer de forma legível no vídeo final:
+            </p>
+            <ul className="mt-2 space-y-1 text-sm text-text">
+              {missao.marcaDagua && <li><span className="text-muted-2">Marca d&apos;água:</span> {missao.marcaDagua}</li>}
+              {missao.cnpjCampanha && <li><span className="text-muted-2">CNPJ:</span> {missao.cnpjCampanha}</li>}
+              {missao.tituloEleitor && <li><span className="text-muted-2">Título de Eleitor:</span> {missao.tituloEleitor}</li>}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {(missao.videoBrutoUrl || (missao.driveLink && pareceLinkDrive(missao.driveLink)) || (missao.youtubeLink && pareceLinkYoutube(missao.youtubeLink))) && (
         <div className="mt-5 rounded-2xl border border-gold/30 bg-gradient-to-r from-gold/[0.08] to-gold/[0.03] p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-gold">
             Acesso ao bruto
@@ -155,6 +177,21 @@ export function MissaoEmMaos({
             className="mt-3 flex flex-wrap items-center gap-2"
             data-guia="abrir-bruto"
           >
+            {missao.videoBrutoUrl && (
+              <a
+                href={missao.videoBrutoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-base font-semibold text-surface transition-colors hover:bg-gold-hi"
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5" aria-hidden="true">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L9 11.586V4a1 1 0 011-1z" clipRule="evenodd" />
+                  <path d="M4 16a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" />
+                </svg>
+                Baixar Vídeo
+              </a>
+            )}
             {missao.driveLink && pareceLinkDrive(missao.driveLink) && (
               <a
                 href={missao.driveLink}
@@ -233,9 +270,9 @@ export function MissaoEmMaos({
             <p className="flex flex-wrap items-center gap-2 text-sm text-text">
               <span className="text-ok">✓</span> Entregue. Agora é com o controle
               de qualidade — assim que aprovarem, a próxima missão chega pra você.
-              {missao.entregaLink && pareceLink(missao.entregaLink) && (
+              {(missao.videoEntregaUrl || missao.entregaLink) && (
                 <a
-                  href={missao.entregaLink}
+                  href={missao.videoEntregaUrl || missao.entregaLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-gold-hi hover:underline"
@@ -254,28 +291,37 @@ export function MissaoEmMaos({
       ) : (
         <>
           <div className="mt-5" data-guia="campo-entrega">
-            <label
-              htmlFor="entrega"
-              className="mb-2 block text-xs uppercase tracking-[0.12em] text-muted"
-            >
-              Link do vídeo pronto
-            </label>
-            <input
-              id="entrega"
-              className="field-input !pl-4"
-              placeholder="cole aqui o link do Drive"
-              value={linkEntrega}
-              onChange={(e) => {
-                setLinkEntrega(e.target.value);
+            <h3 className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-gold">
+              Entregar Vídeo Pronto
+            </h3>
+
+            <UploadDropzone
+              label="Fazer upload do vídeo editado"
+              onUploadSuccess={(url) => {
+                setLinkEntrega(url);
                 setAviso("");
               }}
             />
-            {/* mesma ajuda que o candidato tem na hora de criar a missão: o
-                erro é o mesmo dos dois lados — colar link de pasta fechada */}
-            <BotaoTutorial
-              onClick={() => setTutorialAberto(true)}
-              texto="Como liberar o link do meu Drive?"
-            />
+
+            <div className="mt-4 flex items-center gap-4">
+              <div className="h-px flex-1 bg-line" />
+              <span className="text-[10px] text-muted font-medium uppercase tracking-widest">OU COLE UM LINK</span>
+              <div className="h-px flex-1 bg-line" />
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <input
+                id="entrega"
+                className="field-input !pl-4"
+                placeholder="cole aqui o link do Drive (opcional se fez upload)"
+                value={linkEntrega}
+                onChange={(e) => {
+                  setLinkEntrega(e.target.value);
+                  setAviso("");
+                }}
+              />
+              <BotaoTutorial onClick={() => setTutorialAberto(true)} />
+            </div>
           </div>
 
           <TutorialDrive

@@ -19,6 +19,7 @@ import type { OnboardingCandidato } from "@/lib/candidato-db";
 import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/icones-redes";
 import { SelectEstadoCidade } from "@/components/select-estado-cidade";
 import { comprimirFoto } from "@/lib/comprimir-foto";
+import { AvisoTse } from "@/components/aviso-tse";
 
 /** extrai UF e cidade de um valor salvo no formato "Cidade/UF" ou "Cidade, UF" */
 function parseLocalizacao(valor: string): { uf: string; cidade: string } {
@@ -67,6 +68,10 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
   const [palavrasChave, setPalavrasChave] = useState<string[]>(inicial.palavrasChave);
   const [novaPalavraChave, setNovaPalavraChave] = useState("");
   const [bio, setBio] = useState(inicial.bio);
+  
+  const [marcaDagua, setMarcaDagua] = useState(inicial.marcaDagua || "");
+  const [cnpjCampanha, setCnpjCampanha] = useState(inicial.cnpjCampanha || "");
+  const [tituloEleitor, setTituloEleitor] = useState(inicial.tituloEleitor || "");
 
   const [redes, setRedes] = useState<RedesSociais>(inicial.redes);
 
@@ -189,6 +194,9 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
         palavrasChave,
         redes,
         bio,
+        marcaDagua,
+        cnpjCampanha,
+        tituloEleitor,
       }),
     });
     setSalvando(false);
@@ -494,7 +502,7 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
                     {t}
                   </span>
                   <span className="mt-1 block text-xs italic leading-snug text-muted-2">
-                    "{EXEMPLOS_TOM[t]}"
+                    &quot;{EXEMPLOS_TOM[t]}&quot;
                   </span>
                 </button>
               ))}
@@ -665,6 +673,67 @@ export function CriarPerfilCandidatoForm({ inicial }: { inicial: OnboardingCandi
                   onChange={(e) => atualizarRede("x", e.target.value)}
                 />
               </div>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
+              Regras Eleitorais (TSE)
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              Essas informações serão preenchidas automaticamente nas suas missões para que o editor inclua nos vídeos.
+            </p>
+
+            <div className="mt-4">
+              <AvisoTse />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 mt-4">
+              <div>
+                <label htmlFor="marcaDagua" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+                  Marca d&apos;água
+                </label>
+                <input
+                  id="marcaDagua"
+                  className="field-input !pl-4"
+                  placeholder="ex.: Candidato Oficial - #12345"
+                  value={marcaDagua}
+                  onChange={(e) => {
+                    setMarcaDagua(e.target.value);
+                    setErro("");
+                  }}
+                />
+              </div>
+              <div>
+                <label htmlFor="cnpjCampanha" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+                  CNPJ da Campanha
+                </label>
+                <input
+                  id="cnpjCampanha"
+                  className="field-input !pl-4"
+                  placeholder="00.000.000/0000-00"
+                  value={cnpjCampanha}
+                  onChange={(e) => {
+                    setCnpjCampanha(e.target.value);
+                    setErro("");
+                  }}
+                />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label htmlFor="tituloEleitor" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+                Título de Eleitor
+              </label>
+              <input
+                id="tituloEleitor"
+                className="field-input !pl-4"
+                placeholder="0000 0000 0000"
+                value={tituloEleitor}
+                onChange={(e) => {
+                  setTituloEleitor(e.target.value);
+                  setErro("");
+                }}
+              />
             </div>
           </div>
 

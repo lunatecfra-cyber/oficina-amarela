@@ -23,6 +23,13 @@ export function NavInspetor() {
     // fonte (e perder o alvo do dedo), a tira rola sozinha — só ela, nunca a
     // página. `min-h-11` mantém os 44px que a mão acerta.
     <nav className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Admin também é Porta-voz: atalho discreto para voltar à área do candidato */}
+      <Link
+        href="/porta-voz"
+        className="mr-2 flex min-h-11 flex-none items-center whitespace-nowrap pr-1 text-xs text-muted/60 transition-colors hover:text-text"
+      >
+        ← Porta-voz
+      </Link>
       {ABAS.map((aba) => {
         const ativa = pathname === aba.href || pathname.startsWith(`${aba.href}/`);
         return (
