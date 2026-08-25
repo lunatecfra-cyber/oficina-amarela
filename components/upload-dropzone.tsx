@@ -47,18 +47,26 @@ export function UploadDropzone({
     setErrorMessage("");
 
     try {
-      // 1. Pegar URL presignada da nossa API
+      // 1. Pegar URL presignada da nossa API (o tamanho viaja junto pra
+      //    viajar ASSINADO na URL — é o R2 que garante o teto, não o cliente)
       const presignRes = await fetch("/api/upload/presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           filename: file.name,
           contentType: file.type || "application/octet-stream",
+          tamanho: file.size,
         }),
       });
 
-      if (!presignRes.ok) throw new Error("Erro ao preparar upload");
+      if (!presignRes.ok) {
+        const corpo = await presignRes.json().catch(() => null);
+        throw new Error(corpo?.erro || "Erro ao preparar upload");
+      }
       const { uploadUrl, readUrl } = await presignRes.json();
+      if (!readUrl) {
+        throw new Error("Upload sem URL pública configurada no servidor (R2_PUBLIC_BASE_URL).");
+      }
 
       // 2. Fazer o upload real usando XMLHttpRequest para ter progresso
       await new Promise<void>((resolve, reject) => {
