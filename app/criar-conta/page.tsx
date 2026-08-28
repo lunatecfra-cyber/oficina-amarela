@@ -7,6 +7,8 @@ import { CriarContaForm } from "@/components/criar-conta-form";
 export const metadata: Metadata = { title: "Criar conta — Oficina Amarela" };
 
 export default function CriarContaPage() {
+  const modoDev = process.env.NODE_ENV === "development" && !process.env.VERCEL;
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
       <Link href="/" className="mb-6 flex flex-col items-center text-center">
@@ -27,7 +29,7 @@ export default function CriarContaPage() {
       </div>
 
       <Suspense>
-        <CriarContaForm />
+        <CriarContaForm modoDev={modoDev} />
       </Suspense>
     </main>
   );

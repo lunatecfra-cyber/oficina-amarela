@@ -36,7 +36,7 @@ const VAZIO: Dados = {
   fonte: "",
   refs: "",
   motivo: "",
-  formato: "",
+  formato: "short",
   prazo: "",
   videoBrutoUrl: "",
   marcaDagua: "",
@@ -384,28 +384,9 @@ export function NovaPautaForm({ marcaDaguaPadrao, cnpjCampanhaPadrao, tituloElei
         {passo === 4 && (
           <Passo titulo="Formato" sub="Como você precisa do vídeo.">
             <Campo label="Formato">
-              <div className="grid grid-cols-2 gap-3">
-                {(
-                  [
-                    { v: "short", t: "Short 9:16", d: "vertical" },
-                    { v: "longo", t: "Longo 16:9", d: "horizontal" },
-                  ] as const
-                ).map((op) => (
-                  <button
-                    key={op.v}
-                    type="button"
-                    onClick={() => set("formato", op.v)}
-                    aria-pressed={dados.formato === op.v}
-                    className={`rounded-xl border p-4 text-left transition-colors ${
-                      dados.formato === op.v
-                        ? "border-gold bg-gold/10"
-                        : "border-line bg-surface hover:border-silver-lo"
-                    }`}
-                  >
-                    <span className="block font-medium text-text">{op.t}</span>
-                    <span className="text-xs text-muted">{op.d}</span>
-                  </button>
-                ))}
+              <div className="rounded-xl border border-gold bg-gold/10 p-4">
+                <span className="block font-medium text-text">Short 9:16</span>
+                <span className="text-xs text-muted">vertical</span>
               </div>
             </Campo>
           </Passo>

@@ -8,6 +8,7 @@ import {
   NOME_COOKIE_PENDENTE,
   verificarIdentidadePendente,
 } from "@/lib/sessao";
+import { registrarEntradaDiaria } from "@/lib/gamificacao-db";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -44,6 +45,9 @@ export async function POST(request: Request) {
 
   const sessaoToken = await criarTokenSessao(resultado.conta);
   jar.set(NOME_COOKIE, sessaoToken, COOKIE_OPTS);
+  void registrarEntradaDiaria(resultado.conta.id).catch((e) =>
+    console.error("[gamificacao] falhou ao registrar entrada", e)
+  );
 
   const destino = papel === "editor" ? "/editor/criar-perfil" : "/porta-voz/criar-perfil?via=google";
   return NextResponse.json({ ok: true, destino });

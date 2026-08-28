@@ -410,8 +410,8 @@ export async function limparTentativasLogin(apelido: string): Promise<void> {
 
 /** Quantas contas existem com esse papel? Usado para checar VAGAS antes de criar. */
 export async function contarInscritos(papel: Papel): Promise<number> {
-  const [{ n }] = await sql`SELECT count(*)::int AS n FROM users WHERE papel = ${papel}`;
-  return n;
+  const [linha] = await sql`SELECT count(*)::int AS n FROM users WHERE papel = ${papel}`;
+  return Number(linha?.n ?? 0);
 }
 
 /**

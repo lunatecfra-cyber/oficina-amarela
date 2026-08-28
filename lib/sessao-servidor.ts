@@ -53,7 +53,18 @@ export async function lerSessao(): Promise<SessaoUsuario | null> {
     `;
 
     // conta apagada no meio do caminho
-    if (!linha) return null;
+    if (!linha) {
+      // O login sintético é exclusivo do atalho local de desenvolvimento.
+      // Sem esta marca, uma conta realmente apagada continua inválida.
+      if (
+        process.env.NODE_ENV === "development" &&
+        !process.env.VERCEL &&
+        jar.get("oficina_demo_papel")?.value === sessao.papel
+      ) {
+        return sessao;
+      }
+      return null;
+    }
 
     const corteEmSegundos = Math.floor(new Date(linha.sessoes_validas_apos).getTime() / 1000);
     if (sessao.emitidoEm < corteEmSegundos) return null;

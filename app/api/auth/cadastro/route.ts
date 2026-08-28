@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { criarConta, checarVagaPapel, registrarTentativa, taxaTravada } from "@/lib/contas";
 import { ipDaRequisicao } from "@/lib/ip";
 import { criarTokenSessao, NOME_COOKIE, COOKIE_OPTS } from "@/lib/sessao";
+import { registrarEntradaDiaria } from "@/lib/gamificacao-db";
 
 // Quantas contas o mesmo IP pode criar antes de esfriar. Mais folgado que o
 // login (5) porque família e escritório saem pelo mesmo IP.
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
   const token = await criarTokenSessao(resultado.conta);
   const jar = await cookies();
   jar.set(NOME_COOKIE, token, COOKIE_OPTS);
+  void registrarEntradaDiaria(resultado.conta.id).catch((e) =>
+    console.error("[gamificacao] falhou ao registrar entrada", e)
+  );
 
   return NextResponse.json({ ok: true, ...resultado.conta });
 }

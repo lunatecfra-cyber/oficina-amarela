@@ -35,6 +35,8 @@ const CONTAS: Record<Papel, { apelido: string; nome: string; email: string; dest
   },
 };
 
+const NOME_COOKIE_DEMO = "oficina_demo_papel";
+
 export async function GET(request: Request) {
   if (!ambienteDeDesenvolvimento()) {
     return NextResponse.json({ erro: "Rota disponível só em desenvolvimento." }, { status: 404 });
@@ -46,6 +48,14 @@ export async function GET(request: Request) {
     papelParam === "editor" || papelParam === "voz" || papelParam === "admin" ? papelParam : "editor";
 
   const conta = CONTAS[papel];
+  const destino =
+    url.searchParams.get("destino") === "perfil"
+      ? papel === "editor"
+        ? "/editor/criar-perfil"
+        : papel === "voz"
+          ? "/porta-voz/criar-perfil"
+          : conta.destino
+      : conta.destino;
 
   // cria na primeira vez, reaproveita depois. senha_hash fica NULL: essa conta
   // não loga por senha, só por este atalho
@@ -56,15 +66,28 @@ export async function GET(request: Request) {
     RETURNING id, apelido, nome, papel
   `;
 
+  // Sem DATABASE_URL, lib/db devolve uma lista vazia para manter as telas
+  // navegáveis localmente. Nesse caso, usa uma identidade sintética de demo;
+  // ela nunca é criada nem aceita fora deste ambiente.
+  const sessao = linha ?? {
+    id: 9000 + (papel === "editor" ? 1 : papel === "voz" ? 2 : 3),
+    apelido: conta.apelido,
+    nome: conta.nome,
+    papel,
+  };
+
   const token = await criarTokenSessao({
-    id: linha.id,
-    apelido: linha.apelido,
-    nome: linha.nome,
-    papel: linha.papel,
+    id: sessao.id,
+    apelido: sessao.apelido,
+    nome: sessao.nome,
+    papel: sessao.papel,
   });
 
   const jar = await cookies();
   jar.set(NOME_COOKIE, token, COOKIE_OPTS);
+  if (!linha) {
+    jar.set(NOME_COOKIE_DEMO, papel, COOKIE_OPTS);
+  }
 
-  return NextResponse.redirect(new URL(conta.destino, url.origin));
+  return NextResponse.redirect(new URL(destino, url.origin));
 }

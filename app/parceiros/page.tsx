@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
+import { AppHeaderInspetor } from "@/components/app-header-inspetor";
 import { AppHeaderPortaVoz } from "@/components/app-header-porta-voz";
 import { lerSessao } from "@/lib/sessao-servidor";
 import { cabecalhoParceiros } from "@/lib/navegacao";
@@ -31,7 +32,13 @@ export default async function ParceirosPage() {
 
   return (
     <>
-      {cabecalho === "porta-voz" ? <AppHeaderPortaVoz /> : <AppHeader />}
+      {cabecalho === "porta-voz" ? (
+        <AppHeaderPortaVoz />
+      ) : cabecalho === "inspetor" ? (
+        <AppHeaderInspetor />
+      ) : (
+        <AppHeader />
+      )}
       <main className="flex-1">
         <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
           <div className="mb-8">

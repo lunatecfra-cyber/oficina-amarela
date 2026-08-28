@@ -19,7 +19,13 @@ export const COOKIE_OPTS = {
 };
 
 function chave() {
-  const segredo = process.env.AUTH_SECRET;
+  // O fallback só existe para a demo local sem .env.local completo. Em
+  // produção, AUTH_SECRET continua obrigatório e nunca usa valor conhecido.
+  const segredo =
+    process.env.AUTH_SECRET ??
+    (process.env.NODE_ENV === "development" && !process.env.VERCEL
+      ? "oficina-amarela-local-dev-secret"
+      : undefined);
   if (!segredo) throw new Error("AUTH_SECRET não configurado (.env.local)");
   return new TextEncoder().encode(segredo);
 }

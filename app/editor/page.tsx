@@ -8,6 +8,7 @@ import { pautaReservadaPor } from "@/lib/pautas-db";
 import { mensagensDaPauta } from "@/lib/chat-db";
 import { lerOnboardingEditor } from "@/lib/perfil-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
+import { listarDesafiosDoDia, registrarEntradaDiaria } from "@/lib/gamificacao-db";
 
 export const metadata: Metadata = { title: "Fila — Oficina Amarela" };
 
@@ -26,6 +27,12 @@ export default async function EditorPage() {
     pautaReservadaPor(sessao.id),
     lerOnboardingEditor(sessao.id),
   ]);
+  try {
+    await registrarEntradaDiaria(sessao.id);
+  } catch (e) {
+    console.error("[gamificacao] falhou ao registrar entrada", e);
+  }
+  const desafios = await listarDesafiosDoDia(sessao.id);
   const perfilIncompleto = onboarding ? !onboarding.perfilCompleto : true;
   // thread da missão em mãos — sem missão, sem conversa (nada pra buscar)
   const mensagens = minhaAtual
@@ -70,7 +77,7 @@ export default async function EditorPage() {
             }}
           />
 
-          <DesafiosDia />
+          <DesafiosDia desafios={desafios} />
         </div>
       </main>
     </>

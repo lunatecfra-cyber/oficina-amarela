@@ -9,7 +9,7 @@ type VagasInfo = {
   voz: { total: number; inscritos: number; livres: number };
 };
 
-export function CriarContaForm() {
+export function CriarContaForm({ modoDev = false }: { modoDev?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [papel, setPapel] = useState<"voz" | "editor">(
@@ -112,6 +112,26 @@ export function CriarContaForm() {
           Sou editor
         </button>
       </div>
+
+      {modoDev && (
+        <div className="mb-6 rounded-xl border border-gold-lo/30 bg-gold/[0.05] p-4">
+          <p className="text-xs leading-relaxed text-muted">
+            Ambiente local: veja a área de demonstração sem preencher cadastro.
+          </p>
+          <a
+            href={`/api/auth/dev-login?papel=${papel}&destino=perfil`}
+            className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-gold/50 px-4 py-2 text-sm font-medium text-gold-hi transition-colors hover:bg-gold/10 hover:text-gold"
+          >
+            Criar perfil de demonstração como {papel === "voz" ? "porta-voz" : "editor"}
+          </a>
+          <a
+            href="/criar-conta"
+            className="mt-3 block text-center text-xs text-muted-2 transition-colors hover:text-text"
+          >
+            ← voltar para escolher o papel
+          </a>
+        </div>
+      )}
 
       {vagas && (
         <p className="mb-4 text-center text-xs text-muted-2">

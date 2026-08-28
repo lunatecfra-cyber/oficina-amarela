@@ -3,6 +3,8 @@ import Image from "next/image";
 import { NOVIDADES, dataCurta } from "@/lib/novidades";
 import { AoAparecer } from "@/components/ao-aparecer";
 import { BrilhoDoMouse } from "@/components/brilho-do-mouse";
+import { ProximoPasso } from "@/components/proximo-passo";
+import { PremiacaoFestival } from "@/components/premiacao-festival";
 import { novidadesPublicadas } from "@/lib/novidades-db";
 
 // Esta página é pública e é a mais visitada — consultar o banco a cada visita
@@ -193,24 +195,29 @@ export default async function Home() {
         />
       </section>
 
-      {/* ---- como funciona: duas trilhas ---- */}
-      <section className="px-6 py-16 lg:py-24">
-        <div className="mx-auto w-full max-w-5xl">
-          <h2 className="text-center font-[family-name:var(--font-display)] text-3xl font-semibold text-text lg:text-4xl">
-            Como funciona
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-center text-sm text-muted">
-            São dois caminhos correndo ao mesmo tempo. Eles se encontram no
-            vídeo pronto.
-          </p>
+      <PremiacaoFestival />
+      <ProximoPasso />
 
-          <div className="relative mt-12 grid gap-8 md:grid-cols-2 md:gap-10">
+      {/* ---- como funciona: duas trilhas ---- */}
+      <section id="como-funciona" className="relative overflow-hidden px-6 py-16 lg:py-24">
+        <div className="mx-auto w-full max-w-5xl">
+          <div className="max-w-2xl">
+            <h2 className="font-[family-name:var(--font-display)] text-4xl font-semibold leading-none text-text lg:text-6xl">
+              Do bruto ao pronto
+            </h2>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted lg:text-base">
+              Duas pessoas, dois ritmos e um mesmo vídeo. A produção começa no
+              celular e termina com uma entrega que dá gosto de publicar.
+            </p>
+          </div>
+
+          <div className="relative mt-14 grid gap-10 md:grid-cols-2 md:gap-16">
             {/* fio vertical entre as duas colunas: mostra que correm em
                 paralelo, sem precisar dizer. Só no PC — no celular as trilhas
                 ficam uma embaixo da outra e o fio mentiria. */}
             <div
               aria-hidden="true"
-              className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-line to-transparent md:block"
+              className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-gradient-to-b from-gold-lo/70 via-line to-transparent md:block"
             />
 
             {TRILHAS.map((trilha, iT) => (
@@ -232,14 +239,14 @@ export default async function Home() {
                   />
 
                   {trilha.passos.map((p, i) => (
-                    <li key={p.t} className="relative">
+                  <li key={p.t} className="group relative">
                       <span
                         aria-hidden="true"
                         className="absolute -left-9 top-1 grid h-6 w-6 place-items-center rounded-full border border-gold-lo/50 bg-ink-2 font-[family-name:var(--font-display)] text-[11px] font-semibold text-gold-hi"
                       >
                         {i + 1}
                       </span>
-                      <h3 className="font-medium text-text">{p.t}</h3>
+                      <h3 className="font-medium text-text transition-colors group-hover:text-gold-hi">{p.t}</h3>
                       <p className="mt-0.5 text-sm leading-relaxed text-muted">{p.d}</p>
                     </li>
                   ))}
@@ -362,7 +369,51 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ---- parceiros ---- */}
+      {/* ---- fechamento ---- */}
+      <section className="relative overflow-hidden border-t border-line-soft px-6 py-16 lg:py-20">
+        <Image
+          src="/emblema.png"
+          alt=""
+          aria-hidden="true"
+          width={365}
+          height={365}
+          className="pointer-events-none absolute -right-10 top-1/2 w-48 -translate-y-1/2 opacity-[0.06] lg:w-64"
+        />
+        <div className="relative mx-auto w-full max-w-2xl text-center">
+          <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-text lg:text-4xl">
+            Entrar para a Oficina
+          </h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
+            Criar conta leva menos de um minuto. Dá pra entrar com o Google ou
+            com apelido e senha.
+          </p>
+
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link href="/criar-conta" className="btn-gold sm:w-52 text-center flex items-center justify-center">
+              Criar minha conta
+            </Link>
+            <Link href="/login" className="btn-ghost sm:w-40 text-center flex items-center justify-center">
+              Fazer login
+            </Link>
+          </div>
+
+          <p className="mt-6 text-xs text-muted-2">
+            <Link href="/termos" className="inline-block py-2 hover:text-muted">
+              Termos de uso
+            </Link>
+            <span className="px-1">·</span>
+            <Link href="/privacidade" className="inline-block py-2 hover:text-muted">
+              Política de privacidade
+            </Link>
+            <span className="px-1">·</span>
+            <Link href="/parceiros" className="inline-block py-2 hover:text-muted">
+              Parceiros
+            </Link>
+          </p>
+        </div>
+      </section>
+
+      {/* ---- parceiros: último bloco público ---- */}
       <section className="border-t border-line-soft px-6 py-16 lg:py-20">
         <div className="mx-auto w-full max-w-3xl">
           <h2 className="text-center font-[family-name:var(--font-display)] text-3xl font-semibold text-text lg:text-4xl">
@@ -445,52 +496,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ---- fechamento ---- */}
-      <section className="relative overflow-hidden border-t border-line-soft px-6 py-16 lg:py-20">
-        <Image
-          src="/emblema.png"
-          alt=""
-          aria-hidden="true"
-          width={365}
-          height={365}
-          className="pointer-events-none absolute -right-10 top-1/2 w-48 -translate-y-1/2 opacity-[0.06] lg:w-64"
-        />
-        <div className="relative mx-auto w-full max-w-2xl text-center">
-          <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-text lg:text-4xl">
-            Entrar para a Oficina
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
-            Criar conta leva menos de um minuto. Dá pra entrar com o Google ou
-            com apelido e senha.
-          </p>
-
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link href="/criar-conta" className="btn-gold sm:w-52 text-center flex items-center justify-center">
-              Criar minha conta
-            </Link>
-            <Link href="/login" className="btn-ghost sm:w-40 text-center flex items-center justify-center">
-              Fazer login
-            </Link>
-          </div>
-
-          {/* inline-block com py: sem isso o link tinha 15px de altura e virava
-              uma linha fina que o dedo erra. O padding não muda o desenho —
-              só aumenta a área que responde ao toque. */}
-          <p className="mt-6 text-xs text-muted-2">
-            <Link href="/termos" className="inline-block py-2 hover:text-muted">
-              Termos de uso
-            </Link>
-            <span className="px-1">·</span>
-            <Link href="/privacidade" className="inline-block py-2 hover:text-muted">
-              Política de privacidade
-            </Link>
-            <span className="px-1">·</span>
-            <Link href="/parceiros" className="inline-block py-2 hover:text-muted">
-              Parceiros
-            </Link>
-          </p>
-        </div>
-      </section>
     </main>
   );
 }

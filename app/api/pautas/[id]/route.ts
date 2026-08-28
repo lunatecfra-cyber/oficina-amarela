@@ -19,6 +19,7 @@ import { enviarMensagem, mensagensDaPauta, mensagensDaPautaApos } from "@/lib/ch
 import { criarDenuncia } from "@/lib/denuncias-db";
 import { lerSessao } from "@/lib/sessao-servidor";
 import { podeExecutarAcao } from "@/lib/transicoes-pauta";
+import { registrarEventoGamificacao } from "@/lib/gamificacao-db";
 
 // GET — polling do chat. Retorna mensagens de uma missão, opcionalmente
 // só as que vieram depois de ?depois=<ISO timestamp>.
@@ -174,6 +175,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 
   if (!r.ok) return NextResponse.json({ erro: r.erro }, { status: 409 });
+
+  if (acao === "entregar") {
+    void registrarEventoGamificacao(sessao.id, "missao_entregue", String(pautaId)).catch((e) =>
+      console.error("[gamificacao] falhou ao registrar entrega", e)
+    );
+  }
 
   // Avisa quem está do outro lado. Fica DEPOIS do sucesso e sem `await` no
   // resultado: a missão já foi entregue/aprovada no banco, e o Resent fora do
