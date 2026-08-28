@@ -2,102 +2,109 @@
 
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { DemoGuia } from "@/components/demo-guia";
+import { GuideDemo } from "@/components/guide-demo";
 import { ScreencastDrive } from "@/components/screencast-drive";
-import { urlDeEmbutir, VIDEOS, type TipoTutorial } from "@/lib/tutoriais";
+import { embedUrl, VIDEOS, type TutorialType, type TipoTutorial } from "@/lib/tutorials";
 
-/**
- * A janelinha "Como pegar o link do Drive".
- *
- * O miolo de vídeo funciona sozinho: se houver link em lib/tutoriais.ts, toca
- * o vídeo; se não houver, mostra a animação. Nunca fica um retângulo vazio
- * esperando alguém lembrar de gravar.
- */
-
-const PASSOS: Record<TipoTutorial, { n: number; texto: React.ReactNode }[]> = {
+const STEPS: Record<string, { n: number; text: React.ReactNode }[]> = {
   drive: [
-    { n: 1, texto: <>Suba o vídeo na sua pasta</> },
-    { n: 2, texto: <>Toque em <b className="font-medium text-text">Compartilhar</b></> },
-    { n: 3, texto: <>Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b></> },
-    { n: 4, texto: <>Copie o link e cole na Oficina</> },
+    { n: 1, text: <>Suba o vídeo na sua pasta</> },
+    { n: 2, text: <>Toque em <b className="font-medium text-text">Compartilhar</b></> },
+    { n: 3, text: <>Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b></> },
+    { n: 4, text: <>Copie o link e cole na Oficina</> },
+  ],
+  delivery: [
+    { n: 1, text: <>Suba o vídeo pronto no <b className="font-medium text-text">seu</b> Drive</> },
+    { n: 2, text: <>Toque em <b className="font-medium text-text">Compartilhar</b></> },
+    { n: 3, text: <>Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b></> },
+    { n: 4, text: <>Copie o link e confirme a entrega</> },
   ],
   entrega: [
-    { n: 1, texto: <>Suba o vídeo pronto no <b className="font-medium text-text">seu</b> Drive</> },
-    { n: 2, texto: <>Toque em <b className="font-medium text-text">Compartilhar</b></> },
-    { n: 3, texto: <>Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b></> },
-    { n: 4, texto: <>Copie o link e confirme a entrega</> },
+    { n: 1, text: <>Suba o vídeo pronto no <b className="font-medium text-text">seu</b> Drive</> },
+    { n: 2, text: <>Toque em <b className="font-medium text-text">Compartilhar</b></> },
+    { n: 3, text: <>Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b></> },
+    { n: 4, text: <>Copie o link e confirme a entrega</> },
   ],
 };
 
-const TITULO: Record<TipoTutorial, string> = {
+const TITLE: Record<string, string> = {
   drive: "Como pegar o link do Drive",
+  delivery: "Como entregar o vídeo pronto",
   entrega: "Como entregar o vídeo pronto",
 };
 
 export function TutorialDrive({
+  type,
   tipo,
+  isOpen,
   aberto,
+  onClose,
   aoFechar,
 }: {
-  tipo: TipoTutorial;
-  aberto: boolean;
-  aoFechar: () => void;
+  type?: TutorialType;
+  tipo?: TipoTutorial;
+  isOpen?: boolean;
+  aberto?: boolean;
+  onClose?: () => void;
+  aoFechar?: () => void;
 }) {
-  const caixaRef = useRef<HTMLDivElement>(null);
+  const effectiveType = type ?? tipo ?? "drive";
+  const effectiveOpen = isOpen ?? aberto ?? false;
+  const effectiveClose = onClose ?? aoFechar ?? (() => {});
+
+  const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!aberto) return;
-    const tecla = (e: KeyboardEvent) => {
-      if (e.key === "Escape") aoFechar();
+    if (!effectiveOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") effectiveClose();
     };
-    window.addEventListener("keydown", tecla);
+    window.addEventListener("keydown", handleKey);
 
-    // trava a rolagem do fundo: sem isto, rolar dentro da janelinha no celular
-    // arrasta o formulário atrás dela
-    const antes = document.body.style.overflow;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    caixaRef.current?.focus();
+    boxRef.current?.focus();
     return () => {
-      window.removeEventListener("keydown", tecla);
-      document.body.style.overflow = antes;
+      window.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = prev;
     };
-  }, [aberto, aoFechar]);
+  }, [effectiveOpen, effectiveClose]);
 
-  if (!aberto) return null;
+  if (!effectiveOpen) return null;
 
-  const video = urlDeEmbutir(VIDEOS[tipo]);
+  const video = embedUrl(VIDEOS[effectiveType as keyof typeof VIDEOS]);
+  const stepsList = STEPS[effectiveType] ?? STEPS.drive;
+  const titleText = TITLE[effectiveType] ?? TITLE.drive;
 
   return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={TITULO[tipo]}
+      aria-label={titleText}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
       <button
         type="button"
         className="absolute inset-0 cursor-default bg-black/80 backdrop-blur-sm"
-        onClick={aoFechar}
+        onClick={effectiveClose}
         aria-label="Fechar tutorial"
       />
 
-      {/* max-h + rolagem interna: com os quatro passos empilhados, no celular
-          a janela passava da tela e o botão de fechar ficava fora do alcance */}
       <div
-        ref={caixaRef}
+        ref={boxRef}
         tabIndex={-1}
         className="relative flex max-h-[calc(100dvh-32px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-gold-lo/60 bg-surface shadow-2xl outline-none"
       >
         <div className="flex flex-none items-center justify-between gap-3 border-b border-line px-5 py-4">
           <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
-            {TITULO[tipo]}
+            {titleText}
           </h2>
           <button
             type="button"
             aria-label="Fechar"
             className="grid h-11 w-11 flex-none place-items-center rounded-lg text-muted transition-colors hover:text-text"
-            onClick={aoFechar}
+            onClick={effectiveClose}
           >
             ✕
           </button>
@@ -108,22 +115,20 @@ export function TutorialDrive({
             <div className="aspect-video w-full overflow-hidden rounded-xl border border-line bg-ink-2">
               <iframe
                 src={video}
-                title={TITULO[tipo]}
+                title={titleText}
                 className="h-full w-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>
-          ) : tipo === "drive" ? (
-            /* na janela cheia cabe a encenação inteira do Drive; o balão do
-               guia, que é estreito, continua com a versão curta */
+          ) : effectiveType === "drive" ? (
             <ScreencastDrive />
           ) : (
-            <DemoGuia tipo={tipo} />
+            <GuideDemo type={effectiveType} />
           )}
 
           <ol className="grid gap-2 text-sm sm:grid-cols-4 sm:gap-3 sm:text-center">
-            {PASSOS[tipo].map((p) => (
+            {stepsList.map((p) => (
               <li
                 key={p.n}
                 className="flex items-center gap-3 rounded-xl border border-line-soft bg-surface-2 p-3 sm:flex-col sm:gap-2"
@@ -131,7 +136,7 @@ export function TutorialDrive({
                 <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-gold/10 text-xs font-semibold text-gold">
                   {p.n}
                 </span>
-                <span className="text-muted">{p.texto}</span>
+                <span className="text-muted">{p.text}</span>
               </li>
             ))}
           </ol>
@@ -146,14 +151,16 @@ export function TutorialDrive({
   );
 }
 
-/** O gatilho: um link discreto, com alvo de dedo. */
-export function BotaoTutorial({
+export function TutorialButton({
   onClick,
+  text = "Como pegar o link correto?",
   texto = "Como pegar o link correto?",
 }: {
   onClick: () => void;
+  text?: string;
   texto?: string;
 }) {
+  const label = text !== "Como pegar o link correto?" ? text : texto;
   return (
     <button
       type="button"
@@ -166,7 +173,9 @@ export function BotaoTutorial({
       >
         ▶
       </span>
-      {texto}
+      {label}
     </button>
   );
 }
+
+export { TutorialButton as BotaoTutorial };

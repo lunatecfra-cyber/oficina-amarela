@@ -1,0 +1,25 @@
+import { NextResponse } from "next/server";
+import { sql } from "@/lib/db";
+import { readSession } from "@/lib/server-session";
+
+export async function POST(request: Request) {
+  const session = await readSession();
+  if (!session) return NextResponse.json({ error: "Please log in first.", erro: "Please log in first." }, { status: 401 });
+
+  const body = await request.json().catch(() => null);
+  const grid = body?.schedule ?? body?.disponibilidade;
+
+  const isValid =
+    Array.isArray(grid) &&
+    grid.length === 3 &&
+    grid.every((l: unknown) => Array.isArray(l) && l.length === 7);
+
+  if (!isValid) return NextResponse.json({ error: "Invalid schedule matrix.", erro: "Invalid schedule matrix." }, { status: 400 });
+
+  await sql`
+    UPDATE users SET availability_schedule = ${sql.json(
+      grid.map((l: unknown[]) => l.map(Boolean))
+    )} WHERE id = ${session.id}
+  `;
+  return NextResponse.json({ ok: true });
+}

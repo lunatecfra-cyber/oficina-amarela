@@ -1,16 +1,10 @@
-"use client"; // error boundary tem que ser Client Component
+"use client";
 
 import { useEffect } from "react";
 import Link from "next/link";
 import * as Sentry from "@sentry/nextjs";
 
-// Rede de segurança do app inteiro. Antes disto, qualquer falha de servidor
-// (banco fora do ar, por exemplo) deixava a TELA BRANCA: sem mensagem, sem
-// botão, sem caminho de volta.
-//
-// Next 16: a prop de recarregar chama `unstable_retry` — em versões anteriores
-// era `reset`.
-export default function Error({
+export default function ErrorPage({
   error,
   unstable_retry,
 }: {
@@ -18,8 +12,6 @@ export default function Error({
   unstable_retry: () => void;
 }) {
   useEffect(() => {
-    // erro que estourou no cliente não passa pelo onRequestError do
-    // servidor — este é o único lugar que o captura
     Sentry.captureException(error, { tags: { digest: error.digest } });
     console.error(error);
   }, [error]);
@@ -32,26 +24,24 @@ export default function Error({
         </span>
 
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text">
-          Algo quebrou aqui
+          Something went wrong
         </h1>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
-          Não foi culpa sua. Tente de novo — se insistir, avise a gente.
+          An unexpected error occurred. Please try again or contact support if the issue persists.
         </p>
 
-        {/* o digest é o que liga esta tela ao log do servidor. Em produção a
-            mensagem real não vem pro cliente, só este identificador. */}
         {error.digest && (
           <p className="mt-3 font-mono text-[11px] text-muted-2">
-            código: {error.digest}
+            Error ID: {error.digest}
           </p>
         )}
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <button onClick={unstable_retry} className="btn-gold sm:w-44">
-            Tentar de novo
+            Try Again
           </button>
           <Link href="/" className="btn-ghost grid place-items-center sm:w-44">
-            Voltar ao início
+            Back to Home
           </Link>
         </div>
       </div>

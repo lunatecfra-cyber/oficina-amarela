@@ -1,10 +1,4 @@
-import type { Metadata } from "next";
-import { PainelContas } from "@/components/painel-contas";
-
-export const metadata: Metadata = { title: "Gerenciar Pessoas — Oficina Amarela" };
-
+import AccountsPage, { metadata } from "@/app/inspector/accounts/page";
+export { metadata };
 export const dynamic = "force-dynamic";
-
-export default function ContasPage() {
-  return <PainelContas />;
-}
+export default AccountsPage;

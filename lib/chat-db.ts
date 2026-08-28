@@ -1,122 +1,160 @@
-// Chat por missão — mensagens entre candidato, editor e inspetor.
-//
-// Fica em lib própria (e não em pautas-db.ts) porque é uma superfície nova
-// com regra de acesso própria. A conversa é PRESA à missão: participantes
-// são o dono da pauta, o editor que a reservou (enquanto for dele) e o
-// inspetor — que lê tudo e pode escrever (controle máximo).
 import { sql } from "@/lib/db";
-import { LIMITES, limitar } from "@/lib/limites";
-import type { SessaoUsuario } from "@/lib/sessao";
+import { LIMITS, limitStr } from "@/lib/limits";
+import type { UserSession, Role } from "@/lib/session";
 
-export type Mensagem = {
-  id: string; // "m-123" — prefixo pra chave de lista, como as pautas
-  pautaId: number;
-  autorId: number;
-  autorNome: string;
-  autorPapel: "voz" | "editor" | "admin";
-  texto: string;
-  criadaEm: string;
+export type Message = {
+  id: string;
+  missionId: number;
+  authorId: number;
+  authorName: string;
+  authorRole: Role;
+  text: string;
+  createdAt: string;
+  // compatibility aliases
+  pautaId?: number;
+  autorId?: number;
+  autorNome?: string;
+  autorPapel?: Role;
+  texto?: string;
+  criadaEm?: string;
 };
 
-type LinhaMensagem = {
+export type Mensagem = Message;
+export type ChatMessage = Message;
+
+type MessageRow = {
   id: number;
-  pauta_id: number;
-  autor_id: number;
-  nome: string;
-  papel: string;
-  texto: string;
-  criada_em: string;
+  mission_id: number;
+  author_id: number;
+  name: string;
+  role: string;
+  text: string;
+  created_at: string;
 };
 
-function paraMensagem(l: LinhaMensagem): Mensagem {
+function rowToMessage(r: MessageRow): Message {
+  const role: Role = r.role === "voz" || r.role === "spokesperson" ? "spokesperson" : r.role === "admin" ? "admin" : "editor";
   return {
-    id: `m-${l.id}`,
-    pautaId: l.pauta_id,
-    autorId: l.autor_id,
-    autorNome: l.nome,
-    autorPapel: l.papel as Mensagem["autorPapel"],
-    texto: l.texto,
-    criadaEm: l.criada_em,
+    id: `m-${r.id}`,
+    missionId: r.mission_id,
+    authorId: r.author_id,
+    authorName: r.name,
+    authorRole: role,
+    text: r.text,
+    createdAt: r.created_at,
+    pautaId: r.mission_id,
+    autorId: r.author_id,
+    autorNome: r.name,
+    autorPapel: role,
+    texto: r.text,
+    criadaEm: r.created_at,
   };
 }
 
-const SELECT_BASE = sql`
-  SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em
-  FROM mensagens m
-  JOIN users u ON u.id = m.autor_id
+const BASE_SELECT = sql`
+  SELECT m.id, m.mission_id, m.author_id, u.name, u.role, m.text, m.created_at
+  FROM messages m
+  JOIN users u ON u.id = m.author_id
 `;
 
-/** A thread de uma missão, em ordem cronológica. */
-export async function mensagensDaPauta(pautaId: number): Promise<Mensagem[]> {
-  const linhas = await sql`${SELECT_BASE}
-    WHERE m.pauta_id = ${pautaId}
-    ORDER BY m.criada_em ASC
-    LIMIT 200
+export async function getMissionMessages(missionId: number): Promise<Message[]> {
+  const rows = await sql`${BASE_SELECT}
+    WHERE m.mission_id = ${missionId}
+    ORDER BY m.created_at ASC
   `;
-  return (linhas as unknown as LinhaMensagem[]).map(paraMensagem);
+  return (rows as unknown as MessageRow[]).map(rowToMessage);
 }
 
-/**
- * Retorna apenas mensagens criadas depois do timestamp informado.
- * Usado pelo polling do chat — a cada ciclo só baixa o que mudou.
- */
-export async function mensagensDaPautaApos(pautaId: number, depoisIso: string): Promise<Mensagem[]> {
-  const linhas = await sql`${SELECT_BASE}
-    WHERE m.pauta_id = ${pautaId}
-      AND m.criada_em > ${depoisIso}
-    ORDER BY m.criada_em ASC
-    LIMIT 200
+export const missionMessages = getMissionMessages;
+export const messagesOfMission = getMissionMessages;
+export const mensagensDaPauta = getMissionMessages;
+
+export async function getMissionMessagesAfter(missionId: number, afterIso: string): Promise<Message[]> {
+  const rows = await sql`${BASE_SELECT}
+    WHERE m.mission_id = ${missionId} AND m.created_at > ${afterIso}
+    ORDER BY m.created_at ASC
   `;
-  return (linhas as unknown as LinhaMensagem[]).map(paraMensagem);
+  return (rows as unknown as MessageRow[]).map(rowToMessage);
 }
 
-/**
- * Leitura em lote pros cards do inspetor — uma query só, não uma por missão.
- * Devolve um mapa por pautaId.
- */
-export async function mensagensDePautas(pautaIds: number[]): Promise<Map<number, Mensagem[]>> {
-  if (pautaIds.length === 0) return new Map();
-  const linhas = await sql`${SELECT_BASE}
-    WHERE m.pauta_id = ANY(${pautaIds})
-    ORDER BY m.criada_em ASC
+export const messagesOfMissionAfter = getMissionMessagesAfter;
+export const mensagensDaPautaApos = getMissionMessagesAfter;
+
+export async function getMissionsMessages(
+  missionIds: number[]
+): Promise<Map<number, Message[]>> {
+  const map = new Map<number, Message[]>();
+  if (missionIds.length === 0) return map;
+
+  const rows = await sql`${BASE_SELECT}
+    WHERE m.mission_id = ANY(${missionIds})
+    ORDER BY m.created_at ASC
   `;
-  const mapa = new Map<number, Mensagem[]>();
-  for (const l of linhas as unknown as LinhaMensagem[]) {
-    const m = paraMensagem(l);
-    const lista = mapa.get(m.pautaId) ?? [];
-    lista.push(m);
-    mapa.set(m.pautaId, lista);
+  for (const r of rows as unknown as MessageRow[]) {
+    const arr = map.get(r.mission_id) ?? [];
+    arr.push(rowToMessage(r));
+    map.set(r.mission_id, arr);
   }
-  return mapa;
+  return map;
 }
 
-/**
- * Regra de acesso do chat, num lugar só: dono da missão, editor que a tem
- * em mãos, ou inspetor. Papel sozinho não basta — o WHERE confere VÍNCULO
- * com esta pauta (mesma defesa em profundidade do resto do projeto).
- */
-export async function enviarMensagem(
-  pautaId: number,
-  sessao: SessaoUsuario,
-  textoBruto: string
-): Promise<{ ok: true } | { ok: false; erro: string }> {
-  const texto = limitar(textoBruto, LIMITES.mensagem);
-  if (!texto) return { ok: false, erro: "Escreva alguma coisa antes de enviar." };
+export const missionsMessages = getMissionsMessages;
+export const mensagensDePautas = getMissionsMessages;
+
+export async function postChatMessage(
+  missionId: number,
+  session: UserSession,
+  rawText: string
+): Promise<{ ok: true; message: Message; mensagem?: Message } | { ok: false; error: string; erro?: string }> {
+  const text = limitStr(rawText, LIMITS.message);
+  if (!text) {
+    return { ok: false, error: "Mensagem vazia.", erro: "Mensagem vazia." };
+  }
 
   const [pauta] = await sql`
-    SELECT porta_voz_id, reservada_por_id FROM pautas WHERE id = ${pautaId}
+    SELECT id, spokesperson_id, reserved_by_id FROM missions WHERE id = ${missionId}
   `;
-  if (!pauta) return { ok: false, erro: "Missão não encontrada." };
-
-  const ehDono = pauta.porta_voz_id === sessao.id;
-  const ehEditorDaMissao = pauta.reservada_por_id === sessao.id;
-  if (!ehDono && !ehEditorDaMissao && sessao.papel !== "admin") {
-    return { ok: false, erro: "Só quem participa da missão conversa nela." };
+  if (!pauta) {
+    return { ok: false, error: "Missão não encontrada.", erro: "Missão não encontrada." };
   }
 
-  await sql`
-    INSERT INTO mensagens (pauta_id, autor_id, texto)
-    VALUES (${pautaId}, ${sessao.id}, ${texto})
+  const isAdmin = session.role === "admin";
+  const isSpokesperson = pauta.spokesperson_id === session.id;
+  const isReservedEditor = pauta.reserved_by_id === session.id;
+
+  if (!isAdmin && !isSpokesperson && !isReservedEditor) {
+    return {
+      ok: false,
+      error: "Você não tem permissão para enviar mensagens nesta missão.",
+      erro: "Você não tem permissão para enviar mensagens nesta missão.",
+    };
+  }
+
+  const [inserted] = await sql`
+    INSERT INTO messages (mission_id, author_id, text)
+    VALUES (${missionId}, ${session.id}, ${text})
+    RETURNING id, mission_id, author_id, text, created_at
   `;
-  return { ok: true };
+
+  const msg: Message = {
+    id: `m-${inserted.id}`,
+    missionId: inserted.mission_id,
+    authorId: inserted.author_id,
+    authorName: session.name,
+    authorRole: session.role,
+    text: inserted.text,
+    createdAt: inserted.created_at,
+    pautaId: inserted.mission_id,
+    autorId: inserted.author_id,
+    autorNome: session.name,
+    autorPapel: session.role,
+    texto: inserted.text,
+    criadaEm: inserted.created_at,
+  };
+
+  return { ok: true, message: msg, mensagem: msg };
 }
+
+export const sendMessage = postChatMessage;
+export const postarMensagem = postChatMessage;
+export const enviarMensagem = postChatMessage;
