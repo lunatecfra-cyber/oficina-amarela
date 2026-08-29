@@ -1,114 +1,113 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
-import { exigirSessao } from "@/lib/sessao-servidor";
-import { ListaFerramentas, type Categoria } from "@/components/lista-ferramentas";
+import { requireSession } from "@/lib/server-session";
+import { ToolsList, type ToolCategory } from "@/components/tools-list";
 
 export const metadata: Metadata = { title: "Ferramentas — Oficina Amarela" };
 
 export const dynamic = "force-dynamic";
 
-const CATEGORIAS: Categoria[] = [
+const CATEGORIES: ToolCategory[] = [
   {
-    nome: "Editor de Vídeo",
+    name: "Editor de Vídeo",
     emoji: "✂️",
-    ferramentas: [
-      { nome: "CapCut PC", url: "https://capcut.com/pt-br", nota: "grátis, rápido" },
-      { nome: "DaVinci Resolve", url: "https://www.blackmagicdesign.com/pt/products/davinciresolve", nota: "grátis, profissional" },
-      { nome: "Kdenlive", url: "https://kdenlive.org", nota: "grátis, open source" },
-      { nome: "Shotcut", url: "https://shotcut.org", nota: "grátis, open source" },
-      { nome: "Premiere Pro", url: "https://www.adobe.com/br/products/premiere.html", nota: "pago, padrão" },
-      { nome: "Vegas Pro", url: "https://www.vegascreativesoftware.com/br/vegas-pro", nota: "pago" },
-      { nome: "Filmora", url: "https://filmora.wondershare.com", nota: "pago, fácil" },
-      { nome: "OBS Studio", url: "https://obsproject.com/pt-br", nota: "grátis, gravação/stream" },
+    tools: [
+      { name: "CapCut PC", url: "https://capcut.com/pt-br", note: "grátis, rápido" },
+      { name: "DaVinci Resolve", url: "https://www.blackmagicdesign.com/pt/products/davinciresolve", note: "grátis, profissional" },
+      { name: "Kdenlive", url: "https://kdenlive.org", note: "grátis, open source" },
+      { name: "Shotcut", url: "https://shotcut.org", note: "grátis, open source" },
+      { name: "Premiere Pro", url: "https://www.adobe.com/br/products/premiere.html", note: "pago, padrão" },
+      { name: "Vegas Pro", url: "https://www.vegascreativesoftware.com/br/vegas-pro", note: "pago" },
+      { name: "Filmora", url: "https://filmora.wondershare.com", note: "pago, fácil" },
+      { name: "OBS Studio", url: "https://obsproject.com/pt-br", note: "grátis, gravação/stream" },
     ],
   },
   {
-    nome: "IA & Áudio",
+    name: "IA & Áudio",
     emoji: "🎙️",
-    ferramentas: [
-      { nome: "Adobe Podcast (Enhance)", url: "https://podcast.adobe.com/enhance", nota: "voz de estúdio grátis" },
-      { nome: "UVR5 (Ultimate Vocal Remover)", url: "https://ultimatevocalremover.com", nota: "separa voz e música" },
-      { nome: "Freesound", url: "https://freesound.org", nota: "efeitos sonoros" },
-      { nome: "Mixkit Áudio", url: "https://mixkit.co/free-stock-music", nota: "trilhas grátis" },
-      { nome: "Uppbeat", url: "https://uppbeat.io", nota: "músicas p/ criadores" },
+    tools: [
+      { name: "Adobe Podcast (Enhance)", url: "https://podcast.adobe.com/enhance", note: "voz de estúdio grátis" },
+      { name: "UVR5 (Ultimate Vocal Remover)", url: "https://ultimatevocalremover.com", note: "separa voz e música" },
+      { name: "Freesound", url: "https://freesound.org", note: "efeitos sonoros" },
+      { name: "Mixkit Áudio", url: "https://mixkit.co/free-stock-music", note: "trilhas grátis" },
+      { name: "Uppbeat", url: "https://uppbeat.io", note: "músicas p/ criadores" },
     ],
   },
   {
-    nome: "Baixar Vídeos & Mídias",
+    name: "Baixar Vídeos & Mídias",
     emoji: "📥",
-    ferramentas: [
-      { nome: "yt-dlp", url: "https://github.com/yt-dlp/yt-dlp", nota: "download via terminal" },
-      { nome: "sssInstagram", url: "https://sssinstagram.com", nota: "baixar reels/post" },
-      { nome: "YTDown", url: "https://ytdown.to", nota: "baixar YouTube" },
-      { nome: "X2Twitter", url: "https://x2twitter.com", nota: "baixar do X/Twitter" },
-      { nome: "PinterestDownloader", url: "https://pinterestdownloader.com.br", nota: "baixar do Pinterest" },
+    tools: [
+      { name: "yt-dlp", url: "https://github.com/yt-dlp/yt-dlp", note: "download via terminal" },
+      { name: "sssInstagram", url: "https://sssinstagram.com", note: "baixar reels/post" },
+      { name: "YTDown", url: "https://ytdown.to", note: "baixar YouTube" },
+      { name: "X2Twitter", url: "https://x2twitter.com", note: "baixar do X/Twitter" },
+      { name: "PinterestDownloader", url: "https://pinterestdownloader.com.br", note: "baixar do Pinterest" },
     ],
   },
   {
-    nome: "Conversores & Utilitários",
+    name: "Conversores & Utilitários",
     emoji: "🧰",
-    ferramentas: [
-      { nome: "Shutter Encoder", url: "https://www.shutterencoder.com", nota: "conversor grátis pro" },
-      { nome: "Handbrake", url: "https://handbrake.fr", nota: "compactar vídeos" },
-      { nome: "123apps", url: "https://123apps.com", nota: "ferramentas rápidas" },
+    tools: [
+      { name: "Shutter Encoder", url: "https://www.shutterencoder.com", note: "conversor grátis pro" },
+      { name: "Handbrake", url: "https://handbrake.fr", note: "compactar vídeos" },
+      { name: "123apps", url: "https://123apps.com", note: "ferramentas rápidas" },
     ],
   },
   {
-    nome: "PNG & Elementos sem Fundo",
+    name: "PNG & Elementos sem Fundo",
     emoji: "🖼️",
-    ferramentas: [
-      { nome: "remove.bg", url: "https://remove.bg", nota: "remover fundo com 1 clique" },
-      { nome: "PNGEgg", url: "https://pngegg.com", nota: "recortes transparentes" },
-      { nome: "Flaticon", url: "https://flaticon.com", nota: "ícones e vetores" },
-      { nome: "Freepik", url: "https://freepik.com", nota: "vetores e imagens" },
-      { nome: "StickPNG", url: "https://stickpng.com", nota: "adesivos e recortes" },
+    tools: [
+      { name: "remove.bg", url: "https://remove.bg", note: "remover fundo com 1 clique" },
+      { name: "PNGEgg", url: "https://pngegg.com", note: "recortes transparentes" },
+      { name: "Flaticon", url: "https://flaticon.com", note: "ícones e vetores" },
+      { name: "Freepik", url: "https://freepik.com", note: "vetores e imagens" },
+      { name: "StickPNG", url: "https://stickpng.com", note: "adesivos e recortes" },
     ],
   },
   {
-    nome: "Imagens & Vídeos Stock",
+    name: "Imagens & Vídeos Stock",
     emoji: "📷",
-    ferramentas: [
-      { nome: "Pexels", url: "https://pexels.com/pt-br", nota: "vídeos e fotos 4k" },
-      { nome: "Coverr", url: "https://coverr.co", nota: "vídeos sem marca d'água" },
-      { nome: "Pixabay", url: "https://pixabay.com", nota: "banco de estoque" },
+    tools: [
+      { name: "Pexels", url: "https://pexels.com/pt-br", note: "vídeos e fotos 4k" },
+      { name: "Coverr", url: "https://coverr.co", note: "vídeos sem marca d'água" },
+      { name: "Pixabay", url: "https://pixabay.com", note: "banco de estoque" },
     ],
   },
   {
-    nome: "IA para Corte & Edição",
+    name: "IA para Corte & Edição",
     emoji: "🤖",
-    ferramentas: [
-      { nome: "OpusClip", url: "https://opus.pro/pt-br", nota: "cortes verticais com IA" },
-      { nome: "javii.tools", url: "https://javii.tools", nota: "utensílios p/ editores" },
+    tools: [
+      { name: "OpusClip", url: "https://opus.pro/pt-br", note: "cortes verticais com IA" },
+      { name: "javii.tools", url: "https://javii.tools", note: "utensílios p/ editores" },
     ],
   },
   {
-    nome: "Extensões do Chrome",
+    name: "Extensões do Chrome",
     emoji: "🔌",
-    ferramentas: [
-      { nome: "WhatFont", url: "https://chromewebstore.google.com/detail/whatfont/jabopgfdobjimomedpjipgjaooicahmo", nota: "descobrir fonte na tela" },
-      { nome: "Shazam Extension", url: "https://chromewebstore.google.com/detail/shazam-descubra-o-nome-da/mfehgcgbbipciphmccedklhhgflociim", nota: "identificar música" },
-      { nome: "Video Speed Controller", url: "https://chromewebstore.google.com/detail/video-speed-controller/nffaoalbilbmmfgbnbgppipjcbjngmee", nota: "acelerar vídeos" },
-      { nome: "Image Downloader", url: "https://chromewebstore.google.com/detail/image-downloader/cnpniohnfphhjihaiflmkgnhnkgflgda", nota: "baixar imagens da página" },
+    tools: [
+      { name: "WhatFont", url: "https://chromewebstore.google.com/detail/whatfont/jabopgfdobjimomedpjipgjaooicahmo", note: "descobrir fonte na tela" },
+      { name: "Shazam Extension", url: "https://chromewebstore.google.com/detail/shazam-descubra-o-nome-da/mfehgcgbbipciphmccedklhhgflociim", note: "identificar música" },
+      { name: "Video Speed Controller", url: "https://chromewebstore.google.com/detail/video-speed-controller/nffaoalbilbmmfgbnbgppipjcbjngmee", note: "acelerar vídeos" },
+      { name: "Image Downloader", url: "https://chromewebstore.google.com/detail/image-downloader/cnpniohnfphhjihaiflmkgnhnkgflgda", note: "baixar imagens da página" },
     ],
   },
   {
-    nome: "Pacotes Pessoais",
+    name: "Pacotes Pessoais",
     emoji: "📦",
-    ferramentas: [
-      { nome: "Pack de Edição Oficina", url: "https://drive.google.com/drive/folders/11_jSlkDsn9XQdvbaVCxi4dxpnFdiGNIO", nota: "Drive da guilda" },
+    tools: [
+      { name: "Pack de Edição Oficina", url: "https://drive.google.com/drive/folders/11_jSlkDsn9XQdvbaVCxi4dxpnFdiGNIO", note: "Drive da guilda" },
     ],
   },
 ];
 
-export default async function FerramentasPage() {
-  await exigirSessao();
+export default async function ToolsPage() {
+  await requireSession();
 
   return (
     <>
       <AppHeader />
       <main className="flex-1">
         <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
-          {/* header */}
           <div className="mb-8">
             <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
               Ferramentas
@@ -127,7 +126,7 @@ export default async function FerramentasPage() {
             />
           </div>
 
-          <ListaFerramentas categorias={CATEGORIAS} />
+          <ToolsList categories={CATEGORIES} />
         </div>
       </main>
     </>

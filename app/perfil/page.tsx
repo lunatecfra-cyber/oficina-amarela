@@ -2,61 +2,74 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
-import { ROTULO_FORMATO } from "@/lib/pautas";
-import { PERFIL_EDITOR, progressoNivel } from "@/lib/perfil";
-import { DIAS, DISPONIBILIDADE_PADRAO, PERIODOS, trabalhoDaPauta } from "@/lib/agenda";
-import { pautaReservadaPor } from "@/lib/pautas-db";
-import { lerOnboardingEditor } from "@/lib/perfil-db";
-import { MesaAgora } from "@/components/mesa-agora";
+import { FORMAT_LABELS } from "@/lib/missions";
+import { DEFAULT_EDITOR_PROFILE, levelProgress } from "@/lib/profile";
+import { DAYS, DEFAULT_AVAILABILITY, PERIODS, workFromMission } from "@/lib/schedule";
+import { reservedMissionBy } from "@/lib/missions-db";
+import { readEditorOnboarding, readEditorProfile } from "@/lib/profile-db";
+import { getEditorProgress } from "@/lib/electoral-ranking-db";
+import { ElectoralProgress } from "@/components/electoral-progress";
+import { EditorInvitation } from "@/components/editor-invitation";
+import { ActiveDesk } from "@/components/active-desk";
 import { Stat } from "@/components/stat";
 import { Card } from "@/components/card";
-import { CelulaDisponibilidade } from "@/components/disponibilidade-cell";
-import { iniciais } from "@/lib/candidatos";
-import { lerPerfilEditor } from "@/lib/perfil-db";
-import { exigirSessao } from "@/lib/sessao-servidor";
+import { AvailabilityCell } from "@/components/availability-cell";
+import { initials } from "@/lib/candidates";
+import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Meu Perfil — Oficina Amarela" };
-
 export const dynamic = "force-dynamic";
 
-export default async function PerfilPage() {
-  const sessao = await exigirSessao();
-  const [doBanco, onboarding, reservada] = await Promise.all([
-    lerPerfilEditor(sessao.id),
-    lerOnboardingEditor(sessao.id),
-    pautaReservadaPor(sessao.id),
+export default async function ProfilePage() {
+  const session = await requireSession();
+  const [dbProfile, onboarding, reserved, electoralProgress] = await Promise.all([
+    readEditorProfile(session.id),
+    readEditorOnboarding(session.id),
+    reservedMissionBy(session.id),
+    getEditorProgress(session.id),
   ]);
 
-  // Perfil real do banco. PERFIL_EDITOR só entra como último recurso (conta
-  // recém-criada não tem nada preenchido, e a tela ficaria vazia demais).
-  const p = doBanco ?? PERFIL_EDITOR;
-  const nivel = progressoNivel(p.entregues);
+  const p = dbProfile ?? DEFAULT_EDITOR_PROFILE;
+  const level = levelProgress(p.deliveries ?? (p as any).entregues ?? 0);
 
-  // a grade que o editor salvou no cadastro (a /agenda já lia daqui; esta
-  // tela mostrava a grade fake e contradizia a outra)
-  const grade = onboarding?.disponibilidade?.length
-    ? onboarding.disponibilidade
-    : DISPONIBILIDADE_PADRAO;
-  const livres = grade.flat().filter(Boolean).length;
+  const grid = onboarding?.availability?.length
+    ? onboarding.availability
+    : DEFAULT_AVAILABILITY;
+  const freeSlots = grid.flat().filter(Boolean).length;
 
-  // missão que ele tem em mãos agora, de verdade
-  const naMesa = trabalhoDaPauta(reservada);
+  const onDesk = workFromMission(reserved);
 
-  const temBancada =
-    p.softwares.length > 0 ||
-    p.estilos.length > 0 ||
-    p.nicho.length > 0 ||
-    !!p.nivelEdicao ||
-    !!p.setupPc;
+  const softwares = p.softwares ?? [];
+  const styles = p.styles ?? (p as any).estilos ?? [];
+  const niche = p.niche ?? (p as any).nicho ?? [];
+  const editingLevel = p.editingLevel ?? (p as any).nivelEdicao;
+  const pcSetup = p.pcSetup ?? (p as any).setupPc;
+  const photoUrl = p.photoUrl ?? (p as any).fotoUrl;
+  const name = p.name ?? (p as any).nome;
+  const handle = p.handle ?? (p as any).apelido;
+  const location = p.location ?? (p as any).local ?? (p as any).localizacao;
+  const since = p.since ?? (p as any).desde;
+  const deliveries = p.deliveries ?? (p as any).entregues ?? 0;
+  const rating = p.rating ?? (p as any).nota;
+  const reputation = p.reputation ?? (p as any).reputacao ?? 0;
+  const streak = p.streak ?? 0;
+  const portfolio = p.portfolio ?? [];
+  const history = p.history ?? (p as any).historico ?? [];
+  const achievements = p.achievements ?? (p as any).conquistas ?? [];
+
+  const hasDesk =
+    softwares.length > 0 ||
+    styles.length > 0 ||
+    niche.length > 0 ||
+    !!editingLevel ||
+    !!pcSetup;
 
   return (
     <>
       <AppHeader />
       <main className="flex-1">
         <div className="mx-auto w-full max-w-5xl px-4 py-6 lg:px-8 lg:py-10">
-          {/* ---- cartão de identidade ---- */}
           <section className="reveal overflow-hidden rounded-2xl border border-line bg-surface/60">
-            {/* capa */}
             <div className="relative h-32 lg:h-44">
               <div
                 className="absolute inset-0"
@@ -76,11 +89,8 @@ export default async function PerfilPage() {
               <div className="absolute inset-0 opacity-40 [background:repeating-linear-gradient(135deg,rgba(255,255,255,0.03)_0,rgba(255,255,255,0.03)_1px,transparent_1px,transparent_6px)]" />
             </div>
 
-            {/* cabeçalho */}
             <div className="px-5 pb-6 lg:px-8">
               <div className="relative z-10 -mt-12 flex items-end justify-between gap-4 lg:-mt-14">
-                {/* a foto vem do onboarding. Antes o perfil mostrava as
-                    iniciais mesmo quando ela existia no banco. */}
                 <div
                   className="grid h-24 w-24 place-items-center overflow-hidden rounded-2xl bg-ink font-[family-name:var(--font-display)] text-3xl font-semibold text-gold lg:h-28 lg:w-28 lg:text-4xl"
                   style={{
@@ -88,15 +98,15 @@ export default async function PerfilPage() {
                       "0 0 0 4px var(--color-ink), 0 0 0 5px rgba(244,206,31,0.55), 0 12px 34px rgba(0,0,0,0.6)",
                   }}
                 >
-                  {p.fotoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- data URL do upload, next/image não otimiza
+                  {photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={p.fotoUrl}
-                      alt={p.nome}
+                      src={photoUrl}
+                      alt={name}
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    iniciais(p.nome)
+                    initials(name)
                   )}
                 </div>
                 <Link href="/perfil/editar" className="btn-ghost mb-1 w-auto px-4 text-sm">
@@ -106,41 +116,34 @@ export default async function PerfilPage() {
 
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
-                  {p.nome}
+                  {name}
                 </h1>
                 <span className="rounded-full border border-gold-lo/60 bg-gold/10 px-3 py-0.5 text-xs font-medium text-gold-hi">
-                  {nivel.atual.nome}
+                  {level.current.name ?? (level.current as any).nome}
                 </span>
               </div>
               <p className="mt-1 text-muted">{p.headline.join(" · ")}</p>
               <p className="mt-1 text-sm text-muted-2">
-                {/* sem cidade preenchida sairia "@apelido · · na guilda" */}
-                @{p.apelido} {p.local && <>· {p.local} </>}· na guilda desde{" "}
-                {p.desde}
+                @{handle} {location && <>· {location} </>}· na guilda desde{" "}
+                {since}
               </p>
 
-              {/* stats */}
-              {/* Grade de 2 no celular. Com `flex-wrap`, os quatro números
-                  caíam três numa linha e "ritmo da forja" sobrava sozinho
-                  embaixo, torto. Grade fixa dá duas colunas parelhas; da
-                  largura de tablet em diante volta a ser uma linha só. */}
               <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-3">
-                <Stat valor={String(p.entregues)} rotulo="entregues" />
+                <Stat valor={String(deliveries)} rotulo="entregues" />
                 <Stat
-                  valor={p.nota === null ? "—" : p.nota.toFixed(1).replace(".", ",")}
-                  rotulo={p.nota === null ? "sem nota ainda" : "nota"}
+                  valor={rating === null || rating === undefined ? "—" : Number(rating).toFixed(1).replace(".", ",")}
+                  rotulo={rating === null || rating === undefined ? "sem nota ainda" : "nota"}
                   estrela
                 />
-                <Stat valor={String(p.reputacao)} rotulo="XP" />
-                <Stat valor={String(p.streak)} rotulo="ritmo da forja" fogo />
+                <Stat valor={String(reputation)} rotulo="XP" />
+                <Stat valor={String(streak)} rotulo="ritmo da forja" fogo />
               </dl>
             </div>
           </section>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.7fr_1fr]">
-            {/* ---- coluna principal ---- */}
             <div className="flex flex-col gap-6">
-              <Card titulo="Sobre" delay={0.05}>
+              <Card title="Sobre" delay={0.05}>
                 {p.bio ? (
                   <p className="text-[15px] leading-relaxed text-muted">{p.bio}</p>
                 ) : (
@@ -153,15 +156,15 @@ export default async function PerfilPage() {
                 )}
               </Card>
 
-              <Card titulo="Portfólio" delay={0.1} guia="cartao-portfolio">
-                {p.portfolio.length === 0 && (
+              <Card title="Portfólio" delay={0.1} guide="cartao-portfolio">
+                {portfolio.length === 0 && (
                   <p className="text-sm text-muted-2">
                     Seu portfólio se preenche sozinho: cada entrega aprovada
                     entra aqui.
                   </p>
                 )}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {p.portfolio.map((v) => (
+                  {portfolio.map((v: any) => (
                     <figure key={v.id} className="group">
                       <div
                         className="relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-xl border border-line"
@@ -177,26 +180,27 @@ export default async function PerfilPage() {
                           <path d="M8 5v14l11-7z" />
                         </svg>
                         <span className="absolute left-2 top-2 rounded bg-black/45 px-1.5 py-0.5 text-[10px] font-medium text-white/90">
-                          {ROTULO_FORMATO[v.formato]}
+                          {FORMAT_LABELS[v.format as keyof typeof FORMAT_LABELS] ?? (FORMAT_LABELS as any)[v.formato] ?? v.format}
                         </span>
                       </div>
                       <figcaption className="mt-2">
-                        <p className="truncate text-sm font-medium text-text">{v.titulo}</p>
-                        <p className="text-xs text-muted-2">{v.portaVoz}</p>
+                        <p className="truncate text-sm font-medium text-text">{v.title ?? v.titulo}</p>
+                        <p className="text-xs text-muted-2">{v.spokesperson ?? v.portaVoz}</p>
                       </figcaption>
                     </figure>
                   ))}
                 </div>
               </Card>
 
-              <Card titulo="Histórico" delay={0.15}>
+              <Card title="Histórico" delay={0.15}>
                 <ol className="relative ml-1">
-                  {p.historico.map((h, i) => {
-                    const ok = h.resultado === "aprovada";
-                    const ultimo = i === p.historico.length - 1;
+                  {history.map((h: any, i: number) => {
+                    const res = h.result ?? h.resultado;
+                    const ok = res === "approved" || res === "aprovada";
+                    const isLast = i === history.length - 1;
                     return (
                       <li key={h.id} className="relative flex gap-4 pb-5 last:pb-0">
-                        {!ultimo && (
+                        {!isLast && (
                           <span className="absolute left-[7px] top-4 h-full w-px bg-line" />
                         )}
                         <span
@@ -207,9 +211,9 @@ export default async function PerfilPage() {
                           }`}
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-text">{h.titulo}</p>
+                          <p className="text-sm font-medium text-text">{h.title ?? h.titulo}</p>
                           <p className="text-xs text-muted-2">
-                            {h.portaVoz} · {h.data} ·{" "}
+                            {h.spokesperson ?? h.portaVoz} · {h.date ?? h.data} ·{" "}
                             <span className={ok ? "text-ok" : "text-gold"}>
                               {ok ? "aprovada" : "reedição"}
                             </span>
@@ -222,23 +226,50 @@ export default async function PerfilPage() {
               </Card>
             </div>
 
-            {/* ---- sidebar ---- */}
             <aside className="flex flex-col gap-6">
-              <Card titulo="Nível" delay={0.1} guia="cartao-nivel">
+              <Card title="Meta eleitoral" delay={0.08}>
+                <ElectoralProgress
+                  semanas={electoralProgress.semanas}
+                  sequencia={electoralProgress.sequence}
+                  bloqueios={electoralProgress.shields}
+                  elegivelAoSorteio={electoralProgress.eligibleForDraw}
+                />
+
+                <Link
+                  href="/ranking"
+                  className="mt-4 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
+                >
+                  Ver o ranking do ciclo
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3.5 w-3.5" aria-hidden="true">
+                    <path d="M5 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </Link>
+
+                {electoralProgress.referralCode && (
+                  <div className="mt-4 border-t border-line-soft pt-4">
+                    <p className="mb-1 text-xs font-medium uppercase tracking-[0.1em] text-muted-2">
+                      Convite de editor
+                    </p>
+                    <EditorInvitation code={String(electoralProgress.referralCode)} />
+                  </div>
+                )}
+              </Card>
+
+              <Card title="Nível" delay={0.1} guide="cartao-nivel">
                 <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-gold-hi">
-                  {nivel.atual.nome}
+                  {level.current.name ?? (level.current as any).nome}
                 </p>
-                {nivel.proximo ? (
+                {level.next ? (
                   <>
                     <div className="mt-4 h-2 overflow-hidden rounded-full bg-line">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-gold-lo to-gold-hi"
-                        style={{ width: `${nivel.pct}%` }}
+                        style={{ width: `${level.pct}%` }}
                       />
                     </div>
                     <p className="mt-2 text-xs text-muted">
-                      Faltam <b className="text-text">{nivel.faltam}</b> entregas pra{" "}
-                      <b className="text-gold-hi">{nivel.proximo.nome}</b>
+                      Faltam <b className="text-text">{level.remaining}</b> entregas pra{" "}
+                      <b className="text-gold-hi">{level.next.name ?? (level.next as any).nome}</b>
                     </p>
                   </>
                 ) : (
@@ -246,38 +277,34 @@ export default async function PerfilPage() {
                 )}
               </Card>
 
-              {/* "A Bancada" é o nome da etapa do cadastro onde ele preencheu
-                  isto. Antes o card se chamava "Caixa de Ferramentas" e
-                  mostrava conquistas — as ferramentas de verdade estavam no
-                  banco e não apareciam em lugar nenhum. */}
-              <Card titulo="A Bancada" delay={0.15}>
-                {temBancada ? (
+              <Card title="A Bancada" delay={0.15}>
+                {hasDesk ? (
                   <div className="flex flex-col gap-4">
-                    {p.softwares.length > 0 && (
-                      <ListaChips titulo="Softwares" itens={p.softwares} />
+                    {softwares.length > 0 && (
+                      <ChipList title="Softwares" items={softwares} />
                     )}
-                    {p.estilos.length > 0 && (
-                      <ListaChips titulo="Estilos" itens={p.estilos} />
+                    {styles.length > 0 && (
+                      <ChipList title="Estilos" items={styles} />
                     )}
-                    {p.nicho.length > 0 && (
-                      <ListaChips titulo="Formato" itens={p.nicho} />
+                    {niche.length > 0 && (
+                      <ChipList title="Formato" items={niche} />
                     )}
-                    {(p.nivelEdicao || p.setupPc) && (
+                    {(editingLevel || pcSetup) && (
                       <div className="flex flex-wrap gap-x-6 gap-y-3 border-t border-line pt-3">
-                        {p.nivelEdicao && (
+                        {editingLevel && (
                           <div>
                             <p className="text-[10px] uppercase tracking-wide text-muted-2">
                               Nível de edição
                             </p>
-                            <p className="mt-0.5 text-sm text-text">{p.nivelEdicao}</p>
+                            <p className="mt-0.5 text-sm text-text">{editingLevel}</p>
                           </div>
                         )}
-                        {p.setupPc && (
+                        {pcSetup && (
                           <div>
                             <p className="text-[10px] uppercase tracking-wide text-muted-2">
                               Setup
                             </p>
-                            <p className="mt-0.5 text-sm text-text">{p.setupPc}</p>
+                            <p className="mt-0.5 text-sm text-text">{pcSetup}</p>
                           </div>
                         )}
                       </div>
@@ -296,39 +323,39 @@ export default async function PerfilPage() {
                 )}
               </Card>
 
-              <Card titulo="Conquistas" delay={0.18}>
-                {p.conquistas.length === 0 ? (
+              <Card title="Conquistas" delay={0.18}>
+                {achievements.length === 0 ? (
                   <p className="text-sm text-muted-2">
                     Nenhuma conquista ainda. Elas vêm com as entregas.
                   </p>
                 ) : (
                   <ul className="flex flex-col gap-3">
-                    {p.conquistas.map((c) => (
-                      <li key={c.nome} className="flex items-center gap-3">
+                    {achievements.map((c: any) => (
+                      <li key={c.name ?? c.nome} className="flex items-center gap-3">
                         <span className="grid h-9 w-9 place-items-center rounded-lg border border-line bg-ink-2 text-lg">
-                          {c.icone}
+                          {c.icon ?? c.icone}
                         </span>
-                        <span className="text-sm text-muted">{c.nome}</span>
+                        <span className="text-sm text-muted">{c.name ?? c.nome}</span>
                       </li>
                     ))}
                   </ul>
                 )}
               </Card>
 
-              <Card titulo="Disponibilidade" delay={0.2}>
+              <Card title="Disponibilidade" delay={0.2}>
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-sm text-text">
-                    <b className="text-gold-hi">{livres}</b> blocos livres
+                    <b className="text-gold-hi">{freeSlots}</b> blocos livres
                   </span>
                   <Link href="/agenda" className="text-xs text-muted transition-colors hover:text-gold-hi">
                     Editar →
                   </Link>
                 </div>
-                <MiniGrade grade={grade} />
+                <MiniGrid grid={grid} />
               </Card>
 
-              <Card titulo="Na mesa agora" delay={0.25}>
-                <MesaAgora trabalhos={naMesa} variant="lista" />
+              <Card title="Na mesa agora" delay={0.25}>
+                <ActiveDesk tasks={onDesk} variant="list" />
               </Card>
             </aside>
           </div>
@@ -338,12 +365,12 @@ export default async function PerfilPage() {
   );
 }
 
-function ListaChips({ titulo, itens }: { titulo: string; itens: string[] }) {
+function ChipList({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-muted-2">{titulo}</p>
+      <p className="text-[10px] uppercase tracking-wide text-muted-2">{title}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {itens.map((i) => (
+        {items.map((i) => (
           <span
             key={i}
             className="rounded-md border border-line-soft bg-surface px-2 py-0.5 text-xs text-muted"
@@ -356,26 +383,26 @@ function ListaChips({ titulo, itens }: { titulo: string; itens: string[] }) {
   );
 }
 
-function MiniGrade({ grade }: { grade: boolean[][] }) {
+function MiniGrid({ grid }: { grid: boolean[][] }) {
   return (
     <div className="grid grid-cols-[18px_repeat(7,1fr)] gap-1">
       <span />
-      {DIAS.map((d) => (
+      {DAYS.map((d) => (
         <span key={d} className="text-center text-[10px] text-muted-2">
           {d[0]}
         </span>
       ))}
-      {PERIODOS.map((periodo, pi) => (
-        <div key={periodo} className="contents">
+      {PERIODS.map((period, pi) => (
+        <div key={period} className="contents">
           <span className="flex items-center text-[10px] text-muted-2">
-            {periodo[0]}
+            {period[0]}
           </span>
-          {DIAS.map((d, di) => (
-            <CelulaDisponibilidade
+          {DAYS.map((d, di) => (
+            <AvailabilityCell
               key={d}
               size="mini"
-              livre={grade[pi][di]}
-              label={`${periodo} de ${d}: ${grade[pi][di] ? "livre" : "ocupado"}`}
+              free={grid[pi][di]}
+              label={`${period} de ${d}: ${grid[pi][di] ? "livre" : "ocupado"}`}
             />
           ))}
         </div>

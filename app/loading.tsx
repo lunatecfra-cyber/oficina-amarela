@@ -1,7 +1,4 @@
-// Toda página busca no banco e é `force-dynamic`, então a navegação fica
-// parada até o servidor responder. Sem este arquivo o clique não dava nenhum
-// sinal de vida — parecia que o link não tinha funcionado.
-export default function Carregando() {
+export default function Loading() {
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-24">
       <div className="flex flex-col items-center gap-4" role="status">
@@ -14,7 +11,7 @@ export default function Carregando() {
           <span className="relative h-3 w-3 rounded-full bg-gold" />
         </span>
         <span className="text-xs uppercase tracking-[0.16em] text-muted-2">
-          carregando
+          Loading
         </span>
       </div>
     </main>

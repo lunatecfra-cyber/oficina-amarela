@@ -1,49 +1,30 @@
-/**
- * A "gravação de tela" do Drive — que não é vídeo nenhum.
- *
- * Cinco cenas encenando o caminho inteiro: subir o arquivo, abrir o menu,
- * trocar o acesso, copiar o link e colar na Oficina. Um cursor de mentira
- * anda até cada botão antes de o menu abrir, que é o que faz parecer
- * gravação em vez de slide.
- *
- * Por que não é vídeo: vídeo precisaria ser gravado numa conta de Drive de
- * verdade, hospedado em algum lugar e regravado toda vez que o Google mudar
- * um botão de canto. Isto pesa alguns bytes, funciona sem rede e se conserta
- * editando texto. Quando existir vídeo de verdade, ele entra por
- * lib/tutoriais.ts e esta demonstração sai de cena sozinha.
- *
- * O ritmo é todo do CSS (`.cast` no globals.css). Aqui só entram as cenas e
- * o atraso de cada uma.
- */
+const CYCLE = 15;
+const SCENES = 5;
 
-const CICLO = 15;
-const CENAS = 5;
+const delay = (k: number) => `${-(CYCLE - (CYCLE / SCENES) * k)}s`;
 
-/** atraso negativo: a cena k já entra no ciclo rodada até o ponto dela */
-const atraso = (k: number) => `${-(CICLO - (CICLO / CENAS) * k)}s`;
-
-function Cena({ k, children }: { k: number; children: React.ReactNode }) {
+function Scene({ k, children }: { k: number; children: React.ReactNode }) {
   return (
-    <div className="cast-cena" style={{ animationDelay: atraso(k) }}>
+    <div className="cast-cena" style={{ animationDelay: delay(k) }}>
       {children}
     </div>
   );
 }
 
-function Cursor({ percurso, k }: { percurso: string; k: number }) {
+function Cursor({ path, k }: { path: string; k: number }) {
   return (
     <svg
       className="cast-cursor"
       viewBox="0 0 12 17"
       aria-hidden="true"
-      style={{ animationName: percurso, animationDelay: atraso(k) }}
+      style={{ animationName: path, animationDelay: delay(k) }}
     >
       <path d="M1 1l10 7-4.2.9 2.5 5-2.1 1-2.5-5L1 13z" fill="#fff" stroke="#111" strokeWidth="1" />
     </svg>
   );
 }
 
-function Legenda({ n, children }: { n: number; children: React.ReactNode }) {
+function Caption({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <p className="cast-legenda">
       <b>{n}.</b> {children}
@@ -51,23 +32,23 @@ function Legenda({ n, children }: { n: number; children: React.ReactNode }) {
   );
 }
 
-function Janela({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function Window({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="cast-janela">
       <div className="cast-barra">
         <span aria-hidden="true">📁</span>
-        {titulo}
+        {title}
       </div>
       {children}
     </div>
   );
 }
 
-function Arquivo({ nome, alvo }: { nome: string; alvo?: boolean }) {
+function FileItem({ name, target }: { name: string; target?: boolean }) {
   return (
-    <div className={`cast-linha${alvo ? " cast-linha--alvo" : ""}`}>
+    <div className={`cast-linha${target ? " cast-linha--alvo" : ""}`}>
       <span aria-hidden="true">🎬</span>
-      <span className="truncate">{nome}</span>
+      <span className="truncate">{name}</span>
     </div>
   );
 }
@@ -76,28 +57,28 @@ export function ScreencastDrive() {
   return (
     <div>
       <div className="cast" aria-hidden="true">
-        {/* 1 — o arquivo sobe pra pasta */}
-        <Cena k={0}>
-          <Janela titulo="Brutos da semana">
-            <Arquivo nome="bairro-01.mp4" />
-            <Arquivo nome="bairro-02.mp4" />
+        {/* 1 */}
+        <Scene k={0}>
+          <Window title="Brutos da semana">
+            <FileItem name="bairro-01.mp4" />
+            <FileItem name="bairro-02.mp4" />
             <div className="cast-linha" style={{ color: "#5f6368" }}>
               <span aria-hidden="true">⬆</span>
               <span>enviando…</span>
             </div>
-          </Janela>
-          <Legenda n={1}>Suba o vídeo na sua pasta do Drive</Legenda>
-        </Cena>
+          </Window>
+          <Caption n={1}>Suba o vídeo na sua pasta do Drive</Caption>
+        </Scene>
 
-        {/* 2 — botão direito no arquivo, menu abre */}
-        <Cena k={1}>
-          <Janela titulo="Brutos da semana">
-            <Arquivo nome="bairro-01.mp4" />
-            <Arquivo nome="bairro-02.mp4" alvo />
+        {/* 2 */}
+        <Scene k={1}>
+          <Window title="Brutos da semana">
+            <FileItem name="bairro-01.mp4" />
+            <FileItem name="bairro-02.mp4" target />
             <div
               className="cast-surge"
               style={{
-                animationDelay: atraso(1),
+                animationDelay: delay(1),
                 position: "absolute",
                 left: "30%",
                 top: "56%",
@@ -122,13 +103,13 @@ export function ScreencastDrive() {
               </div>
               <div style={{ padding: "5px 9px", color: "#5f6368" }}>Renomear</div>
             </div>
-          </Janela>
-          <Cursor percurso="cast-ate-arquivo" k={1} />
-          <Legenda n={2}>Toque no arquivo e escolha Compartilhar</Legenda>
-        </Cena>
+          </Window>
+          <Cursor path="cast-ate-arquivo" k={1} />
+          <Caption n={2}>Toque no arquivo e escolha Compartilhar</Caption>
+        </Scene>
 
-        {/* 3 — o acesso sai de Restrito */}
-        <Cena k={2}>
+        {/* 3 */}
+        <Scene k={2}>
           <div className="cast-janela">
             <div className="cast-barra">Compartilhar “bairro-02.mp4”</div>
             <div style={{ padding: "8px 9px", color: "#5f6368" }}>Acesso geral</div>
@@ -140,7 +121,7 @@ export function ScreencastDrive() {
             <div
               className="cast-surge"
               style={{
-                animationDelay: atraso(2),
+                animationDelay: delay(2),
                 margin: "0 9px",
                 borderRadius: 6,
                 border: "1px solid #e3e3e6",
@@ -162,12 +143,12 @@ export function ScreencastDrive() {
               </div>
             </div>
           </div>
-          <Cursor percurso="cast-ate-acesso" k={2} />
-          <Legenda n={3}>Troque de “Restrito” para “qualquer pessoa com o link”</Legenda>
-        </Cena>
+          <Cursor path="cast-ate-acesso" k={2} />
+          <Caption n={3}>Troque de “Restrito” para “qualquer pessoa com o link”</Caption>
+        </Scene>
 
-        {/* 4 — copiar o link */}
-        <Cena k={3}>
+        {/* 4 */}
+        <Scene k={3}>
           <div className="cast-janela">
             <div className="cast-barra">Compartilhar “bairro-02.mp4”</div>
             <div className="cast-linha" style={{ gap: 6 }}>
@@ -192,7 +173,7 @@ export function ScreencastDrive() {
             <div
               className="cast-surge"
               style={{
-                animationDelay: atraso(3),
+                animationDelay: delay(3),
                 margin: "0 9px",
                 borderRadius: 6,
                 background: "#202124",
@@ -203,12 +184,12 @@ export function ScreencastDrive() {
               ✓ Link copiado
             </div>
           </div>
-          <Cursor percurso="cast-ate-copiar" k={3} />
-          <Legenda n={4}>Copie o link</Legenda>
-        </Cena>
+          <Cursor path="cast-ate-copiar" k={3} />
+          <Caption n={4}>Copie o link</Caption>
+        </Scene>
 
-        {/* 5 — de volta à Oficina, colando */}
-        <Cena k={4}>
+        {/* 5 */}
+        <Scene k={4}>
           <div
             style={{
               position: "absolute",
@@ -231,14 +212,14 @@ export function ScreencastDrive() {
               <span className="text-ok">✓</span>
             </span>
           </div>
-          <Legenda n={5}>Cole aqui na Oficina — pronto</Legenda>
-        </Cena>
+          <Caption n={5}>Cole aqui na Oficina — pronto</Caption>
+        </Scene>
       </div>
 
       <div className="cast-regua" aria-hidden="true">
-        {Array.from({ length: CENAS }, (_, k) => (
+        {Array.from({ length: SCENES }, (_, k) => (
           <span key={k} className="cast-tic">
-            <span style={{ animationDelay: atraso(k) }} />
+            <span style={{ animationDelay: delay(k) }} />
           </span>
         ))}
       </div>

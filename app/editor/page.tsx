@@ -1,42 +1,33 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
-import { BannerPerfilIncompleto } from "@/components/banner-perfil-incompleto";
-import { DesafiosDia } from "@/components/desafios-dia";
-import { MissaoEmMaos } from "@/components/missao-em-maos";
-import { OfertaMissao } from "@/components/oferta-missao";
-import { pautaReservadaPor } from "@/lib/pautas-db";
-import { mensagensDaPauta } from "@/lib/chat-db";
-import { lerOnboardingEditor } from "@/lib/perfil-db";
-import { exigirSessao } from "@/lib/sessao-servidor";
-import { listarDesafiosDoDia, registrarEntradaDiaria } from "@/lib/gamificacao-db";
+import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
+import { DailyChallenges } from "@/components/daily-challenges";
+import { ActiveMissionCard } from "@/components/active-mission-card";
+import { MissionOffer } from "@/components/mission-offer";
+import { reservedMissionBy } from "@/lib/missions-db";
+import { missionMessages } from "@/lib/chat-db";
+import { readEditorOnboarding } from "@/lib/profile-db";
+import { requireSession } from "@/lib/server-session";
+import { listDailyChallenges, recordDailyLogin } from "@/lib/gamification-db";
 
 export const metadata: Metadata = { title: "Fila — Oficina Amarela" };
-
-// o card de oferta depende do que acabou de ser despachado, então não pode
-// vir de cache
 export const dynamic = "force-dynamic";
 
-// Dispatch puro: o editor não navega por lista nenhuma. Ou ele tem uma
-// missão em mãos, ou está esperando a próxima oferta chegar. A lista de
-// "missões disponíveis" saiu daqui de propósito — deixar as duas coisas na
-// mesma tela fazia a mesma missão aparecer duas vezes (oferta + lista) com
-// um "Reservar" que já não funcionava.
 export default async function EditorPage() {
-  const sessao = await exigirSessao();
-  const [minhaAtual, onboarding] = await Promise.all([
-    pautaReservadaPor(sessao.id),
-    lerOnboardingEditor(sessao.id),
+  const session = await requireSession();
+  const [currentMission, onboarding] = await Promise.all([
+    reservedMissionBy(session.id),
+    readEditorOnboarding(session.id),
   ]);
   try {
-    await registrarEntradaDiaria(sessao.id);
+    await recordDailyLogin(session.id);
   } catch (e) {
-    console.error("[gamificacao] falhou ao registrar entrada", e);
+    console.error("[gamification] failed to record login", e);
   }
-  const desafios = await listarDesafiosDoDia(sessao.id);
-  const perfilIncompleto = onboarding ? !onboarding.perfilCompleto : true;
-  // thread da missão em mãos — sem missão, sem conversa (nada pra buscar)
-  const mensagens = minhaAtual
-    ? await mensagensDaPauta(Number(minhaAtual.id.replace(/^db-/, "")))
+  const challenges = await listDailyChallenges(session.id);
+  const isIncompleteProfile = onboarding ? !onboarding.profileComplete : true;
+  const messages = currentMission
+    ? await missionMessages(Number(currentMission.id.replace(/^db-/, "")))
     : [];
 
   return (
@@ -49,25 +40,21 @@ export default async function EditorPage() {
               Fila de missões
             </h1>
             <p className="mt-1 text-sm text-muted">
-              {minhaAtual
+              {currentMission
                 ? "Você já tem uma missão em mãos. Entregue pra receber a próxima."
                 : "As missões chegam até você, uma por vez. Aceite ou passe — se passar, vai pro próximo editor."}
             </p>
           </div>
 
-          {perfilIncompleto && (
+          {isIncompleteProfile && (
             <div className="mb-6">
-              <BannerPerfilIncompleto papel="editor" />
+              <IncompleteProfileBanner role="editor" />
             </div>
           )}
 
-          <MissaoEmMaos missao={minhaAtual} mensagens={mensagens} />
-          {/* com missão em mãos o componente some sozinho — não há o que
-              oferecer a quem já está trabalhando */}
-          <OfertaMissao temMissaoEmMaos={!!minhaAtual} />
+          <ActiveMissionCard mission={currentMission} messages={messages} />
+          <MissionOffer hasActiveMission={!!currentMission} />
 
-          {/* pausa visual: o que vem abaixo é extra, não faz parte do fluxo
-              principal de receber e entregar missão */}
           <div
             aria-hidden="true"
             className="my-10 h-px rounded-full"
@@ -77,7 +64,7 @@ export default async function EditorPage() {
             }}
           />
 
-          <DesafiosDia desafios={desafios} />
+          <DailyChallenges challenges={challenges} />
         </div>
       </main>
     </>

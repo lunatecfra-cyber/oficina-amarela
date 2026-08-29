@@ -1,26 +1,25 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
-import { EditarPerfilForm } from "@/components/editar-perfil-form";
-import { ApagarConta } from "@/components/apagar-conta";
-import { DefinirSenha } from "@/components/definir-senha";
-import { contaTemSenha } from "@/lib/contas";
-import { lerPerfilEditavel } from "@/lib/perfil-db";
-import { exigirSessao } from "@/lib/sessao-servidor";
+import { EditProfileForm } from "@/components/edit-profile-form";
+import { DeleteAccount } from "@/components/delete-account";
+import { SetPassword } from "@/components/set-password";
+import { accountHasPassword } from "@/lib/accounts";
+import { readEditableProfile } from "@/lib/profile-db";
+import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Editar perfil — Oficina Amarela" };
-
 export const dynamic = "force-dynamic";
 
-export default async function EditarPerfilPage() {
-  const sessao = await exigirSessao();
-  const [perfilOpt, temSenha] = await Promise.all([
-    lerPerfilEditavel(sessao.id),
-    contaTemSenha(sessao.id),
+export default async function EditProfilePage() {
+  const session = await requireSession();
+  const [profileOpt, hasPassword] = await Promise.all([
+    readEditableProfile(session.id),
+    accountHasPassword(session.id),
   ]);
-  const perfil = perfilOpt ?? {
+  const profile = profileOpt ?? {
     headline: [],
     bio: null,
-    localizacao: null,
+    location: null,
   };
 
   return (
@@ -35,11 +34,11 @@ export default async function EditarPerfilPage() {
             É isso que porta-vozes veem quando olham quem você é.
           </p>
 
-          <EditarPerfilForm inicial={perfil} />
+          <EditProfileForm initial={profile} />
 
           <div className="max-w-lg">
-            <DefinirSenha temSenha={temSenha} />
-            <ApagarConta temSenha={temSenha} />
+            <SetPassword hasPassword={hasPassword} />
+            <DeleteAccount hasPassword={hasPassword} />
           </div>
         </div>
       </main>

@@ -1,55 +1,56 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import {
-  autenticar,
-  limparTentativasLogin,
-  loginTravado,
-  loginTravadoPorIp,
-  registrarFalhaLogin,
-  registrarFalhaLoginIp,
-} from "@/lib/contas";
-import { ipDaRequisicao } from "@/lib/ip";
-import { criarTokenSessao, NOME_COOKIE, COOKIE_OPTS } from "@/lib/sessao";
-import { registrarEntradaDiaria } from "@/lib/gamificacao-db";
+  authenticateUser,
+  clearLoginAttempts,
+  isLoginLockedByHandle,
+  isLoginLockedByIp,
+  recordLoginFailure,
+  recordLoginFailureByIp,
+} from "@/lib/accounts";
+import { requestIpAddress } from "@/lib/ip";
+import { createSessionToken, COOKIE_NAME, COOKIE_OPTS } from "@/lib/session";
+import { recordDailyLogin } from "@/lib/gamification-db";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  const { apelido, senha } = body ?? {};
+  const handle = body?.handle ?? body?.apelido;
+  const password = body?.password ?? body?.senha;
 
-  if (typeof apelido !== "string" || typeof senha !== "string") {
-    return NextResponse.json({ erro: "Preencha apelido e senha." }, { status: 400 });
+  if (typeof handle !== "string" || typeof password !== "string") {
+    return NextResponse.json({ error: "Please provide both handle and password.", erro: "Please provide both handle and password." }, { status: 400 });
   }
 
-  const ip = ipDaRequisicao(request);
+  const ip = requestIpAddress(request);
 
-  // duas travas somadas: a do apelido protege uma conta de ser martelada; a do
-  // IP protege TODAS as contas de serem varridas com uma senha só, que é o
-  // ataque que passava batido por só existir a primeira
-  const trava = await loginTravado(apelido);
-  const travaIp = await loginTravadoPorIp(ip);
-  if (trava.travado || travaIp.travado) {
-    const minutos = Math.max(trava.minutos, travaIp.minutos);
+  const lockHandle = await isLoginLockedByHandle(handle);
+  const lockIp = await isLoginLockedByIp(ip);
+  if (lockHandle.locked || lockIp.locked) {
+    const minutes = Math.max(lockHandle.minutes, lockIp.minutes);
     return NextResponse.json(
-      { erro: `Muitas tentativas. Tenta de novo em ${minutos} min.` },
+      {
+        error: `Too many attempts. Please try again in ${minutes} min.`,
+        erro: `Too many attempts. Please try again in ${minutes} min.`,
+      },
       { status: 429 }
     );
   }
 
-  const resultado = await autenticar(apelido, senha);
-  if (!resultado.ok) {
-    await registrarFalhaLogin(apelido);
-    await registrarFalhaLoginIp(ip);
-    return NextResponse.json({ erro: resultado.erro }, { status: 401 });
+  const result = await authenticateUser(handle, password);
+  if (!result.ok) {
+    await recordLoginFailure(handle);
+    await recordLoginFailureByIp(ip);
+    return NextResponse.json({ error: result.error, erro: result.error }, { status: 401 });
   }
 
-  await limparTentativasLogin(apelido);
+  await clearLoginAttempts(handle);
 
-  const token = await criarTokenSessao(resultado.conta);
-  const jar = await cookies();
-  jar.set(NOME_COOKIE, token, COOKIE_OPTS);
-  void registrarEntradaDiaria(resultado.conta.id).catch((e) =>
-    console.error("[gamificacao] falhou ao registrar entrada", e)
+  const token = await createSessionToken(result.account);
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_NAME, token, COOKIE_OPTS);
+  void recordDailyLogin(result.account.id).catch((e) =>
+    console.error("[gamification] failed to record login", e)
   );
 
-  return NextResponse.json({ ok: true, ...resultado.conta });
+  return NextResponse.json({ ok: true, ...result.account });
 }

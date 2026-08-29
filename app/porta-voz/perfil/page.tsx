@@ -1,63 +1,51 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { PAUTAS, ROTULO_STATUS } from "@/lib/pautas";
-import { pautasDoPortaVoz } from "@/lib/pautas-db";
-import { getCandidato } from "@/lib/candidatos";
-import { lerCandidatoProprio } from "@/lib/candidato-db";
-import { exigirSessao } from "@/lib/sessao-servidor";
+import { MISSIONS, STATUS_LABELS } from "@/lib/missions";
+import { spokespersonMissions } from "@/lib/missions-db";
+import { getCandidate } from "@/lib/candidates";
+import { readOwnCandidate } from "@/lib/candidate-db";
+import { requireSession } from "@/lib/server-session";
 import { Stat } from "@/components/stat";
 import { Card } from "@/components/card";
-import { AvatarCandidato } from "@/components/avatar-candidato";
-import { DadosCandidato } from "@/components/dados-candidato";
-import { NomeCandidato } from "@/components/nome-candidato";
+import { CandidateAvatar } from "@/components/candidate-avatar";
+import { CandidateData } from "@/components/candidate-data";
+import { CandidateName } from "@/components/candidate-name";
 
 export const metadata: Metadata = { title: "Meu Perfil — Oficina Amarela" };
-
-// lê sessão (cookie + banco) e missões recentes — não pode ser estático
 export const dynamic = "force-dynamic";
 
-export default async function PerfilPortaVozPage() {
-  const sessao = await exigirSessao();
+export default async function SpokespersonProfilePage() {
+  const session = await requireSession();
 
-  const [candOpt, reaisMinhas] = await Promise.all([
-    lerCandidatoProprio(sessao.id),
-    pautasDoPortaVoz(sessao.id),
+  const [candOpt, realMine] = await Promise.all([
+    readOwnCandidate(session.id),
+    spokespersonMissions(session.id),
   ]);
-  const cand = candOpt ?? getCandidato(sessao.nome);
+  const cand = candOpt ?? getCandidate(session.name);
 
-  // As pautas de demonstração ficam fora de produção. O filtro por nome dava
-  // uma proteção quase certa — só casaria com alguém chamado "Busnelo" ou
-  // "Marcia Lima" — mas "quase" aqui significa: essa pessoa veria missões que
-  // não são dela, e com os contadores errados por cima. Nome de gente repete;
-  // não é coisa pra deixar no acaso.
   const demo =
     process.env.NODE_ENV !== "production"
-      ? PAUTAS.filter((p) => p.portaVoz === sessao.nome)
+      ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === session.name)
       : [];
-  const minhas = [...reaisMinhas, ...demo];
+  const myMissions = [...realMine, ...demo];
 
-  // Os quatro contadores têm que somar o total, senão missão some da conta.
-  // 'oferecida' (dispatch, ainda sem editor) conta como fila; 'finalizada'
-  // (o porta-voz aceitou) conta como pronta — sem isso o número de aprovadas
-  // DIMINUÍA no momento em que ele aceitava o vídeo.
-  const naFila = minhas.filter((p) =>
-    ["disponivel", "oferecida"].includes(p.status)
+  const inQueue = myMissions.filter((p) =>
+    ["available", "disponivel", "offered", "oferecida"].includes(p.status)
   ).length;
-  const emProducao = minhas.filter((p) =>
-    ["reservada", "em_revisao", "reedicao"].includes(p.status)
+  const inProduction = myMissions.filter((p) =>
+    ["reserved", "reservada", "in_review", "em_revisao", "reedit", "reedicao"].includes(p.status)
   ).length;
-  const prontas = minhas.filter((p) =>
-    ["aprovada", "finalizada"].includes(p.status)
+  const ready = myMissions.filter((p) =>
+    ["approved", "aprovada", "finished", "finalizada"].includes(p.status)
   ).length;
 
-  const historico = minhas.filter((p) =>
-    ["aprovada", "finalizada", "reedicao"].includes(p.status)
+  const history = myMissions.filter((p) =>
+    ["approved", "aprovada", "finished", "finalizada", "reedit", "reedicao"].includes(p.status)
   );
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 lg:px-8 lg:py-10">
-      {/* ---- cartão de identidade ---- */}
       <section className="reveal overflow-hidden rounded-2xl border border-line bg-surface/60">
         <div className="relative h-32 lg:h-44">
           <div
@@ -80,7 +68,7 @@ export default async function PerfilPortaVozPage() {
 
         <div className="px-5 pb-6 lg:px-8">
           <div className="relative z-10 -mt-12 flex items-end justify-between gap-4 lg:-mt-14">
-            <AvatarCandidato candidato={cand} className="h-24 w-24 text-3xl lg:h-28 lg:w-28 lg:text-4xl" />
+            <CandidateAvatar candidate={cand} className="h-24 w-24 text-3xl lg:h-28 lg:w-28 lg:text-4xl" />
             <Link
               href="/porta-voz/perfil/editar"
               className="btn-ghost mb-1 w-auto px-4 text-sm"
@@ -90,65 +78,71 @@ export default async function PerfilPortaVozPage() {
             </Link>
           </div>
 
-          <NomeCandidato
-            candidato={cand}
+          <CandidateName
+            candidate={cand}
             className="mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl"
           />
-          <DadosCandidato candidato={cand} />
-          {cand.desde && (
-            <p className="mt-1 text-sm text-muted-2">na guilda desde {cand.desde}</p>
+          <CandidateData candidate={cand} />
+          {cand.since && (
+            <p className="mt-1 text-sm text-muted-2">na guilda desde {cand.since}</p>
           )}
 
-          {/* mesma razão do perfil do editor: com flex-wrap os quatro números
-              caíam três numa linha e "prontas" sobrava sozinho embaixo */}
           <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-3">
-            <Stat valor={String(minhas.length)} rotulo="missões" />
-            <Stat valor={String(naFila)} rotulo="na fila" />
-            <Stat valor={String(emProducao)} rotulo="em produção" />
-            <Stat valor={String(prontas)} rotulo="prontas" />
+            <Stat valor={String(myMissions.length)} rotulo="missões" />
+            <Stat valor={String(inQueue)} rotulo="na fila" />
+            <Stat valor={String(inProduction)} rotulo="em produção" />
+            <Stat valor={String(ready)} rotulo="prontas" />
           </dl>
         </div>
       </section>
 
       <div className="mt-6 flex flex-col gap-6">
-        <Card titulo="Missões criadas">
-          {minhas.length === 0 ? (
+        <Card title="Missões criadas">
+          {myMissions.length === 0 ? (
             <p className="text-sm text-muted">Nenhuma missão criada ainda.</p>
           ) : (
             <ul className="flex flex-col gap-3">
-              {minhas.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-surface/40 p-4"
-                >
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-text">
-                      {p.titulo}
-                    </h3>
-                    {p.reservadaPor && (
-                      <p className="mt-0.5 text-xs text-muted-2">editor: {p.reservadaPor}</p>
-                    )}
-                  </div>
-                  <span className="rounded-full border border-line bg-ink-2 px-3 py-1 text-xs text-muted">
-                    {ROTULO_STATUS[p.status]}
-                  </span>
-                </li>
-              ))}
+              {myMissions.map((p) => {
+                const title = p.title ?? (p as any).titulo;
+                const reservedBy = p.reservedBy ?? (p as any).reservadaPor;
+                const status = p.status;
+                return (
+                  <li
+                    key={p.id}
+                    className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-surface/40 p-4"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-text">
+                        {title}
+                      </h3>
+                      {reservedBy && (
+                        <p className="mt-0.5 text-xs text-muted-2">editor: {reservedBy}</p>
+                      )}
+                    </div>
+                    <span className="rounded-full border border-line bg-ink-2 px-3 py-1 text-xs text-muted">
+                      {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? (STATUS_LABELS as any)[status] ?? status}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Card>
 
-        <Card titulo="Histórico" delay={0.05}>
-          {historico.length === 0 ? (
+        <Card title="Histórico" delay={0.05}>
+          {history.length === 0 ? (
             <p className="text-sm text-muted">Nenhuma missão concluída ainda.</p>
           ) : (
             <ol className="relative ml-1">
-              {historico.map((h, i) => {
-                const ok = h.status === "aprovada" || h.status === "finalizada";
-                const ultimo = i === historico.length - 1;
+              {history.map((h, i) => {
+                const ok = h.status === "approved" || (h.status as any) === "aprovada" || h.status === "finished" || (h.status as any) === "finalizada";
+                const isLast = i === history.length - 1;
+                const title = h.title ?? (h as any).titulo;
+                const reservedBy = h.reservedBy ?? (h as any).reservadaPor;
+
                 return (
                   <li key={h.id} className="relative flex gap-4 pb-5 last:pb-0">
-                    {!ultimo && (
+                    {!isLast && (
                       <span className="absolute left-[7px] top-4 h-full w-px bg-line" />
                     )}
                     <span
@@ -157,13 +151,13 @@ export default async function PerfilPortaVozPage() {
                       }`}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-text">{h.titulo}</p>
+                      <p className="text-sm font-medium text-text">{title}</p>
                       <p className="text-xs text-muted-2">
-                        {h.reservadaPor ?? "—"} ·{" "}
+                        {reservedBy ?? "—"} ·{" "}
                         <span className={ok ? "text-ok" : "text-gold"}>
-                          {h.status === "finalizada"
+                          {h.status === "finished" || (h.status as any) === "finalizada"
                             ? "concluída"
-                            : h.status === "aprovada"
+                            : h.status === "approved" || (h.status as any) === "aprovada"
                               ? "pronta pra conferir"
                               : "reedição pedida"}
                         </span>

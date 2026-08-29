@@ -1,38 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { EditarPerfilCandidatoForm } from "@/components/editar-perfil-candidato-form";
-import { ApagarConta } from "@/components/apagar-conta";
-import { DefinirSenha } from "@/components/definir-senha";
-import { lerOnboardingCandidato } from "@/lib/candidato-db";
-import { contaTemSenha } from "@/lib/contas";
-import { exigirSessao } from "@/lib/sessao-servidor";
+import { EditCandidateProfileForm } from "@/components/edit-candidate-profile-form";
+import { DeleteAccount } from "@/components/delete-account";
+import { SetPassword } from "@/components/set-password";
+import { readCandidateOnboarding } from "@/lib/candidate-db";
+import { accountHasPassword } from "@/lib/accounts";
+import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Editar perfil — Oficina Amarela" };
-
 export const dynamic = "force-dynamic";
 
-export default async function EditarPerfilCandidatoPage() {
-  const sessao = await exigirSessao();
-  const [doBanco, temSenha] = await Promise.all([
-    lerOnboardingCandidato(sessao.id),
-    contaTemSenha(sessao.id),
+export default async function EditSpokespersonProfilePage() {
+  const session = await requireSession();
+  const [dbOnboarding, hasPassword] = await Promise.all([
+    readCandidateOnboarding(session.id),
+    accountHasPassword(session.id),
   ]);
 
-  // conta sem onboarding ainda: começa com o nome da sessão e campos vazios.
-  // Assim a página serve pra editar E pra criar de novo, sem redirecionar.
-  const inicial = doBanco ?? {
-    nome: sessao.nome,
-    fotoUrl: "",
-    cargo: "",
-    disputaPor: "",
-    anoEleicao: "2026",
-    localizacao: "",
-    bandeiras: [],
-    tomComunicacao: "",
-    palavrasChave: [],
-    redes: {},
+  const initial = dbOnboarding ?? {
+    name: session.name,
+    photoUrl: "",
+    role: "",
+    runningFor: "",
+    electionYear: "2026",
+    location: "",
+    causes: [],
+    communicationTone: "",
+    keywords: [],
+    socialLinks: {},
     bio: "",
-    perfilCompleto: false,
+    profileComplete: false,
   };
 
   return (
@@ -50,11 +47,11 @@ export default async function EditarPerfilCandidatoPage() {
         Salve o que mudar — é isso que editores e o público vão ver de você.
       </p>
 
-      <EditarPerfilCandidatoForm inicial={inicial} />
+      <EditCandidateProfileForm initial={initial} />
 
       <div className="max-w-lg">
-        <DefinirSenha temSenha={temSenha} />
-        <ApagarConta temSenha={temSenha} />
+        <SetPassword hasPassword={hasPassword} />
+        <DeleteAccount hasPassword={hasPassword} />
       </div>
     </div>
   );

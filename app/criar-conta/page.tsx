@@ -2,17 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Logo } from "@/components/logo";
-import { CriarContaForm } from "@/components/criar-conta-form";
+import { SignupForm } from "@/components/signup-form";
 
 export const metadata: Metadata = { title: "Criar conta — Oficina Amarela" };
 
-export default function CriarContaPage() {
-  const modoDev = process.env.NODE_ENV === "development" && !process.env.VERCEL;
+export default function SignupPage() {
+  const isDev = process.env.NODE_ENV === "development" && !process.env.VERCEL;
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
       <Link href="/" className="mb-6 flex flex-col items-center text-center">
-        <Logo className="w-16" />
+        <Logo size="large" />
         <p className="text-gold-grad mt-3 font-[family-name:var(--font-display)] text-xl font-semibold tracking-[0.2em]">
           OFICINA AMARELA
         </p>
@@ -29,7 +29,7 @@ export default function CriarContaPage() {
       </div>
 
       <Suspense>
-        <CriarContaForm modoDev={modoDev} />
+        <SignupForm devMode={isDev} />
       </Suspense>
     </main>
   );

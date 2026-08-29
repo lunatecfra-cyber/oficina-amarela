@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { RedefinirSenhaForm } from "@/components/redefinir-senha-form";
+import { ResetPasswordForm } from "@/components/reset-password-form";
 
 export const metadata: Metadata = { title: "Redefinir senha — Oficina Amarela" };
 
-export default function RedefinirSenhaPage() {
+export default function ResetPasswordPage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
       <Link href="/" className="mb-8 flex flex-col items-center text-center">
-        <Logo className="w-20" />
+        <Logo size="large" />
         <p className="text-gold-grad mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold tracking-[0.2em]">
           OFICINA AMARELA
         </p>
@@ -19,7 +19,7 @@ export default function RedefinirSenhaPage() {
         Escolher nova senha
       </h1>
 
-      <RedefinirSenhaForm />
+      <ResetPasswordForm />
     </main>
   );
 }

@@ -1,93 +1,81 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sql } from "@/lib/db";
-import { criarTokenSessao, NOME_COOKIE, COOKIE_OPTS, type Papel } from "@/lib/sessao";
+import { createSessionToken, COOKIE_NAME, COOKIE_OPTS, type Role } from "@/lib/session";
 
-// Atalho de login SÓ PRA DESENVOLVIMENTO — entra sem senha.
-//
-// Dupla trava, de propósito: além do NODE_ENV, checa VERCEL. Um build de
-// produção rodando localmente também tem NODE_ENV=production, mas o inverso
-// (alguém subir isso pra Vercel com NODE_ENV=development por acidente) abriria
-// a porta pra qualquer um logar como editor sem senha. As duas condições
-// juntas fecham esse buraco.
-function ambienteDeDesenvolvimento() {
+function isDevEnvironment() {
   return process.env.NODE_ENV === "development" && !process.env.VERCEL;
 }
 
-const CONTAS: Record<Papel, { apelido: string; nome: string; email: string; destino: string }> = {
+const DEV_ACCOUNTS: Record<Role, { handle: string; name: string; email: string; destination: string }> = {
   editor: {
-    apelido: "dev.editor",
-    nome: "Editor de Teste",
-    email: "dev.editor@oficinaamarela.local",
-    destino: "/editor",
+    handle: "dev.editor",
+    name: "Dev Video Editor",
+    email: "dev.editor@yellowworkshop.local",
+    destination: "/editor",
   },
-  voz: {
-    apelido: "dev.portavoz",
-    nome: "Porta-voz de Teste",
-    email: "dev.portavoz@oficinaamarela.local",
-    destino: "/porta-voz",
+  spokesperson: {
+    handle: "dev.spokesperson",
+    name: "Dev Spokesperson",
+    email: "dev.spokesperson@yellowworkshop.local",
+    destination: "/spokesperson",
   },
   admin: {
-    apelido: "dev.admin",
-    nome: "Admin de Teste",
-    email: "dev.admin@oficinaamarela.local",
-    destino: "/inspetor",
+    handle: "dev.admin",
+    name: "Dev Inspector",
+    email: "dev.admin@yellowworkshop.local",
+    destination: "/inspector",
   },
 };
 
-const NOME_COOKIE_DEMO = "oficina_demo_papel";
-
 export async function GET(request: Request) {
-  if (!ambienteDeDesenvolvimento()) {
-    return NextResponse.json({ erro: "Rota disponível só em desenvolvimento." }, { status: 404 });
+  if (!isDevEnvironment()) {
+    return NextResponse.json({ error: "Route available in development mode only.", erro: "Dev only." }, { status: 404 });
   }
 
   const url = new URL(request.url);
-  const papelParam = url.searchParams.get("papel");
-  const papel: Papel =
-    papelParam === "editor" || papelParam === "voz" || papelParam === "admin" ? papelParam : "editor";
+  const rawRole = url.searchParams.get("role") ?? url.searchParams.get("papel");
+  const role: Role =
+    rawRole === "spokesperson" || rawRole === "voz"
+      ? "spokesperson"
+      : rawRole === "admin"
+        ? "admin"
+        : "editor";
 
-  const conta = CONTAS[papel];
-  const destino =
-    url.searchParams.get("destino") === "perfil"
-      ? papel === "editor"
-        ? "/editor/criar-perfil"
-        : papel === "voz"
-          ? "/porta-voz/criar-perfil"
-          : conta.destino
-      : conta.destino;
+  const acc = DEV_ACCOUNTS[role];
+  const targetParam = url.searchParams.get("destination") ?? url.searchParams.get("destino");
+  const destination =
+    targetParam === "profile" || targetParam === "perfil"
+      ? role === "editor"
+        ? "/editor/create-profile"
+        : role === "spokesperson"
+          ? "/spokesperson/create-profile"
+          : acc.destination
+      : acc.destination;
 
-  // cria na primeira vez, reaproveita depois. senha_hash fica NULL: essa conta
-  // não loga por senha, só por este atalho
-  const [linha] = await sql`
-    INSERT INTO users (apelido, nome, email, papel)
-    VALUES (${conta.apelido}, ${conta.nome}, ${conta.email}, ${papel})
-    ON CONFLICT (lower(apelido)) DO UPDATE SET nome = EXCLUDED.nome
-    RETURNING id, apelido, nome, papel
+  const [row] = await sql`
+    INSERT INTO users (handle, name, email, role)
+    VALUES (${acc.handle}, ${acc.name}, ${acc.email}, ${role})
+    ON CONFLICT (lower(handle)) DO UPDATE SET name = EXCLUDED.name
+    RETURNING id, handle, name, role
   `;
 
-  // Sem DATABASE_URL, lib/db devolve uma lista vazia para manter as telas
-  // navegáveis localmente. Nesse caso, usa uma identidade sintética de demo;
-  // ela nunca é criada nem aceita fora deste ambiente.
-  const sessao = linha ?? {
-    id: 9000 + (papel === "editor" ? 1 : papel === "voz" ? 2 : 3),
-    apelido: conta.apelido,
-    nome: conta.nome,
-    papel,
+  const session = row ?? {
+    id: 9000 + (role === "editor" ? 1 : role === "spokesperson" ? 2 : 3),
+    handle: acc.handle,
+    name: acc.name,
+    role,
   };
 
-  const token = await criarTokenSessao({
-    id: sessao.id,
-    apelido: sessao.apelido,
-    nome: sessao.nome,
-    papel: sessao.papel,
+  const token = await createSessionToken({
+    id: session.id,
+    handle: session.handle,
+    name: session.name,
+    role: session.role,
   });
 
-  const jar = await cookies();
-  jar.set(NOME_COOKIE, token, COOKIE_OPTS);
-  if (!linha) {
-    jar.set(NOME_COOKIE_DEMO, papel, COOKIE_OPTS);
-  }
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_NAME, token, COOKIE_OPTS);
 
-  return NextResponse.redirect(new URL(destino, url.origin));
+  return NextResponse.redirect(new URL(destination, url.origin));
 }

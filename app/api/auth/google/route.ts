@@ -1,30 +1,39 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { googleConfigurado, montarUrlAutorizacao } from "@/lib/oauth-google";
-import { COOKIE_ESTADO_OPTS, criarEstadoAssinado, NOME_COOKIE_ESTADO } from "@/lib/sessao";
+import { isGoogleOAuthConfigured, buildGoogleAuthUrl } from "@/lib/oauth-google";
+import {
+  STATE_COOKIE_OPTS,
+  createSignedState,
+  STATE_COOKIE_NAME,
+  INVITATION_COOKIE_NAME,
+  REFERRAL_COOKIE_NAME,
+} from "@/lib/session";
 
-// não pergunta mais o papel aqui — quem já tem conta entra direto no papel
-// que já tem, e quem é novo escolhe depois, em /escolher-papel (ver callback)
 export async function GET(request: Request) {
   const url = new URL(request.url);
 
-  if (!googleConfigurado()) {
+  if (!isGoogleOAuthConfigured()) {
     return NextResponse.json(
-      { erro: "Login com Google ainda não configurado (faltam GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET no .env.local)." },
+      { error: "Google OAuth is not configured yet (missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).", erro: "Google OAuth not configured." },
       { status: 503 }
     );
   }
 
   const redirectUri = new URL("/api/auth/google/callback", url.origin).toString();
 
-  // o nonce vai em dois lugares: dentro do state (que viaja pelo Google, à
-  // vista) e num cookie httpOnly (que fica só neste navegador). O callback só
-  // aceita se os dois baterem — é isso que amarra o fluxo a quem o começou.
   const nonce = crypto.randomUUID();
-  const state = await criarEstadoAssinado(nonce);
+  const state = await createSignedState(nonce);
 
-  const jar = await cookies();
-  jar.set(NOME_COOKIE_ESTADO, nonce, COOKIE_ESTADO_OPTS);
+  const cookieStore = await cookies();
+  cookieStore.set(STATE_COOKIE_NAME, nonce, STATE_COOKIE_OPTS);
 
-  return NextResponse.redirect(montarUrlAutorizacao(redirectUri, state));
+  const invitation = url.searchParams.get("convite") ?? url.searchParams.get("invitation");
+  if (invitation) cookieStore.set(INVITATION_COOKIE_NAME, invitation, STATE_COOKIE_OPTS);
+  else cookieStore.delete(INVITATION_COOKIE_NAME);
+
+  const referral = url.searchParams.get("indicacao") ?? url.searchParams.get("referral");
+  if (referral) cookieStore.set(REFERRAL_COOKIE_NAME, referral, STATE_COOKIE_OPTS);
+  else cookieStore.delete(REFERRAL_COOKIE_NAME);
+
+  return NextResponse.redirect(buildGoogleAuthUrl(redirectUri, state));
 }

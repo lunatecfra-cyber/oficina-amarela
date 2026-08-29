@@ -1,14 +1,17 @@
-/** Verifica se a string parece uma URL (http, https ou www). */
-export function pareceLink(v: string) {
+export function isLikelyUrl(v: string) {
   return /^(https?:\/\/|www\.)/i.test(v.trim());
 }
+export const looksLikeLink = isLikelyUrl;
+export const pareceLink = isLikelyUrl;
 
-/** Verifica se a string é um link do Google Drive. */
-export function pareceLinkDrive(v: string) {
+export function isDriveUrl(v: string) {
   return /drive\.google\.com/i.test(v.trim());
 }
+export const looksLikeDriveLink = isDriveUrl;
+export const pareceLinkDrive = isDriveUrl;
 
-/** Verifica se a string é um link do YouTube. */
-export function pareceLinkYoutube(v: string) {
+export function isYouTubeUrl(v: string) {
   return /(youtube\.com|youtu\.be)/i.test(v.trim());
 }
+export const looksLikeYoutubeLink = isYouTubeUrl;
+export const pareceLinkYoutube = isYouTubeUrl;

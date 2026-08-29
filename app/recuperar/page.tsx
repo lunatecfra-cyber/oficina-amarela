@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { RecuperarForm } from "@/components/recuperar-form";
+import { RecoverForm } from "@/components/recover-form";
 
 export const metadata: Metadata = { title: "Recuperar senha — Oficina Amarela" };
 
-export default function RecuperarPage() {
+export default function RecoverPage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
       <Link href="/" className="mb-8 flex flex-col items-center text-center">
-        <Logo className="w-20" />
+        <Logo size="large" />
         <p className="text-gold-grad mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold tracking-[0.2em]">
           OFICINA AMARELA
         </p>
@@ -24,10 +24,6 @@ export default function RecuperarPage() {
         mesma conta de sempre.
       </p>
 
-      {/* Este atalho vem primeiro de propósito. O envio de e-mail ainda não
-          está ligado, então o formulário abaixo responde que não deu — e sem
-          esta saída a pessoa não teria nenhuma. Entrar pelo Google prova a
-          mesma coisa que o link de recuperação provaria. */}
       <a
         href="/api/auth/google"
         className="btn-gold mb-6 flex w-full max-w-sm items-center justify-center gap-3"
@@ -49,7 +45,7 @@ export default function RecuperarPage() {
         <span className="h-px flex-1 bg-line" />
       </div>
 
-      <RecuperarForm />
+      <RecoverForm />
     </main>
   );
 }

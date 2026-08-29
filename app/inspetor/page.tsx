@@ -1,29 +1,31 @@
 import type { Metadata } from "next";
-import { FilaInspetor } from "@/components/fila-inspetor";
-import { pautasEmRevisao } from "@/lib/pautas-db";
-import { lerCandidatosPorApelidos } from "@/lib/candidato-db";
-import { mensagensDePautas } from "@/lib/chat-db";
+import { InspectorQueue } from "@/components/inspector-queue";
+import { missionsInReview } from "@/lib/missions-db";
+import { readCandidatesByHandles } from "@/lib/candidate-db";
+import { missionsMessages } from "@/lib/chat-db";
 
 export const metadata: Metadata = { title: "Controle de Qualidade — Oficina Amarela" };
-
 export const dynamic = "force-dynamic";
 
-export default async function InspetorPage() {
-  const pautasReais = await pautasEmRevisao();
-  const apelidos = pautasReais.filter((p) => p.portaVozApelido).map((p) => p.portaVozApelido!);
-  // conversa de cada missão em revisão — em lote, uma query só
-  const ids = pautasReais.map((p) => Number(p.id.replace(/^db-/, "")));
-  const [candidatosMapa, mensagensMapa] = await Promise.all([
-    lerCandidatosPorApelidos([...new Set(apelidos)]),
-    mensagensDePautas(ids),
+export default async function InspectorPage() {
+  const realMissions = await missionsInReview();
+  const handles = realMissions
+    .map((p) => p.spokespersonHandle ?? (p as any).portaVozApelido)
+    .filter((h): h is string => Boolean(h));
+
+  const ids = realMissions.map((p) => Number(p.id.replace(/^db-/, "")));
+  const [candidatesMap, messagesMap] = await Promise.all([
+    readCandidatesByHandles([...new Set(handles)]),
+    missionsMessages(ids),
   ]);
-  const candidatosPorApelido = Object.fromEntries(candidatosMapa);
-  const mensagensPorPauta = Object.fromEntries(mensagensMapa);
+  const candidatesByHandle = Object.fromEntries(candidatesMap);
+  const messagesByMission = Object.fromEntries(messagesMap);
+
   return (
-    <FilaInspetor
-      pautasReais={pautasReais}
-      candidatosPorApelido={candidatosPorApelido}
-      mensagensPorPauta={mensagensPorPauta}
+    <InspectorQueue
+      realMissions={realMissions}
+      candidatesByHandle={candidatesByHandle}
+      messagesByMission={messagesByMission}
     />
   );
 }
