@@ -13,7 +13,7 @@ export function CriarContaForm({ modoDev = false }: { modoDev?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [papel, setPapel] = useState<"voz" | "editor">(
-    () => (searchParams.get("papel") === "editor" ? "editor" : "voz")
+    () => (searchParams.get("convite") ? "voz" : "editor")
   );
   const [nome, setNome] = useState("");
   const [apelido, setApelido] = useState("");
@@ -23,6 +23,8 @@ export function CriarContaForm({ modoDev = false }: { modoDev?: boolean }) {
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [vagas, setVagas] = useState<VagasInfo | null>(null);
+  const convite = searchParams.get("convite") ?? undefined;
+  const codigoIndicacao = searchParams.get("indicacao") ?? undefined;
 
   useEffect(() => {
     fetch("/api/vagas")
@@ -47,7 +49,7 @@ export function CriarContaForm({ modoDev = false }: { modoDev?: boolean }) {
     const resp = await fetch("/api/auth/cadastro", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, apelido, email, senha, papel }),
+      body: JSON.stringify({ nome, apelido, email, senha, papel, convite, codigoIndicacao }),
     });
     const dados = await resp.json();
 
@@ -64,7 +66,13 @@ export function CriarContaForm({ modoDev = false }: { modoDev?: boolean }) {
 
   return (
     <div className="w-full max-w-sm">
-      <a href="/api/auth/google" className="btn-ghost flex items-center justify-center gap-3">
+      <a
+        href={`/api/auth/google?${new URLSearchParams({
+          ...(convite ? { convite } : {}),
+          ...(codigoIndicacao ? { indicacao: codigoIndicacao } : {}),
+        }).toString()}`}
+        className="btn-ghost flex items-center justify-center gap-3"
+      >
         <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
           <path
             fill="#4285F4"
@@ -96,11 +104,12 @@ export function CriarContaForm({ modoDev = false }: { modoDev?: boolean }) {
         <button
           type="button"
           onClick={() => setPapel("voz")}
+          disabled={!convite}
           className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             papel === "voz" ? "bg-gold/10 text-gold-hi" : "text-muted hover:text-text"
-          }`}
+          } disabled:cursor-not-allowed disabled:opacity-50`}
         >
-          Sou porta-voz
+          {convite ? "Sou porta-voz" : "Porta-voz: só por convite"}
         </button>
         <button
           type="button"

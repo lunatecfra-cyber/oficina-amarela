@@ -5,6 +5,7 @@
 // (editor) são pessoas diferentes, em navegadores diferentes. localStorage é
 // isolado por navegador, então nunca chegaria de um pro outro.
 import { sql } from "@/lib/db";
+import { premiarIndicacaoSeElegivel } from "@/lib/ranking-eleitoral-db";
 import { LIMITES, limitar, limitarOuNulo } from "@/lib/limites";
 import type { Formato, Pauta, StatusPauta } from "@/lib/pautas";
 import { pareceLink } from "@/lib/validators";
@@ -365,6 +366,7 @@ export async function entregarPauta(
  */
 export async function aprovarPauta(
   pautaId: number,
+  aprovadoPorId: number,
   nota?: number,
   comentario?: string,
   /**
@@ -400,49 +402,12 @@ export async function aprovarPauta(
 
   const statusFinal: StatusPauta = portaVozId ? "finalizada" : "aprovada";
 
-  // O `AND pontuada = false` é a trava: depois que o porta-voz devolve uma
-  // missão já aprovada pra reedição, o inspetor aprova a MESMA missão de novo.
-  // Só a primeira aprovação pode valer ponto pro editor.
-  const primeiraVez = await sql`
-    UPDATE pautas
-    SET status = ${statusFinal}, notas_inspetor = NULL, reedicao_pedida_por = NULL,
-        pontuada = true
-    WHERE id = ${pautaId} AND pontuada = false
-    RETURNING id
+  const [resultado] = await sql`
+    SELECT * FROM oficina_private.aprovar_edicao(
+      ${pautaId}, ${aprovadoPorId}, ${statusFinal}, ${nota ?? null}, ${comentario?.trim() ?? ""}
+    )
   `;
-
-  if (primeiraVez.length === 0) {
-    // já pontuou antes: muda o status e para por aqui
-    await sql`
-      UPDATE pautas
-      SET status = ${statusFinal}, notas_inspetor = NULL, reedicao_pedida_por = NULL
-      WHERE id = ${pautaId}
-    `;
-    return { ok: true };
-  }
-
-  if (nota !== undefined) {
-    await sql`
-      INSERT INTO avaliacoes (pauta_id, editor_id, nota, comentario)
-      VALUES (${pautaId}, ${editorId}, ${nota}, ${comentario?.trim() || null})
-    `;
-  }
-
-  // entregues += 1 -> a coluna gerada "nivel" se atualiza sozinha
-  await sql`
-    UPDATE users
-    SET entregues = entregues + 1,
-        reputacao = reputacao + 25,
-        streak = streak + 1
-    WHERE id = ${editorId}
-  `;
-
-  // nota do editor = média das avaliações reais dele
-  await sql`
-    UPDATE users u
-    SET nota = (SELECT ROUND(AVG(a.nota)::numeric, 2) FROM avaliacoes a WHERE a.editor_id = u.id)
-    WHERE u.id = ${editorId}
-  `;
+  if (resultado?.pontuou) await premiarIndicacaoSeElegivel(editorId);
 
   return { ok: true };
 }

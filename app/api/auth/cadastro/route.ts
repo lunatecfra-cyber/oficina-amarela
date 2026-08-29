@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const { nome, apelido, email, senha, papel } = body ?? {};
+  const { nome, apelido, email, senha, papel, convite, codigoIndicacao } = body ?? {};
 
   if (
     typeof nome !== "string" ||
@@ -43,7 +43,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: vaga.erro }, { status: 403 });
   }
 
-  const resultado = await criarConta({ nome, apelido, email, senha, papel });
+  const resultado = await criarConta({
+    nome,
+    apelido,
+    email,
+    senha,
+    papel,
+    convite: typeof convite === "string" ? convite : undefined,
+    codigoIndicacao: typeof codigoIndicacao === "string" ? codigoIndicacao : undefined,
+  });
 
   if (!resultado.ok) {
     // Erro de digitação não gasta tentativa. Antes gastava, e o efeito era

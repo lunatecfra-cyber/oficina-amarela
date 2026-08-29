@@ -8,7 +8,9 @@ import {
   criarIdentidadePendente,
   criarTokenSessao,
   NOME_COOKIE,
+  NOME_COOKIE_CONVITE,
   NOME_COOKIE_ESTADO,
+  NOME_COOKIE_INDICACAO,
   NOME_COOKIE_PENDENTE,
   verificarEstadoAssinado,
 } from "@/lib/sessao";
@@ -52,6 +54,8 @@ export async function GET(request: Request) {
   // conta já existe: entra direto no papel que ela já tem — nunca se
   // pergunta de novo, então não tem como cair no papel errado
   if (resultado.conta) {
+    jar.delete(NOME_COOKIE_CONVITE);
+    jar.delete(NOME_COOKIE_INDICACAO);
     const token = await criarTokenSessao(resultado.conta);
     jar.set(NOME_COOKIE, token, COOKIE_OPTS);
     const destino = resultado.conta.papel === "editor" ? "/editor" : "/porta-voz";

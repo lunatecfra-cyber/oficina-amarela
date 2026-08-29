@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { googleConfigurado, montarUrlAutorizacao } from "@/lib/oauth-google";
-import { COOKIE_ESTADO_OPTS, criarEstadoAssinado, NOME_COOKIE_ESTADO } from "@/lib/sessao";
+import {
+  COOKIE_ESTADO_OPTS,
+  criarEstadoAssinado,
+  NOME_COOKIE_CONVITE,
+  NOME_COOKIE_ESTADO,
+  NOME_COOKIE_INDICACAO,
+} from "@/lib/sessao";
 
 // não pergunta mais o papel aqui — quem já tem conta entra direto no papel
 // que já tem, e quem é novo escolhe depois, em /escolher-papel (ver callback)
@@ -25,6 +31,12 @@ export async function GET(request: Request) {
 
   const jar = await cookies();
   jar.set(NOME_COOKIE_ESTADO, nonce, COOKIE_ESTADO_OPTS);
+  const convite = url.searchParams.get("convite");
+  if (convite) jar.set(NOME_COOKIE_CONVITE, convite, COOKIE_ESTADO_OPTS);
+  else jar.delete(NOME_COOKIE_CONVITE);
+  const indicacao = url.searchParams.get("indicacao");
+  if (indicacao) jar.set(NOME_COOKIE_INDICACAO, indicacao, COOKIE_ESTADO_OPTS);
+  else jar.delete(NOME_COOKIE_INDICACAO);
 
   return NextResponse.redirect(montarUrlAutorizacao(redirectUri, state));
 }

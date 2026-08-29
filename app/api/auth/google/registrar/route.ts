@@ -5,6 +5,8 @@ import {
   COOKIE_OPTS,
   criarTokenSessao,
   NOME_COOKIE,
+  NOME_COOKIE_CONVITE,
+  NOME_COOKIE_INDICACAO,
   NOME_COOKIE_PENDENTE,
   verificarIdentidadePendente,
 } from "@/lib/sessao";
@@ -35,13 +37,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: vaga.erro }, { status: 403 });
   }
 
-  const resultado = await criarContaGoogle({ ...pendente, papel });
+  const convite = jar.get(NOME_COOKIE_CONVITE)?.value;
+  const codigoIndicacao = jar.get(NOME_COOKIE_INDICACAO)?.value;
+  const resultado = await criarContaGoogle({ ...pendente, papel, convite, codigoIndicacao });
   if (!resultado.ok) {
     return NextResponse.json({ erro: resultado.erro }, { status: 400 });
   }
 
   // conta criada: o token pendente não serve mais pra nada
   jar.delete(NOME_COOKIE_PENDENTE);
+  jar.delete(NOME_COOKIE_CONVITE);
+  jar.delete(NOME_COOKIE_INDICACAO);
 
   const sessaoToken = await criarTokenSessao(resultado.conta);
   jar.set(NOME_COOKIE, sessaoToken, COOKIE_OPTS);

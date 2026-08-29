@@ -16,6 +16,12 @@
   --color-gold: #f4ce1f;
   --color-gold-lo: #a9840e;
 
+  /* bronze do pódio: mesma família quente do ouro, um degrau abaixo em
+     brilho — o ouro do 1º lugar continua sendo o mais claro da tela */
+  --color-bronze-hi: #e3a878;
+  --color-bronze: #c8813f;
+  --color-bronze-lo: #8a5a28;
+
   --color-text: #f4f4f6;
   --color-muted: #9a9aa5;
   --color-muted-2: #6a6a74;

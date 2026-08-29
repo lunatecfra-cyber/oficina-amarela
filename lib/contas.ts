@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { LIMITES, VAGAS, limitar } from "@/lib/limites";
 import { sql } from "@/lib/db";
 import type { Papel } from "@/lib/sessao";
+import { validarConvitePortaVoz } from "@/lib/convites-db";
 
 export type ContaUsuario = {
   id: number;
@@ -13,6 +14,11 @@ export type ContaUsuario = {
 
 const RE_APELIDO = /^[a-z0-9._]{3,24}$/i;
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function codigoIndicacaoValido(codigo?: string) {
+  return codigo && RE_UUID.test(codigo) ? codigo : null;
+}
 
 // Hash de uma senha que ninguém tem, no mesmo custo 10 usado no cadastro.
 // Serve só pra `autenticar` gastar o mesmo tempo quando o apelido não existe
@@ -43,6 +49,8 @@ export async function criarConta(dados: {
   email: string;
   senha: string;
   papel: Papel;
+  convite?: string;
+  codigoIndicacao?: string;
 }): Promise<{ ok: true; conta: ContaUsuario } | FalhaConta> {
   const nome = limitar(dados.nome, LIMITES.nome);
   const apelido = limitar(dados.apelido, LIMITES.apelido);
@@ -79,9 +87,26 @@ export async function criarConta(dados: {
   }
 
   const senha_hash = await bcrypt.hash(dados.senha, 10);
+  if (dados.papel === "voz") {
+    const convite = await validarConvitePortaVoz(dados.convite ?? "", email);
+    if (!convite.ok) return { ok: false, erro: convite.erro, conflito: false };
+    try {
+      const [linha] = await sql`
+        SELECT id FROM oficina_private.criar_porta_voz_com_convite(
+          ${convite.tokenHash}, ${email}, ${apelido}, ${nome}, ${senha_hash},
+          ${null}, ${null}, ${codigoIndicacaoValido(dados.codigoIndicacao)}::uuid
+        )
+      `;
+      return { ok: true, conta: { id: linha.id, apelido, nome, email, papel: dados.papel } };
+    } catch {
+      return { ok: false, erro: "Convite inválido, expirado ou já utilizado.", conflito: false };
+    }
+  }
+
   const [linha] = await sql`
-    INSERT INTO users (apelido, nome, email, senha_hash, papel)
-    VALUES (${apelido}, ${nome}, ${email}, ${senha_hash}, ${dados.papel})
+    INSERT INTO users (apelido, nome, email, senha_hash, papel, indicado_por_id)
+    VALUES (${apelido}, ${nome}, ${email}, ${senha_hash}, ${dados.papel},
+            (SELECT id FROM users WHERE codigo_indicacao = ${codigoIndicacaoValido(dados.codigoIndicacao)}::uuid))
     RETURNING id
   `;
 
@@ -194,11 +219,33 @@ export async function criarContaGoogle(dados: {
   nome: string;
   papel: Papel;
   foto?: string;
+  convite?: string;
+  codigoIndicacao?: string;
 }): Promise<{ ok: true; conta: ContaUsuario } | { ok: false; erro: string }> {
   const apelido = await gerarApelidoUnico(dados.email);
+  if (dados.papel === "voz") {
+    const convite = await validarConvitePortaVoz(dados.convite ?? "", dados.email);
+    if (!convite.ok) return convite;
+    try {
+      const [linha] = await sql`
+        SELECT id FROM oficina_private.criar_porta_voz_com_convite(
+          ${convite.tokenHash}, ${dados.email}, ${apelido}, ${dados.nome}, ${null},
+          ${dados.googleId}, ${dados.foto ?? null}, ${codigoIndicacaoValido(dados.codigoIndicacao)}::uuid
+        )
+      `;
+      return {
+        ok: true,
+        conta: { id: linha.id, apelido, nome: dados.nome, email: dados.email, papel: dados.papel },
+      };
+    } catch {
+      return { ok: false, erro: "Convite inválido, expirado ou já utilizado." };
+    }
+  }
+
   const [linha] = await sql`
-    INSERT INTO users (apelido, nome, email, google_id, papel, foto_url)
-    VALUES (${apelido}, ${dados.nome}, ${dados.email}, ${dados.googleId}, ${dados.papel}, ${dados.foto ?? null})
+    INSERT INTO users (apelido, nome, email, google_id, papel, foto_url, indicado_por_id)
+    VALUES (${apelido}, ${dados.nome}, ${dados.email}, ${dados.googleId}, ${dados.papel}, ${dados.foto ?? null},
+            (SELECT id FROM users WHERE codigo_indicacao = ${codigoIndicacaoValido(dados.codigoIndicacao)}::uuid))
     RETURNING id
   `;
 

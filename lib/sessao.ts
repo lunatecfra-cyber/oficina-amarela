@@ -124,6 +124,8 @@ export async function verificarEstadoAssinado(
 // /escolher-papel. Curta duração de propósito: ninguém deveria demorar mais
 // que alguns minutos pra escolher "editor" ou "porta-voz".
 export const NOME_COOKIE_PENDENTE = "confraria_google_pendente";
+export const NOME_COOKIE_CONVITE = "confraria_convite_porta_voz";
+export const NOME_COOKIE_INDICACAO = "confraria_indicacao_editor";
 
 export type IdentidadeGooglePendente = {
   googleId: string;

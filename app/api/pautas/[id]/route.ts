@@ -122,6 +122,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       const comoDono = !ehQualidade;
       r = await aprovarPauta(
         pautaId,
+        sessao.id,
         typeof body?.nota === "number" ? body.nota : undefined,
         typeof body?.comentario === "string" ? body.comentario : undefined,
         comoDono ? sessao.id : undefined

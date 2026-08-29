@@ -122,8 +122,10 @@ export async function AppHeader() {
         </div>
       </div>
 
-      {/* segunda linha, só no celular: a navegação com espaço pra respirar */}
-      <div className="border-t border-line-soft px-2 pb-1 sm:hidden">
+      {/* Segunda linha, só no celular: a navegação com espaço pra respirar.
+          O padding lateral acompanha o da linha de cima (px-4) — com px-2 as
+          abas começavam 8px antes da logo e o cabeçalho lia torto. */}
+      <div className="border-t border-line-soft px-4 pb-1 sm:hidden">
         <NavEditor />
       </div>
     </header>

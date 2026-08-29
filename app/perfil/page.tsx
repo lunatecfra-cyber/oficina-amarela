@@ -10,10 +10,13 @@ import { lerOnboardingEditor } from "@/lib/perfil-db";
 import { MesaAgora } from "@/components/mesa-agora";
 import { Stat } from "@/components/stat";
 import { Card } from "@/components/card";
+import { ProgressoEleitoral } from "@/components/progresso-eleitoral";
+import { ConviteEditor } from "@/components/convite-editor";
 import { CelulaDisponibilidade } from "@/components/disponibilidade-cell";
 import { iniciais } from "@/lib/candidatos";
 import { lerPerfilEditor } from "@/lib/perfil-db";
 import { exigirSessao } from "@/lib/sessao-servidor";
+import { obterProgressoEditor } from "@/lib/ranking-eleitoral-db";
 
 export const metadata: Metadata = { title: "Meu Perfil — Oficina Amarela" };
 
@@ -21,11 +24,15 @@ export const dynamic = "force-dynamic";
 
 export default async function PerfilPage() {
   const sessao = await exigirSessao();
-  const [doBanco, onboarding, reservada] = await Promise.all([
+  const [doBanco, onboarding, reservada, progressoEleitoral] = await Promise.all([
     lerPerfilEditor(sessao.id),
     lerOnboardingEditor(sessao.id),
     pautaReservadaPor(sessao.id),
+    obterProgressoEditor(sessao.id),
   ]);
+  const semanasEleitorais = Array.isArray(progressoEleitoral.semanas)
+    ? progressoEleitoral.semanas as Array<{ semana: string; meta: number; quantidade: number; cumpriu: boolean; salvo?: boolean }>
+    : [];
 
   // Perfil real do banco. PERFIL_EDITOR só entra como último recurso (conta
   // recém-criada não tem nada preenchido, e a tela ficaria vazia demais).
@@ -224,6 +231,34 @@ export default async function PerfilPage() {
 
             {/* ---- sidebar ---- */}
             <aside className="flex flex-col gap-6">
+              <Card titulo="Meta eleitoral" delay={0.08}>
+                <ProgressoEleitoral
+                  semanas={semanasEleitorais}
+                  sequencia={progressoEleitoral.sequencia}
+                  bloqueios={Number(progressoEleitoral.bloqueios ?? 0)}
+                  elegivelAoSorteio={progressoEleitoral.elegivelAoSorteio}
+                />
+
+                <Link
+                  href="/ranking"
+                  className="mt-4 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
+                >
+                  Ver o ranking do ciclo
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3.5 w-3.5" aria-hidden="true">
+                    <path d="M5 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </Link>
+
+                {progressoEleitoral.codigo_indicacao && (
+                  <div className="mt-4 border-t border-line-soft pt-4">
+                    <p className="mb-1 text-xs font-medium uppercase tracking-[0.1em] text-muted-2">
+                      Convite de editor
+                    </p>
+                    <ConviteEditor codigo={String(progressoEleitoral.codigo_indicacao)} />
+                  </div>
+                )}
+              </Card>
+
               <Card titulo="Nível" delay={0.1} guia="cartao-nivel">
                 <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-gold-hi">
                   {nivel.atual.nome}
