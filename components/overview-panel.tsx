@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { QueueItem, MissionInFlight, Summary, ItemFila, MissaoEmVoo, Resumo } from "@/lib/panel-db";
+import type { QueueItem, MissionInFlight, Summary, ItemFila, MissaoEmVoo, Resumo } from "@/lib/overview-db";
 
 function sinceWhen(iso: string | null) {
   if (!iso) return "—";
@@ -132,7 +132,7 @@ export function OverviewPanel({
     setWarning("");
     setNotifiedMsg("");
 
-    const resp = await fetch("/api/admin/notify", {
+    const resp = await fetch("/api/admin/broadcast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, tipo: type === "editors" ? "editores" : "candidatos" }),
@@ -388,7 +388,7 @@ export function OverviewPanel({
                   )}
                   {(m.status === "in_review" || m.status === "em_revisao") && hasDelivery && (
                     <Link
-                      href="/inspector"
+                      href="/inspetor"
                       className="mt-2 inline-block text-xs font-medium text-gold-hi hover:underline"
                     >
                       Conferir agora →

@@ -117,7 +117,7 @@ export function DevToolbar() {
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
                     <span className="mb-2 block text-xs font-semibold text-muted">Actions</span>
-                    <Link href="/spokesperson/new-mission" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">➔ New Mission</Link>
+                    <Link href="/porta-voz/nova-pauta" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">➔ New Mission</Link>
                   </div>
                 </>
               )}
@@ -137,11 +137,11 @@ export function DevToolbar() {
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
                     <span className="mb-2 block text-xs font-semibold text-muted">Dashboards</span>
-                    <Link href="/spokesperson" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Spokesperson Dashboard</Link>
+                    <Link href="/porta-voz" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Spokesperson Dashboard</Link>
                     <Link href="/editor" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Editor Workbench</Link>
-                    <Link href="/schedule" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Editor Schedule</Link>
-                    <Link href="/inspector" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Inspector Dashboard</Link>
-                    <Link href="/leaderboard" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Leaderboard</Link>
+                    <Link href="/agenda" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Editor Schedule</Link>
+                    <Link href="/inspetor" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Inspector Dashboard</Link>
+                    <Link href="/ranking" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Leaderboard</Link>
                   </div>
                 </>
               )}

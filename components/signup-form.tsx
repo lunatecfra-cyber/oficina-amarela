@@ -153,7 +153,7 @@ export function SignupForm({
             Criar perfil de demonstração como {role === "spokesperson" ? "porta-voz" : "editor"}
           </a>
           <Link
-            href="/signup"
+            href="/criar-conta"
             className="mt-3 block text-center text-xs text-muted-2 transition-colors hover:text-text"
           >
             ← voltar para escolher o papel
@@ -313,11 +313,11 @@ export function SignupForm({
 
       <p className="mt-5 text-center text-xs leading-relaxed text-muted-2">
         Ao criar sua conta você concorda com os{" "}
-        <Link href="/terms" className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline">
+        <Link href="/termos" className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline">
           Termos de Uso
         </Link>{" "}
         e a{" "}
-        <Link href="/privacy" className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline">
+        <Link href="/privacidade" className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline">
           Política de Privacidade
         </Link>
         .

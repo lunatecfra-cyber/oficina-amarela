@@ -214,7 +214,7 @@ export function EditCandidateProfileForm({
       return;
     }
 
-    router.push("/spokesperson/profile");
+    router.push("/porta-voz/perfil");
     router.refresh();
   }
 
@@ -615,7 +615,7 @@ export function EditCandidateProfileForm({
       </section>
 
       <div className="flex gap-3">
-        <Link href="/spokesperson/profile" className="btn-ghost grid w-32 place-items-center">
+        <Link href="/porta-voz/perfil" className="btn-ghost grid w-32 place-items-center">
           Cancelar
         </Link>
         <button type="submit" className="btn-gold flex-1" disabled={isSaving}>

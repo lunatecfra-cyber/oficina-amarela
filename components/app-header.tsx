@@ -68,7 +68,7 @@ export async function AppHeader() {
 
           {session.role === "admin" && (
             <Link
-              href="/inspector"
+              href="/inspetor"
               className="rounded-full border border-line px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-gold-lo/60 hover:text-gold-hi"
             >
               Inspetor
@@ -76,7 +76,7 @@ export async function AppHeader() {
           )}
 
           <Link
-            href="/profile"
+            href="/perfil"
             className="hidden text-right transition-opacity hover:opacity-80 sm:block"
           >
             <p className="text-sm font-medium text-text">{editor.handle}</p>
@@ -87,7 +87,7 @@ export async function AppHeader() {
           </Link>
 
           <Link
-            href="/profile"
+            href="/perfil"
             className="flex min-h-11 flex-none items-center rounded-full border border-gold-lo/60 bg-gold/10 px-3 text-xs font-medium text-gold-hi transition-colors hover:bg-gold/20"
           >
             {editor.level}

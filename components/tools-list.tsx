@@ -94,7 +94,7 @@ export function ToolsList({
       <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {(!searchTrim || "músicas biblioteca áudio trilha".includes(searchTrim)) && (
           <Link
-            href="/tools/music"
+            href="/ferramentas/musicas"
             className="group flex items-center gap-4 rounded-2xl border border-gold/30 bg-gradient-to-r from-gold/[0.08] to-gold/[0.03] p-5 transition-all duration-300 hover:border-gold/60 hover:shadow-[0_0_32px_rgba(244,206,31,0.1)] sm:col-span-2"
           >
             <span className="inline-grid h-12 w-12 flex-none place-items-center rounded-xl border border-gold/30 bg-gold/10 text-2xl transition-colors group-hover:bg-gold/20">

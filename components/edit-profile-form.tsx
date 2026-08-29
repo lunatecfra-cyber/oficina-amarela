@@ -57,7 +57,7 @@ export function EditProfileForm({
       return;
     }
 
-    router.push("/profile");
+    router.push("/perfil");
     router.refresh();
   }
 
@@ -152,7 +152,7 @@ export function EditProfileForm({
       )}
 
       <div className="flex gap-3">
-        <Link href="/profile" className="btn-ghost grid w-32 place-items-center">
+        <Link href="/perfil" className="btn-ghost grid w-32 place-items-center">
           Cancelar
         </Link>
         <button type="submit" className="btn-gold flex-1" disabled={isSaving}>
@@ -163,7 +163,7 @@ export function EditProfileForm({
       <p className="mt-6 border-t border-line pt-4 text-xs text-muted-2">
         Foto, softwares, estilos, formato, nível de edição e setup ficam no
         formulário completo.{" "}
-        <Link href="/editor/create-profile" className="text-gold-hi hover:underline">
+        <Link href="/editor/criar-perfil" className="text-gold-hi hover:underline">
           Editar a bancada →
         </Link>
       </p>

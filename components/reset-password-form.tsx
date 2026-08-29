@@ -52,7 +52,7 @@ function ResetPasswordContent() {
     return (
       <div className="w-full max-w-sm text-center">
         <p className="text-sm text-danger">Esse link está incompleto ou inválido.</p>
-        <Link href="/recover" className="mt-6 inline-block text-sm font-medium text-gold-hi hover:underline">
+        <Link href="/recuperar" className="mt-6 inline-block text-sm font-medium text-gold-hi hover:underline">
           Pedir um novo link
         </Link>
       </div>

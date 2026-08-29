@@ -1,4 +1,9 @@
-import AccountsPage, { metadata } from "@/app/inspector/accounts/page";
-export { metadata };
+import type { Metadata } from "next";
+import { AccountsPanel } from "@/components/accounts-panel";
+
+export const metadata: Metadata = { title: "Gerenciar Pessoas — Oficina Amarela" };
 export const dynamic = "force-dynamic";
-export default AccountsPage;
+
+export default function AccountsPage() {
+  return <AccountsPanel />;
+}

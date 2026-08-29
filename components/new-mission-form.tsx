@@ -202,7 +202,7 @@ export function NewMissionForm({
           recebe o vídeo pronto por aqui.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href="/spokesperson" className="btn-gold sm:w-56">
+          <Link href="/porta-voz" className="btn-gold sm:w-56">
             Ver minhas missões
           </Link>
           <button
@@ -424,7 +424,7 @@ export function NewMissionForm({
             Voltar
           </button>
         ) : (
-          <Link href="/spokesperson" className="btn-ghost w-32 text-center">
+          <Link href="/porta-voz" className="btn-ghost w-32 text-center">
             Cancelar
           </Link>
         )}

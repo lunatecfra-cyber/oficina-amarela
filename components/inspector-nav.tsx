@@ -18,7 +18,7 @@ export function InspectorNav() {
   return (
     <nav className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <Link
-        href="/spokesperson"
+        href="/porta-voz"
         className="mr-2 flex min-h-11 flex-none items-center whitespace-nowrap pr-1 text-xs text-muted/60 transition-colors hover:text-text"
       >
         ← Porta-voz

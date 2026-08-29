@@ -138,7 +138,7 @@ export default async function Home() {
             className="reveal mx-auto mt-8 flex w-full max-w-xs flex-col items-center gap-3"
             style={{ "--reveal-delay": "740ms" } as React.CSSProperties}
           >
-            <Link href="/signup" className="btn-gold btn-brilho w-full overflow-hidden text-center text-lg flex items-center justify-center">
+            <Link href="/criar-conta" className="btn-gold btn-brilho w-full overflow-hidden text-center text-lg flex items-center justify-center">
               Criar minha conta
             </Link>
             <Link
@@ -337,7 +337,7 @@ export default async function Home() {
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link href="/signup" className="btn-gold sm:w-52 text-center flex items-center justify-center">
+            <Link href="/criar-conta" className="btn-gold sm:w-52 text-center flex items-center justify-center">
               Criar minha conta
             </Link>
             <Link href="/login" className="btn-ghost sm:w-40 text-center flex items-center justify-center">
@@ -346,15 +346,15 @@ export default async function Home() {
           </div>
 
           <p className="mt-6 text-xs text-muted-2">
-            <Link href="/terms" className="inline-block py-2 hover:text-muted">
+            <Link href="/termos" className="inline-block py-2 hover:text-muted">
               Termos de uso
             </Link>
             <span className="px-1">·</span>
-            <Link href="/privacy" className="inline-block py-2 hover:text-muted">
+            <Link href="/privacidade" className="inline-block py-2 hover:text-muted">
               Política de privacidade
             </Link>
             <span className="px-1">·</span>
-            <Link href="/partners" className="inline-block py-2 hover:text-muted">
+            <Link href="/parceiros" className="inline-block py-2 hover:text-muted">
               Parceiros
             </Link>
           </p>

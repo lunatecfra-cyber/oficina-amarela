@@ -12,7 +12,7 @@ export async function AppHeaderSpokesperson() {
   return (
     <header className="border-b border-line-soft">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4 lg:px-8">
-        <Link href="/spokesperson" className="flex items-center gap-3">
+        <Link href="/porta-voz" className="flex items-center gap-3">
           <Logo size="normal" />
           <span className="hidden font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold sm:inline">
             OFICINA AMARELA
@@ -23,7 +23,7 @@ export async function AppHeaderSpokesperson() {
           <LocalGuide />
 
           <Link
-            href="/spokesperson/profile"
+            href="/porta-voz/perfil"
             className="text-sm text-muted transition-colors hover:text-text"
           >
             <span className="hidden sm:inline">
@@ -33,7 +33,7 @@ export async function AppHeaderSpokesperson() {
           </Link>
 
           <Link
-            href="/partners"
+            href="/parceiros"
             className="text-sm text-muted transition-colors hover:text-text"
           >
             Parceiros
@@ -41,7 +41,7 @@ export async function AppHeaderSpokesperson() {
 
           {session.role === "admin" && (
             <Link
-              href="/inspector"
+              href="/inspetor"
               className="rounded-full border border-line px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-gold-lo/60 hover:text-gold-hi"
             >
               Inspetor

@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/editor", label: "Fila", rotulo: "Fila" },
-  { href: "/schedule", label: "Agenda", rotulo: "Agenda" },
-  { href: "/lessons", label: "Aulas", rotulo: "Aulas" },
-  { href: "/tools", label: "Ferramentas", rotulo: "Ferramentas" },
-  { href: "/leaderboard", label: "Ranking", rotulo: "Ranking" },
-  { href: "/partners", label: "Parceiros", rotulo: "Parceiros" },
+  { href: "/agenda", label: "Agenda", rotulo: "Agenda" },
+  { href: "/aulas", label: "Aulas", rotulo: "Aulas" },
+  { href: "/ferramentas", label: "Ferramentas", rotulo: "Ferramentas" },
+  { href: "/ranking", label: "Ranking", rotulo: "Ranking" },
+  { href: "/parceiros", label: "Parceiros", rotulo: "Parceiros" },
 ];
 
 export function EditorNav() {

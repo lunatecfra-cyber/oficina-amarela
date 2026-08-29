@@ -11,7 +11,7 @@ export async function AppHeaderInspector() {
   return (
     <header className="border-b border-line-soft">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4 lg:px-8">
-        <Link href="/inspector" className="flex items-center gap-3">
+        <Link href="/inspetor" className="flex items-center gap-3">
           <Logo size="normal" />
           <span className="hidden font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold sm:inline">
             OFICINA AMARELA
