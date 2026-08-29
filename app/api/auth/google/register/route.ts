@@ -6,6 +6,8 @@ import {
   createSessionToken,
   COOKIE_NAME,
   PENDING_COOKIE_NAME,
+  INVITATION_COOKIE_NAME,
+  REFERRAL_COOKIE_NAME,
   verifyPendingIdentity,
   type Role,
 } from "@/lib/session";
@@ -34,12 +36,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: slotCheck.error, erro: slotCheck.error }, { status: 403 });
   }
 
-  const result = await createGoogleAccount({ ...pending, role });
+  const invitation = cookieStore.get(INVITATION_COOKIE_NAME)?.value;
+  const referralCode = cookieStore.get(REFERRAL_COOKIE_NAME)?.value;
+
+  const result = await createGoogleAccount({ ...pending, role, invitation, referralCode });
   if (!result.ok) {
     return NextResponse.json({ error: result.error, erro: result.error }, { status: 400 });
   }
 
   cookieStore.delete(PENDING_COOKIE_NAME);
+  cookieStore.delete(INVITATION_COOKIE_NAME);
+  cookieStore.delete(REFERRAL_COOKIE_NAME);
 
   const sessionToken = await createSessionToken(result.account);
   cookieStore.set(COOKIE_NAME, sessionToken, COOKIE_OPTS);
@@ -47,6 +54,6 @@ export async function POST(request: Request) {
     console.error("[gamification] failed to record login", e)
   );
 
-  const destination = role === "editor" ? "/editor/create-profile" : "/spokesperson/create-profile?via=google";
+  const destination = role === "editor" ? "/editor/criar-perfil" : "/porta-voz/criar-perfil?via=google";
   return NextResponse.json({ ok: true, destination, destino: destination });
 }

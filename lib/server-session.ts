@@ -79,3 +79,4 @@ export async function requireSession(): Promise<UserSession> {
 export const exigirSessao = requireSession;
 
 export const readSession = getSession;
+export const getServerSession = getSession;

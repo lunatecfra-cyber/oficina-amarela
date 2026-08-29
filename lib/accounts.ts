@@ -3,6 +3,8 @@ import { LIMITS, SLOTS, limitStr } from "@/lib/limits";
 import { sql } from "@/lib/db";
 import type { Role } from "@/lib/session";
 
+import { validateSpokespersonInvitation } from "@/lib/invitations-db";
+
 export type UserAccount = {
   id: number;
   handle: string;
@@ -19,6 +21,11 @@ export type ContaUsuario = UserAccount;
 
 const RE_HANDLE = /^[a-z0-9._]{3,24}$/i;
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function validReferralCode(code?: string) {
+  return code && RE_UUID.test(code) ? code : null;
+}
 
 const DUMMY_HASH = "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
 
@@ -43,10 +50,16 @@ export async function createAccount(data: {
   email: string;
   password: string;
   role: Role;
+  invitation?: string;
+  convite?: string;
+  referralCode?: string;
+  codigoIndicacao?: string;
 }): Promise<{ ok: true; account: UserAccount; conta?: UserAccount } | AccountFailure> {
   const name = limitStr(data.name, LIMITS.name);
   const handle = limitStr(data.handle, LIMITS.handle);
   const email = limitStr(data.email, LIMITS.email);
+  const invitation = data.invitation ?? data.convite;
+  const referralCode = validReferralCode(data.referralCode ?? data.codigoIndicacao);
 
   if (!name) return { ok: false, error: "Digite seu nome.", isConflict: false, conflict: false, erro: "Digite seu nome.", conflito: false };
   if (data.password.length > 200) {
@@ -80,9 +93,39 @@ export async function createAccount(data: {
   }
 
   const password_hash = await bcrypt.hash(data.password, 10);
+
+  if (data.role === "spokesperson" || (data.role as string) === "voz") {
+    const validInvite = await validateSpokespersonInvitation(invitation ?? "", email);
+    if (!validInvite.ok) {
+      return { ok: false, error: validInvite.error, isConflict: false, conflict: false, erro: validInvite.error, conflito: false };
+    }
+    try {
+      const [row] = await sql`
+        SELECT id FROM oficina_private.criar_porta_voz_com_convite(
+          ${validInvite.tokenHash}, ${email}, ${handle}, ${name}, ${password_hash},
+          ${null}, ${null}, ${referralCode}::uuid
+        )
+      `;
+      const account: UserAccount = {
+        id: row.id,
+        handle,
+        name,
+        email,
+        role: data.role,
+        apelido: handle,
+        nome: name,
+        papel: data.role,
+      };
+      return { ok: true, account, conta: account };
+    } catch {
+      return { ok: false, error: "Convite inválido, expirado ou já utilizado.", isConflict: false, conflict: false, erro: "Convite inválido, expirado ou já utilizado.", conflito: false };
+    }
+  }
+
   const [row] = await sql`
-    INSERT INTO users (handle, name, email, password_hash, role)
-    VALUES (${handle}, ${name}, ${email}, ${password_hash}, ${data.role})
+    INSERT INTO users (handle, name, email, password_hash, role, indicated_by_id)
+    VALUES (${handle}, ${name}, ${email}, ${password_hash}, ${data.role},
+            (SELECT id FROM users WHERE referral_code = ${referralCode}::uuid OR codigo_indicacao = ${referralCode}::uuid))
     RETURNING id
   `;
 
@@ -207,12 +250,46 @@ export async function createGoogleAccount(data: {
   role: Role;
   avatarUrl?: string;
   foto?: string;
+  invitation?: string;
+  convite?: string;
+  referralCode?: string;
+  codigoIndicacao?: string;
 }): Promise<{ ok: true; account: UserAccount; conta?: UserAccount } | { ok: false; error: string; erro?: string }> {
   const handle = await generateUniqueHandle(data.email);
   const avatar = data.avatarUrl ?? data.foto ?? null;
+  const invitation = data.invitation ?? data.convite;
+  const referralCode = validReferralCode(data.referralCode ?? data.codigoIndicacao);
+
+  if (data.role === "spokesperson" || (data.role as string) === "voz") {
+    const validInvite = await validateSpokespersonInvitation(invitation ?? "", data.email);
+    if (!validInvite.ok) return validInvite;
+    try {
+      const [row] = await sql`
+        SELECT id FROM oficina_private.criar_porta_voz_com_convite(
+          ${validInvite.tokenHash}, ${data.email}, ${handle}, ${data.name}, ${null},
+          ${data.googleId}, ${avatar}, ${referralCode}::uuid
+        )
+      `;
+      const account: UserAccount = {
+        id: row.id,
+        handle,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        apelido: handle,
+        nome: data.name,
+        papel: data.role,
+      };
+      return { ok: true, account, conta: account };
+    } catch {
+      return { ok: false, error: "Convite inválido, expirado ou já utilizado.", erro: "Convite inválido, expirado ou já utilizado." };
+    }
+  }
+
   const [row] = await sql`
-    INSERT INTO users (handle, name, email, google_id, role, avatar_url)
-    VALUES (${handle}, ${data.name}, ${data.email}, ${data.googleId}, ${data.role}, ${avatar})
+    INSERT INTO users (handle, name, email, google_id, role, avatar_url, indicated_by_id)
+    VALUES (${handle}, ${data.name}, ${data.email}, ${data.googleId}, ${data.role}, ${avatar},
+            (SELECT id FROM users WHERE referral_code = ${referralCode}::uuid OR codigo_indicacao = ${referralCode}::uuid))
     RETURNING id
   `;
 

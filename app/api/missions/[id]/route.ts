@@ -126,7 +126,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       const asOwner = !isInspector;
       const rating = typeof body?.rating === "number" ? body.rating : typeof body?.nota === "number" ? body.nota : undefined;
       const feedback = typeof body?.feedback === "string" ? body.feedback : typeof body?.comentario === "string" ? body.comentario : undefined;
-      r = await approveMission(missionId, rating, feedback, asOwner ? session.id : undefined);
+      r = await approveMission(missionId, session.id, rating, feedback, asOwner ? session.id : undefined);
       break;
     }
 

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { isGoogleOAuthConfigured, buildGoogleAuthUrl } from "@/lib/oauth-google";
-import { STATE_COOKIE_OPTS, createSignedState, STATE_COOKIE_NAME } from "@/lib/session";
+import {
+  STATE_COOKIE_OPTS,
+  createSignedState,
+  STATE_COOKIE_NAME,
+  INVITATION_COOKIE_NAME,
+  REFERRAL_COOKIE_NAME,
+} from "@/lib/session";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -20,6 +26,14 @@ export async function GET(request: Request) {
 
   const cookieStore = await cookies();
   cookieStore.set(STATE_COOKIE_NAME, nonce, STATE_COOKIE_OPTS);
+
+  const invitation = url.searchParams.get("convite") ?? url.searchParams.get("invitation");
+  if (invitation) cookieStore.set(INVITATION_COOKIE_NAME, invitation, STATE_COOKIE_OPTS);
+  else cookieStore.delete(INVITATION_COOKIE_NAME);
+
+  const referral = url.searchParams.get("indicacao") ?? url.searchParams.get("referral");
+  if (referral) cookieStore.set(REFERRAL_COOKIE_NAME, referral, STATE_COOKIE_OPTS);
+  else cookieStore.delete(REFERRAL_COOKIE_NAME);
 
   return NextResponse.redirect(buildGoogleAuthUrl(redirectUri, state));
 }

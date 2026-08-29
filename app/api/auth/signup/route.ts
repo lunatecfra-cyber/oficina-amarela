@@ -27,6 +27,8 @@ export async function POST(request: Request) {
   const email = body?.email;
   const password = body?.password ?? body?.senha;
   const rawRole = body?.role ?? body?.papel;
+  const invitation = typeof body?.invitation === "string" ? body.invitation : typeof body?.convite === "string" ? body.convite : undefined;
+  const referralCode = typeof body?.referralCode === "string" ? body.referralCode : typeof body?.codigoIndicacao === "string" ? body.codigoIndicacao : undefined;
 
   const role: Role = rawRole === "spokesperson" || rawRole === "voz" ? "spokesperson" : rawRole === "editor" ? "editor" : "editor";
 
@@ -48,7 +50,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: slotCheck.error, erro: slotCheck.error }, { status: 403 });
   }
 
-  const result = await createAccount({ name, handle, email, password, role });
+  const result = await createAccount({
+    name,
+    handle,
+    email,
+    password,
+    role,
+    invitation,
+    referralCode,
+  });
 
   if (!result.ok) {
     if (result.conflict) {

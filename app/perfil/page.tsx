@@ -7,6 +7,9 @@ import { DEFAULT_EDITOR_PROFILE, levelProgress } from "@/lib/profile";
 import { DAYS, DEFAULT_AVAILABILITY, PERIODS, workFromMission } from "@/lib/schedule";
 import { reservedMissionBy } from "@/lib/missions-db";
 import { readEditorOnboarding, readEditorProfile } from "@/lib/profile-db";
+import { getEditorProgress } from "@/lib/electoral-ranking-db";
+import { ElectoralProgress } from "@/components/electoral-progress";
+import { EditorInvitation } from "@/components/editor-invitation";
 import { ActiveDesk } from "@/components/active-desk";
 import { Stat } from "@/components/stat";
 import { Card } from "@/components/card";
@@ -19,10 +22,11 @@ export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
   const session = await requireSession();
-  const [dbProfile, onboarding, reserved] = await Promise.all([
+  const [dbProfile, onboarding, reserved, electoralProgress] = await Promise.all([
     readEditorProfile(session.id),
     readEditorOnboarding(session.id),
     reservedMissionBy(session.id),
+    getEditorProgress(session.id),
   ]);
 
   const p = dbProfile ?? DEFAULT_EDITOR_PROFILE;
@@ -223,6 +227,34 @@ export default async function ProfilePage() {
             </div>
 
             <aside className="flex flex-col gap-6">
+              <Card title="Meta eleitoral" delay={0.08}>
+                <ElectoralProgress
+                  semanas={electoralProgress.semanas}
+                  sequencia={electoralProgress.sequence}
+                  bloqueios={electoralProgress.shields}
+                  elegivelAoSorteio={electoralProgress.eligibleForDraw}
+                />
+
+                <Link
+                  href="/ranking"
+                  className="mt-4 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
+                >
+                  Ver o ranking do ciclo
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3.5 w-3.5" aria-hidden="true">
+                    <path d="M5 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </Link>
+
+                {electoralProgress.referralCode && (
+                  <div className="mt-4 border-t border-line-soft pt-4">
+                    <p className="mb-1 text-xs font-medium uppercase tracking-[0.1em] text-muted-2">
+                      Convite de editor
+                    </p>
+                    <EditorInvitation code={String(electoralProgress.referralCode)} />
+                  </div>
+                )}
+              </Card>
+
               <Card title="Nível" delay={0.1} guide="cartao-nivel">
                 <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-gold-hi">
                   {level.current.name ?? (level.current as any).nome}

@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/inspector", label: "Missões", rotulo: "Missões" },
-  { href: "/inspector/overview", label: "Panorama", rotulo: "Panorama" },
-  { href: "/inspector/accounts", label: "Pessoas", rotulo: "Pessoas" },
-  { href: "/inspector/reports", label: "Denúncias", rotulo: "Denúncias" },
-  { href: "/inspector/news", label: "Novidades", rotulo: "Novidades" },
-  { href: "/partners", label: "Parceiros", rotulo: "Parceiros" },
+  { href: "/inspetor", label: "Missões", rotulo: "Missões" },
+  { href: "/inspetor/panorama", label: "Panorama", rotulo: "Panorama" },
+  { href: "/inspetor/contas", label: "Pessoas", rotulo: "Pessoas" },
+  { href: "/inspetor/denuncias", label: "Denúncias", rotulo: "Denúncias" },
+  { href: "/inspetor/novidades", label: "Novidades", rotulo: "Novidades" },
+  { href: "/inspetor/seguranca", label: "Segurança", rotulo: "Segurança" },
+  { href: "/parceiros", label: "Parceiros", rotulo: "Parceiros" },
 ];
 
 export function InspectorNav() {

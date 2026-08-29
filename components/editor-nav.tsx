@@ -24,7 +24,7 @@ export function EditorNav() {
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`relative flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-lg px-1 py-1.5 transition-colors sm:flex-none sm:px-2.5 ${
+            className={`relative flex min-h-11 min-w-0 flex-auto items-center justify-center whitespace-nowrap rounded-lg px-1 py-1.5 transition-colors sm:flex-none sm:px-2.5 ${
               active ? "text-text" : "text-muted hover:text-text"
             }`}
           >

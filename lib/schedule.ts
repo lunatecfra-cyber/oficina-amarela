@@ -1,4 +1,4 @@
-import type { VideoFormat, Mission, Formato, Pauta } from "@/lib/missions";
+import type { VideoFormat, Mission } from "@/lib/missions";
 
 export type ActiveWork = {
   id: string;
@@ -42,7 +42,7 @@ const STAGE_BY_STATUS: Record<string, string> = {
   reedicao: "Revision requested",
 };
 
-export function activeWorkFromMission(m: Mission | Pauta | null): ActiveWork[] {
+export function activeWorkFromMission(m: Mission | null): ActiveWork[] {
   if (!m) return [];
   const start = m.reservedAt ?? (m as any).reservadaEm ?? new Date().toISOString();
   const title = m.title ?? (m as any).titulo ?? "";

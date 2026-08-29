@@ -19,9 +19,11 @@ export function SignupForm({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const convite = searchParams.get("convite") ?? searchParams.get("invitation") ?? undefined;
+  const codigoIndicacao = searchParams.get("indicacao") ?? searchParams.get("referral") ?? undefined;
+
   const [role, setRole] = useState<"spokesperson" | "editor">(() => {
-    const raw = searchParams.get("role") ?? searchParams.get("papel");
-    return raw === "editor" ? "editor" : "spokesperson";
+    return convite ? "spokesperson" : "editor";
   });
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
@@ -63,6 +65,10 @@ export function SignupForm({
         email,
         password,
         role,
+        invitation: convite,
+        convite,
+        referralCode: codigoIndicacao,
+        codigoIndicacao,
         nome: name,
         apelido: handle,
         senha: password,
@@ -77,7 +83,7 @@ export function SignupForm({
       return;
     }
 
-    router.push(role === "editor" ? "/editor/create-profile" : "/spokesperson/create-profile");
+    router.push(role === "editor" ? "/editor/criar-perfil" : "/porta-voz/criar-perfil");
     router.refresh();
   }
 
@@ -92,7 +98,13 @@ export function SignupForm({
 
   return (
     <div className="w-full max-w-sm">
-      <a href="/api/auth/google" className="btn-ghost flex items-center justify-center gap-3">
+      <a
+        href={`/api/auth/google?${new URLSearchParams({
+          ...(convite ? { convite } : {}),
+          ...(codigoIndicacao ? { indicacao: codigoIndicacao } : {}),
+        }).toString()}`}
+        className="btn-ghost flex items-center justify-center gap-3"
+      >
         <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
           <path
             fill="#4285F4"
@@ -124,11 +136,12 @@ export function SignupForm({
         <button
           type="button"
           onClick={() => setRole("spokesperson")}
+          disabled={!convite}
           className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             role === "spokesperson" ? "bg-gold/10 text-gold-hi" : "text-muted hover:text-text"
-          }`}
+          } disabled:cursor-not-allowed disabled:opacity-50`}
         >
-          Sou porta-voz
+          {convite ? "Sou porta-voz" : "Porta-voz: só por convite"}
         </button>
         <button
           type="button"

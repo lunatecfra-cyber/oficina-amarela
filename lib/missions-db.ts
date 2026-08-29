@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { awardReferralIfEligible } from "@/lib/electoral-ranking-db";
 import { LIMITS, limitStr, limitOrNull } from "@/lib/limits";
 import type { VideoFormat, Mission, MissionStatus } from "@/lib/missions";
 import { isLikelyUrl } from "@/lib/validators";
@@ -376,6 +377,7 @@ export const entregarPauta = deliverMission;
 
 export async function approveMission(
   missionId: number,
+  approvedById: number,
   rating?: number,
   comment?: string,
   spokespersonId?: number
@@ -397,43 +399,12 @@ export async function approveMission(
 
   const finalStatus: MissionStatus = spokespersonId ? "completed" : "approved";
 
-  const firstTime = await sql`
-    UPDATE missions
-    SET status = ${finalStatus}, inspector_notes = NULL, revision_requested_by = NULL,
-        is_scored = true
-    WHERE id = ${missionId} AND is_scored = false
-    RETURNING id
+  const [result] = await sql`
+    SELECT * FROM oficina_private.aprovar_edicao(
+      ${missionId}, ${approvedById}, ${finalStatus}, ${rating ?? null}, ${comment?.trim() ?? ""}
+    )
   `;
-
-  if (firstTime.length === 0) {
-    await sql`
-      UPDATE missions
-      SET status = ${finalStatus}, inspector_notes = NULL, revision_requested_by = NULL
-      WHERE id = ${missionId}
-    `;
-    return { ok: true };
-  }
-
-  if (rating !== undefined) {
-    await sql`
-      INSERT INTO reviews (mission_id, editor_id, rating, comment)
-      VALUES (${missionId}, ${editorId}, ${rating}, ${comment?.trim() || null})
-    `;
-  }
-
-  await sql`
-    UPDATE users
-    SET delivered_count = delivered_count + 1,
-        reputation = reputation + 25,
-        streak = streak + 1
-    WHERE id = ${editorId}
-  `;
-
-  await sql`
-    UPDATE users u
-    SET rating = (SELECT ROUND(AVG(r.rating)::numeric, 2) FROM reviews r WHERE r.editor_id = u.id)
-    WHERE u.id = ${editorId}
-  `;
+  if (result?.pontuou) await awardReferralIfEligible(editorId);
 
   return { ok: true };
 }

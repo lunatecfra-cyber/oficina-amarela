@@ -10,6 +10,8 @@ import {
   COOKIE_NAME,
   STATE_COOKIE_NAME,
   PENDING_COOKIE_NAME,
+  INVITATION_COOKIE_NAME,
+  REFERRAL_COOKIE_NAME,
   verifySignedState,
 } from "@/lib/session";
 
@@ -47,9 +49,11 @@ export async function GET(request: Request) {
   }
 
   if (result.account) {
+    cookieStore.delete(INVITATION_COOKIE_NAME);
+    cookieStore.delete(REFERRAL_COOKIE_NAME);
     const token = await createSessionToken(result.account);
     cookieStore.set(COOKIE_NAME, token, COOKIE_OPTS);
-    const destination = result.account.role === "editor" ? "/editor" : "/spokesperson";
+    const destination = result.account.role === "editor" ? "/editor" : "/porta-voz";
     return NextResponse.redirect(new URL(destination, url.origin));
   }
 
@@ -60,5 +64,5 @@ export async function GET(request: Request) {
     picture: googleProfile.picture,
   });
   cookieStore.set(PENDING_COOKIE_NAME, pendingToken, STATE_COOKIE_OPTS);
-  return NextResponse.redirect(new URL("/choose-role", url.origin));
+  return NextResponse.redirect(new URL("/escolher-papel", url.origin));
 }

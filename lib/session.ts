@@ -131,6 +131,10 @@ export const verificarEstadoAssinado = verifySignedState;
 
 export const PENDING_COOKIE_NAME = "workshop_google_pending";
 export const NOME_COOKIE_PENDENTE = PENDING_COOKIE_NAME;
+export const INVITATION_COOKIE_NAME = "confraria_convite_porta_voz";
+export const NOME_COOKIE_CONVITE = INVITATION_COOKIE_NAME;
+export const REFERRAL_COOKIE_NAME = "confraria_indicacao_editor";
+export const NOME_COOKIE_INDICACAO = REFERRAL_COOKIE_NAME;
 
 export type PendingGoogleIdentity = {
   googleId: string;
