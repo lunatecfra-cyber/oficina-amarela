@@ -6,6 +6,9 @@ import type {
   PortfolioItem,
   Tier,
   EditorProfile,
+  ItemHistorico,
+  ItemPortfolio,
+  PerfilEditor,
 } from "@/lib/profile";
 
 export type EditableProfile = {
@@ -19,27 +22,43 @@ export type PerfilEditavel = EditableProfile;
 
 function normalizeList(val: unknown): string[] {
   if (Array.isArray(val)) return val.filter((x): x is string => typeof x === "string");
-  if (typeof val === "string") {
+  if (typeof val !== "string" || !val.trim()) return [];
+
+  const text = val.trim();
+  if (text.startsWith("[")) {
     try {
-      const parsed = JSON.parse(val);
+      const parsed: unknown = JSON.parse(text);
       if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === "string");
     } catch {
-      return [val];
+      // fallback to plain string below
     }
   }
-  return [];
+  return [text];
+}
+
+function normalizeGrid(val: unknown): boolean[][] {
+  let g = val;
+  if (typeof g === "string") {
+    try {
+      g = JSON.parse(g);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(g)) return [];
+  return g.map((row) => (Array.isArray(row) ? row.map(Boolean) : []));
 }
 
 export async function readEditableProfile(userId: number): Promise<EditableProfile | null> {
   const [row] = await sql`
-    SELECT headline, bio, location FROM users WHERE id = ${userId}
+    SELECT headline, bio, localizacao FROM users WHERE id = ${userId}
   `;
   if (!row) return null;
   return {
     headline: normalizeList(row.headline),
     bio: row.bio ?? null,
-    location: row.location ?? null,
-    localizacao: row.location ?? null,
+    location: row.localizacao ?? null,
+    localizacao: row.localizacao ?? null,
   };
 }
 
@@ -55,12 +74,13 @@ export async function saveEditableProfile(
       UPDATE users SET
         headline = ${data.headline ? sql.json(limitList(data.headline, 5)) : null},
         bio = ${limitOrNull(data.bio, LIMITS.bio)},
-        location = ${limitOrNull(loc, LIMITS.location)}
+        localizacao = ${limitOrNull(loc, LIMITS.location)}
       WHERE id = ${userId}
     `;
     return { ok: true };
-  } catch {
-    return { ok: false, error: "Database error while saving profile.", erro: "Erro ao salvar perfil." };
+  } catch (err) {
+    console.error("[profile] error saving editable profile:", err);
+    return { ok: false, error: "Erro ao salvar perfil. Tente novamente.", erro: "Erro ao salvar perfil. Tente novamente." };
   }
 }
 
@@ -101,43 +121,47 @@ export type EditorOnboarding = {
 export type OnboardingEditor = EditorOnboarding;
 
 export async function readEditorOnboarding(userId: number): Promise<EditorOnboarding | null> {
-  const [row] = await sql`
-    SELECT name, avatar_url, location, headline, bio, software_tools, editing_styles,
-           portfolio_link, availability, editing_level, pc_setup, niches, profile_completed
-    FROM users WHERE id = ${userId}
-  `;
-  if (!row) return null;
-  return {
-    name: row.name ?? "",
-    avatarUrl: row.avatar_url ?? "",
-    photoUrl: row.avatar_url ?? "",
-    location: row.location ?? "",
-    headline: normalizeList(row.headline),
-    bio: row.bio ?? "",
-    softwareTools: row.software_tools ?? [],
-    softwares: row.software_tools ?? [],
-    editingStyles: row.editing_styles ?? [],
-    styles: row.editing_styles ?? [],
-    portfolioLink: row.portfolio_link ?? "",
-    availability: (row.availability ?? []) as boolean[][],
-    editingLevel: row.editing_level ?? undefined,
-    pcSetup: row.pc_setup ?? undefined,
-    niches: row.niches ?? [],
-    niche: row.niches ?? [],
-    profileCompleted: row.profile_completed ?? false,
-    profileComplete: row.profile_completed ?? false,
-    // aliases
-    nome: row.name ?? "",
-    fotoUrl: row.avatar_url ?? "",
-    localizacao: row.location ?? "",
-    estilos: row.editing_styles ?? [],
-    portfolio_link: row.portfolio_link ?? "",
-    disponibilidade: (row.availability ?? []) as boolean[][],
-    nivelEdicao: row.editing_level ?? undefined,
-    setupPc: row.pc_setup ?? undefined,
-    nicho: row.niches ?? [],
-    perfilCompleto: row.profile_completed ?? false,
-  };
+  try {
+    const [row] = await sql`
+      SELECT nome, foto_url, localizacao, headline, bio, softwares, estilos, nivel_edicao,
+             setup_pc, link_portfolio, nicho, disponibilidade, perfil_completo
+      FROM users WHERE id = ${userId}
+    `;
+    if (!row) return null;
+    return {
+      name: row.nome ?? "",
+      avatarUrl: row.foto_url ?? "",
+      photoUrl: row.foto_url ?? "",
+      location: row.localizacao ?? "",
+      headline: normalizeList(row.headline),
+      bio: row.bio ?? "",
+      softwareTools: normalizeList(row.softwares),
+      softwares: normalizeList(row.softwares),
+      editingStyles: normalizeList(row.estilos),
+      styles: normalizeList(row.estilos),
+      portfolioLink: row.link_portfolio ?? "",
+      availability: normalizeGrid(row.disponibilidade),
+      editingLevel: row.nivel_edicao ?? undefined,
+      pcSetup: row.setup_pc ?? undefined,
+      niches: normalizeList(row.nicho),
+      niche: normalizeList(row.nicho),
+      profileCompleted: row.perfil_completo ?? false,
+      profileComplete: row.perfil_completo ?? false,
+      // aliases
+      nome: row.nome ?? "",
+      fotoUrl: row.foto_url ?? "",
+      localizacao: row.localizacao ?? "",
+      estilos: normalizeList(row.estilos),
+      portfolio_link: row.link_portfolio ?? "",
+      disponibilidade: normalizeGrid(row.disponibilidade),
+      nivelEdicao: row.nivel_edicao ?? undefined,
+      setupPc: row.setup_pc ?? undefined,
+      nicho: normalizeList(row.nicho),
+      perfilCompleto: row.perfil_completo ?? false,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export const lerOnboardingEditor = readEditorOnboarding;
@@ -157,12 +181,12 @@ export async function saveEditorOnboarding(
     styles?: string[];
     portfolioLink?: string;
     availability?: boolean[][];
+    availabilitySchedule?: boolean[][];
     editingLevel?: string;
     editingExperienceLevel?: string;
     pcSetup?: string;
     niches?: string[];
     niche?: string[];
-    availabilitySchedule?: boolean[][];
     // aliases
     nome?: string;
     fotoUrl?: string;
@@ -177,37 +201,39 @@ export async function saveEditorOnboarding(
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const rawName = data.name ?? data.nome ?? "";
   const name = limitStr(rawName, LIMITS.name);
-  if (!name) return { ok: false, error: "Please enter your name.", erro: "Please enter your name." };
+  if (!name) return { ok: false, error: "Digite seu nome.", erro: "Digite seu nome." };
 
   const avatar = data.avatarUrl ?? data.photoUrl ?? data.fotoUrl;
   if (!isValidPhoto(avatar)) {
-    return { ok: false, error: "Photo must be a valid image under 1.5MB.", erro: "Invalid photo." };
+    return { ok: false, error: "A foto precisa ser imagem e ter menos de 1,5 MB.", erro: "A foto precisa ser imagem e ter menos de 1,5 MB." };
   }
 
   const rawLocation = data.location ?? data.localizacao;
   const rawTools = data.softwareTools ?? data.softwares;
   const rawStyles = data.editingStyles ?? data.styles ?? data.estilos;
   const rawPortLink = data.portfolioLink ?? data.portfolio_link;
-  const rawAvail = data.availability ?? data.disponibilidade ?? [];
+  const rawAvail = data.availability ?? data.disponibilidade;
   const rawEditLevel = data.editingLevel ?? data.nivelEdicao;
   const rawPcSetup = data.pcSetup ?? data.setupPc;
   const rawNiches = data.niches ?? data.niche ?? data.nicho;
 
+  const newGrid = rawAvail ? sql.json(rawAvail) : null;
+
   await sql`
     UPDATE users SET
-      name = ${name},
-      avatar_url = ${avatar?.trim() || null},
-      location = ${limitOrNull(rawLocation, LIMITS.location)},
+      nome = ${name},
+      foto_url = ${avatar?.trim() || null},
+      localizacao = ${limitOrNull(rawLocation, LIMITS.location)},
       headline = ${data.headline ? sql.json(limitList(data.headline, 5)) : null},
       bio = ${limitOrNull(data.bio, LIMITS.bio)},
-      software_tools = ${limitList(rawTools, 10)},
-      editing_styles = ${limitList(rawStyles, 5)},
-      portfolio_link = ${limitOrNull(rawPortLink, LIMITS.link)},
-      availability = ${sql.json(rawAvail)},
-      editing_level = ${limitOrNull(rawEditLevel, LIMITS.tag)},
-      pc_setup = ${limitOrNull(rawPcSetup, LIMITS.tag)},
-      niches = ${limitList(rawNiches, 4)},
-      profile_completed = true
+      softwares = ${limitList(rawTools, 12)},
+      estilos = ${limitList(rawStyles, 3)},
+      nivel_edicao = ${limitOrNull(rawEditLevel, LIMITS.tag)},
+      setup_pc = ${limitOrNull(rawPcSetup, LIMITS.tag)},
+      link_portfolio = ${limitOrNull(rawPortLink, LIMITS.link)},
+      nicho = ${limitList(rawNiches, 4)},
+      disponibilidade = COALESCE(${newGrid}, disponibilidade),
+      perfil_completo = true
     WHERE id = ${userId}
   `;
   return { ok: true };
@@ -216,135 +242,139 @@ export async function saveEditorOnboarding(
 export const salvarOnboardingEditor = saveEditorOnboarding;
 
 export async function readEditorProfile(handleOrId: string | number): Promise<EditorProfile | null> {
-  const whereClause =
-    typeof handleOrId === "number"
-      ? sql`id = ${handleOrId}`
-      : sql`lower(handle) = lower(${handleOrId})`;
+  try {
+    const whereClause =
+      typeof handleOrId === "number"
+        ? sql`id = ${handleOrId}`
+        : sql`lower(apelido) = lower(${handleOrId})`;
 
-  const [l] = await sql`
-    SELECT id, handle, name, avatar_url, location, headline, bio,
-           software_tools, editing_styles, niches, editing_level, pc_setup,
-           delivered_count, reputation, streak, rating, tier, created_at
-    FROM users
-    WHERE ${whereClause} AND role = 'editor'
-  `;
-  if (!l) return null;
+    const [account] = await sql`
+      SELECT id, apelido, nome, headline, bio, localizacao, criado_em,
+             entregues, reputacao, streak, nota, nivel,
+             foto_url, softwares, estilos, nicho, nivel_edicao, setup_pc
+      FROM users
+      WHERE ${whereClause}
+    `;
+    if (!account) return null;
 
-  const portfolioRows = await sql`
-    SELECT id, title, format, spokesperson, tint
-    FROM portfolio
-    WHERE user_id = ${l.id}
-    ORDER BY created_at DESC
-    LIMIT 12
-  `;
+    const [portfolioItems, achievementItems, deliveryItems] = await Promise.all([
+      sql`SELECT id, titulo, formato, porta_voz, tint, link_video
+          FROM portfolio WHERE user_id = ${account.id} ORDER BY criado_em DESC`,
+      sql`SELECT nome, icone FROM conquistas WHERE user_id = ${account.id}
+          ORDER BY conquistado_em DESC`,
+      sql`SELECT p.id, p.titulo, p.status, p.criada_em, u.nome AS porta_voz
+          FROM pautas p
+          JOIN users u ON u.id = p.porta_voz_id
+          WHERE p.reservada_por_id = ${account.id}
+            AND p.status IN ('aprovada','finalizada','reedicao')
+          ORDER BY p.criada_em DESC`,
+    ]);
 
-  const historyRows = await sql`
-    SELECT m.id, m.title, u.name AS spokesperson, m.created_at AS date, m.status
-    FROM missions m
-    JOIN users u ON u.id = m.spokesperson_id
-    WHERE m.reserved_by_id = ${l.id} AND m.status IN ('approved','completed','finished','revision_requested','reedit')
-    ORDER BY m.created_at DESC
-    LIMIT 10
-  `;
+    const portfolio: PortfolioItem[] = (portfolioItems as any[]).map((i) => ({
+      id: `pf-${i.id}`,
+      title: i.titulo,
+      format: i.formato,
+      spokesperson: i.porta_voz,
+      tint: i.tint ?? "linear-gradient(135deg,#3a3a42,#12121a)",
+      titulo: i.titulo,
+      formato: i.formato,
+      portaVoz: i.porta_voz,
+    }));
 
-  const achievementRows = await sql`
-    SELECT icon, name FROM achievements WHERE user_id = ${l.id} ORDER BY earned_at ASC
-  `;
+    const history: HistoryItem[] = (deliveryItems as any[]).map((h) => {
+      const res = h.status === "reedicao" ? "revision_requested" : "approved";
+      return {
+        id: `h-${h.id}`,
+        title: h.titulo,
+        spokesperson: h.porta_voz,
+        date: new Date(h.criada_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+        result: res,
+        titulo: h.titulo,
+        portaVoz: h.porta_voz,
+        data: new Date(h.criada_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+        resultado: h.status === "reedicao" ? "reedicao" : "aprovada",
+      };
+    });
 
-  const sinceDate = new Date(l.created_at).toLocaleDateString("pt-BR", {
-    month: "long",
-    year: "numeric",
-  });
+    const achievements = (achievementItems as any[]).map((m) => ({
+      icon: m.icone ?? "🏅",
+      name: m.nome,
+      icone: m.icone ?? "🏅",
+      nome: m.nome,
+    }));
 
-  const profile: EditorProfile = {
-    handle: l.handle,
-    name: l.name,
-    headline: normalizeList(l.headline),
-    location: l.location ?? "",
-    since: sinceDate,
-    bio: l.bio ?? "",
-    photoUrl: l.avatar_url ?? undefined,
-    avatarUrl: l.avatar_url ?? undefined,
-    softwares: l.software_tools ?? [],
-    softwareTools: l.software_tools ?? [],
-    styles: l.editing_styles ?? [],
-    editingStyles: l.editing_styles ?? [],
-    niche: l.niches ?? [],
-    niches: l.niches ?? [],
-    editingLevel: l.editing_level ?? undefined,
-    pcSetup: l.pc_setup ?? undefined,
-    deliveries: l.delivered_count ?? 0,
-    deliveredCount: l.delivered_count ?? 0,
-    rating: l.rating === null ? null : Number(l.rating),
-    tier: l.tier as Tier,
-    reputation: l.reputation ?? 0,
-    streak: l.streak ?? 0,
-    portfolio: portfolioRows.map((p) => ({
-      id: `p-${p.id}`,
-      title: p.title,
-      format: p.format,
-      spokesperson: p.spokesperson,
-      tint: p.tint ?? "linear-gradient(135deg,#3a3a42,#12121a)",
-      titulo: p.title,
-      formato: p.format,
-      portaVoz: p.spokesperson,
-    })),
-    history: historyRows.map((h) => ({
-      id: `h-${h.id}`,
-      title: h.title,
-      spokesperson: h.spokesperson,
-      date: new Date(h.date).toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" }),
-      result: (h.status === "approved" || h.status === "completed" || h.status === "finished" ? "approved" : "revision_requested") as "approved" | "revision_requested",
-      titulo: h.title,
-      portaVoz: h.spokesperson,
-      data: new Date(h.date).toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" }),
-      resultado: (h.status === "approved" || h.status === "completed" || h.status === "finished" ? "aprovada" : "reedicao") as "aprovada" | "reedicao",
-    })),
-    achievements: achievementRows.map((a) => ({ icon: a.icon, name: a.name, icone: a.icon, nome: a.name })),
-    // aliases
-    apelido: l.handle,
-    nome: l.name,
-    local: l.location ?? "",
-    desde: sinceDate,
-    fotoUrl: l.avatar_url ?? undefined,
-    estilos: l.editing_styles ?? [],
-    nicho: l.niches ?? [],
-    nivelEdicao: l.editing_level ?? undefined,
-    setupPc: l.pc_setup ?? undefined,
-    entregues: l.delivered_count ?? 0,
-    nota: l.rating === null ? null : Number(l.rating),
-    nivel: l.tier as Tier,
-    reputacao: l.reputation ?? 0,
-    conquistas: achievementRows.map((a) => ({ icon: a.icon, name: a.name, icone: a.icon, nome: a.name })),
-  };
-
-  return profile;
+    return {
+      handle: account.apelido,
+      name: account.nome,
+      headline: normalizeList(account.headline),
+      location: account.localizacao ?? "",
+      since: new Date(account.criado_em).toLocaleDateString("pt-BR", {
+        month: "long",
+        year: "numeric",
+      }),
+      bio: account.bio ?? "",
+      photoUrl: account.foto_url ?? undefined,
+      softwares: normalizeList(account.softwares),
+      styles: normalizeList(account.estilos),
+      niche: normalizeList(account.nicho),
+      editingLevel: account.nivel_edicao ?? undefined,
+      pcSetup: account.setup_pc ?? undefined,
+      deliveries: Number(account.entregues ?? 0),
+      deliveredCount: Number(account.entregues ?? 0),
+      reputation: Number(account.reputacao ?? 0),
+      streak: Number(account.streak ?? 0),
+      rating: account.nota !== null ? Number(account.nota) : null,
+      level: account.nivel ?? "Aspirante",
+      portfolio,
+      history,
+      achievements,
+      // aliases
+      apelido: account.apelido,
+      nome: account.nome,
+      local: account.localizacao ?? "",
+      desde: new Date(account.criado_em).toLocaleDateString("pt-BR", {
+        month: "long",
+        year: "numeric",
+      }),
+      fotoUrl: account.foto_url ?? undefined,
+      estilos: normalizeList(account.estilos),
+      nivelEdicao: account.nivel_edicao ?? undefined,
+      setupPc: account.setup_pc ?? undefined,
+      entregues: Number(account.entregues ?? 0),
+      reputacao: Number(account.reputacao ?? 0),
+      nota: account.nota !== null ? Number(account.nota) : null,
+      conquistas: achievements,
+      historico: history,
+    };
+  } catch (err) {
+    console.error("[profile] error reading editor profile:", err);
+    return null;
+  }
 }
 
 export const lerPerfilEditor = readEditorProfile;
 
-export async function getEditorLeaderboard(limit = 50): Promise<EditorRanking[]> {
+export async function readEditorRanking(limit = 10): Promise<EditorRanking[]> {
   const rows = await sql`
-    SELECT id, handle, tier, reputation, delivered_count, streak
+    SELECT id, apelido, nome, foto_url, entregues, reputacao, streak, nota, nivel
     FROM users
-    WHERE role = 'editor' AND profile_completed = true AND is_banned = false
-    ORDER BY reputation DESC, delivered_count DESC
+    WHERE papel = 'editor' AND perfil_completo = true
+    ORDER BY entregues DESC, reputacao DESC, criado_em ASC
     LIMIT ${limit}
   `;
-  return rows.map((r) => ({
-    id: r.id,
-    handle: r.handle,
-    tier: r.tier as Tier,
-    level: r.tier as Tier,
-    reputation: r.reputation,
-    deliveredCount: r.delivered_count,
-    streak: r.streak,
-    apelido: r.handle,
-    nivel: r.tier as Tier,
-    reputacao: r.reputation,
-    entregues: r.delivered_count,
+  return (rows as any[]).map((r) => ({
+    id: Number(r.id),
+    handle: r.apelido,
+    level: r.nivel ?? "Aspirante",
+    deliveredCount: Number(r.entregues ?? 0),
+    reputation: Number(r.reputacao ?? 0),
+    streak: Number(r.streak ?? 0),
+    // aliases
+    apelido: r.apelido,
+    nivel: r.nivel ?? "Aspirante",
+    entregues: Number(r.entregues ?? 0),
+    reputacao: Number(r.reputacao ?? 0),
   }));
 }
 
-export const editorLeaderboard = getEditorLeaderboard;
-export const rankingEditores = getEditorLeaderboard;
+export const rankingEditores = readEditorRanking;

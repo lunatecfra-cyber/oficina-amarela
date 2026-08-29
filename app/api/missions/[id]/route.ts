@@ -32,12 +32,12 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
   }
 
   const [mission] = await sql`
-    SELECT spokesperson_id, reserved_by_id FROM missions WHERE id = ${missionId}
+    SELECT porta_voz_id, reservada_por_id FROM pautas WHERE id = ${missionId}
   `;
   if (!mission) return NextResponse.json({ error: "Mission not found.", erro: "Mission not found." }, { status: 404 });
 
-  const isOwner = mission.spokesperson_id === session.id;
-  const isAssignedEditor = mission.reserved_by_id === session.id;
+  const isOwner = mission.porta_voz_id === session.id;
+  const isAssignedEditor = mission.reservada_por_id === session.id;
   if (!isOwner && !isAssignedEditor && session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized access to this mission.", erro: "Unauthorized access." }, { status: 403 });
   }
@@ -88,7 +88,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const action = actionMap[rawAction] ?? rawAction;
 
   const [currentMission] = await sql`
-    SELECT status FROM missions WHERE id = ${missionId}
+    SELECT status FROM pautas WHERE id = ${missionId}
   `;
   if (!currentMission) return NextResponse.json({ error: "Mission not found.", erro: "Mission not found." }, { status: 404 });
   if (!canExecuteAction(String(currentMission.status), session.role, String(action))) {

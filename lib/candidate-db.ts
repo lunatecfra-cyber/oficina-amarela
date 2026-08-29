@@ -43,47 +43,47 @@ export type OnboardingCandidato = CandidateOnboarding;
 
 export async function readCandidateOnboarding(userId: number): Promise<CandidateOnboarding | null> {
   const [l] = await sql`
-    SELECT name, avatar_url, political_office, running_for, election_year, location,
-           campaign_flags, communication_tone, keywords, social_links, bio,
-           profile_completed, watermark, campaign_tax_id, voter_id
+    SELECT nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
+           bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
+           perfil_completo, marca_dagua, cnpj_campanha, titulo_eleitor
     FROM users WHERE id = ${userId}
   `;
   if (!l) return null;
   return {
-    name: l.name ?? "",
-    avatarUrl: l.avatar_url ?? "",
-    photoUrl: l.avatar_url ?? "",
-    role: l.political_office ?? "",
-    politicalOffice: l.political_office ?? "",
-    runningFor: l.running_for ?? "",
-    electionYear: l.election_year ?? "2026",
-    location: l.location ?? "",
-    causes: l.campaign_flags ?? [],
-    campaignFlags: l.campaign_flags ?? [],
-    communicationTone: l.communication_tone ?? "",
-    keywords: l.keywords ?? [],
-    socialLinks: (l.social_links ?? {}) as SocialLinks,
+    name: l.nome ?? "",
+    avatarUrl: l.foto_url ?? "",
+    photoUrl: l.foto_url ?? "",
+    role: l.cargo ?? "",
+    politicalOffice: l.cargo ?? "",
+    runningFor: l.disputa_por ?? "",
+    electionYear: l.ano_eleicao ?? "2026",
+    location: l.localizacao ?? "",
+    causes: l.bandeiras ?? [],
+    campaignFlags: l.bandeiras ?? [],
+    communicationTone: l.tom_comunicacao ?? "",
+    keywords: l.palavras_chave ?? [],
+    socialLinks: (l.redes_sociais ?? {}) as SocialLinks,
     bio: l.bio ?? "",
-    profileComplete: l.profile_completed ?? false,
-    profileCompleted: l.profile_completed ?? false,
-    watermark: l.watermark ?? undefined,
-    campaignTaxId: l.campaign_tax_id ?? undefined,
-    voterId: l.voter_id ?? undefined,
+    profileComplete: l.perfil_completo ?? false,
+    profileCompleted: l.perfil_completo ?? false,
+    watermark: l.marca_dagua ?? undefined,
+    campaignTaxId: l.cnpj_campanha ?? undefined,
+    voterId: l.titulo_eleitor ?? undefined,
     // aliases
-    nome: l.name ?? "",
-    fotoUrl: l.avatar_url ?? "",
-    cargo: l.political_office ?? "",
-    disputaPor: l.running_for ?? "",
-    anoEleicao: l.election_year ?? "2026",
-    localizacao: l.location ?? "",
-    bandeiras: l.campaign_flags ?? [],
-    tomComunicacao: l.communication_tone ?? "",
-    palavrasChave: l.keywords ?? [],
-    redes: (l.social_links ?? {}) as SocialLinks,
-    perfilCompleto: l.profile_completed ?? false,
-    marcaDagua: l.watermark ?? undefined,
-    cnpjCampanha: l.campaign_tax_id ?? undefined,
-    tituloEleitor: l.voter_id ?? undefined,
+    nome: l.nome ?? "",
+    fotoUrl: l.foto_url ?? "",
+    cargo: l.cargo ?? "",
+    disputaPor: l.disputa_por ?? "",
+    anoEleicao: l.ano_eleicao ?? "2026",
+    localizacao: l.localizacao ?? "",
+    bandeiras: l.bandeiras ?? [],
+    tomComunicacao: l.tom_comunicacao ?? "",
+    palavrasChave: l.palavras_chave ?? [],
+    redes: (l.redes_sociais ?? {}) as SocialLinks,
+    perfilCompleto: l.perfil_completo ?? false,
+    marcaDagua: l.marca_dagua ?? undefined,
+    cnpjCampanha: l.cnpj_campanha ?? undefined,
+    tituloEleitor: l.titulo_eleitor ?? undefined,
   };
 }
 
@@ -130,17 +130,21 @@ export async function saveCandidateOnboarding(
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const rawName = data.name ?? data.nome ?? "";
   const name = limitStr(rawName, LIMITS.name);
-  if (!name) return { ok: false, error: "Please enter your name.", erro: "Please enter your name." };
+  if (!name) return { ok: false, error: "Digite seu nome.", erro: "Digite seu nome." };
 
   const photo = data.avatarUrl ?? data.photoUrl ?? data.fotoUrl;
   if (!isValidPhoto(photo)) {
-    return { ok: false, error: "Photo must be a valid image under 1.5MB.", erro: "Invalid photo." };
+    return { ok: false, error: "A foto precisa ser imagem e ter menos de 1,5 MB.", erro: "A foto precisa ser imagem e ter menos de 1,5 MB." };
   }
 
   const office = data.politicalOffice ?? data.role ?? data.cargo;
+  if (!office?.trim()) return { ok: false, error: "Escolha o cargo.", erro: "Escolha o cargo." };
+
+  const loc = data.location ?? data.localizacao;
+  if (!loc?.trim()) return { ok: false, error: "Preencha a região.", erro: "Preencha a região." };
+
   const running = data.runningFor ?? data.disputaPor;
   const year = data.electionYear ?? data.anoEleicao ?? "2026";
-  const loc = data.location ?? data.localizacao;
   const flags = data.campaignFlags ?? data.causes ?? data.bandeiras;
   const tone = data.communicationTone ?? data.tomComunicacao;
   const kw = data.keywords ?? data.palavrasChave;
@@ -152,21 +156,21 @@ export async function saveCandidateOnboarding(
 
   await sql`
     UPDATE users SET
-      name = ${name},
-      avatar_url = ${photo?.trim() || null},
-      political_office = ${limitOrNull(office, LIMITS.tag)},
-      running_for = ${limitOrNull(running, LIMITS.tag)},
-      election_year = ${limitOrNull(year, 4)},
-      location = ${limitOrNull(loc, LIMITS.location)},
-      campaign_flags = ${limitList(flags, 12)},
-      communication_tone = ${limitOrNull(tone, LIMITS.tag)},
-      keywords = ${limitList(kw, 8)},
-      social_links = ${sql.json(links)},
+      nome = ${name},
+      foto_url = ${photo?.trim() || null},
+      cargo = ${limitOrNull(office, LIMITS.tag)},
+      disputa_por = ${limitOrNull(running, LIMITS.tag)},
+      ano_eleicao = ${limitOrNull(year, 4)},
+      localizacao = ${limitOrNull(loc, LIMITS.location)},
+      bandeiras = ${limitList(flags, 12)},
+      tom_comunicacao = ${limitOrNull(tone, LIMITS.tag)},
+      palavras_chave = ${limitList(kw, 8)},
+      redes_sociais = ${sql.json(links)},
       bio = ${limitOrNull(bio, LIMITS.bio)},
-      watermark = ${limitOrNull(watermark, LIMITS.name)},
-      campaign_tax_id = ${limitOrNull(campaignTaxId, LIMITS.name)},
-      voter_id = ${limitOrNull(voterId, LIMITS.name)},
-      profile_completed = true
+      marca_dagua = ${limitOrNull(watermark, LIMITS.briefField)},
+      cnpj_campanha = ${limitOrNull(campaignTaxId, LIMITS.briefField)},
+      titulo_eleitor = ${limitOrNull(voterId, LIMITS.briefField)},
+      perfil_completo = true
     WHERE id = ${userId}
   `;
 
@@ -177,69 +181,69 @@ export const salvarOnboardingCandidato = saveCandidateOnboarding;
 
 type CandidateRow = {
   id: number;
-  handle: string;
-  name: string;
-  avatar_url: string | null;
-  political_office: string | null;
-  running_for: string | null;
-  election_year: string | null;
-  location: string | null;
-  campaign_flags: string[] | null;
-  communication_tone: string | null;
-  keywords: string[] | null;
-  social_links: SocialLinks | null;
+  apelido: string;
+  nome: string;
+  foto_url: string | null;
+  cargo: string | null;
+  disputa_por: string | null;
+  ano_eleicao: string | null;
+  localizacao: string | null;
+  bandeiras: string[] | null;
+  tom_comunicacao: string | null;
+  palavras_chave: string[] | null;
+  redes_sociais: SocialLinks | null;
   bio: string | null;
-  created_at: string;
-  watermark: string | null;
-  campaign_tax_id: string | null;
-  voter_id: string | null;
+  criado_em: string;
+  marca_dagua: string | null;
+  cnpj_campanha: string | null;
+  titulo_eleitor: string | null;
 };
 
 function rowToCandidate(l: CandidateRow): Candidate {
   return {
-    slug: l.handle,
-    name: l.name,
-    role: l.political_office ?? "Porta-voz",
-    photoUrl: l.avatar_url ?? undefined,
-    politicalOffice: l.political_office ?? "",
-    runningFor: l.running_for ?? undefined,
-    electionYear: l.election_year ?? undefined,
-    location: l.location ?? "",
+    slug: l.apelido,
+    name: l.nome,
+    role: l.cargo ?? "Porta-voz",
+    photoUrl: l.foto_url ?? undefined,
+    politicalOffice: l.cargo ?? "",
+    runningFor: l.disputa_por ?? undefined,
+    electionYear: l.ano_eleicao ?? undefined,
+    location: l.localizacao ?? "",
     proximity: 0,
     bio: l.bio ?? "",
     tint: DEFAULT_TINT,
-    communicationTone: l.communication_tone ?? undefined,
-    campaignFlags: l.campaign_flags ?? [],
-    keywords: l.keywords ?? [],
-    socialLinks: l.social_links ?? {},
-    since: new Date(l.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
-    watermark: l.watermark ?? undefined,
-    campaignTaxId: l.campaign_tax_id ?? undefined,
-    voterId: l.voter_id ?? undefined,
+    communicationTone: l.tom_comunicacao ?? undefined,
+    campaignFlags: l.bandeiras ?? [],
+    keywords: l.palavras_chave ?? [],
+    socialLinks: l.redes_sociais ?? {},
+    since: new Date(l.criado_em).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+    watermark: l.marca_dagua ?? undefined,
+    campaignTaxId: l.cnpj_campanha ?? undefined,
+    voterId: l.titulo_eleitor ?? undefined,
     // aliases
-    nome: l.name,
-    foto: l.avatar_url ?? undefined,
-    fotoUrl: l.avatar_url ?? undefined,
-    cargo: l.political_office ?? "",
-    disputaPor: l.running_for ?? undefined,
-    anoEleicao: l.election_year ?? undefined,
-    local: l.location ?? "",
-    bandeiras: l.campaign_flags ?? [],
-    tomComunicacao: l.communication_tone ?? undefined,
-    palavrasChave: l.keywords ?? [],
-    redes: l.social_links ?? {},
-    desde: new Date(l.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
-    marcaDagua: l.watermark ?? undefined,
-    cnpjCampanha: l.campaign_tax_id ?? undefined,
-    tituloEleitor: l.voter_id ?? undefined,
+    nome: l.nome,
+    foto: l.foto_url ?? undefined,
+    fotoUrl: l.foto_url ?? undefined,
+    cargo: l.cargo ?? "",
+    disputaPor: l.disputa_por ?? undefined,
+    anoEleicao: l.ano_eleicao ?? undefined,
+    local: l.localizacao ?? "",
+    bandeiras: l.bandeiras ?? [],
+    tomComunicacao: l.tom_comunicacao ?? undefined,
+    palavrasChave: l.palavras_chave ?? [],
+    redes: l.redes_sociais ?? {},
+    desde: new Date(l.criado_em).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+    marcaDagua: l.marca_dagua ?? undefined,
+    cnpjCampanha: l.cnpj_campanha ?? undefined,
+    tituloEleitor: l.titulo_eleitor ?? undefined,
   };
 }
 
 export async function readOwnCandidate(userId: number): Promise<Candidate | null> {
   const [l] = await sql`
-    SELECT id, handle, name, avatar_url, political_office, running_for, election_year,
-           location, campaign_flags, communication_tone, keywords, social_links, bio,
-           created_at, watermark, campaign_tax_id, voter_id
+    SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
+           localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
+           criado_em, marca_dagua, cnpj_campanha, titulo_eleitor
     FROM users
     WHERE id = ${userId}
   `;
@@ -251,11 +255,11 @@ export const lerCandidatoProprio = readOwnCandidate;
 
 export async function readPublicCandidate(slug: string): Promise<Candidate | null> {
   const [l] = await sql`
-    SELECT id, handle, name, avatar_url, political_office, running_for, election_year,
-           location, campaign_flags, communication_tone, keywords, social_links, bio,
-           created_at, watermark, campaign_tax_id, voter_id
+    SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
+           localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
+           criado_em, marca_dagua, cnpj_campanha, titulo_eleitor
     FROM users
-    WHERE lower(handle) = lower(${slug}) AND role = 'spokesperson' AND profile_completed = true AND is_banned = false
+    WHERE lower(apelido) = lower(${slug}) AND papel IN ('voz', 'spokesperson') AND perfil_completo = true AND banido = false
   `;
   if (!l) return null;
   return rowToCandidate(l as CandidateRow);
@@ -266,15 +270,15 @@ export const lerCandidatoPublico = readPublicCandidate;
 export async function readCandidatesByHandles(handles: string[]): Promise<Map<string, Candidate>> {
   if (handles.length === 0) return new Map();
   const rows = await sql`
-    SELECT id, handle, name, avatar_url, political_office, running_for, election_year,
-           location, campaign_flags, communication_tone, keywords, social_links, bio,
-           created_at, watermark, campaign_tax_id, voter_id
+    SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
+           localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
+           criado_em, marca_dagua, cnpj_campanha, titulo_eleitor
     FROM users
-    WHERE handle = ANY(${handles})
+    WHERE apelido = ANY(${handles})
   `;
   const map = new Map<string, Candidate>();
   for (const r of rows) {
-    map.set(r.handle, rowToCandidate(r as CandidateRow));
+    map.set(r.apelido, rowToCandidate(r as CandidateRow));
   }
   return map;
 }

@@ -1,107 +1,115 @@
 import { sql } from "@/lib/db";
 import { awardReferralIfEligible } from "@/lib/electoral-ranking-db";
 import { LIMITS, limitStr, limitOrNull } from "@/lib/limits";
-import type { VideoFormat, Mission, MissionStatus } from "@/lib/missions";
+import type { VideoFormat, Mission, MissionStatus, Formato, Pauta, StatusPauta } from "@/lib/missions";
 import { isLikelyUrl } from "@/lib/validators";
 
 type MissionRow = {
   id: number;
-  spokesperson_name: string;
-  spokesperson_handle: string;
-  title: string;
-  format: VideoFormat;
-  brief_tone: string | null;
-  brief_color: string | null;
-  brief_font: string | null;
-  brief_references: string | null;
+  porta_voz_nome: string;
+  porta_voz_apelido: string;
+  titulo: string;
+  formato: VideoFormat;
+  brief_tom: string | null;
+  brief_cor: string | null;
+  brief_fonte: string | null;
+  brief_refs: string | null;
   drive_link: string | null;
   youtube_link: string | null;
   status: MissionStatus;
-  reserved_by_handle: string | null;
-  reserved_at: string | null;
-  delivery_link: string | null;
-  inspector_notes: string | null;
-  created_at: string;
+  reservada_por_apelido: string | null;
+  reservada_ate: string | null;
+  reservada_em: string | null;
+  entrega_link: string | null;
+  notas_inspetor: string | null;
+  criada_em: string;
   extras: string | null;
-  motivation: string | null;
-  desired_deadline: Date | string | null;
-  revision_requested_by: "inspector" | "spokesperson" | null;
-  raw_video_url: string | null;
-  delivery_video_url: string | null;
-  watermark: string | null;
-  campaign_tax_id: string | null;
-  voter_id: string | null;
+  motivo: string | null;
+  prazo_desejado: Date | string | null;
+  reedicao_pedida_por: "inspetor" | "porta_voz" | "inspector" | "spokesperson" | null;
+  video_bruto_url: string | null;
+  video_entrega_url: string | null;
+  marca_dagua: string | null;
+  cnpj_campanha: string | null;
+  titulo_eleitor: string | null;
 };
 
 function rowToMission(r: MissionRow): Mission {
-  const desiredDeadlineStr = r.desired_deadline
-    ? new Date(r.desired_deadline).toISOString().slice(0, 10)
+  const desiredDeadlineStr = r.prazo_desejado
+    ? new Date(r.prazo_desejado).toISOString().slice(0, 10)
     : undefined;
+
+  const revBy =
+    r.reedicao_pedida_por === "inspetor" || r.reedicao_pedida_por === "inspector"
+      ? "inspector"
+      : r.reedicao_pedida_por === "porta_voz" || r.reedicao_pedida_por === "spokesperson"
+        ? "spokesperson"
+        : undefined;
 
   return {
     id: `db-${r.id}`,
-    spokesperson: r.spokesperson_name,
-    spokespersonHandle: r.spokesperson_handle,
-    title: r.title,
-    format: r.format,
+    spokesperson: r.porta_voz_nome,
+    spokespersonHandle: r.porta_voz_apelido,
+    title: r.titulo,
+    format: r.formato,
     brief: {
-      tone: r.brief_tone ?? undefined,
-      color: r.brief_color ?? undefined,
-      font: r.brief_font ?? undefined,
-      refs: r.brief_references ?? undefined,
-      tom: r.brief_tone ?? undefined,
-      cor: r.brief_color ?? undefined,
-      fonte: r.brief_font ?? undefined,
+      tone: r.brief_tom ?? undefined,
+      color: r.brief_cor ?? undefined,
+      font: r.brief_fonte ?? undefined,
+      refs: r.brief_refs ?? undefined,
+      tom: r.brief_tom ?? undefined,
+      cor: r.brief_cor ?? undefined,
+      fonte: r.brief_fonte ?? undefined,
     },
     status: r.status,
-    createdAt: new Date(r.created_at).toISOString(),
-    reservedBy: r.reserved_by_handle ?? undefined,
-    reservedAt: r.reserved_at ? new Date(r.reserved_at).toISOString() : undefined,
+    createdAt: new Date(r.criada_em).toISOString(),
+    reservedBy: r.reservada_por_apelido ?? undefined,
+    reservedAt: r.reservada_em ? new Date(r.reservada_em).toISOString() : undefined,
     driveLink: r.drive_link ?? undefined,
     youtubeLink: r.youtube_link ?? undefined,
-    deliveryLink: r.delivery_link ?? undefined,
-    inspectorNotes: r.inspector_notes ?? undefined,
+    deliveryLink: r.entrega_link ?? undefined,
+    inspectorNotes: r.notas_inspetor ?? undefined,
     extras: r.extras ?? undefined,
-    motivation: r.motivation ?? undefined,
+    motivation: r.motivo ?? undefined,
     desiredDeadline: desiredDeadlineStr,
-    revisionRequestedBy: r.revision_requested_by ?? undefined,
-    rawVideoUrl: r.raw_video_url ?? undefined,
-    deliveryVideoUrl: r.delivery_video_url ?? undefined,
-    watermark: r.watermark ?? undefined,
-    campaignTaxId: r.campaign_tax_id ?? undefined,
-    voterId: r.voter_id ?? undefined,
+    revisionRequestedBy: revBy,
+    rawVideoUrl: r.video_bruto_url ?? undefined,
+    deliveryVideoUrl: r.video_entrega_url ?? undefined,
+    watermark: r.marca_dagua ?? undefined,
+    campaignTaxId: r.cnpj_campanha ?? undefined,
+    voterId: r.titulo_eleitor ?? undefined,
     // compatibility aliases
-    portaVoz: r.spokesperson_name,
-    portaVozApelido: r.spokesperson_handle,
-    titulo: r.title,
-    formato: r.format,
-    criadaEm: new Date(r.created_at).toISOString(),
-    reservadaPor: r.reserved_by_handle ?? undefined,
-    reservadaEm: r.reserved_at ? new Date(r.reserved_at).toISOString() : undefined,
-    entregaLink: r.delivery_link ?? undefined,
-    notasInspetor: r.inspector_notes ?? undefined,
-    motivo: r.motivation ?? undefined,
+    portaVoz: r.porta_voz_nome,
+    portaVozApelido: r.porta_voz_apelido,
+    titulo: r.titulo,
+    formato: r.formato,
+    criadaEm: new Date(r.criada_em).toISOString(),
+    reservadaPor: r.reservada_por_apelido ?? undefined,
+    reservadaEm: r.reservada_em ? new Date(r.reservada_em).toISOString() : undefined,
+    entregaLink: r.entrega_link ?? undefined,
+    notasInspetor: r.notas_inspetor ?? undefined,
+    motivo: r.motivo ?? undefined,
     prazoDesejado: desiredDeadlineStr,
-    reedicaoPedidaPor: r.revision_requested_by ?? undefined,
-    videoBrutoUrl: r.raw_video_url ?? undefined,
-    videoEntregaUrl: r.delivery_video_url ?? undefined,
-    marcaDagua: r.watermark ?? undefined,
-    cnpjCampanha: r.campaign_tax_id ?? undefined,
-    tituloEleitor: r.voter_id ?? undefined,
+    reedicaoPedidaPor: r.reedicao_pedida_por ?? undefined,
+    videoBrutoUrl: r.video_bruto_url ?? undefined,
+    videoEntregaUrl: r.video_entrega_url ?? undefined,
+    marcaDagua: r.marca_dagua ?? undefined,
+    cnpjCampanha: r.cnpj_campanha ?? undefined,
+    tituloEleitor: r.titulo_eleitor ?? undefined,
   };
 }
 
 const BASE_SELECT = sql`
-  SELECT m.id, u.name AS spokesperson_name, u.handle AS spokesperson_handle, m.title, m.format,
-         m.brief_tone, m.brief_color, m.brief_font, m.brief_references,
-         m.drive_link, m.youtube_link, m.status, m.reserved_at, m.delivery_link,
-         m.inspector_notes, m.created_at,
-         m.extras, m.motivation, m.desired_deadline, m.revision_requested_by,
-         m.raw_video_url, m.delivery_video_url, m.watermark, m.campaign_tax_id, m.voter_id,
-         e.handle AS reserved_by_handle
-  FROM missions m
-  JOIN users u ON u.id = m.spokesperson_id
-  LEFT JOIN users e ON e.id = m.reserved_by_id
+  SELECT p.id, u.nome AS porta_voz_nome, u.apelido AS porta_voz_apelido, p.titulo, p.formato,
+         p.brief_tom, p.brief_cor, p.brief_fonte, p.brief_refs,
+         p.drive_link, p.youtube_link, p.status, p.reservada_ate, p.reservada_em, p.entrega_link,
+         p.notas_inspetor, p.criada_em,
+         p.extras, p.motivo, p.prazo_desejado, p.reedicao_pedida_por,
+         p.video_bruto_url, p.video_entrega_url, p.marca_dagua, p.cnpj_campanha, p.titulo_eleitor,
+         e.apelido AS reservada_por_apelido
+  FROM pautas p
+  JOIN users u ON u.id = p.porta_voz_id
+  LEFT JOIN users e ON e.id = p.reservada_por_id
 `;
 
 export async function createMission(data: {
@@ -146,11 +154,11 @@ export async function createMission(data: {
   const rawTitle = data.title ?? data.titulo;
   const rawFormat = data.format ?? data.formato;
 
-  if (!spokespersonId) return { ok: false, error: "Spokesperson ID required.", erro: "Spokesperson ID required." };
+  if (!spokespersonId) return { ok: false, error: "ID do porta-voz obrigatório.", erro: "ID do porta-voz obrigatório." };
   const title = limitStr(rawTitle, LIMITS.title);
-  if (!title) return { ok: false, error: "Please enter a mission title.", erro: "Please enter a mission title." };
-  if (rawFormat !== "short" && rawFormat !== "long") {
-    return { ok: false, error: "Please select a video format.", erro: "Please select a video format." };
+  if (!title) return { ok: false, error: "Dê um título pra missão.", erro: "Dê um título pra missão." };
+  if (rawFormat !== "short" && rawFormat !== "long" && (rawFormat as string) !== "longo") {
+    return { ok: false, error: "Escolha o formato.", erro: "Escolha o formato." };
   }
 
   const brief = {
@@ -162,19 +170,21 @@ export async function createMission(data: {
     motivation: limitOrNull(data.motivation ?? data.motivo, LIMITS.longText),
     driveLink: limitOrNull(data.driveLink, LIMITS.link),
     youtubeLink: limitOrNull(data.youtubeLink, LIMITS.link),
-    deadline: limitOrNull(data.deadline ?? data.prazo, 10),
+    deadline: limitOrNull(data.deadline ?? data.prazo ?? data.desiredDeadline, 10),
     rawVideoUrl: limitOrNull(data.rawVideoUrl ?? data.videoBrutoUrl, LIMITS.link),
     watermark: limitOrNull(data.watermark ?? data.marcaDagua, LIMITS.briefField),
     campaignTaxId: limitOrNull(data.campaignTaxId ?? data.cnpjCampanha, LIMITS.briefField),
     voterId: limitOrNull(data.voterId ?? data.tituloEleitor, LIMITS.briefField),
   };
 
+  const dbFormato = rawFormat === "long" ? "longo" : rawFormat;
+
   const [row] = await sql`
-    INSERT INTO missions (spokesperson_id, title, format, drive_link, youtube_link,
-                         brief_tone, brief_color, brief_font, brief_references,
-                         extras, motivation, desired_deadline, raw_video_url,
-                         watermark, campaign_tax_id, voter_id)
-    VALUES (${spokespersonId}, ${title}, ${rawFormat},
+    INSERT INTO pautas (porta_voz_id, titulo, formato, drive_link, youtube_link,
+                        brief_tom, brief_cor, brief_fonte, brief_refs,
+                        extras, motivo, prazo_desejado, video_bruto_url,
+                        marca_dagua, cnpj_campanha, titulo_eleitor)
+    VALUES (${spokespersonId}, ${title}, ${dbFormato},
             ${brief.driveLink}, ${brief.youtubeLink},
             ${brief.tone}, ${brief.color},
             ${brief.font}, ${brief.refs},
@@ -194,186 +204,201 @@ export const criarPauta = createMission;
 
 export async function getSpokespersonMissions(spokespersonId: number): Promise<Mission[]> {
   const rows = await sql`
-    ${BASE_SELECT} WHERE m.spokesperson_id = ${spokespersonId} ORDER BY m.created_at DESC
+    ${BASE_SELECT} WHERE p.porta_voz_id = ${spokespersonId} ORDER BY p.criada_em DESC
   `;
   return (rows as unknown as MissionRow[]).map(rowToMission);
 }
 
 export const pautasDoPortaVoz = getSpokespersonMissions;
+export const spokespersonMissions = getSpokespersonMissions;
 
 export async function getSpokespersonMissionById(
   id: number,
   spokespersonId: number
 ): Promise<Mission | null> {
   const rows = await sql`
-    ${BASE_SELECT} WHERE m.id = ${id} AND m.spokesperson_id = ${spokespersonId}
+    ${BASE_SELECT} WHERE p.id = ${id} AND p.porta_voz_id = ${spokespersonId}
   `;
-  const r = (rows as unknown as MissionRow[])[0];
-  return r ? rowToMission(r) : null;
+  const row = (rows as unknown as MissionRow[])[0];
+  return row ? rowToMission(row) : null;
 }
 
 export const pautaPorIdDoPortaVoz = getSpokespersonMissionById;
+export const missionByIdOfSpokesperson = getSpokespersonMissionById;
 
 export async function getQueuePosition(missionId: number): Promise<number> {
   const [row] = await sql`
     SELECT (
       SELECT COUNT(*)::int
-      FROM missions before_m
-      WHERE before_m.status = 'available'
-        AND before_m.created_at <= m.created_at
-        AND before_m.id <> m.id
-    ) + 1 AS position,
-    m.status
-    FROM missions m
-    WHERE m.id = ${missionId}
+      FROM pautas antes
+      WHERE antes.status = 'disponivel'
+        AND antes.criada_em <= p.criada_em
+        AND antes.id <> p.id
+    ) + 1 AS posicao,
+    p.status
+    FROM pautas p
+    WHERE p.id = ${missionId}
   `;
   if (!row) return 0;
-  return row.status === "available" ? row.position : 0;
+  return row.status === "disponivel" ? row.posicao : 0;
 }
 
 export const posicaoNaFila = getQueuePosition;
+export const queuePosition = getQueuePosition;
 
 export async function getTotalInQueue(): Promise<number> {
   const [row] = await sql`
-    SELECT COUNT(*)::int AS total FROM missions WHERE status = 'available'
+    SELECT COUNT(*)::int AS total FROM pautas WHERE status = 'disponivel'
   `;
   return row?.total ?? 0;
 }
 
 export const totalNaFila = getTotalInQueue;
+export const totalInQueue = getTotalInQueue;
 
 export async function getAvailableMissions(): Promise<Mission[]> {
   const rows = await sql`
-    ${BASE_SELECT} WHERE m.status = 'available'
-    ORDER BY m.priority DESC, m.created_at ASC
+    ${BASE_SELECT} WHERE p.status = 'disponivel' ORDER BY p.prioridade DESC, p.criada_em ASC
   `;
   return (rows as unknown as MissionRow[]).map(rowToMission);
 }
 
 export const pautasDisponiveis = getAvailableMissions;
+export const availableMissions = getAvailableMissions;
 
 export async function getReservedMission(editorId: number): Promise<Mission | null> {
-  try {
-    const rows = await sql`
-      ${BASE_SELECT}
-      WHERE m.reserved_by_id = ${editorId}
-        AND m.status IN ('reserved','in_review','revision_requested')
-      LIMIT 1
-    `;
-    const r = (rows as unknown as MissionRow[])[0];
-    return r ? rowToMission(r) : null;
-  } catch {
-    return null;
-  }
+  const rows = await sql`
+    ${BASE_SELECT}
+    WHERE p.reservada_por_id = ${editorId}
+      AND p.status IN ('reservada', 'em_revisao', 'reedicao', 'aprovada')
+    ORDER BY p.reservada_em DESC
+    LIMIT 1
+  `;
+  const row = (rows as unknown as MissionRow[])[0];
+  return row ? rowToMission(row) : null;
 }
 
 export const pautaReservadaPor = getReservedMission;
+export const reservedMissionBy = getReservedMission;
+export const activeMissionBy = getReservedMission;
 
 export async function getApprovedDeliveries(editorId: number): Promise<Mission[]> {
   const rows = await sql`
-    ${BASE_SELECT}
-    WHERE m.reserved_by_id = ${editorId} AND m.status IN ('approved','completed')
-    ORDER BY m.created_at DESC
+    ${BASE_SELECT} WHERE p.reservada_por_id = ${editorId} AND p.status IN ('aprovada', 'finalizada')
+    ORDER BY p.criada_em DESC
   `;
   return (rows as unknown as MissionRow[]).map(rowToMission);
 }
 
 export const entregasAprovadas = getApprovedDeliveries;
+export const approvedDeliveries = getApprovedDeliveries;
+export const deliveriesByEditor = getApprovedDeliveries;
+export const entregasDoEditor = getApprovedDeliveries;
 
 export async function getPublicCandidateMissions(handle: string): Promise<Mission[]> {
   const rows = await sql`
     ${BASE_SELECT}
-    WHERE lower(u.handle) = lower(${handle}) AND u.role = 'spokesperson' AND u.profile_completed = true
-    ORDER BY m.created_at DESC
+    WHERE lower(u.apelido) = lower(${handle}) AND u.papel IN ('voz', 'spokesperson') AND u.perfil_completo = true
+    ORDER BY p.criada_em DESC
   `;
   return (rows as unknown as MissionRow[]).map(rowToMission);
 }
 
 export const pautasDoCandidatoPublico = getPublicCandidateMissions;
+export const publicCandidateMissions = getPublicCandidateMissions;
+export const pautasDoCandidato = getPublicCandidateMissions;
 
 export async function getMissionsInReview(): Promise<Mission[]> {
   const rows = await sql`
-    ${BASE_SELECT} WHERE m.status = 'in_review' ORDER BY m.created_at ASC
+    ${BASE_SELECT} WHERE p.status = 'em_revisao' ORDER BY p.criada_em ASC
   `;
   return (rows as unknown as MissionRow[]).map(rowToMission);
 }
 
 export const pautasEmRevisao = getMissionsInReview;
+export const missionsInReview = getMissionsInReview;
+
+export async function getMissionById(id: number): Promise<Mission | null> {
+  const rows = await sql`
+    ${BASE_SELECT} WHERE p.id = ${id}
+  `;
+  const row = (rows as unknown as MissionRow[])[0];
+  return row ? rowToMission(row) : null;
+}
+
+export const pautaPorId = getMissionById;
+export const missionById = getMissionById;
 
 export async function reserveMission(
   missionId: number,
   editorId: number
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const [locked] = await sql`
-    SELECT booking_locked_until FROM users
-    WHERE id = ${editorId} AND booking_locked_until > now()
+  const [active] = await sql`
+    SELECT id FROM pautas
+    WHERE reservada_por_id = ${editorId} AND status IN ('reservada', 'em_revisao', 'reedicao')
   `;
-  if (locked) return { ok: false, error: "You are temporarily restricted from claiming new missions.", erro: "You are temporarily restricted from claiming new missions." };
-
-  const alreadyHas = await getReservedMission(editorId);
-  if (alreadyHas) {
-    return { ok: false, error: "You already have an active mission in progress. Deliver it before claiming another.", erro: "You already have an active mission." };
+  if (active) {
+    return { ok: false, error: "Você já tem uma missão em mãos.", erro: "Você já tem uma missão em mãos." };
   }
 
-  const rows = await sql`
-    UPDATE missions
-    SET status = 'reserved',
-        reserved_by_id = ${editorId},
-        reserved_at = now()
-    WHERE id = ${missionId} AND status = 'available'
+  const [row] = await sql`
+    UPDATE pautas
+    SET status = 'reservada', reservada_por_id = ${editorId}, reservada_em = now()
+    WHERE id = ${missionId} AND status = 'disponivel'
     RETURNING id
   `;
-  if (rows.length === 0) {
-    return { ok: false, error: "This mission was already claimed by another editor.", erro: "This mission was already claimed." };
-  }
+  if (!row) return { ok: false, error: "Essa missão não está mais disponível.", erro: "Essa missão não está mais disponível." };
   return { ok: true };
 }
 
 export const reservarPauta = reserveMission;
 
-export async function cancelReservation(
+export async function abandonMission(
   missionId: number,
   editorId: number
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const rows = await sql`
-    UPDATE missions
-    SET status = 'available', reserved_by_id = NULL, reserved_at = NULL
-    WHERE id = ${missionId} AND reserved_by_id = ${editorId}
-      AND status IN ('reserved','revision_requested')
+    UPDATE pautas
+    SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL, reservada_em = NULL
+    WHERE id = ${missionId} AND reservada_por_id = ${editorId}
+      AND status IN ('reservada', 'reedicao')
     RETURNING id
   `;
-  if (rows.length === 0) return { ok: false, error: "This mission is not assigned to you.", erro: "This mission is not assigned to you." };
+  if (rows.length === 0) return { ok: false, error: "Essa missão não está com você.", erro: "Essa missão não está com você." };
   return { ok: true };
 }
 
-export const cancelarReserva = cancelReservation;
+export const desistirPauta = abandonMission;
+export const cancelarReserva = abandonMission;
+export const cancelMissionReservation = abandonMission;
 
-export async function deliverMission(
+export async function submitMissionDelivery(
   missionId: number,
   editorId: number,
   link: string
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  if (!isLikelyUrl(link) && !link.includes('r2.dev') && !link.includes('amazonaws.com') && !link.includes('storage.googleapis.com')) {
-    return { ok: false, error: "Please paste a valid video URL or upload the video.", erro: "Please paste a valid video URL." };
+  const isVideoEntregaUrl = link.includes('r2.dev') || link.includes('amazonaws.com') || link.includes('storage.googleapis.com');
+
+  if (!isLikelyUrl(link) && !isVideoEntregaUrl) {
+    return { ok: false, error: "Cole o link do vídeo editado ou faça o upload.", erro: "Cole o link do vídeo editado ou faça o upload." };
   }
 
-  const isVideoDeliveryUrl = link.includes('r2.dev') || link.includes('amazonaws.com') || link.includes('storage.googleapis.com');
-
   const rows = await sql`
-    UPDATE missions
-    SET status = 'in_review', 
-        delivery_link = ${!isVideoDeliveryUrl ? link.trim() : null}, 
-        delivery_video_url = ${isVideoDeliveryUrl ? link.trim() : null},
-        inspector_notes = NULL
-    WHERE id = ${missionId} AND reserved_by_id = ${editorId}
-      AND status IN ('reserved','revision_requested')
+    UPDATE pautas
+    SET status = 'em_revisao',
+        entrega_link = ${!isVideoEntregaUrl ? link.trim() : null},
+        video_entrega_url = ${isVideoEntregaUrl ? link.trim() : null},
+        notas_inspetor = NULL
+    WHERE id = ${missionId} AND reservada_por_id = ${editorId}
+      AND status IN ('reservada', 'reedicao')
     RETURNING id
   `;
-  if (rows.length === 0) return { ok: false, error: "This mission is not currently assigned to you.", erro: "This mission is not currently assigned to you." };
+  if (rows.length === 0) return { ok: false, error: "Essa missão não está com você.", erro: "Essa missão não está com você." };
   return { ok: true };
 }
 
-export const entregarPauta = deliverMission;
+export const entregarPauta = submitMissionDelivery;
+export const deliverMission = submitMissionDelivery;
 
 export async function approveMission(
   missionId: number,
@@ -384,20 +409,20 @@ export async function approveMission(
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const [mission] = spokespersonId
     ? await sql`
-        SELECT reserved_by_id FROM missions
-        WHERE id = ${missionId} AND status = 'in_review' AND spokesperson_id = ${spokespersonId}
+        SELECT reservada_por_id FROM pautas
+        WHERE id = ${missionId} AND status = 'em_revisao' AND porta_voz_id = ${spokespersonId}
       `
     : await sql`
-        SELECT reserved_by_id FROM missions WHERE id = ${missionId} AND status = 'in_review'
+        SELECT reservada_por_id FROM pautas WHERE id = ${missionId} AND status = 'em_revisao'
       `;
-  if (!mission?.reserved_by_id) return { ok: false, error: "This mission is not in review.", erro: "This mission is not in review." };
-  const editorId = mission.reserved_by_id as number;
+  if (!mission?.reservada_por_id) return { ok: false, error: "Essa missão não está em revisão.", erro: "Essa missão não está em revisão." };
+  const editorId = mission.reservada_por_id as number;
 
   if (rating !== undefined && (rating < 1 || rating > 5)) {
-    return { ok: false, error: "Rating must be between 1 and 5.", erro: "Rating must be between 1 and 5." };
+    return { ok: false, error: "A nota vai de 1 a 5.", erro: "A nota vai de 1 a 5." };
   }
 
-  const finalStatus: MissionStatus = spokespersonId ? "completed" : "approved";
+  const finalStatus: StatusPauta = spokespersonId ? "finalizada" : "aprovada";
 
   const [result] = await sql`
     SELECT * FROM oficina_private.aprovar_edicao(
@@ -411,124 +436,121 @@ export async function approveMission(
 
 export const aprovarPauta = approveMission;
 
-export async function requestRevision(
+export async function requestMissionRevision(
   missionId: number,
   notes: string
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  if (!notes.trim()) return { ok: false, error: "Please describe what needs to be changed.", erro: "Please describe what needs to be changed." };
+  if (!notes.trim()) return { ok: false, error: "Escreva o que precisa mudar.", erro: "Escreva o que precisa mudar." };
 
   const rows = await sql`
-    UPDATE missions SET status = 'revision_requested', inspector_notes = ${notes.trim()},
-                      revision_requested_by = 'inspector'
-    WHERE id = ${missionId} AND status = 'in_review'
+    UPDATE pautas SET status = 'reedicao', notas_inspetor = ${notes.trim()},
+                      reedicao_pedida_por = 'inspetor'
+    WHERE id = ${missionId} AND status = 'em_revisao'
     RETURNING id
   `;
-  if (rows.length === 0) return { ok: false, error: "This mission is not in review.", erro: "This mission is not in review." };
+  if (rows.length === 0) return { ok: false, error: "Essa missão não está em revisão.", erro: "Essa missão não está em revisão." };
   return { ok: true };
 }
 
-export const pedirReedicao = requestRevision;
+export const pedirReedicao = requestMissionRevision;
+export const requestInspectorReEdit = requestMissionRevision;
 
-export async function acceptDelivery(
+export async function finishMission(
   missionId: number,
   spokespersonId: number
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const rows = await sql`
-    UPDATE missions SET status = 'completed'
-    WHERE id = ${missionId} AND spokesperson_id = ${spokespersonId} AND status = 'approved'
+    UPDATE pautas SET status = 'finalizada'
+    WHERE id = ${missionId} AND porta_voz_id = ${spokespersonId} AND status = 'aprovada'
     RETURNING id
   `;
   if (rows.length === 0) {
-    return { ok: false, error: "This mission is not awaiting your approval.", erro: "This mission is not awaiting your approval." };
+    return { ok: false, error: "Essa missão não está aguardando sua conferência.", erro: "Essa missão não está aguardando sua conferência." };
   }
   return { ok: true };
 }
 
-export const aceitarEntrega = acceptDelivery;
+export const aceitarEntrega = finishMission;
+export const acceptDeliveredMission = finishMission;
 
-export async function requestSpokespersonAdjustment(
+export async function requestSpokespersonRevision(
   missionId: number,
   spokespersonId: number,
   notes: string
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  if (!notes.trim()) return { ok: false, error: "Please describe what needs to be adjusted.", erro: "Please describe what needs to be adjusted." };
+  if (!notes.trim()) return { ok: false, error: "Escreva o que precisa mudar.", erro: "Escreva o que precisa mudar." };
 
   const rows = await sql`
-    UPDATE missions SET status = 'revision_requested', inspector_notes = ${notes.trim()},
-                      revision_requested_by = 'spokesperson'
-    WHERE id = ${missionId} AND spokesperson_id = ${spokespersonId} AND status IN ('in_review', 'approved')
+    UPDATE pautas SET status = 'reedicao', notas_inspetor = ${notes.trim()},
+                      reedicao_pedida_por = 'porta_voz'
+    WHERE id = ${missionId} AND porta_voz_id = ${spokespersonId} AND status IN ('em_revisao', 'aprovada')
     RETURNING id
   `;
   if (rows.length === 0) {
-    return { ok: false, error: "This mission is not awaiting your approval.", erro: "This mission is not awaiting your approval." };
+    return { ok: false, error: "Essa missão não está aguardando sua conferência.", erro: "Essa missão não está aguardando sua conferência." };
   }
   return { ok: true };
 }
 
-export const pedirAjuste = requestSpokespersonAdjustment;
+export const pedirAjuste = requestSpokespersonRevision;
+export const requestSpokespersonAdjustment = requestSpokespersonRevision;
 
 export async function deleteMission(
   missionId: number
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   await sql`
-    UPDATE missions SET reserved_by_id = NULL WHERE id = ${missionId}
+    UPDATE pautas SET reservada_por_id = NULL WHERE id = ${missionId}
   `;
   const rows = await sql`
-    DELETE FROM missions WHERE id = ${missionId} RETURNING id
+    DELETE FROM pautas WHERE id = ${missionId} RETURNING id
   `;
   if (rows.length === 0) {
-    return { ok: false, error: "Mission not found.", erro: "Mission not found." };
+    return { ok: false, error: "Missão não encontrada.", erro: "Missão não encontrada." };
   }
   return { ok: true };
 }
 
 export const apagarPauta = deleteMission;
 
+export async function listAllMissions(): Promise<Mission[]> {
+  const rows = await sql`
+    ${BASE_SELECT} ORDER BY p.criada_em DESC
+  `;
+  return (rows as unknown as MissionRow[]).map(rowToMission);
+}
+
+export const listarTodasPautas = listAllMissions;
+
 export async function getMissionContacts(missionId: number): Promise<{
   title: string;
   spokesperson: { name: string; email: string } | null;
   editor: { name: string; email: string } | null;
-  // aliases
   titulo?: string;
   portaVoz?: { nome: string; email: string } | null;
 } | null> {
-  const [r] = await sql`
-    SELECT m.title,
-           v.name AS sp_name, v.email AS sp_email,
-           e.name AS ed_name, e.email AS ed_email
-    FROM missions m
-    JOIN users v ON v.id = m.spokesperson_id
-    LEFT JOIN users e ON e.id = m.reserved_by_id
-    WHERE m.id = ${missionId}
+  const [row] = await sql`
+    SELECT p.titulo,
+           v.nome AS voz_nome, v.email AS voz_email,
+           e.nome AS ed_nome, e.email AS ed_email
+    FROM pautas p
+    JOIN users v ON v.id = p.porta_voz_id
+    LEFT JOIN users e ON e.id = p.reservada_por_id
+    WHERE p.id = ${missionId}
   `;
-  if (!r) return null;
-  const sp = r.sp_email ? { name: String(r.sp_name), email: String(r.sp_email), nome: String(r.sp_name) } : null;
-  const ed = r.ed_email ? { name: String(r.ed_name), email: String(r.ed_email), nome: String(r.ed_name) } : null;
+  if (!row) return null;
+  const sp = row.voz_email ? { name: String(row.voz_nome), email: String(row.voz_email) } : null;
+  const ed = row.ed_email ? { name: String(row.ed_nome), email: String(row.ed_email) } : null;
   return {
-    title: String(r.title),
+    title: String(row.titulo),
     spokesperson: sp,
     editor: ed,
-    titulo: String(r.title),
-    portaVoz: sp,
+    titulo: String(row.titulo),
+    portaVoz: sp ? { nome: sp.name, email: sp.email } : null,
   };
 }
 
 export const contatosDaPauta = getMissionContacts;
-
-export const acceptDeliveredMission = acceptDelivery;
-export const requestInspectorReEdit = requestRevision;
-export const cancelMissionReservation = cancelReservation;
 export const missionContacts = getMissionContacts;
-
-export const spokespersonMissions = getSpokespersonMissions;
-export const missionByIdOfSpokesperson = getSpokespersonMissionById;
-export const queuePosition = getQueuePosition;
-export const totalInQueue = getTotalInQueue;
-export const availableMissions = getAvailableMissions;
-export const reservedMissionBy = getReservedMission;
 export const missionReservedBy = getReservedMission;
-export const approvedDeliveries = getApprovedDeliveries;
-export const publicCandidateMissions = getPublicCandidateMissions;
-export const missionsInReview = getMissionsInReview;
-
 export const deleteMissionPermanently = deleteMission;
+

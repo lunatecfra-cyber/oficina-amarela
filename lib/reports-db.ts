@@ -39,25 +39,25 @@ export async function createReport(
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const text = limitStr(rawText, LIMITS.report);
   if (!text) {
-    return { ok: false, error: "Report text cannot be empty.", erro: "O relato não pode ficar em branco." };
+    return { ok: false, error: "O relato não pode ficar em branco.", erro: "O relato não pode ficar em branco." };
   }
 
   const [mission] = await sql`
-    SELECT id, spokesperson_id, reserved_by_id FROM missions WHERE id = ${missionId}
+    SELECT id, porta_voz_id, reservada_por_id FROM pautas WHERE id = ${missionId}
   `;
   if (!mission) {
-    return { ok: false, error: "Mission not found.", erro: "Missão não encontrada." };
+    return { ok: false, error: "Missão não encontrada.", erro: "Missão não encontrada." };
   }
 
   let reportedId: number | null = null;
-  if (session.id === mission.spokesperson_id) {
-    reportedId = mission.reserved_by_id ?? null;
-  } else if (session.id === mission.reserved_by_id) {
-    reportedId = mission.spokesperson_id;
+  if (session.id === mission.porta_voz_id) {
+    reportedId = mission.reservada_por_id ?? null;
+  } else if (session.id === mission.reservada_por_id) {
+    reportedId = mission.porta_voz_id;
   }
 
   await sql`
-    INSERT INTO reports (mission_id, reporter_id, reported_id, text)
+    INSERT INTO denuncias (pauta_id, denunciante_id, denunciado_id, texto)
     VALUES (${missionId}, ${session.id}, ${reportedId}, ${text})
   `;
 
@@ -68,66 +68,73 @@ export const criarDenuncia = createReport;
 
 type ReportRow = {
   id: number;
-  mission_id: number;
-  mission_title: string;
-  mission_status: string;
-  reporter_id: number;
-  reporter_name: string;
-  reporter_handle: string;
-  reported_id: number | null;
-  reported_name: string | null;
-  reported_handle: string | null;
-  text: string;
-  status: "open" | "resolved" | "ignored";
-  created_at: string;
+  pauta_id: number;
+  pauta_titulo: string;
+  pauta_status: string;
+  denunciante_id: number;
+  denunciante_nome: string;
+  denunciante_apelido: string;
+  denunciado_id: number | null;
+  denunciado_nome: string | null;
+  denunciado_apelido: string | null;
+  texto: string;
+  status: "aberta" | "resolvida" | "ignorada";
+  criada_em: string;
 };
 
 function rowToReport(r: ReportRow): Report {
+  const statusMap: Record<string, "open" | "resolved" | "ignored"> = {
+    aberta: "open",
+    resolvida: "resolved",
+    ignorada: "ignored",
+  };
+  const normStatus = statusMap[r.status] ?? "open";
+
   return {
     id: r.id,
-    missionId: r.mission_id,
-    missionTitle: r.mission_title,
-    missionStatus: r.mission_status,
-    reporterId: r.reporter_id,
-    reporterName: r.reporter_name,
-    reporterHandle: r.reporter_handle,
-    reportedId: r.reported_id,
-    reportedName: r.reported_name,
-    reportedHandle: r.reported_handle,
-    text: r.text,
-    status: r.status,
-    createdAt: r.created_at,
+    missionId: r.pauta_id,
+    missionTitle: r.pauta_titulo,
+    missionStatus: r.pauta_status,
+    reporterId: r.denunciante_id,
+    reporterName: r.denunciante_nome,
+    reporterHandle: r.denunciante_apelido,
+    reportedId: r.denunciado_id,
+    reportedName: r.denunciado_nome,
+    reportedHandle: r.denunciado_apelido,
+    text: r.texto,
+    status: normStatus,
+    createdAt: r.criada_em,
     // aliases
-    pautaId: r.mission_id,
-    pautaTitulo: r.mission_title,
-    pautaStatus: r.mission_status,
-    denuncianteId: r.reporter_id,
-    denuncianteNome: r.reporter_name,
-    denuncianteApelido: r.reporter_handle,
-    denunciadoId: r.reported_id,
-    denunciadoNome: r.reported_name,
-    denunciadoApelido: r.reported_handle,
-    texto: r.text,
-    criadaEm: r.created_at,
+    pautaId: r.pauta_id,
+    pautaTitulo: r.pauta_titulo,
+    pautaStatus: r.pauta_status,
+    denuncianteId: r.denunciante_id,
+    denuncianteNome: r.denunciante_nome,
+    denuncianteApelido: r.denunciante_apelido,
+    denunciadoId: r.denunciado_id,
+    denunciadoNome: r.denunciado_nome,
+    denunciadoApelido: r.denunciado_apelido,
+    texto: r.texto,
+    criadaEm: r.criada_em,
   };
 }
 
 const SELECT_REPORTS = sql`
-  SELECT r.id, r.mission_id, r.text, r.status, r.created_at,
-         m.title AS mission_title, m.status AS mission_status,
-         u1.name AS reporter_name, u1.handle AS reporter_handle, u1.id AS reporter_id,
-         u2.name AS reported_name, u2.handle AS reported_handle, u2.id AS reported_id
-  FROM reports r
-  JOIN missions m ON m.id = r.mission_id
-  JOIN users u1 ON u1.id = r.reporter_id
-  LEFT JOIN users u2 ON u2.id = r.reported_id
+  SELECT r.id, r.pauta_id, r.texto, r.status, r.criada_em,
+         p.titulo AS pauta_titulo, p.status AS pauta_status,
+         u1.nome AS denunciante_nome, u1.apelido AS denunciante_apelido, u1.id AS denunciante_id,
+         u2.nome AS denunciado_nome, u2.apelido AS denunciado_apelido, u2.id AS denunciado_id
+  FROM denuncias r
+  JOIN pautas p ON p.id = r.pauta_id
+  JOIN users u1 ON u1.id = r.denunciante_id
+  LEFT JOIN users u2 ON u2.id = r.denunciado_id
 `;
 
 export async function reportsForInspector(): Promise<Report[]> {
   const rows = await sql`${SELECT_REPORTS}
     ORDER BY
-      CASE WHEN r.status = 'open' THEN 0 ELSE 1 END,
-      r.created_at DESC
+      CASE WHEN r.status = 'aberta' THEN 0 ELSE 1 END,
+      r.criada_em DESC
   `;
   return (rows as unknown as ReportRow[]).map(rowToReport);
 }
@@ -138,9 +145,9 @@ export async function resolveReport(
   id: number,
   status: "resolved" | "ignored" | "resolvida" | "ignorada"
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const normStatus = status === "resolvida" ? "resolved" : status === "ignorada" ? "ignored" : status;
+  const normStatus = status === "resolved" || status === "resolvida" ? "resolvida" : "ignorada";
   const rows = await sql`
-    UPDATE reports SET status = ${normStatus}
+    UPDATE denuncias SET status = ${normStatus}, resolvida_em = now()
     WHERE id = ${id}
     RETURNING id
   `;
@@ -151,7 +158,5 @@ export async function resolveReport(
 }
 
 export const resolverDenuncia = resolveReport;
-
 export const createModerationReport = createReport;
-
 export const resolveModerationReport = resolveReport;

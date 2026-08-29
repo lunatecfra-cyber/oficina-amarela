@@ -1,8 +1,7 @@
 import bcrypt from "bcryptjs";
 import { LIMITS, SLOTS, limitStr } from "@/lib/limits";
 import { sql } from "@/lib/db";
-import type { Role } from "@/lib/session";
-
+import type { Role, Papel } from "@/lib/session";
 import { validateSpokespersonInvitation } from "@/lib/invitations-db";
 
 export type UserAccount = {
@@ -25,6 +24,16 @@ const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 
 function validReferralCode(code?: string) {
   return code && RE_UUID.test(code) ? code : null;
+}
+
+function normalizeRoleToDb(role: string): string {
+  return role === "spokesperson" ? "voz" : role;
+}
+
+function normalizeRoleFromDb(papel: string): Role {
+  if (papel === "voz" || papel === "spokesperson") return "spokesperson";
+  if (papel === "admin") return "admin";
+  return "editor";
 }
 
 const DUMMY_HASH = "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
@@ -60,6 +69,7 @@ export async function createAccount(data: {
   const email = limitStr(data.email, LIMITS.email);
   const invitation = data.invitation ?? data.convite;
   const referralCode = validReferralCode(data.referralCode ?? data.codigoIndicacao);
+  const dbPapel = normalizeRoleToDb(data.role);
 
   if (!name) return { ok: false, error: "Digite seu nome.", isConflict: false, conflict: false, erro: "Digite seu nome.", conflito: false };
   if (data.password.length > 200) {
@@ -82,7 +92,7 @@ export async function createAccount(data: {
     return { ok: false, error: "Senha precisa de pelo menos 6 caracteres.", isConflict: false, conflict: false, erro: "Senha precisa de pelo menos 6 caracteres.", conflito: false };
   }
 
-  const [handleInUse] = await sql`SELECT id FROM users WHERE lower(handle) = lower(${handle})`;
+  const [handleInUse] = await sql`SELECT id FROM users WHERE lower(apelido) = lower(${handle})`;
   if (handleInUse) {
     return { ok: false, error: "Esse apelido já está em uso.", isConflict: true, conflict: true, erro: "Esse apelido já está em uso.", conflito: true };
   }
@@ -123,9 +133,9 @@ export async function createAccount(data: {
   }
 
   const [row] = await sql`
-    INSERT INTO users (handle, name, email, password_hash, role, indicated_by_id)
-    VALUES (${handle}, ${name}, ${email}, ${password_hash}, ${data.role},
-            (SELECT id FROM users WHERE referral_code = ${referralCode}::uuid OR codigo_indicacao = ${referralCode}::uuid))
+    INSERT INTO users (apelido, nome, email, senha_hash, papel, indicado_por_id)
+    VALUES (${handle}, ${name}, ${email}, ${password_hash}, ${dbPapel},
+            (SELECT id FROM users WHERE codigo_indicacao = ${referralCode}::uuid))
     RETURNING id
   `;
 
@@ -150,31 +160,32 @@ export async function authenticate(
   password: string
 ): Promise<{ ok: true; account: UserAccount; conta?: UserAccount } | { ok: false; error: string; erro?: string }> {
   const [row] = await sql`
-    SELECT id, handle, name, email, role, password_hash, is_banned
+    SELECT id, apelido, nome, email, papel, senha_hash, banido
     FROM users
-    WHERE lower(handle) = lower(${handle.trim()})
+    WHERE lower(apelido) = lower(${handle.trim()})
   `;
 
-  const hash = row?.password_hash ?? DUMMY_HASH;
+  const hash = row?.senha_hash ?? DUMMY_HASH;
   const passwordMatches = await bcrypt.compare(password, hash);
 
-  if (!row || !row.password_hash || !passwordMatches) {
-    return { ok: false, error: "Incorrect username or password.", erro: "Incorrect username or password." };
+  if (!row || !row.senha_hash || !passwordMatches) {
+    return { ok: false, error: "Apelido ou senha incorretos.", erro: "Apelido ou senha incorretos." };
   }
 
-  if (row.is_banned) {
-    return { ok: false, error: "Account suspended. Please contact quality control / inspector.", erro: "Account suspended." };
+  if (row.banido) {
+    return { ok: false, error: "Conta suspensa. Fale com a fiscalização.", erro: "Conta suspensa. Fale com a fiscalização." };
   }
 
+  const role = normalizeRoleFromDb(row.papel);
   const account: UserAccount = {
     id: row.id,
-    handle: row.handle,
-    name: row.name,
+    handle: row.apelido,
+    name: row.nome,
     email: row.email,
-    role: row.role as Role,
-    apelido: row.handle,
-    nome: row.name,
-    papel: row.role as Role,
+    role,
+    apelido: row.apelido,
+    nome: row.nome,
+    papel: role,
   };
 
   return { ok: true, account, conta: account };
@@ -187,21 +198,22 @@ export async function findGoogleAccount(
   email: string
 ): Promise<{ ok: true; account: UserAccount | null; conta?: UserAccount | null } | { ok: false; error: string; erro?: string }> {
   const [byGoogleId] = await sql`
-    SELECT id, handle, name, email, role, is_banned FROM users WHERE google_id = ${googleId}
+    SELECT id, apelido, nome, email, papel, banido FROM users WHERE google_id = ${googleId}
   `;
   if (byGoogleId) {
-    if (byGoogleId.is_banned) {
-      return { ok: false, error: "Account suspended. Please contact quality control.", erro: "Account suspended." };
+    if (byGoogleId.banido) {
+      return { ok: false, error: "Conta suspensa. Fale com a fiscalização.", erro: "Conta suspensa. Fale com a fiscalização." };
     }
+    const role = normalizeRoleFromDb(byGoogleId.papel);
     const acc: UserAccount = {
       id: byGoogleId.id,
-      handle: byGoogleId.handle,
-      name: byGoogleId.name,
+      handle: byGoogleId.apelido,
+      name: byGoogleId.nome,
       email: byGoogleId.email,
-      role: byGoogleId.role as Role,
-      apelido: byGoogleId.handle,
-      nome: byGoogleId.name,
-      papel: byGoogleId.role as Role,
+      role,
+      apelido: byGoogleId.apelido,
+      nome: byGoogleId.nome,
+      papel: role,
     };
     return { ok: true, account: acc, conta: acc };
   }
@@ -209,33 +221,34 @@ export async function findGoogleAccount(
   const [linked] = await sql`
     UPDATE users
     SET google_id = ${googleId}
-    WHERE lower(email) = lower(${email}) AND google_id IS NULL AND is_banned = false
-    RETURNING id, handle, name, email, role
+    WHERE lower(email) = lower(${email}) AND google_id IS NULL AND banido = false
+    RETURNING id, apelido, nome, email, papel
   `;
   if (linked) {
+    const role = normalizeRoleFromDb(linked.papel);
     const acc: UserAccount = {
       id: linked.id,
-      handle: linked.handle,
-      name: linked.name,
+      handle: linked.apelido,
+      name: linked.nome,
       email: linked.email,
-      role: linked.role as Role,
-      apelido: linked.handle,
-      nome: linked.name,
-      papel: linked.role as Role,
+      role,
+      apelido: linked.apelido,
+      nome: linked.nome,
+      papel: role,
     };
     return { ok: true, account: acc, conta: acc };
   }
 
   const [bannedByEmail] = await sql`
-    SELECT id FROM users WHERE lower(email) = lower(${email}) AND is_banned = true
+    SELECT id FROM users WHERE lower(email) = lower(${email}) AND banido = true
   `;
   if (bannedByEmail) {
-    return { ok: false, error: "Account suspended. Please contact quality control.", erro: "Account suspended." };
+    return { ok: false, error: "Conta suspensa. Fale com a fiscalização.", erro: "Conta suspensa. Fale com a fiscalização." };
   }
 
   const [byEmail] = await sql`SELECT id FROM users WHERE lower(email) = lower(${email})`;
   if (byEmail) {
-    return { ok: false, error: "This email is already linked to another Google account.", erro: "This email is already linked." };
+    return { ok: false, error: "Este e-mail já está vinculado a outra conta.", erro: "Este e-mail já está vinculado a outra conta." };
   }
 
   return { ok: true, account: null, conta: null };
@@ -259,6 +272,7 @@ export async function createGoogleAccount(data: {
   const avatar = data.avatarUrl ?? data.foto ?? null;
   const invitation = data.invitation ?? data.convite;
   const referralCode = validReferralCode(data.referralCode ?? data.codigoIndicacao);
+  const dbPapel = normalizeRoleToDb(data.role);
 
   if (data.role === "spokesperson" || (data.role as string) === "voz") {
     const validInvite = await validateSpokespersonInvitation(invitation ?? "", data.email);
@@ -287,9 +301,9 @@ export async function createGoogleAccount(data: {
   }
 
   const [row] = await sql`
-    INSERT INTO users (handle, name, email, google_id, role, avatar_url, indicated_by_id)
-    VALUES (${handle}, ${data.name}, ${data.email}, ${data.googleId}, ${data.role}, ${avatar},
-            (SELECT id FROM users WHERE referral_code = ${referralCode}::uuid OR codigo_indicacao = ${referralCode}::uuid))
+    INSERT INTO users (apelido, nome, email, google_id, papel, foto_url, indicado_por_id)
+    VALUES (${handle}, ${data.name}, ${data.email}, ${data.googleId}, ${dbPapel}, ${avatar},
+            (SELECT id FROM users WHERE codigo_indicacao = ${referralCode}::uuid))
     RETURNING id
   `;
 
@@ -311,26 +325,27 @@ export const criarContaGoogle = createGoogleAccount;
 
 export async function findAccountByEmail(email: string): Promise<UserAccount | null> {
   const [row] = await sql`
-    SELECT id, handle, name, email, role FROM users WHERE lower(email) = lower(${email.trim()})
+    SELECT id, apelido, nome, email, papel FROM users WHERE lower(email) = lower(${email.trim()})
   `;
   if (!row) return null;
+  const role = normalizeRoleFromDb(row.papel);
   return {
     id: row.id,
-    handle: row.handle,
-    name: row.name,
+    handle: row.apelido,
+    name: row.nome,
     email: row.email,
-    role: row.role as Role,
-    apelido: row.handle,
-    nome: row.name,
-    papel: row.role as Role,
+    role,
+    apelido: row.apelido,
+    nome: row.nome,
+    papel: role,
   };
 }
 
 export const buscarContaPorEmail = findAccountByEmail;
 
 export async function accountHasPassword(userId: number): Promise<boolean> {
-  const [row] = await sql`SELECT password_hash FROM users WHERE id = ${userId}`;
-  return !!row?.password_hash;
+  const [row] = await sql`SELECT senha_hash FROM users WHERE id = ${userId}`;
+  return !!row?.senha_hash;
 }
 
 export const contaTemSenha = accountHasPassword;
@@ -340,26 +355,26 @@ export async function deleteAccount(
   confirmation: string
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const [row] = await sql`
-    SELECT handle, password_hash FROM users WHERE id = ${userId}
+    SELECT apelido, senha_hash FROM users WHERE id = ${userId}
   `;
-  if (!row) return { ok: false, error: "Account not found.", erro: "Account not found." };
+  if (!row) return { ok: false, error: "Conta não encontrada.", erro: "Conta não encontrada." };
 
-  const matches = row.password_hash
-    ? await bcrypt.compare(confirmation, row.password_hash)
-    : confirmation.trim().toLowerCase() === String(row.handle).toLowerCase();
+  const matches = row.senha_hash
+    ? await bcrypt.compare(confirmation, row.senha_hash)
+    : confirmation.trim().toLowerCase() === String(row.apelido).toLowerCase();
 
   if (!matches) {
-    const err = row.password_hash
-      ? "Incorrect password."
-      : "Please type your username exactly as it appears.";
+    const err = row.senha_hash
+      ? "Senha incorreta."
+      : "Digite seu apelido exatamente como ele aparece.";
     return { ok: false, error: err, erro: err };
   }
 
   // Release any active reserved missions back to the queue
   await sql`
-    UPDATE missions
-    SET status = 'available', reserved_by_id = NULL, reserved_at = NULL
-    WHERE reserved_by_id = ${userId} AND status IN ('reserved','revision_requested','offered')
+    UPDATE pautas
+    SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL, reservada_em = NULL
+    WHERE reservada_por_id = ${userId} AND status IN ('reservada','reedicao','oferecida')
   `;
 
   await sql`DELETE FROM users WHERE id = ${userId}`;
@@ -373,10 +388,10 @@ export async function isRecoveryLinkUsed(
   issuedAtMs: number
 ): Promise<boolean> {
   const [row] = await sql`
-    SELECT valid_sessions_after FROM users WHERE id = ${userId}
+    SELECT sessoes_validas_apos FROM users WHERE id = ${userId}
   `;
-  if (!row?.valid_sessions_after) return false;
-  return issuedAtMs < new Date(row.valid_sessions_after).getTime();
+  if (!row?.sessoes_validas_apos) return false;
+  return issuedAtMs < new Date(row.sessoes_validas_apos).getTime();
 }
 
 export const linkRecuperacaoJaUsado = isRecoveryLinkUsed;
@@ -387,12 +402,12 @@ export async function updatePassword(
   newPassword: string
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   if (newPassword.length < 6) {
-    return { ok: false, error: "Password must be at least 6 characters.", erro: "Password must be at least 6 characters." };
+    return { ok: false, error: "Senha precisa de pelo menos 6 caracteres.", erro: "Senha precisa de pelo menos 6 caracteres." };
   }
-  const password_hash = await bcrypt.hash(newPassword, 10);
+  const senha_hash = await bcrypt.hash(newPassword, 10);
   await sql`
     UPDATE users
-    SET password_hash = ${password_hash}, valid_sessions_after = now()
+    SET senha_hash = ${senha_hash}, sessoes_validas_apos = now()
     WHERE id = ${userId}
   `;
   return { ok: true };
@@ -409,10 +424,10 @@ export async function isRateLocked(
   rawKey: string
 ): Promise<{ locked: boolean; minutes: number; travado?: boolean; minutos?: number }> {
   const key = rawKey.trim().toLowerCase();
-  const [row] = await sql`SELECT locked_until FROM login_attempts WHERE key = ${key}`;
-  if (!row?.locked_until) return { locked: false, minutes: 0, travado: false, minutos: 0 };
+  const [row] = await sql`SELECT travado_ate FROM tentativas_login WHERE chave = ${key}`;
+  if (!row?.travado_ate) return { locked: false, minutes: 0, travado: false, minutos: 0 };
 
-  const remainingMs = new Date(row.locked_until).getTime() - Date.now();
+  const remainingMs = new Date(row.travado_ate).getTime() - Date.now();
   if (remainingMs <= 0) return { locked: false, minutes: 0, travado: false, minutos: 0 };
 
   const minutes = Math.max(1, Math.ceil(remainingMs / 60000));
@@ -428,29 +443,29 @@ export async function recordAttempt(
   const key = rawKey.trim().toLowerCase();
 
   const [row] = await sql`
-    INSERT INTO login_attempts (key, attempts, first_at)
+    INSERT INTO tentativas_login (chave, tentativas, primeira_em)
     VALUES (${key}, 1, now())
-    ON CONFLICT (key) DO UPDATE SET
-      attempts = CASE
-        WHEN login_attempts.first_at < now() - (${WINDOW_MINUTES} || ' minutes')::interval
+    ON CONFLICT (chave) DO UPDATE SET
+      tentativas = CASE
+        WHEN tentativas_login.primeira_em < now() - (${WINDOW_MINUTES} || ' minutes')::interval
           THEN 1
-        ELSE login_attempts.attempts + 1
+        ELSE tentativas_login.tentativas + 1
       END,
-      first_at = CASE
-        WHEN login_attempts.first_at < now() - (${WINDOW_MINUTES} || ' minutes')::interval
+      primeira_em = CASE
+        WHEN tentativas_login.primeira_em < now() - (${WINDOW_MINUTES} || ' minutes')::interval
           THEN now()
-        ELSE login_attempts.first_at
+        ELSE tentativas_login.primeira_em
       END
-    RETURNING attempts
+    RETURNING tentativas
   `;
 
   if (row && row.attempts >= max) {
     await sql`
-      UPDATE login_attempts
-      SET locked_until = now() + (${LOCK_MINUTES} || ' minutes')::interval,
-          attempts = 0,
-          first_at = now()
-      WHERE key = ${key}
+      UPDATE tentativas_login
+      SET travado_ate = now() + (${LOCK_MINUTES} || ' minutes')::interval,
+          tentativas = 0,
+          primeira_em = now()
+      WHERE chave = ${key}
     `;
   }
 }
@@ -473,13 +488,14 @@ export const loginTravadoPorIp = isIpLoginLocked;
 export const registrarFalhaLoginIp = recordIpLoginFailure;
 
 export async function clearLoginAttempts(handle: string): Promise<void> {
-  await sql`DELETE FROM login_attempts WHERE key = ${`login:${handle}`.trim().toLowerCase()}`;
+  await sql`DELETE FROM tentativas_login WHERE chave = ${`login:${handle}`.trim().toLowerCase()}`;
 }
 
 export const limparTentativasLogin = clearLoginAttempts;
 
 export async function countEnrolled(role: Role): Promise<number> {
-  const [row] = await sql`SELECT count(*)::int AS n FROM users WHERE role = ${role}`;
+  const dbPapel = normalizeRoleToDb(role);
+  const [row] = await sql`SELECT count(*)::int AS n FROM users WHERE papel = ${dbPapel}`;
   return Number(row?.n ?? 0);
 }
 
@@ -488,14 +504,14 @@ export const contarInscritos = countEnrolled;
 
 export async function checkRoleSlots(
   role: Role
-): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
+): Promise<{ ok: true} | { ok: false; error: string; erro?: string }> {
   const max = SLOTS[role as keyof typeof SLOTS];
   if (max === undefined) return { ok: true };
 
   const total = await countEnrolled(role);
   if (total >= max) {
-    const label = role === "editor" ? "editors" : "spokespersons";
-    const msg = `Capacity reached: we have hit the limit of ${max} ${label}. Please try again later.`;
+    const label = role === "editor" ? "editores" : "candidatos";
+    const msg = `Lotado: atingimos o limite de ${max} ${label}. Tente novamente mais tarde.`;
     return { ok: false, error: msg, erro: msg };
   }
   return { ok: true };
@@ -504,11 +520,11 @@ export async function checkRoleSlots(
 export const checarVagaPapel = checkRoleSlots;
 
 async function generateUniqueHandle(email: string): Promise<string> {
-  const base = email.split("@")[0].toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 20) || "user";
+  const base = email.split("@")[0].toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 20) || "usuario";
   let handle = base;
 
   for (let n = 1; n <= 50; n++) {
-    const [existing] = await sql`SELECT id FROM users WHERE lower(handle) = lower(${handle})`;
+    const [existing] = await sql`SELECT id FROM users WHERE lower(apelido) = lower(${handle})`;
     if (!existing) return handle;
     handle = `${base}${n + 1}`;
   }

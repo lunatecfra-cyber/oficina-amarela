@@ -6,7 +6,7 @@ export type GamificationEventType =
   | "entrada_diaria"
   | "missao_entregue";
 
-export type TipoEventoGamificacao = GamificationEventType;
+export type TipoEventoGamificacao = "entrada_diaria" | "missao_entregue";
 
 export type DayChallenge = {
   id: GamificationEventType;
@@ -23,17 +23,17 @@ export type DayChallenge = {
 export type DailyChallenge = DayChallenge;
 export type DesafioDoDia = DayChallenge;
 
-const RULES: Record<"daily_login" | "mission_delivered", Omit<DayChallenge, "completed">> = {
-  daily_login: {
-    id: "daily_login",
+const RULES: Record<"entrada_diaria" | "missao_entregue", Omit<DayChallenge, "completed">> = {
+  entrada_diaria: {
+    id: "entrada_diaria",
     title: "Entrou no site",
     description: "Acesse a Oficina Amarela hoje.",
     xp: 10,
     titulo: "Entrou no site",
     descricao: "Acesse a Oficina Amarela hoje.",
   },
-  mission_delivered: {
-    id: "mission_delivered",
+  missao_entregue: {
+    id: "missao_entregue",
     title: "Entregue uma missão hoje",
     description: "Envie uma edição válida para revisão.",
     xp: 40,
@@ -53,22 +53,23 @@ export async function recordGamificationEvent(
   ruleId: GamificationEventType,
   reference: string
 ): Promise<{ recorded: boolean; xp: number; registrado?: boolean }> {
-  const normRule = ruleId === "entrada_diaria" ? "daily_login" : ruleId === "missao_entregue" ? "mission_delivered" : ruleId;
-  const rule = RULES[normRule as keyof typeof RULES];
+  const normRule: "entrada_diaria" | "missao_entregue" =
+    ruleId === "daily_login" || ruleId === "entrada_diaria" ? "entrada_diaria" : "missao_entregue";
+  const rule = RULES[normRule];
   if (!rule) return { recorded: false, xp: 0, registrado: false };
 
   const [event] = await sql`
-    WITH new_event AS (
-      INSERT INTO gamification_events (user_id, rule_id, reference, xp)
+    WITH novo_evento AS (
+      INSERT INTO gamificacao_eventos (user_id, regra_id, referencia, xp)
       VALUES (${userId}, ${normRule}, ${reference}, ${rule.xp})
-      ON CONFLICT (user_id, rule_id, reference) DO NOTHING
+      ON CONFLICT (user_id, regra_id, referencia) DO NOTHING
       RETURNING xp
     )
     UPDATE users
-    SET reputation = users.reputation + new_event.xp
-    FROM new_event
+    SET reputacao = users.reputacao + novo_evento.xp
+    FROM novo_evento
     WHERE users.id = ${userId}
-    RETURNING new_event.xp
+    RETURNING novo_evento.xp
   `;
 
   return event
@@ -79,29 +80,29 @@ export async function recordGamificationEvent(
 export const registrarEventoGamificacao = recordGamificationEvent;
 
 export async function recordDailyLogin(userId: number) {
-  return recordGamificationEvent(userId, "daily_login", brasiliaDate());
+  return recordGamificationEvent(userId, "entrada_diaria", brasiliaDate());
 }
 
 export const registrarEntradaDiaria = recordDailyLogin;
 
 export async function listDailyChallenges(userId: number): Promise<DayChallenge[]> {
   const today = brasiliaDate();
-  let rows: { rule_id: unknown }[] = [];
+  let rows: { regra_id: unknown }[] = [];
   try {
     rows = (await sql`
-      SELECT rule_id
-      FROM gamification_events
+      SELECT regra_id
+      FROM gamificacao_eventos
       WHERE user_id = ${userId}
-        AND ((rule_id IN ('daily_login', 'entrada_diaria') AND reference = ${today})
-          OR (rule_id IN ('mission_delivered', 'missao_entregue') AND created_at AT TIME ZONE 'America/Sao_Paulo' >= ${today}::date))
-    `) as unknown as { rule_id: unknown }[];
+        AND ((regra_id = 'entrada_diaria' AND referencia = ${today})
+          OR (regra_id = 'missao_entregue' AND criado_em AT TIME ZONE 'America/Sao_Paulo' >= ${today}::date))
+    `) as unknown as { regra_id: unknown }[];
   } catch {
     // Graceful fallback
   }
 
-  const completedSet = new Set(rows.map((r) => String(r.rule_id)));
+  const completedSet = new Set(rows.map((r) => String(r.regra_id)));
   return Object.values(RULES).map((rule) => {
-    const isCompleted = completedSet.has(rule.id) || (rule.id === "daily_login" && completedSet.has("entrada_diaria")) || (rule.id === "mission_delivered" && completedSet.has("missao_entregue"));
+    const isCompleted = completedSet.has(rule.id);
     return {
       ...rule,
       completed: isCompleted,

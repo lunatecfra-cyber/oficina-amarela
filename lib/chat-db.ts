@@ -24,43 +24,43 @@ export type ChatMessage = Message;
 
 type MessageRow = {
   id: number;
-  mission_id: number;
-  author_id: number;
-  name: string;
-  role: string;
-  text: string;
-  created_at: string;
+  pauta_id: number;
+  autor_id: number;
+  nome: string;
+  papel: string;
+  texto: string;
+  criada_em: string;
 };
 
 function rowToMessage(r: MessageRow): Message {
-  const role: Role = r.role === "voz" || r.role === "spokesperson" ? "spokesperson" : r.role === "admin" ? "admin" : "editor";
+  const role: Role = r.papel === "voz" || r.papel === "spokesperson" ? "spokesperson" : r.papel === "admin" ? "admin" : "editor";
   return {
     id: `m-${r.id}`,
-    missionId: r.mission_id,
-    authorId: r.author_id,
-    authorName: r.name,
+    missionId: r.pauta_id,
+    authorId: r.autor_id,
+    authorName: r.nome,
     authorRole: role,
-    text: r.text,
-    createdAt: r.created_at,
-    pautaId: r.mission_id,
-    autorId: r.author_id,
-    autorNome: r.name,
+    text: r.texto,
+    createdAt: r.criada_em,
+    pautaId: r.pauta_id,
+    autorId: r.autor_id,
+    autorNome: r.nome,
     autorPapel: role,
-    texto: r.text,
-    criadaEm: r.created_at,
+    texto: r.texto,
+    criadaEm: r.criada_em,
   };
 }
 
 const BASE_SELECT = sql`
-  SELECT m.id, m.mission_id, m.author_id, u.name, u.role, m.text, m.created_at
-  FROM messages m
-  JOIN users u ON u.id = m.author_id
+  SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em
+  FROM mensagens m
+  JOIN users u ON u.id = m.autor_id
 `;
 
 export async function getMissionMessages(missionId: number): Promise<Message[]> {
   const rows = await sql`${BASE_SELECT}
-    WHERE m.mission_id = ${missionId}
-    ORDER BY m.created_at ASC
+    WHERE m.pauta_id = ${missionId}
+    ORDER BY m.criada_em ASC
   `;
   return (rows as unknown as MessageRow[]).map(rowToMessage);
 }
@@ -71,8 +71,8 @@ export const mensagensDaPauta = getMissionMessages;
 
 export async function getMissionMessagesAfter(missionId: number, afterIso: string): Promise<Message[]> {
   const rows = await sql`${BASE_SELECT}
-    WHERE m.mission_id = ${missionId} AND m.created_at > ${afterIso}
-    ORDER BY m.created_at ASC
+    WHERE m.pauta_id = ${missionId} AND m.criada_em > ${afterIso}
+    ORDER BY m.criada_em ASC
   `;
   return (rows as unknown as MessageRow[]).map(rowToMessage);
 }
@@ -87,13 +87,13 @@ export async function getMissionsMessages(
   if (missionIds.length === 0) return map;
 
   const rows = await sql`${BASE_SELECT}
-    WHERE m.mission_id = ANY(${missionIds})
-    ORDER BY m.created_at ASC
+    WHERE m.pauta_id = ANY(${missionIds})
+    ORDER BY m.criada_em ASC
   `;
   for (const r of rows as unknown as MessageRow[]) {
-    const arr = map.get(r.mission_id) ?? [];
+    const arr = map.get(r.pauta_id) ?? [];
     arr.push(rowToMessage(r));
-    map.set(r.mission_id, arr);
+    map.set(r.pauta_id, arr);
   }
   return map;
 }
@@ -112,15 +112,15 @@ export async function postChatMessage(
   }
 
   const [pauta] = await sql`
-    SELECT id, spokesperson_id, reserved_by_id FROM missions WHERE id = ${missionId}
+    SELECT id, porta_voz_id, reservada_por_id FROM pautas WHERE id = ${missionId}
   `;
   if (!pauta) {
     return { ok: false, error: "Missão não encontrada.", erro: "Missão não encontrada." };
   }
 
   const isAdmin = session.role === "admin";
-  const isSpokesperson = pauta.spokesperson_id === session.id;
-  const isReservedEditor = pauta.reserved_by_id === session.id;
+  const isSpokesperson = pauta.porta_voz_id === session.id;
+  const isReservedEditor = pauta.reservada_por_id === session.id;
 
   if (!isAdmin && !isSpokesperson && !isReservedEditor) {
     return {
@@ -131,25 +131,25 @@ export async function postChatMessage(
   }
 
   const [inserted] = await sql`
-    INSERT INTO messages (mission_id, author_id, text)
+    INSERT INTO mensagens (pauta_id, autor_id, texto)
     VALUES (${missionId}, ${session.id}, ${text})
-    RETURNING id, mission_id, author_id, text, created_at
+    RETURNING id, pauta_id, autor_id, texto, criada_em
   `;
 
   const msg: Message = {
     id: `m-${inserted.id}`,
-    missionId: inserted.mission_id,
-    authorId: inserted.author_id,
+    missionId: inserted.pauta_id,
+    authorId: inserted.autor_id,
     authorName: session.name,
     authorRole: session.role,
-    text: inserted.text,
-    createdAt: inserted.created_at,
-    pautaId: inserted.mission_id,
-    autorId: inserted.author_id,
+    text: inserted.texto,
+    createdAt: inserted.criada_em,
+    pautaId: inserted.pauta_id,
+    autorId: inserted.autor_id,
     autorNome: session.name,
     autorPapel: session.role,
-    texto: inserted.text,
-    criadaEm: inserted.created_at,
+    texto: inserted.texto,
+    criadaEm: inserted.criada_em,
   };
 
   return { ok: true, message: msg, mensagem: msg };

@@ -68,47 +68,46 @@ export type MissionInFlight = {
 export type MissaoEmVoo = MissionInFlight;
 
 export async function getSystemOverview(): Promise<SystemOverview> {
-  const [counts] = await sql`
+  const [p] = await sql`
     SELECT
-      COUNT(*) FILTER (WHERE status = 'available') AS in_queue,
-      COUNT(*) FILTER (WHERE status = 'offered') AS offered,
-      COUNT(*) FILTER (WHERE status = 'reserved') AS in_editing,
-      COUNT(*) FILTER (WHERE status = 'in_review') AS in_review,
-      COUNT(*) FILTER (WHERE status = 'revision_requested' OR status = 'reedit') AS in_revision,
-      COUNT(*) FILTER (WHERE status = 'approved' OR status = 'completed' OR status = 'finished') AS completed
-    FROM missions
+      count(*) FILTER (WHERE status = 'disponivel')::int  AS na_fila,
+      count(*) FILTER (WHERE status = 'oferecida')::int   AS oferecidas,
+      count(*) FILTER (WHERE status = 'reservada')::int   AS em_edicao,
+      count(*) FILTER (WHERE status = 'em_revisao')::int  AS em_conferencia,
+      count(*) FILTER (WHERE status = 'reedicao')::int    AS em_reedicao,
+      count(*) FILTER (WHERE status IN ('aprovada','finalizada'))::int AS concluidas
+    FROM pautas
   `;
 
-  const [users] = await sql`
+  const [u] = await sql`
     SELECT
-      COUNT(*) FILTER (WHERE role = 'spokesperson' AND is_banned = false) AS spokespersons,
-      COUNT(*) FILTER (WHERE role = 'editor' AND is_banned = false) AS editors,
-      COUNT(*) FILTER (WHERE is_banned = true) AS banned
+      count(*) FILTER (WHERE papel IN ('voz', 'spokesperson') AND banido = false)::int    AS candidatos,
+      count(*) FILTER (WHERE papel = 'editor' AND banido = false)::int                     AS editores,
+      count(*) FILTER (WHERE banido = true)::int                                           AS banidos,
+      count(*) FILTER (
+        WHERE papel = 'editor' AND banido = false AND perfil_completo = true
+          AND NOT EXISTS (
+            SELECT 1 FROM pautas p
+            WHERE p.reservada_por_id = users.id
+              AND p.status IN ('reservada','em_revisao','reedicao')
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM ofertas o WHERE o.editor_id = users.id AND o.status = 'pendente'
+          )
+      )::int AS editores_livres
     FROM users
   `;
 
-  const [free] = await sql`
-    SELECT COUNT(*) AS free_editors
-    FROM users u
-    WHERE u.role = 'editor'
-      AND u.is_banned = false
-      AND NOT EXISTS (
-        SELECT 1 FROM missions m
-        WHERE m.reserved_by_id = u.id
-          AND m.status IN ('reserved', 'in_review', 'revision_requested', 'reedit')
-      )
-  `;
-
-  const inQueue = Number(counts.in_queue ?? 0);
-  const offered = Number(counts.offered ?? 0);
-  const inEditing = Number(counts.in_editing ?? 0);
-  const inReview = Number(counts.in_review ?? 0);
-  const inRevision = Number(counts.in_revision ?? 0);
-  const completed = Number(counts.completed ?? 0);
-  const spokespersons = Number(users.spokespersons ?? 0);
-  const editors = Number(users.editors ?? 0);
-  const freeEditors = Number(free.free_editors ?? 0);
-  const banned = Number(users.banned ?? 0);
+  const inQueue = Number(p?.na_fila ?? 0);
+  const offered = Number(p?.oferecidas ?? 0);
+  const inEditing = Number(p?.em_edicao ?? 0);
+  const inReview = Number(p?.em_conferencia ?? 0);
+  const inRevision = Number(p?.em_reedicao ?? 0);
+  const completed = Number(p?.concluidas ?? 0);
+  const spokespersons = Number(u?.candidatos ?? 0);
+  const editors = Number(u?.editores ?? 0);
+  const freeEditors = Number(u?.editores_livres ?? 0);
+  const banned = Number(u?.banidos ?? 0);
 
   return {
     inQueue,
@@ -141,34 +140,35 @@ export const resumoDoSistema = getSystemOverview;
 
 export async function getEditingQueue(): Promise<QueueItem[]> {
   const rows = await sql`
-    SELECT m.id, m.title, m.format, m.created_at, m.priority, m.status,
-           v.name AS spokesperson,
-           e.handle AS offered_to,
-           m.offered_at
-    FROM missions m
-    JOIN users v ON v.id = m.spokesperson_id
-    LEFT JOIN users e ON e.id = m.offered_to_id
-    WHERE m.status IN ('available', 'offered')
-    ORDER BY m.priority DESC, m.created_at ASC
+    SELECT p.id, p.titulo, p.formato, p.criada_em, p.prioridade, p.status,
+           v.nome AS candidato,
+           e.apelido AS oferecida_para,
+           o.oferecida_em
+    FROM pautas p
+    JOIN users v ON v.id = p.porta_voz_id
+    LEFT JOIN ofertas o ON o.pauta_id = p.id AND o.status = 'pendente'
+    LEFT JOIN users e ON e.id = o.editor_id
+    WHERE p.status IN ('disponivel','oferecida')
+    ORDER BY p.prioridade DESC, p.criada_em ASC
   `;
   return rows.map((l) => ({
     id: l.id,
-    title: l.title,
-    format: l.format,
-    spokesperson: l.spokesperson,
-    candidateName: l.spokesperson,
-    createdAt: new Date(l.created_at).toISOString(),
-    priority: l.priority,
+    title: l.titulo,
+    format: l.formato,
+    spokesperson: l.candidato,
+    candidateName: l.candidato,
+    createdAt: new Date(l.criada_em).toISOString(),
+    priority: l.prioridade,
     status: l.status,
-    offeredTo: l.offered_to ?? null,
-    offeredAt: l.offered_at ? new Date(l.offered_at).toISOString() : null,
-    titulo: l.title,
-    formato: l.format,
-    candidato: l.spokesperson,
-    criadaEm: new Date(l.created_at).toISOString(),
-    prioridade: l.priority,
-    oferecidaPara: l.offered_to ?? null,
-    oferecidaEm: l.offered_at ? new Date(l.offered_at).toISOString() : null,
+    offeredTo: l.oferecida_para ?? null,
+    offeredAt: l.oferecida_em ? new Date(l.oferecida_em).toISOString() : null,
+    titulo: l.titulo,
+    formato: l.formato,
+    candidato: l.candidato,
+    criadaEm: new Date(l.criada_em).toISOString(),
+    prioridade: l.prioridade,
+    oferecidaPara: l.oferecida_para ?? null,
+    oferecidaEm: l.oferecida_em ? new Date(l.oferecida_em).toISOString() : null,
   }));
 }
 
@@ -177,27 +177,27 @@ export const filaDeEdicao = getEditingQueue;
 
 export async function getMissionsInFlight(): Promise<MissionInFlight[]> {
   const rows = await sql`
-    SELECT m.id, m.title, m.status, m.reserved_at, m.delivery_link,
-           v.name AS spokesperson, e.handle AS editor
-    FROM missions m
-    JOIN users v ON v.id = m.spokesperson_id
-    LEFT JOIN users e ON e.id = m.reserved_by_id
-    WHERE m.status IN ('reserved','in_review','revision_requested','reedit')
-    ORDER BY m.reserved_at ASC NULLS LAST
+    SELECT p.id, p.titulo, p.status, p.reservada_em, p.entrega_link,
+           v.nome AS candidato, e.apelido AS editor
+    FROM pautas p
+    JOIN users v ON v.id = p.porta_voz_id
+    LEFT JOIN users e ON e.id = p.reservada_por_id
+    WHERE p.status IN ('reservada','em_revisao','reedicao')
+    ORDER BY p.reservada_em ASC NULLS LAST
   `;
   return rows.map((l) => ({
     id: l.id,
-    title: l.title,
+    title: l.titulo,
     status: l.status,
-    spokesperson: l.spokesperson,
-    candidateName: l.spokesperson,
+    spokesperson: l.candidato,
+    candidateName: l.candidato,
     editor: l.editor ?? null,
-    since: l.reserved_at ? new Date(l.reserved_at).toISOString() : null,
-    hasDelivery: Boolean(l.delivery_link),
-    titulo: l.title,
-    candidato: l.spokesperson,
-    desde: l.reserved_at ? new Date(l.reserved_at).toISOString() : null,
-    temEntrega: Boolean(l.delivery_link),
+    since: l.reservada_em ? new Date(l.reservada_em).toISOString() : null,
+    hasDelivery: Boolean(l.entrega_link),
+    titulo: l.titulo,
+    candidato: l.candidato,
+    desde: l.reservada_em ? new Date(l.reservada_em).toISOString() : null,
+    temEntrega: Boolean(l.entrega_link),
   }));
 }
 
@@ -212,14 +212,14 @@ export async function moveInQueue(
   movement: QueueMove
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const queue = await sql`
-    SELECT id FROM missions
-    WHERE status IN ('available','offered')
-    ORDER BY priority DESC, created_at ASC
+    SELECT id FROM pautas
+    WHERE status IN ('disponivel','oferecida')
+    ORDER BY prioridade DESC, criada_em ASC
   `;
   const ids: number[] = queue.map((l) => l.id);
 
   const fromIdx = ids.indexOf(missionId);
-  if (fromIdx === -1) return { ok: false, error: "This mission is no longer in the queue.", erro: "This mission is no longer in the queue." };
+  if (fromIdx === -1) return { ok: false, error: "Essa missão não está mais na fila.", erro: "Essa missão não está mais na fila." };
 
   const toIdx =
     movement === "top" || movement === "topo"
@@ -229,7 +229,7 @@ export async function moveInQueue(
         : fromIdx + 1;
 
   if (toIdx < 0 || toIdx >= ids.length) {
-    return { ok: false, error: "Mission is already at that boundary.", erro: "Mission is already at that boundary." };
+    return { ok: false, error: "Ela já está nessa ponta da fila.", erro: "Ela já está nessa ponta da fila." };
   }
 
   ids.splice(fromIdx, 1);
@@ -238,12 +238,12 @@ export async function moveInQueue(
   const priorities = ids.map((_, i) => ids.length - i);
 
   await sql`
-    UPDATE missions SET priority = v.prio
+    UPDATE pautas SET prioridade = v.prio
     FROM (
       SELECT unnest(${ids}::int[]) AS id,
              unnest(${priorities}::int[]) AS prio
     ) v
-    WHERE missions.id = v.id
+    WHERE pautas.id = v.id
   `;
 
   return { ok: true };
@@ -254,22 +254,22 @@ export const moverNaFila = moveInQueue;
 
 export async function getActiveEditorEmails(): Promise<{ name: string; email: string; nome?: string }[]> {
   const rows = await sql`
-    SELECT name, email FROM users
-    WHERE role = 'editor' AND is_banned = false
-    ORDER BY name ASC
+    SELECT nome, email FROM users
+    WHERE papel = 'editor' AND banido = false
+    ORDER BY nome ASC
   `;
-  return rows.map((l) => ({ name: String(l.name), email: String(l.email), nome: String(l.name) }));
+  return rows.map((l) => ({ name: String(l.nome), email: String(l.email), nome: String(l.nome) }));
 }
 
 export const emailsDosEditores = getActiveEditorEmails;
 
 export async function getActiveSpokespersonEmails(): Promise<{ name: string; email: string; nome?: string }[]> {
   const rows = await sql`
-    SELECT name, email FROM users
-    WHERE role = 'spokesperson' AND is_banned = false
-    ORDER BY name ASC
+    SELECT nome, email FROM users
+    WHERE papel IN ('voz', 'spokesperson') AND banido = false
+    ORDER BY nome ASC
   `;
-  return rows.map((l) => ({ name: String(l.name), email: String(l.email), nome: String(l.name) }));
+  return rows.map((l) => ({ name: String(l.nome), email: String(l.email), nome: String(l.nome) }));
 }
 
 export const emailsDosCandidatos = getActiveSpokespersonEmails;

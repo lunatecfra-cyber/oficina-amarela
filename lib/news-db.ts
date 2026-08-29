@@ -20,35 +20,35 @@ export type NovidadeDb = DbNews;
 
 type Row = {
   id: number;
-  title: string;
-  text: string;
-  is_published: boolean;
-  created_at: string;
-  author: string | null;
+  titulo: string;
+  texto: string;
+  publicada: boolean;
+  criada_em: string;
+  autor: string | null;
 };
 
 const rowToDbNews = (l: Row): DbNews => ({
   id: l.id,
-  title: l.title,
-  text: l.text,
-  isPublished: l.is_published,
-  published: l.is_published,
-  createdAt: new Date(l.created_at).toISOString(),
-  author: l.author,
-  titulo: l.title,
-  texto: l.text,
-  publicada: l.is_published,
-  criadaEm: new Date(l.created_at).toISOString(),
+  title: l.titulo,
+  text: l.texto,
+  isPublished: l.publicada,
+  published: l.publicada,
+  createdAt: new Date(l.criada_em).toISOString(),
+  author: l.autor,
+  titulo: l.titulo,
+  texto: l.texto,
+  publicada: l.publicada,
+  criadaEm: new Date(l.criada_em).toISOString(),
 });
 
 export async function getPublishedNews(limit = 4): Promise<DbNews[]> {
   try {
     const rows = await sql`
-      SELECT n.id, n.title, n.text, n.is_published, n.created_at, u.handle AS author
-      FROM news n
-      LEFT JOIN users u ON u.id = n.author_id
-      WHERE n.is_published = true
-      ORDER BY n.created_at DESC
+      SELECT n.id, n.titulo, n.texto, n.publicada, n.criada_em, u.apelido AS autor
+      FROM novidades n
+      LEFT JOIN users u ON u.id = n.autor_id
+      WHERE n.publicada = true
+      ORDER BY n.criada_em DESC
       LIMIT ${limit}
     `;
     return (rows as unknown as Row[]).map(rowToDbNews);
@@ -63,10 +63,10 @@ export const novidadesPublicadas = getPublishedNews;
 export async function getAllNews(): Promise<DbNews[]> {
   try {
     const rows = await sql`
-      SELECT n.id, n.title, n.text, n.is_published, n.created_at, u.handle AS author
-      FROM news n
-      LEFT JOIN users u ON u.id = n.author_id
-      ORDER BY n.created_at DESC
+      SELECT n.id, n.titulo, n.texto, n.publicada, n.criada_em, u.apelido AS autor
+      FROM novidades n
+      LEFT JOIN users u ON u.id = n.autor_id
+      ORDER BY n.criada_em DESC
     `;
     return (rows as unknown as Row[]).map(rowToDbNews);
   } catch {
@@ -85,11 +85,11 @@ export async function createNews(
 ): Promise<{ ok: true; id: number } | { ok: false; error: string; erro?: string }> {
   const t = limitStr(title, LIMITS.title);
   const c = limitStr(text, LIMITS.longText);
-  if (!t) return { ok: false, error: "Please enter a title.", erro: "Please enter a title." };
-  if (!c) return { ok: false, error: "Please enter the news text.", erro: "Please enter the news text." };
+  if (!t) return { ok: false, error: "Escreva um título.", erro: "Escreva um título." };
+  if (!c) return { ok: false, error: "Escreva o texto da novidade.", erro: "Escreva o texto da novidade." };
 
   const [row] = await sql`
-    INSERT INTO news (title, text, author_id, is_published)
+    INSERT INTO novidades (titulo, texto, autor_id, publicada)
     VALUES (${t}, ${c}, ${authorId}, ${isPublished})
     RETURNING id
   `;
@@ -102,22 +102,21 @@ export async function toggleNewsPublication(
   id: number
 ): Promise<{ ok: true; isPublished: boolean; published?: boolean; publicada?: boolean } | { ok: false; error: string; erro?: string }> {
   const [row] = await sql`
-    UPDATE news SET is_published = NOT is_published WHERE id = ${id}
-    RETURNING is_published
+    UPDATE novidades SET publicada = NOT publicada WHERE id = ${id}
+    RETURNING publicada
   `;
-  if (!row) return { ok: false, error: "News item not found.", erro: "News item not found." };
-  return { ok: true, isPublished: row.is_published, published: row.is_published, publicada: row.is_published };
+  if (!row) return { ok: false, error: "Novidade não encontrada.", erro: "Novidade não encontrada." };
+  return { ok: true, isPublished: row.publicada, published: row.publicada, publicada: row.publicada };
 }
 
 export const alternarPublicacao = toggleNewsPublication;
 
 export async function deleteNews(id: number): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const rows = await sql`DELETE FROM news WHERE id = ${id} RETURNING id`;
-  if (rows.length === 0) return { ok: false, error: "News item not found.", erro: "News item not found." };
+  const rows = await sql`DELETE FROM novidades WHERE id = ${id} RETURNING id`;
+  if (rows.length === 0) return { ok: false, error: "Novidade não encontrada.", erro: "Novidade não encontrada." };
   return { ok: true };
 }
 
 export const apagarNovidade = deleteNews;
-
 export const deleteNewsArticle = deleteNews;
 export const createNewsArticle = createNews;

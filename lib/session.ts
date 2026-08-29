@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 
-export const COOKIE_NAME = "workshop_session";
+export const COOKIE_NAME = "confraria_sessao";
 export const NOME_COOKIE = COOKIE_NAME; // compatibility alias
 const DURATION = "30d";
 
@@ -94,7 +94,7 @@ export async function verifySessionToken(token: string): Promise<UserSession | n
 
 export const verificarTokenSessao = verifySessionToken;
 
-export const STATE_COOKIE_NAME = "workshop_oauth_state";
+export const STATE_COOKIE_NAME = "confraria_oauth_estado";
 export const NOME_COOKIE_ESTADO = STATE_COOKIE_NAME;
 
 export const STATE_COOKIE_OPTS = {
@@ -107,7 +107,7 @@ export const STATE_COOKIE_OPTS = {
 export const COOKIE_ESTADO_OPTS = STATE_COOKIE_OPTS;
 
 export async function createSignedState(nonce: string) {
-  return new SignJWT({ usage: "oauth-state", nonce })
+  return new SignJWT({ usage: "oauth-state", uso: "oauth-estado", nonce })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("10m")
@@ -122,14 +122,15 @@ export async function verifySignedState(
   if (!cookieNonce) return false;
   try {
     const { payload } = await jwtVerify(token, getKey());
-    return (payload.usage === "oauth-state" || payload.uso === "oauth-state") && payload.nonce === cookieNonce;
+    const validUsage = payload.usage === "oauth-state" || payload.uso === "oauth-estado" || payload.usage === "oauth-estado" || payload.uso === "oauth-state";
+    return validUsage && payload.nonce === cookieNonce;
   } catch {
     return false;
   }
 }
 export const verificarEstadoAssinado = verifySignedState;
 
-export const PENDING_COOKIE_NAME = "workshop_google_pending";
+export const PENDING_COOKIE_NAME = "confraria_google_pendente";
 export const NOME_COOKIE_PENDENTE = PENDING_COOKIE_NAME;
 export const INVITATION_COOKIE_NAME = "confraria_convite_porta_voz";
 export const NOME_COOKIE_CONVITE = INVITATION_COOKIE_NAME;

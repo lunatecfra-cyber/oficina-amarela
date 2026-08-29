@@ -10,21 +10,21 @@ function isDevEnvironment() {
 const DEV_ACCOUNTS: Record<Role, { handle: string; name: string; email: string; destination: string }> = {
   editor: {
     handle: "dev.editor",
-    name: "Dev Video Editor",
-    email: "dev.editor@yellowworkshop.local",
+    name: "Dev Editor de Vídeo",
+    email: "dev.editor@oficinaamarela.local",
     destination: "/editor",
   },
   spokesperson: {
-    handle: "dev.spokesperson",
-    name: "Dev Spokesperson",
-    email: "dev.spokesperson@yellowworkshop.local",
-    destination: "/spokesperson",
+    handle: "dev.porta-voz",
+    name: "Dev Porta-Voz",
+    email: "dev.porta-voz@oficinaamarela.local",
+    destination: "/porta-voz",
   },
   admin: {
     handle: "dev.admin",
-    name: "Dev Inspector",
-    email: "dev.admin@yellowworkshop.local",
-    destination: "/inspector",
+    name: "Dev Inspetor",
+    email: "dev.admin@oficinaamarela.local",
+    destination: "/inspetor",
   },
 };
 
@@ -47,25 +47,34 @@ export async function GET(request: Request) {
   const destination =
     targetParam === "profile" || targetParam === "perfil"
       ? role === "editor"
-        ? "/editor/create-profile"
+        ? "/editor/criar-perfil"
         : role === "spokesperson"
-          ? "/spokesperson/create-profile"
+          ? "/porta-voz/criar-perfil"
           : acc.destination
       : acc.destination;
 
+  const dbPapel = role === "spokesperson" ? "voz" : role;
+
   const [row] = await sql`
-    INSERT INTO users (handle, name, email, role)
-    VALUES (${acc.handle}, ${acc.name}, ${acc.email}, ${role})
-    ON CONFLICT (lower(handle)) DO UPDATE SET name = EXCLUDED.name
-    RETURNING id, handle, name, role
+    INSERT INTO users (apelido, nome, email, papel)
+    VALUES (${acc.handle}, ${acc.name}, ${acc.email}, ${dbPapel})
+    ON CONFLICT (lower(apelido)) DO UPDATE SET nome = EXCLUDED.nome
+    RETURNING id, apelido, nome, papel
   `;
 
-  const session = row ?? {
-    id: 9000 + (role === "editor" ? 1 : role === "spokesperson" ? 2 : 3),
-    handle: acc.handle,
-    name: acc.name,
-    role,
-  };
+  const session = row
+    ? {
+        id: row.id,
+        handle: row.apelido,
+        name: row.nome,
+        role,
+      }
+    : {
+        id: 9000 + (role === "editor" ? 1 : role === "spokesperson" ? 2 : 3),
+        handle: acc.handle,
+        name: acc.name,
+        role,
+      };
 
   const token = await createSessionToken({
     id: session.id,

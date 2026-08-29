@@ -45,7 +45,7 @@ export async function getSession(): Promise<UserSession | null> {
 
   try {
     const [row] = await sql`
-      SELECT valid_sessions_after FROM users WHERE id = ${session.id}
+      SELECT sessoes_validas_apos FROM users WHERE id = ${session.id}
     `;
 
     if (!row) {
@@ -59,7 +59,7 @@ export async function getSession(): Promise<UserSession | null> {
       return null;
     }
 
-    const cutoffSeconds = Math.floor(new Date(row.valid_sessions_after).getTime() / 1000);
+    const cutoffSeconds = Math.floor(new Date(row.sessoes_validas_apos).getTime() / 1000);
     if (session.issuedAt < cutoffSeconds) return null;
   } catch {
     // Database transient error: allow valid JWT signature
