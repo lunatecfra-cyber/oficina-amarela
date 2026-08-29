@@ -4,52 +4,51 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-function LoginFormConteudo() {
+function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [apelido, setApelido] = useState("");
-  const [senha, setSenha] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [erro, setErro] = useState(searchParams.get("erro_google") ?? "");
-  const [enviando, setEnviando] = useState(false);
+  const [handle, setHandle] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState(
+    searchParams.get("google_error") ?? searchParams.get("erro_google") ?? ""
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!apelido.trim() || !senha) {
-      setErro(
-        !apelido.trim() && !senha
+    if (!handle.trim() || !password) {
+      setError(
+        !handle.trim() && !password
           ? "Preencha apelido e senha."
-          : !apelido.trim()
+          : !handle.trim()
             ? "Digite seu apelido."
             : "Digite sua senha."
       );
       return;
     }
-    setErro("");
-    setEnviando(true);
+    setError("");
+    setIsSubmitting(true);
 
     const resp = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apelido, senha }),
+      body: JSON.stringify({ handle, password, apelido: handle, senha: password }),
     });
-    const dados = await resp.json();
+    const data = await resp.json();
 
     if (!resp.ok) {
-      setErro(dados.erro ?? "Não deu pra entrar.");
-      setEnviando(false);
+      setError(data.error ?? data.erro ?? "Não deu pra entrar.");
+      setIsSubmitting(false);
       return;
     }
 
-    // igual ao editor: sempre cai na home do papel, sem checar perfil
-    // completo aqui — a própria página resolve o que mostrar
-    router.push(dados.papel === "editor" ? "/editor" : "/porta-voz");
+    const role = data.role ?? data.papel;
+    router.push(role === "editor" ? "/editor" : "/spokesperson");
     router.refresh();
   }
 
-  // atalhos de teste — o bundler remove este bloco no build de produção,
-  // então nem chegam ao HTML que vai pro ar
-  const atalhosDev =
+  const devShortcuts =
     process.env.NODE_ENV === "development" ? (
       <div className="mb-6 rounded-xl border border-dashed border-line p-3">
         <p className="mb-2 text-center text-[11px] uppercase tracking-[0.1em] text-muted-2">
@@ -57,19 +56,19 @@ function LoginFormConteudo() {
         </p>
         <div className="flex gap-2">
           <a
-            href="/api/auth/dev-login?papel=editor"
+            href="/api/auth/dev-login?role=editor"
             className="btn-ghost grid flex-1 place-items-center !py-2 text-xs"
           >
             Entrar como Editor
           </a>
           <a
-            href="/api/auth/dev-login?papel=voz"
+            href="/api/auth/dev-login?role=spokesperson"
             className="btn-ghost grid flex-1 place-items-center !py-2 text-xs"
           >
             Entrar como Porta-voz
           </a>
           <a
-            href="/api/auth/dev-login?papel=admin"
+            href="/api/auth/dev-login?role=admin"
             className="btn-ghost grid flex-1 place-items-center !py-2 text-xs"
           >
             Entrar como Inspetor
@@ -80,7 +79,7 @@ function LoginFormConteudo() {
 
   return (
     <div className="w-full max-w-sm">
-      {atalhosDev}
+      {devShortcuts}
       <a href="/api/auth/google" className="btn-ghost flex items-center justify-center gap-3">
         <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
           <path
@@ -112,7 +111,7 @@ function LoginFormConteudo() {
       <form onSubmit={onSubmit} noValidate>
         <div className="mb-4">
           <label
-            htmlFor="apelido"
+            htmlFor="handle"
             className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
           >
             Apelido
@@ -130,26 +129,26 @@ function LoginFormConteudo() {
               <path d="M4 21a8 8 0 0 1 16 0" />
             </svg>
             <input
-              id="apelido"
-              name="apelido"
+              id="handle"
+              name="handle"
               className="field-input"
               placeholder="seu apelido"
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
-              value={apelido}
+              value={handle}
               onChange={(e) => {
-                setApelido(e.target.value);
-                setErro("");
+                setHandle(e.target.value);
+                setError("");
               }}
-              aria-invalid={!!erro && !apelido.trim()}
+              aria-invalid={!!error && !handle.trim()}
             />
           </div>
         </div>
 
         <div className="mb-4">
           <label
-            htmlFor="senha"
+            htmlFor="password"
             className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
           >
             Senha
@@ -167,27 +166,27 @@ function LoginFormConteudo() {
               <path d="M8 10V7a4 4 0 0 1 8 0v3" />
             </svg>
             <input
-              id="senha"
-              name="senha"
-              type={showPw ? "text" : "password"}
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
               className="field-input pr-12"
               placeholder="sua senha"
               autoComplete="current-password"
-              value={senha}
+              value={password}
               onChange={(e) => {
-                setSenha(e.target.value);
-                setErro("");
+                setPassword(e.target.value);
+                setError("");
               }}
-              aria-invalid={!!erro && !senha}
+              aria-invalid={!!error && !password}
             />
             <button
               type="button"
-              onClick={() => setShowPw((v) => !v)}
-              aria-pressed={showPw}
-              aria-label={showPw ? "Ocultar senha" : "Mostrar senha"}
+              onClick={() => setShowPassword((v) => !v)}
+              aria-pressed={showPassword}
+              aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
               className="absolute right-1 grid h-11 w-11 place-items-center rounded-lg text-muted-2 transition-colors hover:bg-white/5 hover:text-silver"
             >
-              {showPw ? (
+              {showPassword ? (
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -216,13 +215,9 @@ function LoginFormConteudo() {
           </div>
         </div>
 
-        {/* O quadradinho do checkbox nasce com 13px — menos de um terço do que
-            um dedo acerta. Aumentar só ele deixaria desalinhado com o resto, e
-            o padding no label resolve melhor: a área que responde ao toque
-            passa a ser a frase inteira, não o quadrado. */}
         <div className="mb-5 flex items-center justify-between gap-2">
           <label className="-ml-1 flex min-h-11 cursor-pointer select-none items-center gap-2 px-1 text-sm text-muted">
-            <input type="checkbox" name="lembrar" className="h-4 w-4 accent-gold" />
+            <input type="checkbox" name="remember" className="h-4 w-4 accent-gold" />
             Manter conectado
           </label>
           <Link
@@ -233,14 +228,14 @@ function LoginFormConteudo() {
           </Link>
         </div>
 
-        {erro && (
+        {error && (
           <p role="alert" className="mb-4 text-center text-sm text-danger">
-            {erro}
+            {error}
           </p>
         )}
 
-        <button type="submit" className="btn-gold" disabled={enviando}>
-          {enviando ? "Abrindo os portões…" : "Entrar na Oficina Amarela"}
+        <button type="submit" className="btn-gold" disabled={isSubmitting}>
+          {isSubmitting ? "Abrindo os portões…" : "Entrar na Oficina Amarela"}
         </button>
       </form>
 
@@ -269,7 +264,7 @@ function LoginFormConteudo() {
 export function LoginForm() {
   return (
     <Suspense fallback={null}>
-      <LoginFormConteudo />
+      <LoginFormContent />
     </Suspense>
   );
 }

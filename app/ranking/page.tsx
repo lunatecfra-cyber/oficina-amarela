@@ -1,32 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
-import { PremiosEleitorais } from "@/components/premios-eleitorais";
-import { FIM_CICLO_ELEITORAL } from "@/lib/ranking-eleitoral";
-import { obterRankingEleitoral } from "@/lib/ranking-eleitoral-db";
-import { exigirSessao } from "@/lib/sessao-servidor";
+import { ElectoralAwards } from "@/components/electoral-awards";
+import { ELECTORAL_CYCLE_END } from "@/lib/electoral-ranking";
+import { getElectoralRanking } from "@/lib/electoral-ranking-db";
+import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Ranking — Oficina Amarela" };
 
 export const dynamic = "force-dynamic";
 
-// dias até o fim do ciclo, arredondado pra cima — "0" no dia final, nunca
-// negativo depois de encerrado
-function diasAteFimDoCiclo() {
-  const ms = FIM_CICLO_ELEITORAL.getTime() - Date.now();
+function daysUntilCycleEnd() {
+  const ms = ELECTORAL_CYCLE_END.getTime() - Date.now();
   return Math.max(0, Math.ceil(ms / 86_400_000));
 }
 
 export default async function RankingPage() {
-  const sessao = await exigirSessao();
-  const ranking = await obterRankingEleitoral();
+  const session = await requireSession();
+  const ranking = await getElectoralRanking();
 
-  const ordenado = ranking.itens;
-  const diasRestantes = diasAteFimDoCiclo();
-  const encerrado = diasRestantes === 0;
-  const ativos = ranking.editoresAtivos;
-  const marco = ranking.maiorNumeroDeAtivos;
-  const minhaPosicaoIdx = ordenado.findIndex((e) => e.id === sessao.id);
+  const ordered = ranking.items;
+  const daysLeft = daysUntilCycleEnd();
+  const isFinished = daysLeft === 0;
+  const activeCount = ranking.activeEditors;
+  const milestone = ranking.highestActiveCount;
+  const myRankIdx = ordered.findIndex((e) => e.id === session.id);
 
   return (
     <>
@@ -41,16 +39,16 @@ export default async function RankingPage() {
             </h1>
             <span
               className={`flex-none rounded-full border px-2.5 py-1 text-xs font-medium ${
-                encerrado
+                isFinished
                   ? "border-line text-muted-2"
                   : "border-gold-lo/50 bg-gold/[0.07] text-gold-hi"
               }`}
             >
-              {encerrado
+              {isFinished
                 ? "ciclo encerrado"
-                : diasRestantes === 1
+                : daysLeft === 1
                   ? "1 dia restante"
-                  : `${diasRestantes} dias restantes`}
+                  : `${daysLeft} dias restantes`}
             </span>
           </div>
           <p className="mt-1 text-xs text-muted">
@@ -61,7 +59,7 @@ export default async function RankingPage() {
           <div className="mt-5 flex items-stretch gap-2">
             <div className="flex-1 rounded-lg border border-line-soft bg-white/[0.02] px-3 py-2.5">
               <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-gold-hi">
-                {ativos}
+                {activeCount}
               </p>
               <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-[0.04em] text-muted-2">
                 editores ativos<br />esta semana
@@ -69,7 +67,7 @@ export default async function RankingPage() {
             </div>
             <div className="flex-1 rounded-lg border border-line-soft bg-white/[0.02] px-3 py-2.5">
               <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text">
-                {marco}
+                {milestone}
               </p>
               <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-[0.04em] text-muted-2">
                 maior marca<br />do ciclo
@@ -77,7 +75,7 @@ export default async function RankingPage() {
             </div>
             <div className="flex-1 rounded-lg border border-line-soft bg-white/[0.02] px-3 py-2.5">
               <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text">
-                {minhaPosicaoIdx === -1 ? "—" : `${minhaPosicaoIdx + 1}º`}
+                {myRankIdx === -1 ? "—" : `${myRankIdx + 1}º`}
               </p>
               <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-[0.04em] text-muted-2">
                 sua<br />posição
@@ -92,12 +90,12 @@ export default async function RankingPage() {
                 Prêmios do ciclo
               </h2>
               <span className="text-[11px] text-muted-2">
-                {ranking.premios.length} de 4 liberados
+                {ranking.awards.length} de 4 liberados
               </span>
             </div>
-            <PremiosEleitorais
-              premiosLiberados={ranking.premios}
-              maiorNumeroDeAtivos={marco}
+            <ElectoralAwards
+              unlockedAwards={ranking.awards}
+              highestActiveCount={milestone}
             />
             <p className="mt-2 text-[11px] leading-relaxed text-muted-2">
               Os prêmios se abrem conforme a guilda cresce — quanto mais editores
@@ -111,7 +109,7 @@ export default async function RankingPage() {
               Classificação
             </h2>
 
-            {ordenado.length === 0 ? (
+            {ordered.length === 0 ? (
               <div className="rounded-lg border border-dashed border-line p-10 text-center">
                 <p className="text-sm text-muted">
                   Ninguém no ranking ainda. Ele se preenche conforme os editores
@@ -133,39 +131,35 @@ export default async function RankingPage() {
                     <span>aprovados</span>
                   </div>
 
-                  {ordenado.map((e, i) => {
-                    // compara por id, não por apelido: é quem está logado de fato
-                    const eu = e.id === sessao.id;
+                  {ordered.map((e, i) => {
+                    const eu = e.id === session.id;
                     const pos = i + 1;
-                    // pódio na ordem clássica: 1º ouro (com brilho), 2º prata,
-                    // 3º bronze. "Você", fora do pódio, ganha só um amarelo bem
-                    // claro — se destaca menos que qualquer um dos três.
-                    const nivel =
+                    const level =
                       pos === 1 ? "ouro" : pos === 2 ? "prata" : pos === 3 ? "bronze" : eu ? "voce" : "normal";
                     return (
                       <div
                         key={String(e.id)}
                         className={`linha-ranking relative flex items-center gap-2 border-t border-line-soft px-3 py-2.5 ${
-                          nivel === "ouro"
+                          level === "ouro"
                             ? "linha-ouro bg-gradient-to-r from-gold/[0.16] via-gold/[0.05] to-transparent"
-                            : nivel === "prata"
+                            : level === "prata"
                               ? "bg-gradient-to-r from-silver/[0.11] to-transparent"
-                              : nivel === "bronze"
+                              : level === "bronze"
                                 ? "bg-gradient-to-r from-bronze/[0.1] to-transparent"
-                                : nivel === "voce"
+                                : level === "voce"
                                   ? "bg-gold/[0.045]"
                                   : ""
                         }`}
                       >
                         <span
                           className={`w-5 font-[family-name:var(--font-display)] text-sm font-semibold ${
-                            nivel === "ouro"
+                            level === "ouro"
                               ? "text-gold-hi"
-                              : nivel === "prata"
+                              : level === "prata"
                                 ? "text-silver-hi"
-                                : nivel === "bronze"
+                                : level === "bronze"
                                   ? "text-bronze-hi"
-                                  : nivel === "voce"
+                                  : level === "voce"
                                     ? "text-gold-hi/80"
                                     : "text-muted-2"
                           }`}
@@ -174,23 +168,23 @@ export default async function RankingPage() {
                         </span>
 
                         <span className="flex-1 truncate text-sm text-text">
-                          {eu ? "Você" : `@${String(e.apelido)}`}
+                          {eu ? "Você" : `@${String(e.apelido ?? e.handle)}`}
                         </span>
 
                         <span
                           className={`font-[family-name:var(--font-display)] text-sm font-semibold ${
-                            nivel === "ouro"
+                            level === "ouro"
                               ? "text-gold-hi"
-                              : nivel === "prata"
+                              : level === "prata"
                                 ? "text-silver-hi"
-                                : nivel === "bronze"
+                                : level === "bronze"
                                   ? "text-bronze-hi"
-                                  : nivel === "voce"
+                                  : level === "voce"
                                     ? "text-gold-hi/80"
                                     : "text-muted"
                           }`}
                         >
-                          {Number(e.quantidade)}
+                          {Number(e.quantidade ?? e.count)}
                         </span>
                       </div>
                     );
@@ -223,7 +217,6 @@ export default async function RankingPage() {
                   `}</style>
                 </div>
 
-                {/* desempate: informação de rodapé, discreta */}
                 <p className="mt-2 text-[11px] text-muted-2">
                   Em caso de empate, fica na frente quem alcançou o número primeiro.
                 </p>

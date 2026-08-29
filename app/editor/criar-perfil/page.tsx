@@ -1,29 +1,28 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
-import { CriarPerfilEditorForm } from "@/components/criar-perfil-editor-form";
-import { lerOnboardingEditor } from "@/lib/perfil-db";
-import { exigirSessao } from "@/lib/sessao-servidor";
+import { CreateEditorProfileForm } from "@/components/create-editor-profile-form";
+import { readEditorOnboarding } from "@/lib/profile-db";
+import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Montar perfil — Oficina Amarela" };
-
 export const dynamic = "force-dynamic";
 
-export default async function CriarPerfilEditorPage() {
-  const sessao = await exigirSessao();
-  const inicial = (await lerOnboardingEditor(sessao.id)) ?? {
-    nome: sessao.nome,
-    fotoUrl: "",
-    localizacao: "",
+export default async function CreateEditorProfilePage() {
+  const session = await requireSession();
+  const initial = (await readEditorOnboarding(session.id)) ?? {
+    name: session.name,
+    photoUrl: "",
+    location: "",
     headline: [],
     bio: "",
     softwares: [],
-    estilos: [],
-    nivelEdicao: "",
-    setupPc: "",
+    styles: [],
+    editingLevel: "",
+    pcSetup: "",
     portfolioLink: "",
-    nicho: [],
-    disponibilidade: [],
-    perfilCompleto: false,
+    niche: [],
+    availability: [],
+    profileComplete: false,
   };
 
   return (
@@ -39,7 +38,7 @@ export default async function CriarPerfilEditorPage() {
             oferecer pra você.
           </p>
         </div>
-        <CriarPerfilEditorForm inicial={inicial} />
+        <CreateEditorProfileForm initial={initial} />
       </main>
     </>
   );

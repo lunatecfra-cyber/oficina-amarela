@@ -1,21 +1,21 @@
 import { redirect } from "next/navigation";
-import { AppHeaderInspetor } from "@/components/app-header-inspetor";
-import { exigirSessao } from "@/lib/sessao-servidor";
+import { AppHeaderInspector } from "@/components/app-header-inspector";
+import { requireSession } from "@/lib/server-session";
 
-export default async function InspetorLayout({
+export default async function InspectorLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const sessao = await exigirSessao();
+  const session = await requireSession();
 
-  if (sessao.papel !== "admin") {
+  if (session.role !== "admin") {
     redirect("/login");
   }
 
   return (
     <>
-      <AppHeaderInspetor />
+      <AppHeaderInspector />
       <main className="flex-1">{children}</main>
     </>
   );

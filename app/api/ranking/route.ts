@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { obterRankingEleitoral } from "@/lib/ranking-eleitoral-db";
-import { lerSessao } from "@/lib/sessao-servidor";
+import { getElectoralRanking } from "@/lib/electoral-ranking-db";
+import { getServerSession } from "@/lib/server-session";
 
 export async function GET() {
-  const sessao = await lerSessao();
-  if (!sessao) return NextResponse.json({ erro: "Faça login." }, { status: 401 });
-  return NextResponse.json(await obterRankingEleitoral());
+  const session = await getServerSession();
+  if (!session) return NextResponse.json({ error: "Faça login.", erro: "Faça login." }, { status: 401 });
+  return NextResponse.json(await getElectoralRanking());
 }

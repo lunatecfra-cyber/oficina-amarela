@@ -5,9 +5,9 @@ import { LoginForm } from "@/components/login-form";
 
 export const metadata: Metadata = { title: "Entrar — Oficina Amarela" };
 
-const PILARES = [
+const PILLARS = [
   {
-    texto: "As missões chegam até você — aceite a que combinar.",
+    text: "As missões chegam até você — aceite a que combinar.",
     icon: (
       <>
         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -16,11 +16,11 @@ const PILARES = [
     ),
   },
   {
-    texto: "Entregue, passe pelo controle de qualidade e ganhe reputação.",
+    text: "Entregue, passe pelo controle de qualidade e ganhe reputação.",
     icon: <path d="M20 6 9 17l-5-5" />,
   },
   {
-    texto: "Suba de Aprendiz a Mestre-Artesão e desbloqueie os pagos.",
+    text: "Suba de Aprendiz a Mestre-Artesão e desbloqueie os pagos.",
     icon: <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4L12 17l-6.3 4.4L8 14 2 9.4h7.6z" />,
   },
 ];
@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="grid flex-1 lg:grid-cols-[1.05fr_0.95fr]">
       <aside className="relative hidden flex-col justify-between overflow-hidden border-r border-line-soft p-14 lg:flex">
         <Link href="/" className="relative flex items-center gap-3">
-          <Logo className="w-11" />
+          <Logo size="large" />
           <span className="font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[0.3em] text-gold">
             OFICINA AMARELA
           </span>
@@ -49,8 +49,8 @@ export default function LoginPage() {
         </div>
 
         <ul className="relative flex flex-col gap-4">
-          {PILARES.map((p) => (
-            <li key={p.texto} className="flex items-center gap-3 text-sm text-muted">
+          {PILLARS.map((p) => (
+            <li key={p.text} className="flex items-center gap-3 text-sm text-muted">
               <span className="grid h-8 w-8 flex-none place-items-center rounded-lg border border-line bg-surface text-gold">
                 <svg
                   viewBox="0 0 24 24"
@@ -63,7 +63,7 @@ export default function LoginPage() {
                   {p.icon}
                 </svg>
               </span>
-              {p.texto}
+              {p.text}
             </li>
           ))}
         </ul>
@@ -73,7 +73,7 @@ export default function LoginPage() {
         <h1 className="sr-only">Oficina Amarela — entrar</h1>
 
         <div className="mb-8 flex flex-col items-center text-center lg:hidden">
-          <Logo className="w-24" />
+          <Logo size="large" />
           <p className="text-gold-grad mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold tracking-[0.2em]">
             OFICINA AMARELA
           </p>

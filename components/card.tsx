@@ -1,23 +1,28 @@
 export function Card({
+  title,
   titulo,
   delay = 0,
+  guide,
   guia,
   children,
 }: {
-  titulo: string;
+  title?: string;
+  titulo?: string;
   delay?: number;
-  /** alvo do guia "Como usar", quando este cartão é ensinado */
+  guide?: string;
   guia?: string;
   children: React.ReactNode;
 }) {
+  const displayTitle = title ?? titulo ?? "";
+  const guideTarget = guide ?? guia;
   return (
     <section
-      data-guia={guia}
+      data-guia={guideTarget}
       className="reveal rounded-2xl border border-line bg-surface/60 p-5 lg:p-6"
       style={{ animationDelay: `${delay}s` }}
     >
       <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-gold">
-        {titulo}
+        {displayTitle}
       </h2>
       {children}
     </section>

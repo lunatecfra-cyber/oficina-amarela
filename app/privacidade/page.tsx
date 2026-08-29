@@ -4,11 +4,11 @@ import { Logo } from "@/components/logo";
 
 export const metadata: Metadata = { title: "Política de Privacidade — Oficina Amarela" };
 
-export default function PrivacidadePage() {
+export default function PrivacyPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-10 lg:px-8 lg:py-14">
       <Link href="/" className="flex items-center gap-3">
-        <Logo className="w-9" />
+        <Logo size="normal" />
         <span className="font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold">
           OFICINA AMARELA
         </span>

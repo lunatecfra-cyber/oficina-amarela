@@ -1,37 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { pautaPorIdDoPortaVoz, posicaoNaFila, totalNaFila } from "@/lib/pautas-db";
-import { lerCandidatoProprio } from "@/lib/candidato-db";
-import { exigirSessao } from "@/lib/sessao-servidor";
-import { pareceLink, pareceLinkDrive, pareceLinkYoutube } from "@/lib/validators";
+import { missionByIdOfSpokesperson, queuePosition, totalInQueue } from "@/lib/missions-db";
+import { readOwnCandidate } from "@/lib/candidate-db";
+import { requireSession } from "@/lib/server-session";
+import { looksLikeLink, looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 import {
-  ETAPAS_MISSAO,
-  ROTULO_FORMATO,
-  ROTULO_STATUS,
-  etapaAtual,
-  mensagemStatusPortaVoz,
-} from "@/lib/pautas";
-import { AcoesMissao } from "@/components/acoes-missao";
-import { AvatarCandidato } from "@/components/avatar-candidato";
-import { ChatMissao } from "@/components/chat-missao";
-import { DenunciaBotao } from "@/components/denuncia-botao";
-import { mensagensDaPauta } from "@/lib/chat-db";
+  MISSION_STAGES,
+  FORMAT_LABELS,
+  STATUS_LABELS,
+  currentStage,
+  spokespersonStatusMessage,
+} from "@/lib/missions";
+import { MissionActions } from "@/components/mission-actions";
+import { CandidateAvatar } from "@/components/candidate-avatar";
+import { MissionChat } from "@/components/mission-chat";
+import { ReportButton } from "@/components/report-button";
+import { missionMessages } from "@/lib/chat-db";
 
 export const metadata: Metadata = { title: "Missão — Oficina Amarela" };
 export const dynamic = "force-dynamic";
 
-function formatarData(iso: string, comAno = true) {
+function formatDate(iso: string, withYear = true) {
   return new Date(iso).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
-    ...(comAno ? { year: "numeric" } : {}),
+    ...(withYear ? { year: "numeric" } : {}),
   });
 }
 
-// prazo desejado é data pura ("AAAA-MM-DD"), sem hora. Precisa ser lida em
-// UTC: no fuso do Brasil, a meia-noite UTC cai no dia anterior.
-function formatarDataPura(ymd: string) {
+function formatPureDate(ymd: string) {
   return new Date(ymd).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
@@ -40,47 +38,63 @@ function formatarDataPura(ymd: string) {
   });
 }
 
-/** "há 2 dias" — a data crua não responde "faz muito tempo?", que é a
- *  pergunta real de quem está esperando o vídeo.
- *
- *  Conta dias de CALENDÁRIO, não tempo decorrido: algo criado às 23h de
- *  ontem faz poucas horas, mas dizer "hoje" ao lado da data de ontem soa
- *  errado pra quem lê. */
-function tempoDesde(iso: string) {
-  const meiaNoite = (d: Date) =>
+function timeSince(iso: string) {
+  const midnight = (d: Date) =>
     new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const dias = Math.round((meiaNoite(new Date()) - meiaNoite(new Date(iso))) / 86_400_000);
-  if (dias <= 0) return "hoje";
-  if (dias === 1) return "ontem";
-  if (dias < 30) return `há ${dias} dias`;
-  const meses = Math.floor(dias / 30);
-  return meses === 1 ? "há 1 mês" : `há ${meses} meses`;
+  const days = Math.round((midnight(new Date()) - midnight(new Date(iso))) / 86_400_000);
+  if (days <= 0) return "hoje";
+  if (days === 1) return "ontem";
+  if (days < 30) return `há ${days} dias`;
+  const months = Math.floor(days / 30);
+  return months === 1 ? "há 1 mês" : `há ${months} meses`;
 }
 
-export default async function DetalheMissaoPage({
+export default async function MissionDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const sessao = await exigirSessao();
-  const { id: idBruto } = await params;
+  const session = await requireSession();
+  const { id: rawId } = await params;
 
-  // ids das pautas reais vêm como "db-123"; demos usam "p1" etc. e não têm
-  // detalhe (são só estáticas). Só aceitamos reais aqui.
-  const idNum = Number(String(idBruto).replace(/^db-/, ""));
-  if (!Number.isInteger(idNum)) notFound();
+  const numId = Number(String(rawId).replace(/^db-/, ""));
+  if (!Number.isInteger(numId)) notFound();
 
-  const [pauta, posicao, total, candidato, mensagens] = await Promise.all([
-    pautaPorIdDoPortaVoz(idNum, sessao.id),
-    posicaoNaFila(idNum),
-    totalNaFila(),
-    lerCandidatoProprio(sessao.id),
-    mensagensDaPauta(idNum),
+  const [mission, position, total, candidate, messages] = await Promise.all([
+    missionByIdOfSpokesperson(numId, session.id),
+    queuePosition(numId),
+    totalInQueue(),
+    readOwnCandidate(session.id),
+    missionMessages(numId),
   ]);
-  if (!pauta) notFound();
+  if (!mission) notFound();
 
-  const msg = mensagemStatusPortaVoz(pauta.status);
-  const etapa = etapaAtual(pauta.status);
+  const msg = spokespersonStatusMessage(mission.status);
+  const stage = currentStage(mission.status);
+
+  const title = mission.title ?? (mission as any).titulo;
+  const format = mission.format ?? (mission as any).formato;
+  const status = mission.status;
+  const createdAt = mission.createdAt ?? (mission as any).criadaEm ?? "";
+  const desiredDeadline = mission.desiredDeadline ?? (mission as any).prazoDesejado;
+  const brief = mission.brief ?? {};
+  const tone = brief.tone ?? (brief as any).tom;
+  const color = brief.color ?? (brief as any).cor;
+  const font = brief.font ?? (brief as any).fonte;
+  const refs = brief.refs;
+  const extras = mission.extras;
+  const reason = mission.reason ?? (mission as any).motivo;
+  const reservedBy = mission.reservedBy ?? (mission as any).reservadaPor;
+  const reservedAt = mission.reservedAt ?? (mission as any).reservadaEm;
+  const deliveryLink = mission.deliveryLink ?? (mission as any).entregaLink;
+  const driveLink = mission.driveLink;
+  const youtubeLink = mission.youtubeLink;
+  const inspectorNotes = mission.inspectorNotes ?? (mission as any).notasInspetor;
+  const reeditRequestedBy = mission.reeditRequestedBy ?? (mission as any).reedicaoPedidaPor;
+
+  const isInReview = status === "in_review" || (status as any) === "em_revisao";
+  const isApproved = status === "approved" || (status as any) === "aprovada";
+  const isAvailable = status === "available" || (status as any) === "disponivel";
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-8 lg:px-8 lg:py-12">
@@ -93,11 +107,7 @@ export default async function DetalheMissaoPage({
         </Link>
       </div>
 
-      {/* card de resumo — status + título + metadados agrupados numa caixa,
-          em vez de soltos. Combina com os cards das seções de baixo (vídeo
-          bruto, briefing) pra tela inteira ficar coesa. */}
       <header className="mb-8 overflow-hidden rounded-2xl border border-line bg-surface/60">
-        {/* filete dourado no topo — identidade visual da marca */}
         <div
           className="h-1 w-full"
           style={{
@@ -107,51 +117,47 @@ export default async function DetalheMissaoPage({
           aria-hidden="true"
         />
         <div className="p-5 lg:p-6">
-          <p className={`text-sm font-medium ${msg.cor}`}>{msg.texto}</p>
+          <p className={`text-sm font-medium ${msg.color}`}>{msg.text}</p>
           <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
-            {pauta.titulo}
+            {title}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-2">
             <span className="rounded-full border border-line bg-ink-2 px-2.5 py-0.5">
-              {ROTULO_FORMATO[pauta.formato]}
+              {FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}
             </span>
-            <span>{ROTULO_STATUS[pauta.status]}</span>
+            <span>{STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? (STATUS_LABELS as any)[status] ?? status}</span>
             <span aria-hidden="true">·</span>
             <span>
-              criada {tempoDesde(pauta.criadaEm)} · {formatarData(pauta.criadaEm)}
+              criada {timeSince(createdAt)} · {formatDate(createdAt)}
             </span>
           </div>
 
-          {/* posição na fila — só faz sentido enquanto ninguém pegou. É a
-              pergunta que o porta-voz mais faz: "falta muito?" */}
-          {pauta.status === "disponivel" && posicao > 0 && (
+          {isAvailable && position > 0 && (
             <p className="mt-3 text-xs text-muted">
-              Posição <b className="text-text">{posicao}</b> de {total} na fila
+              Posição <b className="text-text">{position}</b> de {total} na fila
               dos editores
             </p>
           )}
 
-          {/* linha do tempo do ciclo — dá a sensação de acompanhamento que a
-              tela não tinha. Deriva só do status, sem consulta extra. */}
           <ol className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-2 text-[11px]">
-            {ETAPAS_MISSAO.map((nome, i) => {
-              const vencida = i < etapa;
-              const atual = i === etapa;
+            {MISSION_STAGES.map((name, i) => {
+              const passed = i < stage;
+              const isCurrent = i === stage;
               return (
-                <li key={nome} className="flex items-center gap-2">
+                <li key={name} className="flex items-center gap-2">
                   <span
                     className={
-                      atual
+                      isCurrent
                         ? "rounded-full border border-gold-lo/60 bg-gold/10 px-2.5 py-0.5 font-medium text-gold-hi"
-                        : vencida
+                        : passed
                           ? "text-gold-lo"
                           : "text-muted-2"
                     }
                   >
-                    {vencida && !atual ? "✓ " : ""}
-                    {nome}
+                    {passed && !isCurrent ? "✓ " : ""}
+                    {name}
                   </span>
-                  {i < ETAPAS_MISSAO.length - 1 && (
+                  {i < MISSION_STAGES.length - 1 && (
                     <span aria-hidden="true" className="text-line">
                       →
                     </span>
@@ -163,49 +169,44 @@ export default async function DetalheMissaoPage({
         </div>
       </header>
 
-      {/* Quem pediu o vídeo decide, e não precisa mais esperar o inspetor.
-          Em revisão, aprovar já fecha a missão; aprovada, o inspetor passou
-          antes e falta só o aceite. */}
-      {(pauta.status === "em_revisao" || pauta.status === "aprovada") && (
-        <AcoesMissao id={pauta.id} emRevisao={pauta.status === "em_revisao"} />
+      {(isInReview || isApproved) && (
+        <MissionActions id={mission.id} inReview={isInReview} />
       )}
 
-      {/* card do porta-voz — quem criou essa missão */}
-      {candidato && (
+      {candidate && (
         <section className="mb-8 flex items-center gap-4 rounded-2xl border border-line bg-surface/60 p-5">
-          <AvatarCandidato
-            candidato={candidato}
+          <CandidateAvatar
+            candidate={candidate}
             className="h-14 w-14 text-lg"
           />
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-text">
-              {candidato.nome}
+              {candidate.name ?? (candidate as any).nome}
             </p>
-            {candidato.local && (
-              <p className="mt-0.5 text-xs text-muted">{candidato.local}</p>
+            {(candidate.location ?? (candidate as any).local) && (
+              <p className="mt-0.5 text-xs text-muted">{candidate.location ?? (candidate as any).local}</p>
             )}
           </div>
         </section>
       )}
 
-      {/* status / editor / entrega — só mostra o que existe */}
-      {(pauta.reservadaPor || pauta.entregaLink) && (
+      {(reservedBy || deliveryLink) && (
         <section className="mb-8 rounded-2xl border border-line bg-surface/60 p-5">
-          {pauta.reservadaPor && (
+          {reservedBy && (
             <p className="text-sm text-muted">
               Editor responsável:{" "}
-              <span className="font-medium text-text">{pauta.reservadaPor}</span>
+              <span className="font-medium text-text">{reservedBy}</span>
             </p>
           )}
-          {pauta.reservadaEm && (
+          {reservedAt && (
             <p className="mt-1 text-xs text-muted-2">
-              Com o editor desde {formatarData(pauta.reservadaEm, false)} · sem prazo —
+              Com o editor desde {formatDate(reservedAt, false)} · sem prazo —
               é dele até entregar ou devolver
             </p>
           )}
-          {pauta.entregaLink && pareceLink(pauta.entregaLink) && (
+          {deliveryLink && looksLikeLink(deliveryLink) && (
             <a
-              href={pauta.entregaLink}
+              href={deliveryLink}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-gold mt-3 inline-block w-auto px-5"
@@ -217,16 +218,15 @@ export default async function DetalheMissaoPage({
         </section>
       )}
 
-      {/* material bruto */}
-      {(pauta.driveLink && pareceLinkDrive(pauta.driveLink) || pauta.youtubeLink && pareceLinkYoutube(pauta.youtubeLink)) && (
+      {((driveLink && looksLikeDriveLink(driveLink)) || (youtubeLink && looksLikeYoutubeLink(youtubeLink))) && (
         <section className="mb-6">
           <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-gold">
             Vídeo bruto
           </h2>
           <div className="flex flex-wrap gap-2">
-            {pauta.driveLink && pareceLinkDrive(pauta.driveLink) && (
+            {driveLink && looksLikeDriveLink(driveLink) && (
               <a
-                href={pauta.driveLink}
+                href={driveLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
@@ -234,9 +234,9 @@ export default async function DetalheMissaoPage({
                 📁 Abrir no Google Drive
               </a>
             )}
-            {pauta.youtubeLink && pareceLinkYoutube(pauta.youtubeLink) && (
+            {youtubeLink && looksLikeYoutubeLink(youtubeLink) && (
               <a
-                href={pauta.youtubeLink}
+                href={youtubeLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
@@ -248,9 +248,6 @@ export default async function DetalheMissaoPage({
         </section>
       )}
 
-      {/* brief — tudo que o porta-voz pediu no wizard. Mostra todos os campos
-          sempre, mesmo vazios: o editor (e o próprio dono) precisa saber o
-          que foi preenchido e o que ficou de fora. */}
       <section className="mb-6">
         <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
           Briefing (como você pediu)
@@ -258,61 +255,58 @@ export default async function DetalheMissaoPage({
         <dl className="grid gap-3 rounded-2xl border border-line bg-surface/40 p-5 sm:grid-cols-2">
           {(
             [
-              ["Prazo desejado", pauta.prazoDesejado ? formatarDataPura(pauta.prazoDesejado) : undefined],
-              ["Tom", pauta.brief.tom],
-              ["Cor", pauta.brief.cor],
-              ["Fonte / legenda", pauta.brief.fonte],
+              ["Prazo desejado", desiredDeadline ? formatPureDate(desiredDeadline) : undefined],
+              ["Tom", tone],
+              ["Cor", color],
+              ["Fonte / legenda", font],
             ] as const
-          ).map(([rotulo, valor]) => (
-            <div key={rotulo}>
+          ).map(([label, value]) => (
+            <div key={label}>
               <dt className="text-[11px] uppercase tracking-wide text-muted-2">
-                {rotulo}
+                {label}
               </dt>
-              <dd className={valor ? "mt-0.5 text-sm text-text" : "mt-0.5 text-sm text-muted-2 italic"}>
-                {valor ?? "não informado"}
+              <dd className={value ? "mt-0.5 text-sm text-text" : "mt-0.5 text-sm text-muted-2 italic"}>
+                {value ?? "não informado"}
               </dd>
             </div>
           ))}
           {(
             [
-              ["Referências", pauta.brief.refs],
-              ["Cortes específicos", pauta.extras],
-              ["Por que esse vídeo importa", pauta.motivo],
+              ["Referências", refs],
+              ["Cortes específicos", extras],
+              ["Por que esse vídeo importa", reason],
             ] as const
-          ).map(([rotulo, valor]) => (
-            <div key={rotulo} className="sm:col-span-2">
+          ).map(([label, value]) => (
+            <div key={label} className="sm:col-span-2">
               <dt className="text-[11px] uppercase tracking-wide text-muted-2">
-                {rotulo}
+                {label}
               </dt>
-              <dd className={`mt-0.5 text-sm ${valor ? "whitespace-pre-line text-text" : "text-muted-2 italic"}`}>
-                {valor ?? "não informado"}
+              <dd className={`mt-0.5 text-sm ${value ? "whitespace-pre-line text-text" : "text-muted-2 italic"}`}>
+                {value ?? "não informado"}
               </dd>
             </div>
           ))}
         </dl>
       </section>
 
-      {/* observação da reedição — o texto muda conforme quem pediu */}
-      {pauta.notasInspetor && (
+      {inspectorNotes && (
         <section className="mb-6">
           <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-gold">
-            {pauta.reedicaoPedidaPor === "porta_voz"
+            {reeditRequestedBy === "spokesperson" || reeditRequestedBy === "porta_voz"
               ? "O ajuste que você pediu"
               : "Observação do controle de qualidade"}
           </h2>
           <p className="rounded-2xl border border-line bg-surface/40 p-5 text-sm leading-relaxed text-muted">
-            {pauta.notasInspetor}
+            {inspectorNotes}
           </p>
         </section>
       )}
 
-      {/* conversa com o editor desta missão — e com o controle de qualidade */}
       <div className="mb-6" data-guia="conversa-missao">
-        <ChatMissao pautaId={pauta.id} mensagens={mensagens} />
+        <MissionChat missionId={mission.id} messages={messages} />
       </div>
 
-      {/* denúncia — discreta de propósito: é a válvula, não o caminho */}
-      <DenunciaBotao pautaId={pauta.id} />
+      <ReportButton missionId={mission.id} />
     </div>
   );
 }

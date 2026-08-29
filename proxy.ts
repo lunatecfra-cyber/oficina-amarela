@@ -1,43 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verificarTokenSessao, NOME_COOKIE } from "@/lib/sessao";
+import { verifySessionToken, COOKIE_NAME } from "@/lib/session";
 
-// Arquivo `proxy`, não `middleware`: no Next 16 o nome antigo está depreciado e
-// dispara aviso em todo build. O runtime aqui é sempre Node — `proxy` não
-// aceita o runtime `edge`, e não precisamos dele: o `jose` que verifica o token
-// roda nos dois.
 export default async function proxy(request: NextRequest) {
   if (process.env.NODE_ENV === "development" && request.cookies.get("dev_god_mode")?.value === "true") {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(NOME_COOKIE)?.value;
-  const sessao = token ? await verificarTokenSessao(token) : null;
+  const token = request.cookies.get(COOKIE_NAME)?.value;
+  const session = token ? await verifySessionToken(token) : null;
 
-  if (!sessao) {
+  if (!session) {
     if (process.env.NODE_ENV === "development" && !process.env.VERCEL) {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const caminho = request.nextUrl.pathname;
-  const areaDoPapel = sessao.papel === "voz" ? "/porta-voz" : "/editor";
+  const pathname = request.nextUrl.pathname;
+  const defaultArea = session.role === "spokesperson" ? "/spokesperson" : "/editor";
 
-  // /inspetor era totalmente aberto — agora só admin entra. Quando existir um
-  // papel "inspetor" de verdade no banco, ele entra nessa condição também.
-  if (caminho.startsWith("/inspetor")) {
-    if (sessao.papel !== "admin") {
-      return NextResponse.redirect(new URL(areaDoPapel, request.url));
+  // Inspector / Admin protected area
+  if (pathname.startsWith("/inspector") || pathname.startsWith("/inspetor") || pathname.startsWith("/admin")) {
+    if (session.role !== "admin") {
+      return NextResponse.redirect(new URL(defaultArea, request.url));
     }
     return NextResponse.next();
   }
 
-  // resto das rotas protegidas (/editor, /perfil, /agenda, /aulas, /ranking)
-  // é área de editor; /porta-voz é do candidato
-  const rotaExigePapel = caminho.startsWith("/porta-voz") ? "voz" : "editor";
+  // Role enforcement
+  const isSpokespersonRoute = pathname.startsWith("/spokesperson") || pathname.startsWith("/porta-voz");
+  const requiredRole = isSpokespersonRoute ? "spokesperson" : "editor";
 
-  if (sessao.papel !== "admin" && sessao.papel !== rotaExigePapel) {
-    return NextResponse.redirect(new URL(areaDoPapel, request.url));
+  if (session.role !== "admin" && session.role !== requiredRole) {
+    return NextResponse.redirect(new URL(defaultArea, request.url));
   }
 
   return NextResponse.next();
@@ -45,14 +40,21 @@ export default async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/spokesperson/:path*",
     "/porta-voz/:path*",
     "/editor/:path*",
+    "/profile/:path*",
     "/perfil/:path*",
+    "/inspector/:path*",
     "/inspetor/:path*",
     "/admin/:path*",
+    "/schedule/:path*",
     "/agenda/:path*",
+    "/leaderboard/:path*",
     "/ranking/:path*",
+    "/lessons/:path*",
     "/aulas/:path*",
+    "/tools/:path*",
     "/ferramentas/:path*",
   ],
 };

@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { NovaPautaForm } from "@/components/nova-pauta-form";
-import { lerSessao } from "@/lib/sessao-servidor";
-import { lerCandidatoProprio } from "@/lib/candidato-db";
+import { NewMissionForm } from "@/components/new-mission-form";
+import { readSession } from "@/lib/server-session";
+import { readOwnCandidate } from "@/lib/candidate-db";
 
 export const metadata: Metadata = { title: "Nova Missão — Oficina Amarela" };
 
-export default async function NovaPautaPage() {
-  const sessao = await lerSessao();
-  let candidato = null;
+export default async function NewMissionPage() {
+  const session = await readSession();
+  let candidate = null;
   
-  if (sessao?.papel === "voz") {
-    candidato = await lerCandidatoProprio(sessao.id);
+  if (String(session?.role) === "spokesperson" || String(session?.role) === "voz") {
+    candidate = await readOwnCandidate(session!.id);
   }
 
   return (
@@ -24,10 +24,10 @@ export default async function NovaPautaPage() {
           ← Minhas missões
         </Link>
       </div>
-      <NovaPautaForm 
-        marcaDaguaPadrao={candidato?.marcaDagua}
-        cnpjCampanhaPadrao={candidato?.cnpjCampanha}
-        tituloEleitorPadrao={candidato?.tituloEleitor}
+      <NewMissionForm
+        defaultWatermark={candidate?.watermark ?? (candidate as any)?.marcaDagua}
+        defaultCampaignTaxId={candidate?.campaignTaxId ?? (candidate as any)?.cnpjCampanha}
+        defaultVoterId={candidate?.voterId ?? (candidate as any)?.tituloEleitor}
       />
     </div>
   );

@@ -1,27 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  PAUTAS,
-  ROTULO_FORMATO,
-  ROTULO_STATUS,
-  mensagemStatusPortaVoz,
-  type Pauta,
-  type StatusPauta,
-} from "@/lib/pautas";
-import { pautasDisponiveis, pautasDoPortaVoz } from "@/lib/pautas-db";
-import { lerOnboardingCandidato } from "@/lib/candidato-db";
-import { lerSessao } from "@/lib/sessao-servidor";
-import { BannerPerfilIncompleto } from "@/components/banner-perfil-incompleto";
+  MISSIONS,
+  FORMAT_LABELS,
+  STATUS_LABELS,
+  spokespersonStatusMessage,
+  type Mission,
+  type MissionStatus,
+} from "@/lib/missions";
+import { availableMissions, spokespersonMissions } from "@/lib/missions-db";
+import { readCandidateOnboarding } from "@/lib/candidate-db";
+import { readSession } from "@/lib/server-session";
+import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 
-// esta tela precisa refletir a pauta que acabou de ser criada, então não pode
-// servir versão em cache
 export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = { title: "Minhas Missões — Oficina Amarela" };
 
-// ── helpers de data (mesmos da tela de detalhe) ───────────────────
-
-function formatarData(iso: string) {
+function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
@@ -29,45 +24,47 @@ function formatarData(iso: string) {
   });
 }
 
-/** "há 2 dias" — conta dias de calendário, não horas decorridas. */
-function tempoDesde(iso: string) {
-  const meiaNoite = (d: Date) =>
+function timeSince(iso: string) {
+  const midnight = (d: Date) =>
     new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const dias = Math.round(
-    (meiaNoite(new Date()) - meiaNoite(new Date(iso))) / 86_400_000,
+  const days = Math.round(
+    (midnight(new Date()) - midnight(new Date(iso))) / 86_400_000,
   );
-  if (dias <= 0) return "hoje";
-  if (dias === 1) return "ontem";
-  if (dias < 30) return `há ${dias} dias`;
-  const meses = Math.floor(dias / 30);
-  return meses === 1 ? "há 1 mês" : `há ${meses} meses`;
+  if (days <= 0) return "hoje";
+  if (days === 1) return "ontem";
+  if (days < 30) return `há ${days} dias`;
+  const months = Math.floor(days / 30);
+  return months === 1 ? "há 1 mês" : `há ${months} meses`;
 }
 
-// ── cor de destaque à esquerda por status ─────────────────────────
-
-function corBordaStatus(status: StatusPauta): string {
+function statusBorderColor(status: MissionStatus): string {
   switch (status) {
+    case "available":
     case "disponivel":
-      return "border-l-muted"; // discreto — na fila
+      return "border-l-muted";
+    case "reserved":
     case "reservada":
+    case "mine":
     case "minha":
-      return "border-l-gold"; // em produção
+      return "border-l-gold";
+    case "in_review":
     case "em_revisao":
-      return "border-l-silver-hi"; // conferência
+      return "border-l-silver-hi";
+    case "reedit":
     case "reedicao":
-      return "border-l-silver"; // ajuste pedido
+      return "border-l-silver";
+    case "approved":
     case "aprovada":
-      return "border-l-ok"; // pronto
+      return "border-l-ok";
+    case "finished":
     case "finalizada":
-      return "border-l-ok"; // concluída
+      return "border-l-ok";
     default:
       return "";
   }
 }
 
-// ── filete dourado (gradiente horizontal) ─────────────────────────
-
-function FileteDourado() {
+function GoldStripe() {
   return (
     <div
       aria-hidden="true"
@@ -80,9 +77,7 @@ function FileteDourado() {
   );
 }
 
-// ── badge pill (formato, status) ──────────────────────────────────
-
-function Badge({ children }: { children: React.ReactNode }) {
+function BadgePill({ children }: { children: React.ReactNode }) {
   return (
     <span className="rounded-full border border-line bg-ink-2 px-2.5 py-0.5 text-[11px] font-medium text-muted-2">
       {children}
@@ -90,43 +85,30 @@ function Badge({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── card ──────────────────────────────────────────────────────────
+const isReal = (id: string) => id.startsWith("db-");
 
-// só missão real (id "db-N") tem tela de detalhe; as de demonstração são
-// cards estáticos e não existem no banco
-const ehReal = (id: string) => id.startsWith("db-");
-
-/**
- * A casca do card. Existe porque as duas listas (na fila / em andamento)
- * precisavam do mesmo `<li>` e do mesmo "vira link se for real" — antes esse
- * bloco estava escrito duas vezes dentro do mesmo `map`.
- *
- * Importante: TODA missão real é clicável, inclusive as já entregues. É por
- * aqui que o porta-voz chega no vídeo pronto e nos botões de aceitar/ajustar.
- */
-function CardMissao({
-  pauta,
-  guia,
+function MissionCardContainer({
+  mission,
+  guide,
   children,
 }: {
-  pauta: Pauta;
-  /** marca o cartão que o guia "Como usar" aponta — só o primeiro leva */
-  guia?: string;
+  mission: Mission;
+  guide?: string;
   children: React.ReactNode;
 }) {
-  const real = ehReal(pauta.id);
+  const real = isReal(mission.id);
   return (
     <li
-      data-guia={guia}
+      data-guia={guide}
+      data-guide={guide}
       className={`overflow-hidden rounded-2xl border border-l-[3px] border-line bg-surface/60 ${
-        corBordaStatus(pauta.status)
+        statusBorderColor(mission.status)
       } ${real ? "transition-colors hover:border-gold/40 hover:bg-surface-2" : ""}`}
     >
-      {/* filete dourado só nos cards reais (clicáveis) */}
-      {real && <FileteDourado />}
+      {real && <GoldStripe />}
       <div className="p-4 lg:p-5">
         {real ? (
-          <Link href={`/porta-voz/missao/${pauta.id}`} className="group block">
+          <Link href={`/spokesperson/mission/${mission.id}`} className="group block">
             {children}
           </Link>
         ) : (
@@ -137,44 +119,41 @@ function CardMissao({
   );
 }
 
-// ── página ────────────────────────────────────────────────────────
+export default async function SpokespersonHome() {
+  const session = await readSession();
+  const DEMO_MODE = process.env.NODE_ENV !== "production";
 
-export default async function PortaVozHome() {
-  const sessao = await lerSessao();
-
-  const MODO_DEMO = process.env.NODE_ENV !== "production";
-
-  // pautas de verdade (banco) +, só em dev, as de demonstração para a tela
-  // não ficar vazia numa conta nova
-  const [reaisMinhas, reaisDisponiveis, onboarding] = await Promise.all([
-    sessao ? pautasDoPortaVoz(sessao.id) : Promise.resolve([]),
-    pautasDisponiveis(),
-    sessao ? lerOnboardingCandidato(sessao.id) : Promise.resolve(null),
+  const [realMine, realAvailable, onboarding] = await Promise.all([
+    session ? spokespersonMissions(session.id) : Promise.resolve([]),
+    availableMissions(),
+    session ? readCandidateOnboarding(session.id) : Promise.resolve(null),
   ]);
-  const perfilIncompleto = onboarding ? !onboarding.perfilCompleto : true;
+  const isIncompleteProfile = onboarding ? !onboarding.profileComplete : true;
 
-  const demoMinhas = MODO_DEMO ? PAUTAS.filter((p) => p.portaVoz === sessao?.nome) : [];
-  const minhas = [...reaisMinhas, ...demoMinhas];
+  const demoMine = DEMO_MODE ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === session?.name) : [];
+  const myMissions = [...realMine, ...demoMine];
 
-  // fila compartilhada: todas as pautas disponíveis (de todo mundo), ordenadas por criação
-  const demoDisponiveis = MODO_DEMO ? PAUTAS.filter((p) => p.status === "disponivel") : [];
-  const filaGeral = [
-    ...reaisDisponiveis,
-    ...demoDisponiveis,
-  ].sort((a, b) => a.criadaEm.localeCompare(b.criadaEm));
+  const demoAvailable = DEMO_MODE ? MISSIONS.filter((p) => p.status === "available" || (p as any).status === "disponivel") : [];
+  const generalQueue = [
+    ...realAvailable,
+    ...demoAvailable,
+  ].sort((a, b) => {
+    const aDate = a.createdAt ?? (a as any).criadaEm ?? "";
+    const bDate = b.createdAt ?? (b as any).criadaEm ?? "";
+    return aDate.localeCompare(bDate);
+  });
 
-  const naFila = minhas.filter((p) => p.status === "disponivel");
-  const emAndamento = minhas.filter((p) => p.status !== "disponivel");
+  const inQueue = myMissions.filter((p) => p.status === "available" || (p as any).status === "disponivel");
+  const inProgress = myMissions.filter((p) => p.status !== "available" && (p as any).status !== "disponivel");
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
-      {perfilIncompleto && (
+      {isIncompleteProfile && (
         <div className="mb-6">
-          <BannerPerfilIncompleto papel="voz" />
+          <IncompleteProfileBanner role="spokesperson" />
         </div>
       )}
 
-      {/* header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
@@ -193,8 +172,7 @@ export default async function PortaVozHome() {
         </Link>
       </div>
 
-      {/* estado vazio */}
-      {minhas.length === 0 ? (
+      {myMissions.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed border-line p-12 text-center">
           <p className="text-muted">Você ainda não criou nenhuma missão.</p>
           <Link
@@ -206,39 +184,42 @@ export default async function PortaVozHome() {
         </div>
       ) : (
         <div className="mt-8 flex flex-col gap-8">
-          {/* ── Na fila ─────────────────────────────────────────── */}
-          {naFila.length > 0 && (
+          {inQueue.length > 0 && (
             <section>
               <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
                 Na fila
               </h2>
               <ul className="flex flex-col gap-3">
-                {naFila.map((p, n) => {
-                  const idx = filaGeral.findIndex((f) => f.id === p.id);
-                  const posicao = idx >= 0 ? idx + 1 : 0;
-                  const total = filaGeral.length;
-                  const real = ehReal(p.id);
+                {inQueue.map((p, n) => {
+                  const idx = generalQueue.findIndex((f) => f.id === p.id);
+                  const position = idx >= 0 ? idx + 1 : 0;
+                  const total = generalQueue.length;
+                  const real = isReal(p.id);
+                  const title = p.title ?? (p as any).titulo;
+                  const format = p.format ?? (p as any).formato;
+                  const createdAt = p.createdAt ?? (p as any).criadaEm ?? "";
+
                   return (
-                    <CardMissao
+                    <MissionCardContainer
                       key={p.id}
-                      pauta={p}
-                      guia={
-                        n === 0 && emAndamento.length === 0 ? "cartao-missao" : undefined
+                      mission={p}
+                      guide={
+                        n === 0 && inProgress.length === 0 ? "cartao-missao" : undefined
                       }
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text transition-colors group-hover:text-gold-hi">
-                          {p.titulo}
+                          {title}
                         </h3>
-                        <Badge>{ROTULO_FORMATO[p.formato]}</Badge>
+                        <BadgePill>{FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}</BadgePill>
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-2">
                         <span>
-                          criada {tempoDesde(p.criadaEm)} · {formatarData(p.criadaEm)}
+                          criada {timeSince(createdAt)} · {formatDate(createdAt)}
                         </span>
-                        {posicao > 0 && (
+                        {position > 0 && (
                           <span>
-                            Posição <b className="text-text">{posicao}</b> de {total}
+                            Posição <b className="text-text">{position}</b> de {total}
                           </span>
                         )}
                       </div>
@@ -247,104 +228,94 @@ export default async function PortaVozHome() {
                           Demonstração
                         </span>
                       )}
-                    </CardMissao>
+                    </MissionCardContainer>
                   );
                 })}
               </ul>
             </section>
           )}
 
-          {/* ── Em andamento e concluídas ──────────────────────── */}
-          {emAndamento.length > 0 && (
+          {inProgress.length > 0 && (
             <section>
               <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
                 Em andamento e concluídas
               </h2>
               <ul className="flex flex-col gap-3">
-                {emAndamento.map((p, n) => {
-                  const msg = mensagemStatusPortaVoz(p.status);
-                  const real = ehReal(p.id);
+                {inProgress.map((p, n) => {
+                  const msg = spokespersonStatusMessage(p.status);
+                  const real = isReal(p.id);
+                  const title = p.title ?? (p as any).titulo;
+                  const format = p.format ?? (p as any).formato;
+                  const status = p.status;
+                  const createdAt = p.createdAt ?? (p as any).criadaEm ?? "";
+                  const reservedBy = p.reservedBy ?? (p as any).reservadaPor;
+                  const inspectorNotes = p.inspectorNotes ?? (p as any).notasInspetor;
+                  const deliveryLink = p.deliveryLink ?? (p as any).entregaLink;
+                  const desiredDeadline = p.desiredDeadline ?? (p as any).prazoDesejado;
+
                   return (
-                    <CardMissao
+                    <MissionCardContainer
                       key={p.id}
-                      pauta={p}
-                      guia={n === 0 ? "cartao-missao" : undefined}
+                      mission={p}
+                      guide={n === 0 ? "cartao-missao" : undefined}
                     >
-                      {/* Empilha no celular. Lado a lado, o título tinha
-                          flex-1 (base 0) e a mensagem de status ocupava uns
-                          220px fixos — sobrava menos de 120px pro título, que
-                          descia UMA PALAVRA POR LINHA. flex-wrap não salvava:
-                          com base 0 o título encolhe em vez de quebrar a
-                          linha. Da largura do tablet em diante volta ao lado. */}
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 flex-1">
                           <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text transition-colors group-hover:text-gold-hi">
-                            {p.titulo}
+                            {title}
                           </h3>
                           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-2">
-                            <Badge>{ROTULO_FORMATO[p.formato]}</Badge>
+                            <BadgePill>{FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}</BadgePill>
                             <span className="rounded-full border border-line bg-ink-2 px-2.5 py-0.5 text-[11px] font-medium text-muted-2">
-                              {ROTULO_STATUS[p.status]}
+                              {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? (STATUS_LABELS as any)[(p as any).status] ?? status}
                             </span>
                             <span>
-                              criada {tempoDesde(p.criadaEm)} · {formatarData(p.criadaEm)}
+                              criada {timeSince(createdAt)} · {formatDate(createdAt)}
                             </span>
                           </div>
-                          {p.reservadaPor && (
+                          {reservedBy && (
                             <p className="mt-1 text-xs text-muted">
-                              editor: {p.reservadaPor}
+                              editor: {reservedBy}
                             </p>
                           )}
-                          {p.status === "reedicao" && p.notasInspetor && (
+                          {(status === "reedit" || (status as any) === "reedicao") && inspectorNotes && (
                             <p className="mt-1.5 text-xs italic text-muted-2">
-                              &ldquo;{p.notasInspetor}&rdquo;
+                              &ldquo;{inspectorNotes}&rdquo;
                             </p>
                           )}
                         </div>
-                        {/* mensagem de status colorida */}
-                        {msg.texto && (
+                        {msg.text && (
                           <span
-                            className={`flex-none text-sm font-medium sm:text-right ${msg.cor}`}
+                            className={`flex-none text-sm font-medium sm:text-right ${msg.color}`}
                           >
-                            {msg.texto}
+                            {msg.text}
                           </span>
                         )}
                       </div>
-                      {/* O vídeo chegou e a lista não dizia nada.
-                          O link existe desde a entrega, mas só na tela de
-                          detalhe — e o card dizia "Na conferência de
-                          qualidade", que lê como "ainda não é com você". Quem
-                          está esperando o vídeo abre esta tela, não acha nada
-                          novo e sai achando que ninguém entregou.
-                          Não dá pra pôr um link aqui dentro (o card inteiro já
-                          é um), então isto chama a atenção e o toque leva pro
-                          detalhe, onde o botão de assistir está. */}
-                      {p.entregaLink && (
+                      {deliveryLink && (
                         <p className="mt-2 flex items-center gap-2 rounded-xl border border-gold-lo/50 bg-gold/[0.07] px-3 py-2 text-xs font-medium text-gold-hi">
                           <span aria-hidden="true">🎬</span>
-                          {p.status === "em_revisao"
+                          {status === "in_review" || (status as any) === "em_revisao"
                             ? "O vídeo já está pronto — toque pra assistir enquanto a conferência acontece"
                             : "Vídeo pronto — toque pra assistir"}
                         </p>
                       )}
 
-                      {/* prazo desejado */}
-                      {p.prazoDesejado && (
+                      {desiredDeadline && (
                         <p className="mt-2 text-xs text-muted-2">
                           ⏰ Prazo:{" "}
-                          {new Date(p.prazoDesejado).toLocaleDateString("pt-BR", {
+                          {new Date(desiredDeadline).toLocaleDateString("pt-BR", {
                             day: "2-digit",
                             month: "short",
                           })}
                         </p>
                       )}
-                      {/* selo demo */}
                       {!real && (
                         <span className="mt-2 inline-block rounded-full border border-line-soft bg-ink-2 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-2">
                           Demonstração
                         </span>
                       )}
-                    </CardMissao>
+                    </MissionCardContainer>
                   );
                 })}
               </ul>

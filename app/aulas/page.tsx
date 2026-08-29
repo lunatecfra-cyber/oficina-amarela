@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
-import { exigirSessao } from "@/lib/sessao-servidor";
+import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Aulas — Oficina Amarela" };
 
-// Placeholder de propósito: a aba entra no nav pra reservar o lugar, mas não
-// inventamos conteúdo. Aula falsa é pior que aula nenhuma — o editor abriria
-// esperando aprender algo.
-export default async function AulasPage() {
-  await exigirSessao();
+export default async function LessonsPage() {
+  await requireSession();
 
   return (
     <>

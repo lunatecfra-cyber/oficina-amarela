@@ -1,32 +1,31 @@
 import type { Metadata } from "next";
-import { CriarPerfilCandidatoForm } from "@/components/criar-perfil-candidato-form";
-import { lerOnboardingCandidato } from "@/lib/candidato-db";
-import { exigirSessao } from "@/lib/sessao-servidor";
+import { CreateCandidateProfileForm } from "@/components/create-candidate-profile-form";
+import { readCandidateOnboarding } from "@/lib/candidate-db";
+import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Montar perfil — Oficina Amarela" };
-
 export const dynamic = "force-dynamic";
 
-export default async function CriarPerfilPage() {
-  const sessao = await exigirSessao();
-  const inicial = (await lerOnboardingCandidato(sessao.id)) ?? {
-    nome: sessao.nome,
-    fotoUrl: "",
-    cargo: "",
-    disputaPor: "",
-    anoEleicao: "2026",
-    localizacao: "",
-    bandeiras: [],
-    tomComunicacao: "",
-    palavrasChave: [],
-    redes: {},
+export default async function CreateCandidateProfilePage() {
+  const session = await requireSession();
+  const initial = (await readCandidateOnboarding(session.id)) ?? {
+    name: session.name,
+    photoUrl: "",
+    role: "",
+    runningFor: "",
+    electionYear: "2026",
+    location: "",
+    causes: [],
+    communicationTone: "",
+    keywords: [],
+    socialLinks: {},
     bio: "",
-    perfilCompleto: false,
+    profileComplete: false,
   };
 
   return (
     <div className="flex flex-1 flex-col items-center px-6 py-12">
-      <CriarPerfilCandidatoForm inicial={inicial} />
+      <CreateCandidateProfileForm initial={initial} />
     </div>
   );
 }

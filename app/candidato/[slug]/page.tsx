@@ -3,20 +3,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
-import { PAUTAS, ROTULO_FORMATO, ROTULO_STATUS, type Pauta } from "@/lib/pautas";
-import { getCandidatoPorSlug, type Candidato } from "@/lib/candidatos";
-import { lerCandidatoPublico } from "@/lib/candidato-db";
-import { pautasDoCandidatoPublico } from "@/lib/pautas-db";
+import { MISSIONS, FORMAT_LABELS, STATUS_LABELS, type Mission } from "@/lib/missions";
+import { getCandidateBySlug, type Candidate } from "@/lib/candidates";
+import { readPublicCandidate } from "@/lib/candidate-db";
+import { publicCandidateMissions } from "@/lib/missions-db";
 import { Stat } from "@/components/stat";
-import { AvatarCandidato } from "@/components/avatar-candidato";
-import { DadosCandidato } from "@/components/dados-candidato";
-import { NomeCandidato } from "@/components/nome-candidato";
-import { lerSessao } from "@/lib/sessao-servidor";
+import { CandidateAvatar } from "@/components/candidate-avatar";
+import { CandidateData } from "@/components/candidate-data";
+import { CandidateName } from "@/components/candidate-name";
+import { readSession } from "@/lib/server-session";
 
-// os 2 candidatos fake de demonstração primeiro (têm slug fixo), senão
-// procura no banco por apelido — apelido já é único e URL-safe, dobra de slug
-async function buscarCandidato(slug: string): Promise<Candidato | null> {
-  return getCandidatoPorSlug(slug) ?? (await lerCandidatoPublico(slug));
+async function fetchCandidate(slug: string): Promise<Candidate | null> {
+  return getCandidateBySlug(slug) ?? (await readPublicCandidate(slug));
 }
 
 export async function generateMetadata({
@@ -25,34 +23,33 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const cand = await buscarCandidato(slug);
-  return { title: cand ? `${cand.nome} — Oficina Amarela` : "Oficina Amarela" };
+  const cand = await fetchCandidate(slug);
+  const name = cand?.name ?? (cand as any)?.nome;
+  return { title: cand ? `${name} — Oficina Amarela` : "Oficina Amarela" };
 }
 
-export default async function CandidatoPage({
+export default async function CandidateDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [cand, sessao] = await Promise.all([
-    buscarCandidato(slug),
-    // a página é pública, então a sessão pode não existir — serve só pra
-    // decidir o link de volta e o cabeçalho
-    lerSessao(),
+  const [cand, session] = await Promise.all([
+    fetchCandidate(slug),
+    readSession(),
   ]);
   if (!cand) notFound();
 
-  const MODO_DEMO = process.env.NODE_ENV !== "production";
+  const DEMO_MODE = process.env.NODE_ENV !== "production";
+  const name = cand.name ?? (cand as any).nome;
 
-  // em produção, busca pautas reais no banco; em dev, usa dados de demonstração
-  const pautas: Pauta[] = MODO_DEMO
-    ? PAUTAS.filter((p) => p.portaVoz === cand.nome)
-    : await pautasDoCandidatoPublico(slug);
+  const missions: Mission[] = DEMO_MODE
+    ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === name)
+    : await publicCandidateMissions(slug);
 
-  const naFila = pautas.filter((p) => p.status === "disponivel").length;
-  const emAndamento = pautas.filter((p) =>
-    ["reservada", "minha", "em_revisao", "reedicao"].includes(p.status)
+  const inQueue = missions.filter((p) => p.status === "available" || (p as any).status === "disponivel").length;
+  const inProgress = missions.filter((p) =>
+    ["reserved", "reservada", "mine", "minha", "in_review", "em_revisao", "reedit", "reedicao"].includes(p.status)
   ).length;
 
   return (
@@ -60,14 +57,11 @@ export default async function CandidatoPage({
       <AppHeader />
       <main className="flex-1">
         <div className="mx-auto w-full max-w-4xl px-4 py-6 lg:px-8 lg:py-10">
-          {/* Esta página é pública. O link de volta apontava fixo pra /editor,
-              que é rota protegida: um visitante clicava e caía no login sem
-              entender por quê. Agora depende de quem está olhando. */}
           <Link
-            href={sessao ? "/editor" : "/"}
+            href={session ? "/editor" : "/"}
             className="text-sm text-muted transition-colors hover:text-silver-hi"
           >
-            {sessao ? "← Fila" : "← Início"}
+            {session ? "← Fila" : "← Início"}
           </Link>
 
           <section className="reveal mt-4 overflow-hidden rounded-2xl border border-line bg-surface/60">
@@ -91,56 +85,58 @@ export default async function CandidatoPage({
 
             <div className="px-5 pb-6 lg:px-8">
               <div className="relative z-10 -mt-12 flex items-end gap-4">
-                <AvatarCandidato candidato={cand} className="h-24 w-24 text-3xl" />
+                <CandidateAvatar candidate={cand} className="h-24 w-24 text-3xl" />
               </div>
 
-              <NomeCandidato
-                candidato={cand}
+              <CandidateName
+                candidate={cand}
                 className="mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl"
               />
-              <DadosCandidato candidato={cand} />
+              <CandidateData candidate={cand} />
               <p className="mt-1 text-[11px] text-muted-2">
                 <span className="text-gold-hi">●</span> perto de você ·{" "}
                 <span className="text-[#5a5a64]">●</span> longe
               </p>
 
-              {/* aqui são três, então cabem na linha do celular — mas a grade
-                  mantém as colunas alinhadas em vez de dependerem do tamanho
-                  da palavra embaixo de cada número */}
               <dl className="mt-5 grid grid-cols-3 gap-x-4 gap-y-3 sm:flex sm:flex-wrap sm:gap-x-8">
-                <Stat valor={String(pautas.length)} rotulo="missões" />
-                <Stat valor={String(naFila)} rotulo="na fila" />
-                <Stat valor={String(emAndamento)} rotulo="em produção" />
+                <Stat valor={String(missions.length)} rotulo="missões" />
+                <Stat valor={String(inQueue)} rotulo="na fila" />
+                <Stat valor={String(inProgress)} rotulo="em produção" />
               </dl>
             </div>
           </section>
 
           <section className="reveal mt-6 rounded-2xl border border-line bg-surface/60 p-5 lg:p-6" style={{ animationDelay: "0.05s" }}>
             <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-gold">
-              Missões de {cand.nome}
+              Missões de {name}
             </h2>
-            {pautas.length === 0 ? (
+            {missions.length === 0 ? (
               <p className="text-sm text-muted">Nenhuma missão ainda.</p>
             ) : (
               <ul className="flex flex-col gap-3">
-                {pautas.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-surface/40 p-4"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-text">
-                        {p.titulo}
-                      </h3>
-                      <p className="mt-0.5 text-xs text-muted-2">
-                        {ROTULO_FORMATO[p.formato]}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-line bg-ink-2 px-3 py-1 text-xs text-muted">
-                      {ROTULO_STATUS[p.status]}
-                    </span>
-                  </li>
-                ))}
+                {missions.map((p) => {
+                  const title = p.title ?? (p as any).titulo;
+                  const format = p.format ?? (p as any).formato;
+                  const status = p.status;
+                  return (
+                    <li
+                      key={p.id}
+                      className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-surface/40 p-4"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-text">
+                          {title}
+                        </h3>
+                        <p className="mt-0.5 text-xs text-muted-2">
+                          {FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-line bg-ink-2 px-3 py-1 text-xs text-muted">
+                        {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? (STATUS_LABELS as any)[status] ?? status}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
