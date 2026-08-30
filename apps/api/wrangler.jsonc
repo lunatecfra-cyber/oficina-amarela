@@ -6,12 +6,21 @@
   // node:crypto é usado pelo domínio (hash de convite); nodejs_compat cobre isso
   // e o que mais vier de lib/ quando as rotas migrarem.
   "compatibility_flags": ["nodejs_compat"],
+
   "observability": {
     "enabled": true
   },
-  "triggers": {
-    "crons": ["* * * * *"]
-  },
+
+  // ---------------------------------------------------------------------
+  // Ambiente padrão: desenvolvimento local.
+  //
+  // Sem D1, sem Hyperdrive, sem fila e sem Cron de propósito. O código já sabe
+  // funcionar assim: o PostgreSQL vem de DATABASE_URL, e a manutenção acontece
+  // por requisição porque BACKGROUND_QUEUE não existe (ver
+  // maintenanceIsScheduled em src/routes/editor-queue.ts).
+  //
+  // O Durable Object fica aqui porque o Miniflare o oferece localmente.
+  // ---------------------------------------------------------------------
   "durable_objects": {
     "bindings": [
       {
@@ -20,15 +29,158 @@
       }
     ]
   },
+
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": ["MissionCoordinator"]
     }
-  ]
-  // Hyperdrive is intentionally absent until a staging config exists. Create it
-  // with `wrangler hyperdrive create ... --binding HYPERDRIVE --update-config
-  // --env staging`; never commit the origin connection string here.
-  // Bindings (D1, R2, Queues, Durable Objects, KV) entram nas fases seguintes.
-  // O Worker web vai alcançar este por Service Binding, não pela internet.
+  ],
+
+  "env": {
+    // -------------------------------------------------------------------
+    // STAGING
+    //
+    // TODO(provisionamento): todo id abaixo é um marcador. Nenhum deles é um
+    // identificador real — o deploy falha até serem substituídos, e é assim
+    // que se quer: um id inventado que "funciona" apontaria para o recurso
+    // errado em silêncio.
+    //
+    //   wrangler d1 create oficina-amarela-staging
+    //   wrangler queues create oficina-amarela-manutencao-staging
+    //   wrangler r2 bucket create oficina-amarela-midia-staging
+    //   wrangler hyperdrive create oficina-amarela-pg-staging \
+    //     --connection-string "postgres://..." --env staging
+    //
+    // A string de conexão do Hyperdrive nunca entra neste arquivo: ela vive no
+    // próprio recurso. Segredos vão por `wrangler secret put --env staging`.
+    // -------------------------------------------------------------------
+    "staging": {
+      "name": "oficina-amarela-api-staging",
+      "observability": { "enabled": true },
+
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "oficina-amarela-staging",
+          "database_id": "PROVISIONAR-d1-staging",
+          "migrations_dir": "../../packages/db/d1"
+        }
+      ],
+
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "PROVISIONAR-hyperdrive-staging"
+        }
+      ],
+
+      "r2_buckets": [
+        {
+          "binding": "MEDIA",
+          "bucket_name": "oficina-amarela-midia-staging"
+        }
+      ],
+
+      // Produtor: a presença deste binding desliga a varredura por requisição.
+      "queues": {
+        "producers": [
+          {
+            "binding": "BACKGROUND_QUEUE",
+            "queue": "oficina-amarela-manutencao-staging"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "oficina-amarela-manutencao-staging",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "dead_letter_queue": "oficina-amarela-manutencao-staging-dlq"
+          }
+        ]
+      },
+
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "MISSION_COORDINATOR",
+            "class_name": "MissionCoordinator"
+          }
+        ]
+      },
+
+      // A cada minuto: expira ofertas e drena a fila de e-mail. Com o Cron no
+      // ar junto do binding de fila, a manutenção deixa de depender de tráfego.
+      "triggers": {
+        "crons": ["* * * * *"]
+      }
+    },
+
+    // -------------------------------------------------------------------
+    // PRODUÇÃO
+    //
+    // Mesma forma do staging, recursos separados. Só recebe ids depois que o
+    // staging rodar de verdade — inclusive o ensaio de migração
+    // (scripts/migrar-para-d1.mjs) com conferência limpa.
+    // -------------------------------------------------------------------
+    "production": {
+      "name": "oficina-amarela-api",
+      "observability": { "enabled": true },
+
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "oficina-amarela",
+          "database_id": "PROVISIONAR-d1-producao",
+          "migrations_dir": "../../packages/db/d1"
+        }
+      ],
+
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "PROVISIONAR-hyperdrive-producao"
+        }
+      ],
+
+      "r2_buckets": [
+        {
+          "binding": "MEDIA",
+          "bucket_name": "oficina-amarela-midia"
+        }
+      ],
+
+      "queues": {
+        "producers": [
+          {
+            "binding": "BACKGROUND_QUEUE",
+            "queue": "oficina-amarela-manutencao"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "oficina-amarela-manutencao",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "dead_letter_queue": "oficina-amarela-manutencao-dlq"
+          }
+        ]
+      },
+
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "MISSION_COORDINATOR",
+            "class_name": "MissionCoordinator"
+          }
+        ]
+      },
+
+      "triggers": {
+        "crons": ["* * * * *"]
+      }
+    }
+  }
 }

@@ -3,6 +3,7 @@ import { claimPeriodicTask, QUEUE_SWEEP_TASK } from "@oficina/db/scheduler";
 import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
 import { buildMissionAcceptedEmail } from "@oficina/email/messages";
 import { Hono } from "hono";
+import type { Bindings } from "../app.ts";
 import { runScheduledMaintenance } from "../background.ts";
 import type { ApiDependencies } from "../dependencies.ts";
 import { queueMessage } from "../mission-queue-messages.ts";
@@ -12,14 +13,32 @@ import { requireEditor } from "../session.ts";
 // cada QUEUE_SWEEP_SECONDS, não uma vez por poll de cada editor.
 const QUEUE_SWEEP_SECONDS = 5;
 
-async function sweepQueueIfDue(queue: ApiDependencies["missionQueue"]) {
+/**
+ * Quem faz a manutenção.
+ *
+ * Com o binding de fila no ar, o Cron e o consumidor são a autoridade e a
+ * requisição não varre nada — dois caminhos processando o mesmo trabalho por
+ * conta própria é como se duplica efeito. Sem binding, a requisição é o único
+ * gatilho que existe e continua valendo.
+ *
+ * Em ambos os casos claimPeriodicTask é a rede: ele libera no máximo uma
+ * varredura por janela, então mesmo uma sobreposição durante a virada do
+ * ambiente não roda o trabalho duas vezes.
+ */
+export function maintenanceIsScheduled(env: Bindings | undefined): boolean {
+  return Boolean(env?.BACKGROUND_QUEUE);
+}
+
+async function sweepQueueIfDue(queue: ApiDependencies["missionQueue"], env: Bindings | undefined) {
+  if (maintenanceIsScheduled(env)) return;
   if (!(await claimPeriodicTask(QUEUE_SWEEP_TASK, QUEUE_SWEEP_SECONDS))) return;
-  // Fallback enquanto o Worker ainda não está implantado com o Cron. Usa o
-  // mesmo consumidor, então a ativação do agendamento não muda a semântica.
   await runScheduledMaintenance({ missionQueue: queue, drainEmailQueue: drainEmailQueueNow });
 }
 
-type QueueEnv = { Variables: { session: UserSession; requestId: string } };
+type QueueEnv = {
+  Bindings: Bindings;
+  Variables: { session: UserSession; requestId: string };
+};
 
 export function createEditorQueue(dependencies: ApiDependencies) {
   const editorQueue = new Hono<QueueEnv>();
@@ -31,7 +50,7 @@ export function createEditorQueue(dependencies: ApiDependencies) {
     const session = c.get("session");
 
     await queue.markEditorActive(session.id);
-    await sweepQueueIfDue(queue);
+    await sweepQueueIfDue(queue, c.env);
 
     const offer = await queue.pendingOfferFor(session.id);
     if (!offer) return c.body(null, 204);

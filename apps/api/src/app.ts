@@ -18,6 +18,12 @@ import { createMissionLifecycleRoutes } from "./routes/mission-lifecycle.ts";
 
 export type Bindings = {
   HYPERDRIVE?: { readonly connectionString: string };
+  /**
+   * Produtor da fila de manutenção. A presença dele é o interruptor: com fila
+   * e Cron no ar, a manutenção é deles, e a varredura por requisição sai de
+   * cena. Sem binding — local e teste — a requisição continua sendo o gatilho.
+   */
+  BACKGROUND_QUEUE?: { send(message: unknown): Promise<void> };
   MISSION_COORDINATOR?: {
     idFromName(name: string): unknown;
     get(id: unknown): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
