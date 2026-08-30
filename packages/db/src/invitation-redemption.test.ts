@@ -33,7 +33,6 @@ describe("resgate atômico de convite", {
 
   after(async () => {
     await sql`TRUNCATE users RESTART IDENTITY CASCADE`;
-    await sql.end();
   });
 
   const input = () => ({

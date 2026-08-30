@@ -1,107 +1,49 @@
-import { LIMITS, limitStr } from "@oficina/domain/limits";
-import { sql } from "@/lib/db";
+import type { DbNews } from "@oficina/db/news";
+import { fetchApi, fetchApiJson } from "@/lib/internal-api";
 
-export type DbNews = {
-  id: number;
-  title: string;
-  text: string;
-  isPublished: boolean;
-  published?: boolean;
-  createdAt: string;
-  author: string | null;
-  // aliases
-  titulo?: string;
-  texto?: string;
-  publicada?: boolean;
-  criadaEm?: string;
-};
+export type { DbNews };
 export type NewsItemDb = DbNews;
 export type NovidadeDb = DbNews;
 
-type Row = {
-  id: number;
-  titulo: string;
-  texto: string;
-  publicada: boolean;
-  criada_em: string;
-  autor: string | null;
-};
-
-const rowToDbNews = (l: Row): DbNews => ({
-  id: l.id,
-  title: l.titulo,
-  text: l.texto,
-  isPublished: l.publicada,
-  published: l.publicada,
-  createdAt: new Date(l.criada_em).toISOString(),
-  author: l.autor,
-  titulo: l.titulo,
-  texto: l.texto,
-  publicada: l.publicada,
-  criadaEm: new Date(l.criada_em).toISOString(),
-});
-
 export async function getPublishedNews(limit = 4): Promise<DbNews[]> {
-  try {
-    const rows = await sql`
-      SELECT n.id, n.titulo, n.texto, n.publicada, n.criada_em, u.apelido AS autor
-      FROM novidades n
-      LEFT JOIN users u ON u.id = n.autor_id
-      WHERE n.publicada = true
-      ORDER BY n.criada_em DESC
-      LIMIT ${limit}
-    `;
-    return (rows as unknown as Row[]).map(rowToDbNews);
-  } catch {
-    return [];
-  }
+  const list = await fetchApiJson<DbNews[]>(`/news?limit=${limit}`);
+  return list ?? [];
 }
-
 export const publishedNews = getPublishedNews;
 export const novidadesPublicadas = getPublishedNews;
 
 export async function getAllNews(): Promise<DbNews[]> {
-  try {
-    const rows = await sql`
-      SELECT n.id, n.titulo, n.texto, n.publicada, n.criada_em, u.apelido AS autor
-      FROM novidades n
-      LEFT JOIN users u ON u.id = n.autor_id
-      ORDER BY n.criada_em DESC
-    `;
-    return (rows as unknown as Row[]).map(rowToDbNews);
-  } catch {
-    return [];
-  }
+  const list = await fetchApiJson<DbNews[]>("/admin/news");
+  return list ?? [];
 }
-
 export const allNews = getAllNews;
 export const todasNovidades = getAllNews;
 
 export async function createNews(
-  authorId: number,
+  _authorId: number,
   title: string,
   text: string,
   isPublished = true,
 ): Promise<{ ok: true; id: number } | { ok: false; error: string; erro?: string }> {
-  const t = limitStr(title, LIMITS.title);
-  const c = limitStr(text, LIMITS.longText);
-  if (!t) return { ok: false, error: "Escreva um título.", erro: "Escreva um título." };
-  if (!c)
-    return {
-      ok: false,
-      error: "Escreva o texto da novidade.",
-      erro: "Escreva o texto da novidade.",
-    };
-
-  const [row] = await sql`
-    INSERT INTO novidades (titulo, texto, autor_id, publicada)
-    VALUES (${t}, ${c}, ${authorId}, ${isPublished})
-    RETURNING id
-  `;
-  return { ok: true, id: row.id };
+  const res = await fetchApi("/admin/news", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ title, text, isPublished }),
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    id?: number;
+    error?: string;
+    erro?: string;
+  };
+  if (!res.ok || !body.ok) {
+    const err = body.error ?? body.erro ?? "Erro ao criar novidade.";
+    return { ok: false, error: err, erro: err };
+  }
+  return { ok: true, id: Number(body.id) };
 }
-
 export const criarNovidade = createNews;
+export const createNewsArticle = createNews;
 
 export async function toggleNewsPublication(
   id: number,
@@ -109,31 +51,42 @@ export async function toggleNewsPublication(
   | { ok: true; isPublished: boolean; published?: boolean; publicada?: boolean }
   | { ok: false; error: string; erro?: string }
 > {
-  const [row] = await sql`
-    UPDATE novidades SET publicada = NOT publicada WHERE id = ${id}
-    RETURNING publicada
-  `;
-  if (!row)
-    return { ok: false, error: "Novidade não encontrada.", erro: "Novidade não encontrada." };
+  const res = await fetchApi(`/admin/news/${id}/toggle`, { method: "POST" });
+  const body = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    isPublished?: boolean;
+    published?: boolean;
+    publicada?: boolean;
+    error?: string;
+    erro?: string;
+  };
+  if (!res.ok || !body.ok) {
+    const err = body.error ?? body.erro ?? "Erro ao alternar publicação.";
+    return { ok: false, error: err, erro: err };
+  }
   return {
     ok: true,
-    isPublished: row.publicada,
-    published: row.publicada,
-    publicada: row.publicada,
+    isPublished: Boolean(body.isPublished),
+    published: Boolean(body.isPublished),
+    publicada: Boolean(body.isPublished),
   };
 }
-
 export const alternarPublicacao = toggleNewsPublication;
 
 export async function deleteNews(
   id: number,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const rows = await sql`DELETE FROM novidades WHERE id = ${id} RETURNING id`;
-  if (rows.length === 0)
-    return { ok: false, error: "Novidade não encontrada.", erro: "Novidade não encontrada." };
+  const res = await fetchApi(`/admin/news/${id}`, { method: "DELETE" });
+  const body = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+    erro?: string;
+  };
+  if (!res.ok || !body.ok) {
+    const err = body.error ?? body.erro ?? "Erro ao apagar novidade.";
+    return { ok: false, error: err, erro: err };
+  }
   return { ok: true };
 }
-
 export const apagarNovidade = deleteNews;
 export const deleteNewsArticle = deleteNews;
-export const createNewsArticle = createNews;

@@ -19,12 +19,12 @@ export default async function RankingPage() {
   const session = await requireSession();
   const ranking = await getElectoralRanking();
 
-  const ordered = ranking.items;
+  const ordered: any[] = ranking.items ?? [];
   const daysLeft = daysUntilCycleEnd();
   const isFinished = daysLeft === 0;
   const activeCount = ranking.activeEditors;
   const milestone = ranking.highestActiveCount;
-  const myRankIdx = ordered.findIndex((e) => e.id === session.id);
+  const myRankIdx = ordered.findIndex((e: any) => e.id === session.id);
 
   return (
     <>
@@ -134,7 +134,7 @@ export default async function RankingPage() {
                     <span>aprovados</span>
                   </div>
 
-                  {ordered.map((e, i) => {
+                  {ordered.map((e: any, i: number) => {
                     const eu = e.id === session.id;
                     const pos = i + 1;
                     const level =

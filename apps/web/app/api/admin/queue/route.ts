@@ -1,37 +1,9 @@
-import { NextResponse } from "next/server";
-import { moveInQueue, type QueueMovement } from "@/lib/overview-db";
-import { readSession } from "@/lib/server-session";
+import { forwardToApi } from "@/lib/internal-api";
 
-export async function POST(request: Request) {
-  const session = await readSession();
-  if (!session)
-    return NextResponse.json({ error: "Faça login.", erro: "Faça login." }, { status: 401 });
-  if (session.role !== "admin") {
-    return NextResponse.json({ error: "Só o inspetor.", erro: "Só o inspetor." }, { status: 403 });
-  }
+export function GET(request: Request) {
+  return forwardToApi(request);
+}
 
-  const body = await request.json().catch(() => null);
-  const id = body?.id;
-  const rawMovement = body?.movement ?? body?.movimento;
-  const movement: QueueMovement =
-    rawMovement === "top" || rawMovement === "topo"
-      ? "top"
-      : rawMovement === "up" || rawMovement === "subir"
-        ? "up"
-        : rawMovement === "down" || rawMovement === "descer"
-          ? "down"
-          : ("up" as QueueMovement);
-
-  if (typeof id !== "number" || !Number.isFinite(id)) {
-    return NextResponse.json(
-      { error: "Identificador de missão inválido.", erro: "Missão inválida." },
-      { status: 400 },
-    );
-  }
-
-  const result = await moveInQueue(id, movement);
-  if (!result.ok)
-    return NextResponse.json({ error: result.error, erro: result.error }, { status: 400 });
-
-  return NextResponse.json({ ok: true });
+export function POST(request: Request) {
+  return forwardToApi(request);
 }

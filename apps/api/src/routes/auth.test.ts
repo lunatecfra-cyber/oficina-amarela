@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe, test } from "node:test";
+import { after, beforeEach, describe, test } from "node:test";
+import { COOKIE_NAME } from "@oficina/auth/session";
+import { sql } from "@oficina/db/client";
+import { clearSessionRevocationCache } from "@oficina/db/session-revocation";
+import { hashPassword } from "../account-registration.ts";
+import { createApp } from "../app.ts";
+import { postgresApiDependencies } from "../dependencies.ts";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 if (TEST_DATABASE_URL) {
@@ -9,13 +15,7 @@ if (TEST_DATABASE_URL) {
 
 describe("autenticação na API", {
   skip: TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado",
-}, async () => {
-  const { sql } = await import("@oficina/db/client");
-  const { COOKIE_NAME } = await import("@oficina/auth/session");
-  const { hashPassword } = await import("../account-registration.ts");
-  const { createApp } = await import("../app.ts");
-  const { postgresApiDependencies } = await import("../dependencies.ts");
-
+}, () => {
   let sentRecoveries: string[] = [];
   const app = createApp({
     ...postgresApiDependencies,
@@ -37,22 +37,19 @@ describe("autenticação na API", {
     await sql`DELETE FROM users WHERE email LIKE ${MARK}`;
   }
 
-  before(async () => {
+  beforeEach(async () => {
+    clearSessionRevocationCache();
+    sentRecoveries = [];
     await cleanup();
     const hash = await hashPassword("senha-correta");
     await sql`
-        INSERT INTO users (apelido, nome, email, senha_hash, papel)
-        VALUES ('editor.auth', 'Editor Auth', 'editor@auth.local', ${hash}, 'editor')
+        INSERT INTO users (apelido, nome, email, senha_hash, papel, sessoes_validas_apos)
+        VALUES ('editor.auth', 'Editor Auth', 'editor@auth.local', ${hash}, 'editor', '1970-01-01 00:00:00+00')
       `;
-  });
-
-  beforeEach(() => {
-    sentRecoveries = [];
   });
 
   after(async () => {
     await cleanup();
-    await sql.end();
   });
 
   test("login correto devolve sessão em cookie httpOnly", async () => {

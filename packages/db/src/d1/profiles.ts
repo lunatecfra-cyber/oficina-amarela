@@ -1,12 +1,6 @@
 import type { Candidate } from "@oficina/domain/candidates";
 import { isValidPhoto, LIMITS, limitList, limitOrNull, limitStr } from "@oficina/domain/limits";
-import type {
-  EditorProfile,
-  EditorRanking,
-  HistoryItem,
-  PortfolioItem,
-  Tier,
-} from "@oficina/domain/profile";
+import type { HistoryItem, PortfolioItem, Tier } from "@oficina/domain/profile";
 import {
   normalizeGrid,
   normalizeList,
@@ -45,7 +39,12 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         const headlineJson = data.headline ? JSON.stringify(limitList(data.headline, 5)) : null;
         await db
           .prepare("UPDATE users SET headline = ?, bio = ?, localizacao = ? WHERE id = ?")
-          .bind(headlineJson, limitOrNull(data.bio, LIMITS.bio), limitOrNull(loc, LIMITS.location), userId)
+          .bind(
+            headlineJson,
+            limitOrNull(data.bio, LIMITS.bio),
+            limitOrNull(loc, LIMITS.location),
+            userId,
+          )
           .run();
         return { ok: true };
       } catch (err) {
@@ -233,7 +232,9 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
               link_video: string | null;
             }>(),
           db
-            .prepare("SELECT nome, icone FROM conquistas WHERE user_id = ? ORDER BY conquistada_em DESC")
+            .prepare(
+              "SELECT nome, icone FROM conquistas WHERE user_id = ? ORDER BY conquistada_em DESC",
+            )
             .bind(account.id)
             .all<{ nome: string; icone: string | null }>(),
           db
@@ -481,7 +482,8 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
       }
 
       const office = data.politicalOffice ?? data.role ?? data.cargo;
-      if (!office?.trim()) return { ok: false, error: "Escolha o cargo.", erro: "Escolha o cargo." };
+      if (!office?.trim())
+        return { ok: false, error: "Escolha o cargo.", erro: "Escolha o cargo." };
 
       const loc = data.location ?? data.localizacao;
       if (!loc?.trim())

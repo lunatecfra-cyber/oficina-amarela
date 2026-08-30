@@ -3,8 +3,8 @@ import Link from "next/link";
 import { DeleteAccount } from "@/components/delete-account";
 import { EditCandidateProfileForm } from "@/components/edit-candidate-profile-form";
 import { SetPassword } from "@/components/set-password";
-import { accountHasPassword } from "@/lib/accounts";
 import { readCandidateOnboarding } from "@/lib/candidate-db";
+import { accountHasPassword } from "@/lib/profile-db";
 import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Editar perfil — Oficina Amarela" };

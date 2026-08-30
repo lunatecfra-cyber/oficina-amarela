@@ -57,6 +57,5 @@ describe("escopo de banco por requisição", {
   test("fora de escopo o cliente global continua atendendo", async () => {
     const [row] = (await sql`SELECT 1 AS ok`) as unknown as { ok: number }[];
     assert.equal(Number(row.ok), 1);
-    await sql.end();
   });
 });

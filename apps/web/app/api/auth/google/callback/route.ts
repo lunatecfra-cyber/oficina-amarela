@@ -12,7 +12,7 @@ import {
 } from "@oficina/auth/session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { findGoogleAccount } from "@/lib/accounts";
+import { fetchApi } from "@/lib/internal-api";
 import { exchangeCodeForProfile } from "@/lib/oauth-google";
 
 function errorRedirect(origin: string, reason: string) {
@@ -43,9 +43,25 @@ export async function GET(request: Request) {
     return errorRedirect(url.origin, "Could not confirm Google account identity.");
   }
 
-  const result = await findGoogleAccount(googleProfile.googleId, googleProfile.email);
-  if (!result.ok) {
-    return errorRedirect(url.origin, result.error);
+  const res = await fetchApi("/auth/google/find", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ googleId: googleProfile.googleId, email: googleProfile.email }),
+  });
+  const result = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+    account?: {
+      id: number;
+      handle: string;
+      name: string;
+      email: string;
+      role: "editor" | "spokesperson" | "admin";
+    } | null;
+  };
+
+  if (!res.ok || !result.ok) {
+    return errorRedirect(url.origin, result.error ?? "Erro ao autenticar com Google.");
   }
 
   if (result.account) {

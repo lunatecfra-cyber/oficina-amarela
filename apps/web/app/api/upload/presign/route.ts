@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isRateLocked, recordAttempt } from "@/lib/accounts";
+import { fetchApi } from "@/lib/internal-api";
 import { generatePresignedUploadUrl } from "@/lib/r2";
 import { readSession } from "@/lib/server-session";
 
@@ -12,9 +12,6 @@ const ACCEPTED_MIME_TYPES = new Set([
 
 const MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
 
-// O limite mora no banco, não em memória de processo: um Map de módulo vive por
-// isolate, e nos Workers isso significa um contador novo a cada isolate criado —
-// na prática, limite nenhum.
 const WINDOW_MINUTES = 60;
 const MAX_PER_HOUR = 10;
 
@@ -29,8 +26,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const limit = await isRateLocked(uploadKey(session.id));
-  if (limit.locked) {
+  const limitRes = await fetchApi("/auth/rate-limit/check", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ key: uploadKey(session.id) }),
+  });
+  const limit = (await limitRes.json().catch(() => ({ locked: false }))) as { locked?: boolean };
+
+  if (limit?.locked) {
     return NextResponse.json(
       {
         error: "Muitos envios na última hora. Tente de novo mais tarde.",
@@ -76,7 +79,16 @@ export async function POST(request: Request) {
     );
   }
 
-  await recordAttempt(uploadKey(session.id), MAX_PER_HOUR, WINDOW_MINUTES, WINDOW_MINUTES);
+  await fetchApi("/auth/rate-limit/record", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      key: uploadKey(session.id),
+      max: MAX_PER_HOUR,
+      windowMinutes: WINDOW_MINUTES,
+      lockMinutes: WINDOW_MINUTES,
+    }),
+  });
 
   const timestamp = Date.now();
   const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, "_");

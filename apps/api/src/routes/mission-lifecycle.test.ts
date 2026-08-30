@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test, { after, before, beforeEach, describe } from "node:test";
-import type { Bindings } from "../app.ts";
+import { COOKIE_NAME, createSessionToken } from "@oficina/auth/session";
+import { sql } from "@oficina/db/client";
+import { clearSessionRevocationCache } from "@oficina/db/session-revocation";
+import { type Bindings, createApp } from "../app.ts";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 if (TEST_DATABASE_URL) {
@@ -10,11 +13,7 @@ if (TEST_DATABASE_URL) {
 
 const skip = TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado";
 
-describe("ciclo de vida da missão na API", { skip }, async () => {
-  const { sql } = await import("@oficina/db/client");
-  const { COOKIE_NAME, createSessionToken } = await import("@oficina/auth/session");
-  const { createApp } = await import("../app.ts");
-
+describe("ciclo de vida da missão na API", { skip }, () => {
   const app = createApp();
   let spokespersonId: number;
   let otherSpokespersonId: number;
@@ -55,16 +54,17 @@ describe("ciclo de vida da missão na API", { skip }, async () => {
   });
 
   beforeEach(async () => {
+    clearSessionRevocationCache();
     await sql`TRUNCATE fila_emails, gamificacao_eventos, ofertas, pautas, users RESTART IDENTITY CASCADE`;
 
     const users = await sql`
-      INSERT INTO users (apelido, nome, email, papel)
+      INSERT INTO users (apelido, nome, email, papel, sessoes_validas_apos)
       VALUES
-        ('voz.api.ciclo', 'Voz API Ciclo', 'voz.ciclo@teste.local', 'voz'),
-        ('voz.api.outra', 'Outra Voz API', 'outra.voz@teste.local', 'voz'),
-        ('editor.api.ciclo', 'Editor API Ciclo', 'editor.ciclo@teste.local', 'editor'),
-        ('editor.api.outro', 'Outro Editor API', 'outro.editor@teste.local', 'editor'),
-        ('admin.api.ciclo', 'Admin API Ciclo', 'admin.ciclo@teste.local', 'admin')
+        ('voz.api.ciclo', 'Voz API Ciclo', 'voz.ciclo@teste.local', 'voz', '1970-01-01 00:00:00+00'),
+        ('voz.api.outra', 'Outra Voz API', 'outra.voz@teste.local', 'voz', '1970-01-01 00:00:00+00'),
+        ('editor.api.ciclo', 'Editor API Ciclo', 'editor.ciclo@teste.local', 'editor', '1970-01-01 00:00:00+00'),
+        ('editor.api.outro', 'Outro Editor API', 'outro.editor@teste.local', 'editor', '1970-01-01 00:00:00+00'),
+        ('admin.api.ciclo', 'Admin API Ciclo', 'admin.ciclo@teste.local', 'admin', '1970-01-01 00:00:00+00')
       RETURNING id
     `;
     [spokespersonId, otherSpokespersonId, editorId, otherEditorId, adminId] = users.map(
@@ -80,7 +80,6 @@ describe("ciclo de vida da missão na API", { skip }, async () => {
 
   after(async () => {
     await sql`TRUNCATE fila_emails, gamificacao_eventos, ofertas, pautas, users RESTART IDENTITY CASCADE`;
-    await sql.end();
   });
 
   async function createMission(status: string, reservedBy: number | null = null) {

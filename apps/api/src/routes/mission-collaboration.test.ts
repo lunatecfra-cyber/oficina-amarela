@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, test } from "node:test";
+import { COOKIE_NAME, createSessionToken } from "@oficina/auth/session";
+import { sql } from "@oficina/db/client";
+import { clearSessionRevocationCache } from "@oficina/db/session-revocation";
+import { createApp } from "../app.ts";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 if (TEST_DATABASE_URL) {
@@ -9,10 +13,7 @@ if (TEST_DATABASE_URL) {
 
 describe("colaboração da missão na API", {
   skip: TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado",
-}, async () => {
-  const { sql } = await import("@oficina/db/client");
-  const { COOKIE_NAME, createSessionToken } = await import("@oficina/auth/session");
-  const { createApp } = await import("../app.ts");
+}, () => {
   const app = createApp();
   let missionId: number;
   let spokespersonId: number;
@@ -41,13 +42,14 @@ describe("colaboração da missão na API", {
   });
 
   beforeEach(async () => {
+    clearSessionRevocationCache();
     await sql`TRUNCATE denuncias, mensagens, ofertas, pautas, users RESTART IDENTITY CASCADE`;
     const users = await sql`
-        INSERT INTO users (apelido, nome, email, papel)
+        INSERT INTO users (apelido, nome, email, papel, sessoes_validas_apos)
         VALUES
-          ('voz.chat', 'Voz Chat', 'voz.chat@teste.local', 'voz'),
-          ('editor.chat', 'Editor Chat', 'editor.chat@teste.local', 'editor'),
-          ('fora.chat', 'Fora Chat', 'fora.chat@teste.local', 'editor')
+          ('voz.chat', 'Voz Chat', 'voz.chat@teste.local', 'voz', '1970-01-01 00:00:00+00'),
+          ('editor.chat', 'Editor Chat', 'editor.chat@teste.local', 'editor', '1970-01-01 00:00:00+00'),
+          ('fora.chat', 'Fora Chat', 'fora.chat@teste.local', 'editor', '1970-01-01 00:00:00+00')
         RETURNING id
       `;
     [spokespersonId, editorId, outsiderId] = users.map((user) => user.id as number);
@@ -64,7 +66,6 @@ describe("colaboração da missão na API", {
 
   after(async () => {
     await sql`TRUNCATE denuncias, mensagens, ofertas, pautas, users RESTART IDENTITY CASCADE`;
-    await sql.end();
   });
 
   test("exige sessão em PT-BR", async () => {

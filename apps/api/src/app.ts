@@ -9,10 +9,13 @@ import {
 } from "./dependencies.ts";
 import { createAdminInvitationRoutes } from "./routes/admin-invitations.ts";
 import { createAdminRankingRoutes } from "./routes/admin-ranking.ts";
+import { createAdminManagementRoutes } from "./routes/admin-routes.ts";
 import { createAuthRoutes } from "./routes/auth.ts";
+import { createContentRoutes } from "./routes/content.ts";
 import { createEditorQueue } from "./routes/editor-queue.ts";
 import { createMissionCollaborationRoutes } from "./routes/mission-collaboration.ts";
 import { createMissionLifecycleRoutes } from "./routes/mission-lifecycle.ts";
+import { createMissionsCrudRoutes } from "./routes/missions-crud.ts";
 import { createProfileRoutes } from "./routes/profiles.ts";
 import { createRankingRoutes } from "./routes/ranking.ts";
 
@@ -104,13 +107,16 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
   app.get("/health", (c) => c.json({ ok: true, service: "oficina-amarela-api" }));
 
   app.route("/admin/invitations", createAdminInvitationRoutes(dependencies));
-  app.route("/auth", createAuthRoutes(dependencies));
-  app.route("/", createRankingRoutes(dependencies));
-  app.route("/", createProfileRoutes(dependencies));
   app.route("/admin/ranking", createAdminRankingRoutes(dependencies));
+  app.route("/", createContentRoutes(dependencies));
+  app.route("/admin", createAdminManagementRoutes(dependencies));
+  app.route("/auth", createAuthRoutes(dependencies));
   app.route("/editor/queue", createEditorQueue(dependencies));
   app.route("/missions", createMissionCollaborationRoutes(dependencies));
   app.route("/missions", createMissionLifecycleRoutes(dependencies));
+  app.route("/", createRankingRoutes(dependencies));
+  app.route("/", createProfileRoutes(dependencies));
+  app.route("/", createMissionsCrudRoutes(dependencies));
 
   app.notFound((c) =>
     c.json({ error: "Rota não encontrada.", requestId: c.get("requestId") }, 404),

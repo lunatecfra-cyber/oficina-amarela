@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe, test } from "node:test";
+import { after, beforeEach, describe, test } from "node:test";
+import { COOKIE_NAME, createSessionToken } from "@oficina/auth/session";
+import { sql } from "@oficina/db/client";
+import { clearSessionRevocationCache } from "@oficina/db/session-revocation";
+import { createApp } from "../app.ts";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 if (TEST_DATABASE_URL) {
@@ -9,10 +13,7 @@ if (TEST_DATABASE_URL) {
 
 describe("correções do ranking na API", {
   skip: TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado",
-}, async () => {
-  const { sql } = await import("@oficina/db/client");
-  const { COOKIE_NAME, createSessionToken } = await import("@oficina/auth/session");
-  const { createApp } = await import("../app.ts");
+}, () => {
   const app = createApp();
 
   let adminId: number;
@@ -27,8 +28,8 @@ describe("correções do ranking na API", {
 
   async function createUser(handle: string, papel: "voz" | "editor" | "admin") {
     const [user] = await sql`
-        INSERT INTO users (apelido, nome, email, senha_hash, papel)
-        VALUES (${handle}, ${handle}, ${`${handle}@ranking.local`}, 'x', ${papel})
+        INSERT INTO users (apelido, nome, email, senha_hash, papel, sessoes_validas_apos)
+        VALUES (${handle}, ${handle}, ${`${handle}@ranking.local`}, 'x', ${papel}, '1970-01-01 00:00:00+00')
         RETURNING id
       `;
     return Number(user.id);
@@ -44,8 +45,15 @@ describe("correções do ranking na API", {
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
 
-  before(async () => {
+  async function cleanup() {
+    await sql`DELETE FROM bloqueios_constancia WHERE editor_id IN (SELECT id FROM users WHERE email LIKE '%@ranking.local')`;
+    await sql`DELETE FROM auditoria_admin WHERE ator_id IN (SELECT id FROM users WHERE email LIKE '%@ranking.local')`;
     await sql`DELETE FROM users WHERE email LIKE '%@ranking.local'`;
+  }
+
+  beforeEach(async () => {
+    clearSessionRevocationCache();
+    await cleanup();
     adminId = await createUser("inspetor-ranking", "admin");
     editorId = await createUser("editor-ranking", "editor");
     const spokespersonId = await createUser("voz-ranking", "voz");
@@ -54,16 +62,8 @@ describe("correções do ranking na API", {
     spokespersonCookie = await cookieFor(spokespersonId, "voz-ranking", "spokesperson");
   });
 
-  beforeEach(async () => {
-    await sql`DELETE FROM bloqueios_constancia WHERE editor_id = ${editorId}`;
-    await sql`DELETE FROM auditoria_admin WHERE ator_id = ${adminId}`;
-  });
-
   after(async () => {
-    await sql`DELETE FROM bloqueios_constancia WHERE editor_id = ${editorId}`;
-    await sql`DELETE FROM auditoria_admin WHERE ator_id = ${adminId}`;
-    await sql`DELETE FROM users WHERE email LIKE '%@ranking.local'`;
-    await sql.end();
+    await cleanup();
   });
 
   test("anônimo não lê auditoria nem corrige ranking", async () => {

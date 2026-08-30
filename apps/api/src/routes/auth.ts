@@ -223,5 +223,130 @@ export function createAuthRoutes(dependencies: ApiDependencies) {
     return c.json({ ok: true });
   });
 
+  routes.post("/rate-limit/check", async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const key = String(body?.key ?? "");
+    const result = await accounts.isRateLocked(key);
+    return c.json(result);
+  });
+
+  routes.post("/rate-limit/record", async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const key = String(body?.key ?? "");
+    const max = Number(body?.max ?? 10);
+    const windowMinutes = Number(body?.windowMinutes ?? 15);
+    const lockMinutes = Number(body?.lockMinutes ?? 15);
+    const result = await accounts.recordAttempt(key, max, windowMinutes, lockMinutes);
+    return c.json(result);
+  });
+
+  routes.post("/google/find", async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const googleId = String(body?.googleId ?? "");
+    const email = String(body?.email ?? "")
+      .trim()
+      .toLowerCase();
+
+    if (!googleId || !email) {
+      return c.json({ error: "Parâmetros inválidos." }, 400);
+    }
+
+    const byGoogle = await accounts.findByGoogleId(googleId);
+    if (byGoogle) {
+      if (byGoogle.banned) {
+        return c.json({ error: "Conta suspensa. Fale com a fiscalização." }, 403);
+      }
+      return c.json({
+        ok: true,
+        account: {
+          id: byGoogle.id,
+          handle: byGoogle.handle,
+          name: byGoogle.name,
+          email: byGoogle.email,
+          role: byGoogle.role,
+        },
+      });
+    }
+
+    const byEmail = await accounts.findByEmail(email);
+    if (byEmail) {
+      if (byEmail.banned) {
+        return c.json({ error: "Conta suspensa. Fale com a fiscalização." }, 403);
+      }
+      const linked = await accounts.linkGoogleId(byEmail.id, googleId);
+      if (!linked) {
+        return c.json({ error: "Este e-mail já está vinculado a outra conta." }, 409);
+      }
+      return c.json({
+        ok: true,
+        account: {
+          id: linked.id,
+          handle: linked.handle,
+          name: linked.name,
+          email: linked.email,
+          role: linked.role,
+        },
+      });
+    }
+
+    return c.json({ ok: true, account: null });
+  });
+
+  routes.post("/google/register", async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const rawRole = body?.role ?? body?.papel;
+    if (rawRole !== "spokesperson" && rawRole !== "voz" && rawRole !== "editor") {
+      return c.json({ error: "Escolha se você é candidato ou editor." }, 400);
+    }
+
+    const email = String(body?.email ?? "").toLowerCase();
+    let baseHandle = email
+      .split("@")[0]
+      .replace(/[^a-zA-Z0-9._]/g, "")
+      .slice(0, 18);
+    if (baseHandle.length < 3) baseHandle = `user.${baseHandle}`;
+    let handle = baseHandle;
+    let attempt = 0;
+    while (await accounts.findByHandle(handle)) {
+      attempt++;
+      const suffix = Math.floor(1000 + Math.random() * 9000);
+      handle = `${baseHandle.slice(0, 18)}.${suffix}`;
+      if (attempt > 10) break;
+    }
+
+    const result = await registerAccount(
+      accounts,
+      dependencies.invitationRedemption,
+      {
+        name: body?.name ?? body?.nome ?? handle,
+        handle,
+        email,
+        role: rawRole,
+        googleId: String(body?.googleId ?? ""),
+        avatarUrl: body?.avatarUrl
+          ? String(body.avatarUrl)
+          : body?.picture
+            ? String(body.picture)
+            : null,
+        invitation: body?.invitation ? String(body.invitation) : null,
+        referralCode: body?.referralCode ? String(body.referralCode) : null,
+      },
+      { requirePassword: false },
+    );
+
+    if (!result.ok) return c.json({ error: result.error }, result.status);
+
+    setCookie(c, COOKIE_NAME, await createSessionToken(result.account), COOKIE_OPTS);
+    await dependencies
+      .recordGamificationEvent(
+        result.account.id,
+        "daily_login",
+        new Date().toISOString().slice(0, 10),
+      )
+      .catch(() => {});
+
+    return c.json({ ok: true, ...result.account });
+  });
+
   return routes;
 }

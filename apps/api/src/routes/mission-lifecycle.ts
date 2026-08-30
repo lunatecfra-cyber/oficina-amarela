@@ -60,9 +60,9 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
   const routes = new Hono<MissionEnv>();
   routes.use("*", requireSession);
 
-  routes.post("/:id", async (c) => {
+  routes.post("/:id", async (c, next) => {
     const missionId = Number(c.req.param("id").replace(/^db-/, ""));
-    if (!Number.isInteger(missionId)) return c.json({ error: "Missão inválida." }, 400);
+    if (!Number.isInteger(missionId)) return next();
 
     const body = await c.req.json().catch(() => null);
     const action = migratedMissionAction(body?.action ?? body?.acao);

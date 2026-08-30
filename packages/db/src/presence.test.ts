@@ -21,7 +21,6 @@ describe("presença do editor", { skip }, async () => {
 
   after(async () => {
     await sql`DELETE FROM users WHERE email = 'presenca@teste.local'`;
-    await sql.end();
   });
 
   test("presença não regrava dentro da janela", async () => {

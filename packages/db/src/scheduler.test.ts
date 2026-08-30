@@ -32,7 +32,6 @@ describe("trava de periodicidade", { skip }, async () => {
 
   after(async () => {
     await sql`DELETE FROM tarefas_periodicas WHERE nome = ${TASK}`;
-    await sql.end();
   });
 
   test("a primeira chamada ganha e a seguinte não", async () => {

@@ -1,10 +1,15 @@
-import { COOKIE_NAME, COOKIE_OPTS, createSessionToken, type UserSession } from "@oficina/auth/session";
+import {
+  COOKIE_NAME,
+  COOKIE_OPTS,
+  createSessionToken,
+  type UserSession,
+} from "@oficina/auth/session";
 import bcrypt from "bcryptjs";
 import { Hono } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
-import { requireAdmin, requireEditor, requireSession, requireSpokesperson } from "../session.ts";
+import { requireEditor, requireSession, requireSpokesperson } from "../session.ts";
 
 type ProfileEnv = {
   Bindings: Bindings;
@@ -17,7 +22,8 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
   routes.get("/profile", requireSession, async (c) => {
     const session = c.get("session");
     const profile = await dependencies.profiles.readEditableProfile(session.id);
-    if (!profile) return c.json({ error: "Perfil não encontrado.", erro: "Perfil não encontrado." }, 404);
+    if (!profile)
+      return c.json({ error: "Perfil não encontrado.", erro: "Perfil não encontrado." }, 404);
     return c.json(profile);
   });
 
@@ -35,6 +41,18 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
     const session = c.get("session");
     const onboarding = await dependencies.profiles.readEditorOnboarding(session.id);
     return c.json(onboarding ?? null);
+  });
+
+  routes.get("/editor/challenges", requireEditor, async (c) => {
+    const session = c.get("session");
+    const challenges = await dependencies.gamification.listDailyChallenges(session.id);
+    return c.json(challenges);
+  });
+
+  routes.post("/editor/daily-login", requireEditor, async (c) => {
+    const session = c.get("session");
+    const result = await dependencies.gamification.recordDailyLogin(session.id);
+    return c.json(result);
   });
 
   routes.post("/editor/profile", requireEditor, async (c) => {
@@ -61,8 +79,11 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
   routes.get("/editor/profile/:handleOrId", async (c) => {
     const handleOrId = c.req.param("handleOrId");
     const isNum = /^\d+$/.test(handleOrId);
-    const profile = await dependencies.profiles.readEditorProfile(isNum ? Number(handleOrId) : handleOrId);
-    if (!profile) return c.json({ error: "Editor não encontrado.", erro: "Editor não encontrado." }, 404);
+    const profile = await dependencies.profiles.readEditorProfile(
+      isNum ? Number(handleOrId) : handleOrId,
+    );
+    if (!profile)
+      return c.json({ error: "Editor não encontrado.", erro: "Editor não encontrado." }, 404);
     return c.json(profile);
   });
 
@@ -92,14 +113,16 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
   routes.get("/spokesperson/own", requireSpokesperson, async (c) => {
     const session = c.get("session");
     const own = await dependencies.profiles.readOwnCandidate(session.id);
-    if (!own) return c.json({ error: "Candidato não encontrado.", erro: "Candidato não encontrado." }, 404);
+    if (!own)
+      return c.json({ error: "Candidato não encontrado.", erro: "Candidato não encontrado." }, 404);
     return c.json(own);
   });
 
   routes.get("/candidates/:slug", async (c) => {
     const slug = c.req.param("slug");
     const candidate = await dependencies.profiles.readPublicCandidate(slug);
-    if (!candidate) return c.json({ error: "Candidato não encontrado.", erro: "Candidato não encontrado." }, 404);
+    if (!candidate)
+      return c.json({ error: "Candidato não encontrado.", erro: "Candidato não encontrado." }, 404);
     return c.json(candidate);
   });
 
@@ -168,6 +191,25 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
     });
 
     return c.json({ ok: true });
+  });
+
+  routes.get("/account", requireSession, async (c) => {
+    const session = c.get("session");
+    const acc = await dependencies.accounts.findByHandle(session.handle);
+    const hasPassword = Boolean(acc?.passwordHash);
+    return c.json({
+      hasPassword,
+      temSenha: hasPassword,
+      account: acc
+        ? {
+            id: acc.id,
+            handle: acc.handle,
+            name: acc.name,
+            email: acc.email,
+            role: acc.role,
+          }
+        : null,
+    });
   });
 
   return routes;

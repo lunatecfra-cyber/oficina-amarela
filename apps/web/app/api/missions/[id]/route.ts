@@ -7,3 +7,7 @@ export function GET(request: Request) {
 export function POST(request: Request) {
   return forwardToApi(request);
 }
+
+export function DELETE(request: Request) {
+  return forwardToApi(request);
+}

@@ -79,7 +79,7 @@ const requestScopedClient = new AsyncLocalStorage<ReturnType<typeof postgres>>()
 
 function newClient(url: string) {
   // prepare: false is required for the transaction pooler
-  return postgres(url, { prepare: false });
+  return postgres(url, { prepare: false, idle_timeout: 1 });
 }
 
 /**
@@ -92,6 +92,12 @@ function newClient(url: string) {
 export async function withRequestDatabase<T>(run: () => Promise<T>): Promise<T> {
   const url = boundDatabaseUrl ?? process.env.DATABASE_URL;
   if (!url) return run();
+
+  // No Node.js / ambiente de testes sem Hyperdrive, o pool global gerencia
+  // as conexões sem criar um cliente novo por requisição (evita esgotamento de conexões).
+  if (!boundDatabaseUrl && typeof navigator === "undefined") {
+    return run();
+  }
 
   const client = newClient(url);
   try {

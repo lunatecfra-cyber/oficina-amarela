@@ -1,6 +1,5 @@
 import { COOKIE_NAME, type UserSession, verifySessionToken } from "@oficina/auth/session";
 import { isDevAuthBypassEnabled } from "@oficina/config/dev-mode";
-import { getSessionRevocationCutoff } from "@oficina/db/session-revocation";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -41,23 +40,7 @@ export async function getSession(): Promise<UserSession | null> {
 
   const session = await verifySessionToken(token);
   if (!session) return null;
-
   if (typeof session.issuedAt !== "number") return null;
-
-  try {
-    const cutoffSeconds = await getSessionRevocationCutoff(session.id);
-
-    if (cutoffSeconds === null) {
-      if (isDevAuthBypassEnabled() && jar.get("workshop_demo_role")?.value === session.role) {
-        return session;
-      }
-      return null;
-    }
-
-    if (session.issuedAt < cutoffSeconds) return null;
-  } catch {
-    // Database transient error: allow valid JWT signature
-  }
 
   return session;
 }
@@ -71,6 +54,5 @@ export async function requireSession(): Promise<UserSession> {
 }
 
 export const exigirSessao = requireSession;
-
 export const readSession = getSession;
 export const getServerSession = getSession;

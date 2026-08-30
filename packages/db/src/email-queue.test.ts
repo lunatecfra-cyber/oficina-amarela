@@ -32,7 +32,6 @@ describe("caixa de saída de e-mail", { skip }, async () => {
 
   after(async () => {
     await sql`DELETE FROM fila_emails WHERE chave LIKE 'teste-%'`;
-    await sql.end();
   });
 
   test("a mesma chave só entra uma vez", async () => {

@@ -5,6 +5,11 @@
 
 import assert from "node:assert/strict";
 import test, { after, before, beforeEach, describe } from "node:test";
+import { COOKIE_NAME, createSessionToken } from "@oficina/auth/session";
+import { sql } from "@oficina/db/client";
+import { postgresMissionQueue as queue } from "@oficina/db/mission-queue";
+import { clearSessionRevocationCache } from "@oficina/db/session-revocation";
+import { createApp } from "../app.ts";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 if (TEST_DATABASE_URL) {
@@ -14,12 +19,7 @@ if (TEST_DATABASE_URL) {
 
 const skip = TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado";
 
-describe("fila do editor na API", { skip }, async () => {
-  const { sql } = await import("@oficina/db/client");
-  const { postgresMissionQueue: queue } = await import("@oficina/db/mission-queue");
-  const { COOKIE_NAME, createSessionToken } = await import("@oficina/auth/session");
-  const { createApp } = await import("../app.ts");
-
+describe("fila do editor na API", { skip }, () => {
   const app = createApp();
 
   let editorId: number;
@@ -43,6 +43,7 @@ describe("fila do editor na API", { skip }, async () => {
   });
 
   beforeEach(async () => {
+    clearSessionRevocationCache();
     await sql`TRUNCATE ofertas, pautas, users RESTART IDENTITY CASCADE`;
     // A varredura do GET é reivindicada uma vez a cada 5s globalmente. Sem
     // limpar a trava, o segundo teste do arquivo cairia na janela do primeiro
@@ -50,14 +51,14 @@ describe("fila do editor na API", { skip }, async () => {
     await sql`DELETE FROM tarefas_periodicas`;
 
     const [voz] = await sql`
-      INSERT INTO users (apelido, nome, email, papel)
-      VALUES ('voz.api', 'Voz API', 'voz.api@teste.local', 'voz') RETURNING id
+      INSERT INTO users (apelido, nome, email, papel, sessoes_validas_apos)
+      VALUES ('voz.api', 'Voz API', 'voz.api@teste.local', 'voz', '1970-01-01 00:00:00+00') RETURNING id
     `;
     spokespersonId = voz.id;
 
     const [editor] = await sql`
-      INSERT INTO users (apelido, nome, email, papel, ultimo_visto_em)
-      VALUES ('editor.api', 'Editor API', 'editor.api@teste.local', 'editor', now())
+      INSERT INTO users (apelido, nome, email, papel, ultimo_visto_em, sessoes_validas_apos)
+      VALUES ('editor.api', 'Editor API', 'editor.api@teste.local', 'editor', now(), '1970-01-01 00:00:00+00')
       RETURNING id
     `;
     editorId = editor.id;
@@ -68,7 +69,6 @@ describe("fila do editor na API", { skip }, async () => {
 
   after(async () => {
     await sql`TRUNCATE ofertas, pautas, users RESTART IDENTITY CASCADE`;
-    await sql.end();
   });
 
   async function createMission() {

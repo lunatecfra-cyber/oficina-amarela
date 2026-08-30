@@ -9,6 +9,8 @@ import type {
 } from "@oficina/domain/profile";
 import { sql } from "./client.ts";
 
+export type { EditorProfile, EditorRanking, HistoryItem, PortfolioItem, Tier };
+
 export type EditableProfile = {
   headline: string[];
   bio: string | null;
@@ -649,8 +651,7 @@ export const postgresProfiles: ProfilesRepository = {
     if (!office?.trim()) return { ok: false, error: "Escolha o cargo.", erro: "Escolha o cargo." };
 
     const loc = data.location ?? data.localizacao;
-    if (!loc?.trim())
-      return { ok: false, error: "Preencha a região.", erro: "Preencha a região." };
+    if (!loc?.trim()) return { ok: false, error: "Preencha a região.", erro: "Preencha a região." };
 
     const running = data.runningFor ?? data.disputaPor;
     const year = data.electionYear ?? data.anoEleicao ?? "2026";

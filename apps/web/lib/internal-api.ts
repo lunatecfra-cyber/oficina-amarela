@@ -138,4 +138,3 @@ async function respondMutable(pending: Promise<Response> | Response): Promise<Re
     headers: new Headers(response.headers),
   });
 }
-

@@ -1,7 +1,4 @@
-import type {
-  EditorProfile,
-  EditorRanking,
-} from "@oficina/domain/profile";
+import type { EditorProfile, EditorRanking } from "@oficina/domain/profile";
 import { fetchApi, fetchApiJson } from "@/lib/internal-api";
 
 export type {
@@ -22,7 +19,9 @@ export type OnboardingEditor = import("@oficina/db/profiles").EditorOnboarding;
 export type PerfilEditor = EditorProfile;
 export type RankingEditor = EditorRanking;
 
-export async function readEditableProfile(_userId?: number): Promise<import("@oficina/db/profiles").EditableProfile | null> {
+export async function readEditableProfile(
+  _userId?: number,
+): Promise<import("@oficina/db/profiles").EditableProfile | null> {
   return fetchApiJson<import("@oficina/db/profiles").EditableProfile>("/profile");
 }
 export const lerPerfilEditavel = readEditableProfile;
@@ -36,7 +35,11 @@ export async function saveEditableProfile(
     headers: { "content-type": "application/json" },
     body: JSON.stringify(data),
   });
-  const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; erro?: string };
+  const body = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+    erro?: string;
+  };
   if (!res.ok || !body.ok) {
     const errorMsg = body.error ?? body.erro ?? "Erro ao salvar perfil.";
     return { ok: false, error: errorMsg, erro: errorMsg };
@@ -45,7 +48,9 @@ export async function saveEditableProfile(
 }
 export const salvarPerfilEditavel = saveEditableProfile;
 
-export async function readEditorOnboarding(_userId?: number): Promise<import("@oficina/db/profiles").EditorOnboarding | null> {
+export async function readEditorOnboarding(
+  _userId?: number,
+): Promise<import("@oficina/db/profiles").EditorOnboarding | null> {
   return fetchApiJson<import("@oficina/db/profiles").EditorOnboarding>("/editor/profile");
 }
 export const lerOnboardingEditor = readEditorOnboarding;
@@ -59,7 +64,11 @@ export async function saveEditorOnboarding(
     headers: { "content-type": "application/json" },
     body: JSON.stringify(data),
   });
-  const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; erro?: string };
+  const body = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+    erro?: string;
+  };
   if (!res.ok || !body.ok) {
     const errorMsg = body.error ?? body.erro ?? "Erro ao salvar perfil.";
     return { ok: false, error: errorMsg, erro: errorMsg };
@@ -68,7 +77,9 @@ export async function saveEditorOnboarding(
 }
 export const salvarOnboardingEditor = saveEditorOnboarding;
 
-export async function readEditorProfile(handleOrId: string | number): Promise<EditorProfile | null> {
+export async function readEditorProfile(
+  handleOrId: string | number,
+): Promise<EditorProfile | null> {
   return fetchApiJson<EditorProfile>(`/editor/profile/${handleOrId}`);
 }
 export const lerPerfilEditor = readEditorProfile;
@@ -78,3 +89,9 @@ export async function readEditorRanking(limit = 10): Promise<EditorRanking[]> {
   return list ?? [];
 }
 export const rankingEditores = readEditorRanking;
+
+export async function accountHasPassword(_userId?: number): Promise<boolean> {
+  const data = await fetchApiJson<{ hasPassword: boolean }>("/account");
+  return Boolean(data?.hasPassword);
+}
+export const contaTemSenha = accountHasPassword;

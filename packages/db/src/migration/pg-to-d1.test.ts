@@ -93,7 +93,6 @@ describe("ensaio de migração PostgreSQL → D1", {
 
   after(async () => {
     await cleanupPostgres();
-    await sql.end();
     await miniflare.dispose();
   });
 

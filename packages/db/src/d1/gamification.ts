@@ -1,4 +1,10 @@
-import type { GamificationEventType } from "../gamification.ts";
+import {
+  brasiliaDate,
+  type DayChallenge,
+  type GamificationEventType,
+  type GamificationRepository,
+  RULES,
+} from "../gamification.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 /**
@@ -15,8 +21,15 @@ const EVENT_XP = {
   missao_entregue: 40,
 } as const;
 
-export function createD1Gamification(db: D1DatabaseLike) {
-  return async function recordGamificationEvent(
+export function createD1Gamification(
+  db: D1DatabaseLike,
+): GamificationRepository &
+  ((
+    userId: number,
+    ruleId: GamificationEventType,
+    reference: string,
+  ) => Promise<{ recorded: boolean; xp: number; registrado?: boolean }>) {
+  async function recordEvent(
     userId: number,
     ruleId: GamificationEventType,
     reference: string,
@@ -42,5 +55,52 @@ export function createD1Gamification(db: D1DatabaseLike) {
       .run();
 
     return { recorded: true, xp: Number(inserted.xp), registrado: true };
-  };
+  }
+
+  async function recordDailyLogin(
+    userId: number,
+    date = brasiliaDate(),
+  ): Promise<{ recorded: boolean; xp: number; registrado?: boolean }> {
+    return recordEvent(userId, "entrada_diaria", date);
+  }
+
+  async function listDailyChallenges(
+    userId: number,
+    date = brasiliaDate(),
+  ): Promise<DayChallenge[]> {
+    let rows: { regra_id: unknown }[] = [];
+    try {
+      const result = await db
+        .prepare(
+          `SELECT regra_id
+           FROM gamificacao_eventos
+           WHERE user_id = ?
+             AND ((regra_id = 'entrada_diaria' AND referencia = ?)
+               OR (regra_id = 'missao_entregue' AND date(criado_em) >= ?))`,
+        )
+        .bind(userId, date, date)
+        .all<{ regra_id: unknown }>();
+      rows = result.results ?? [];
+    } catch {
+      // Graceful fallback
+    }
+
+    const completedSet = new Set(rows.map((r) => String(r.regra_id)));
+    return Object.values(RULES).map((rule) => {
+      const isCompleted = completedSet.has(rule.id);
+      return {
+        ...rule,
+        completed: isCompleted,
+        cumprido: isCompleted,
+      };
+    });
+  }
+
+  const callable = Object.assign(recordEvent, {
+    recordEvent,
+    recordDailyLogin,
+    listDailyChallenges,
+  });
+
+  return callable;
 }

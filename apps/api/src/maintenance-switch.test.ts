@@ -81,6 +81,7 @@ describe("escolha do conjunto de repositórios", async () => {
   // O que precisa trocar é tudo que lê ou escreve dado.
   const STORE_BACKED = [
     "accounts",
+    "admin",
     "invitationAdmin",
     "invitationRedemption",
     "missionQueue",
@@ -88,10 +89,14 @@ describe("escolha do conjunto de repositórios", async () => {
     "missionCollaboration",
     "missionApproval",
     "missionContacts",
+    "missions",
+    "music",
+    "news",
     "profiles",
     "ranking",
     "rankingAdmin",
     "recordGamificationEvent",
+    "gamification",
   ] as const;
 
   test("com binding D1, todo repositório troca de uma vez", () => {

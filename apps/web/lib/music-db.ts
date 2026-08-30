@@ -1,59 +1,14 @@
-import { sql } from "@/lib/db";
+import type { MusicTrack } from "@oficina/db/music";
+import { fetchApi, fetchApiJson } from "@/lib/internal-api";
 
-export interface MusicTrack {
-  id: string;
-  name: string;
-  tags: string[];
-  url: string;
-  size: number | null;
-  added_by: string | null;
-  created_at: string;
-  // aliases
-  nome?: string;
-  tamanho?: number | null;
-  adicionado_por?: string | null;
-  criado_em?: string;
-}
+export type { MusicTrack };
 export type Musica = MusicTrack;
 
-type LinhaMusica = {
-  id: string;
-  nome: string;
-  tags: string[];
-  url: string;
-  tamanho: number | null;
-  adicionado_por: string | null;
-  criado_em: string;
-};
-
 export async function listMusicTracks(filterTag?: string): Promise<MusicTrack[]> {
-  const rows = filterTag
-    ? await sql`
-        SELECT id, nome, tags, url, tamanho, adicionado_por, criado_em
-        FROM musicas
-        WHERE ${filterTag} = ANY(tags)
-        ORDER BY criado_em DESC
-      `
-    : await sql`
-        SELECT id, nome, tags, url, tamanho, adicionado_por, criado_em
-        FROM musicas
-        ORDER BY criado_em DESC
-      `;
-  return (rows as unknown as LinhaMusica[]).map((r) => ({
-    id: r.id,
-    name: r.nome,
-    tags: r.tags,
-    url: r.url,
-    size: r.tamanho,
-    added_by: r.adicionado_por,
-    created_at: r.criado_em,
-    nome: r.nome,
-    tamanho: r.tamanho,
-    adicionado_por: r.adicionado_por,
-    criado_em: r.criado_em,
-  }));
+  const path = filterTag ? `/tools/music?tag=${encodeURIComponent(filterTag)}` : "/tools/music";
+  const list = await fetchApiJson<MusicTrack[]>(path);
+  return list ?? [];
 }
-
 export const listarMusicas = listMusicTracks;
 
 export async function addMusicTrack(
@@ -61,24 +16,19 @@ export async function addMusicTrack(
   tags: string[],
   url: string,
   size: number | null,
-  addedBy: number,
+  _addedBy: number,
 ): Promise<void> {
-  await sql`
-    INSERT INTO musicas (nome, tags, url, tamanho, adicionado_por)
-    VALUES (${name}, ${tags}, ${url}, ${size}, ${addedBy})
-  `;
+  await fetchApi("/tools/music", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name, tags, url, size }),
+  });
 }
-
 export const adicionarMusica = addMusicTrack;
 
 export async function getAllMusicTags(): Promise<string[]> {
-  const rows = await sql`
-    SELECT DISTINCT unnest(tags) AS tag
-    FROM musicas
-    ORDER BY tag
-  `;
-  return (rows as unknown as { tag: string }[]).map((r) => r.tag);
+  const list = await fetchApiJson<string[]>("/tools/music/tags");
+  return list ?? [];
 }
-
 export const allMusicTags = getAllMusicTags;
 export const todasAsTags = getAllMusicTags;

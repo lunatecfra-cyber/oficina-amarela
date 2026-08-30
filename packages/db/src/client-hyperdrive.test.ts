@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test, { after, describe } from "node:test";
+import { configureDatabaseUrl, sql } from "./client.ts";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 delete process.env.DATABASE_URL;
@@ -7,10 +8,11 @@ delete process.env.DATABASE_URL;
 const skip = TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado";
 
 describe("configuração do banco por binding", { skip }, async () => {
-  const { configureDatabaseUrl, sql } = await import("./client.ts");
-
-  after(async () => {
-    await sql.end();
+  after(() => {
+    if (TEST_DATABASE_URL) {
+      process.env.DATABASE_URL = TEST_DATABASE_URL;
+      configureDatabaseUrl(TEST_DATABASE_URL);
+    }
   });
 
   test("usa a connectionString do Hyperdrive sem DATABASE_URL", async () => {

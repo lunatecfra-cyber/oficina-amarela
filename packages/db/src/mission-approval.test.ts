@@ -48,7 +48,6 @@ describe("aprovação atômica de missão", {
 
   after(async () => {
     await sql`TRUNCATE users RESTART IDENTITY CASCADE`;
-    await sql.end();
   });
 
   test("duas aprovações concorrentes pontuam exatamente uma vez", async () => {

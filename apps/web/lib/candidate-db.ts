@@ -20,7 +20,11 @@ export async function saveCandidateOnboarding(
     headers: { "content-type": "application/json" },
     body: JSON.stringify(data),
   });
-  const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; erro?: string };
+  const body = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+    erro?: string;
+  };
   if (!res.ok || !body.ok) {
     const errorMsg = body.error ?? body.erro ?? "Erro ao salvar perfil.";
     return { ok: false, error: errorMsg, erro: errorMsg };

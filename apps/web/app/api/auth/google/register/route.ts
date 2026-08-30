@@ -10,8 +10,7 @@ import {
 } from "@oficina/auth/session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { checkRoleSlots, createGoogleAccount } from "@/lib/accounts";
-import { recordDailyLogin } from "@/lib/gamification-db";
+import { fetchApi } from "@/lib/internal-api";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -44,29 +43,46 @@ export async function POST(request: Request) {
     );
   }
 
-  const slotCheck = await checkRoleSlots(role);
-  if (!slotCheck.ok) {
-    cookieStore.delete(PENDING_COOKIE_NAME);
-    return NextResponse.json({ error: slotCheck.error, erro: slotCheck.error }, { status: 403 });
-  }
-
   const invitation = cookieStore.get(INVITATION_COOKIE_NAME)?.value;
   const referralCode = cookieStore.get(REFERRAL_COOKIE_NAME)?.value;
 
-  const result = await createGoogleAccount({ ...pending, role, invitation, referralCode });
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error, erro: result.error }, { status: 400 });
+  const res = await fetchApi("/auth/google/register", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      ...pending,
+      role,
+      invitation,
+      referralCode,
+    }),
+  });
+
+  const result = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+    id?: number;
+    handle?: string;
+    name?: string;
+    email?: string;
+    role?: Role;
+  };
+
+  if (!res.ok || !result.ok) {
+    if (res.status === 403) cookieStore.delete(PENDING_COOKIE_NAME);
+    return NextResponse.json({ error: result.error, erro: result.error }, { status: res.status });
   }
 
   cookieStore.delete(PENDING_COOKIE_NAME);
   cookieStore.delete(INVITATION_COOKIE_NAME);
   cookieStore.delete(REFERRAL_COOKIE_NAME);
 
-  const sessionToken = await createSessionToken(result.account);
+  const sessionToken = await createSessionToken({
+    id: Number(result.id),
+    handle: String(result.handle),
+    name: String(result.name),
+    role: (result.role ?? role) as Role,
+  });
   cookieStore.set(COOKIE_NAME, sessionToken, COOKIE_OPTS);
-  void recordDailyLogin(result.account.id).catch((e) =>
-    console.error("[gamification] failed to record login", e),
-  );
 
   const destination =
     role === "editor" ? "/editor/criar-perfil" : "/porta-voz/criar-perfil?via=google";

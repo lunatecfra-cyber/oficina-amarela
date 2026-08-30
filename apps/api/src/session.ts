@@ -23,7 +23,8 @@ export async function readSession(c: Context): Promise<UserSession | null> {
   try {
     const cutoffSeconds = await getSessionRevocationCutoff(session.id);
     if (cutoffSeconds === null) return null;
-    if (session.issuedAt < cutoffSeconds) return null;
+    // Tolerância de 2s para desvios de relógio de subsegundo na criação de conta/sessão.
+    if (session.issuedAt < cutoffSeconds - 2) return null;
   } catch {
     // Erro transitório de banco: aceita a assinatura válida, como no apps/web.
   }

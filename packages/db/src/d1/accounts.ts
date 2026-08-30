@@ -70,9 +70,9 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
         const created = await db
           .prepare(
             `INSERT INTO users (
-               apelido, nome, email, senha_hash, google_id, papel, foto_url, indicado_por_id
+               apelido, nome, email, senha_hash, google_id, papel, foto_url, indicado_por_id, sessoes_validas_apos
              )
-             VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT id FROM users WHERE codigo_indicacao = ?))
+             VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT id FROM users WHERE codigo_indicacao = ?), '1970-01-01T00:00:00.000Z')
              RETURNING id`,
           )
           .bind(

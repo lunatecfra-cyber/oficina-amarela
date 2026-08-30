@@ -133,11 +133,12 @@ export const postgresAccounts: AccountsRepository = {
     try {
       const [row] = await sql`
         INSERT INTO users (
-          apelido, nome, email, senha_hash, google_id, papel, foto_url, indicado_por_id
+          apelido, nome, email, senha_hash, google_id, papel, foto_url, indicado_por_id, sessoes_validas_apos
         ) VALUES (
           ${input.handle}, ${input.name}, ${input.email}, ${input.passwordHash ?? null},
           ${input.googleId ?? null}, ${roleToDb(input.role)}, ${input.avatarUrl ?? null},
-          (SELECT id FROM users WHERE codigo_indicacao = ${input.referralCode ?? null}::uuid)
+          (SELECT id FROM users WHERE codigo_indicacao = ${input.referralCode ?? null}::uuid),
+          '1970-01-01 00:00:00+00'
         )
         RETURNING id
       `;

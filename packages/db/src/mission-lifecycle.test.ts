@@ -36,7 +36,6 @@ describe("ciclo de vida da missão", { skip }, async () => {
 
   after(async () => {
     await sql`TRUNCATE ofertas, pautas, users RESTART IDENTITY CASCADE`;
-    await sql.end();
   });
 
   async function createMission(status: string, reservedBy: number | null = null) {

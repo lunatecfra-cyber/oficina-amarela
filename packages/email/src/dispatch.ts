@@ -45,3 +45,29 @@ export async function queueMissionNotification(
     },
   ]);
 }
+
+export async function queueBroadcastEmail(
+  to: string,
+  name: string,
+  subject: string,
+  message: string,
+): Promise<void> {
+  const minute = new Date().toISOString().slice(0, 16);
+  await enqueueEmails([
+    {
+      key: `broadcast:${to.toLowerCase()}:${minute}`,
+      to,
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1c1c22;">
+          <h1 style="font-size: 20px; color: #a9840e;">Oficina Amarela</h1>
+          <p>Oi, ${name}.</p>
+          <p>${message}</p>
+          <p style="font-size: 12px; color: #888; margin-top: 28px; border-top: 1px solid #eee; padding-top: 12px;">
+            Você recebe este comunicado da administração da Oficina Amarela.
+          </p>
+        </div>
+      `,
+    },
+  ]);
+}

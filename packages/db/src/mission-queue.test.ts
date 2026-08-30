@@ -13,7 +13,7 @@
 //   TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test
 
 import assert from "node:assert/strict";
-import test, { after, before, beforeEach, describe } from "node:test";
+import test, { before, beforeEach, describe } from "node:test";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 if (TEST_DATABASE_URL) process.env.DATABASE_URL = TEST_DATABASE_URL;
@@ -294,11 +294,5 @@ describe("concorrência da fila de missões", { skip }, async () => {
         )
     `;
     assert.equal(row.orfas, 0);
-  });
-
-  // Em after(): se um assert do before() falhar, o pool ainda fecha e o processo
-  // não trava esperando conexão ociosa.
-  after(async () => {
-    await sql.end();
   });
 });

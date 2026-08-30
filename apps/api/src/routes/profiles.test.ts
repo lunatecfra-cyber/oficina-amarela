@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { after, before, describe, test } from "node:test";
+import { after, beforeEach, describe, test } from "node:test";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 if (TEST_DATABASE_URL) {
@@ -11,6 +11,7 @@ describe("perfis e onboarding na API", {
   skip: TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado",
 }, async () => {
   const { sql } = await import("@oficina/db/client");
+  const { clearSessionRevocationCache } = await import("@oficina/db/session-revocation");
   const { COOKIE_NAME, createSessionToken } = await import("@oficina/auth/session");
   const { createApp } = await import("../app.ts");
   const app = createApp();
@@ -32,7 +33,8 @@ describe("perfis e onboarding na API", {
     await sql`DELETE FROM users WHERE email LIKE ${MARK}`;
   }
 
-  before(async () => {
+  beforeEach(async () => {
+    clearSessionRevocationCache();
     await cleanup();
     const [editor] = await sql`
         INSERT INTO users (apelido, nome, email, senha_hash, papel)
@@ -63,7 +65,6 @@ describe("perfis e onboarding na API", {
 
   after(async () => {
     await cleanup();
-    await sql.end();
   });
 
   test("perfil editável exige sessão", async () => {
@@ -159,5 +160,24 @@ describe("perfis e onboarding na API", {
     assert.equal(byHandlesRes.status, 200);
     const map = (await byHandlesRes.json()) as Record<string, { name: string }>;
     assert.equal(map["voz.prof"]?.name, "Voz Perfil Oficial");
+  });
+
+  test("desafios diários e login diário", async () => {
+    const loginRes = await app.request("http://api.local/editor/daily-login", {
+      method: "POST",
+      headers: { cookie: editorCookie },
+    });
+    assert.equal(loginRes.status, 200);
+    const loginData = (await loginRes.json()) as { recorded: boolean; xp: number };
+    assert.equal(loginData.recorded, true);
+    assert.equal(loginData.xp, 10);
+
+    const challengesRes = await app.request("http://api.local/editor/challenges", {
+      headers: { cookie: editorCookie },
+    });
+    assert.equal(challengesRes.status, 200);
+    const list = (await challengesRes.json()) as Array<{ id: string; completed: boolean }>;
+    const loginChallenge = list.find((c) => c.id === "entrada_diaria");
+    assert.equal(loginChallenge?.completed, true);
   });
 });

@@ -32,9 +32,9 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
   const routes = new Hono<MissionEnv>();
   routes.use("*", requireSession);
 
-  routes.get("/:id", async (c) => {
+  routes.get("/:id", async (c, next) => {
     const missionId = missionIdOf(c.req.param("id"));
-    if (missionId === null) return c.json({ error: "Missão inválida." }, 400);
+    if (missionId === null) return next();
     const after = c.req.query("after") ?? c.req.query("depois");
     if (after && Number.isNaN(Date.parse(after))) {
       return c.json({ error: "Data de atualização inválida." }, 400);
