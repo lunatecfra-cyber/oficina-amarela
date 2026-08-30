@@ -7,11 +7,19 @@ date:                   2026-08-30
 current model:          Claude Opus 5
 recommended next model: GPT-5.6 Sol  (see "Next Actions" for why)
 repository:             github.com/lunatecfra-cyber/oficina-amarela
-branch:                 infra/cloudflare-scale  (19 commits ahead of master, not pushed)
+branch:                 infra/cloudflare-scale  (19 commits ahead of master, pushed, tracking origin)
 base commit audited:    a37d94e  chore: migra linter e formatador de ESLint para Biome
 HEAD:                   2f16d47  docs(db): explica o que roda e o que é registro em supabase/
 working tree:           clean (.omc/ is now gitignored)
 ```
+
+---
+
+## Read first
+
+`docs/CLOUDFLARE_MASTER_PROMPT.md` is the canonical brief for this initiative —
+mission, language rules, completed work, execution policy, model routing and the
+`NEXT 1..6` order. Read it before this file.
 
 ---
 
@@ -323,7 +331,7 @@ base:                 a37d94e (master, in sync with origin/master at audit time)
 commits ahead:        19
 uncommitted files:    none
 untracked files:      none (.omc/ is gitignored)
-not pushed:           the branch has never been pushed to origin
+remote:               origin/infra/cloudflare-scale, in sync
 ```
 
 One thing to know about this history: `e82ccf4` was amended to drop

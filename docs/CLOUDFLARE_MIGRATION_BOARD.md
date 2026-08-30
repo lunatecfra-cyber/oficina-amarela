@@ -1,6 +1,7 @@
 # Cloudflare Migration Board — Oficina Amarela
 
 > **This file is the engineering source of truth for the Cloudflare scale initiative.**
+> The canonical brief lives in `docs/CLOUDFLARE_MASTER_PROMPT.md` — read that first.
 > Branch: `infra/cloudflare-scale` · Jira: ONCA-117 (architecture), ONCA-116 (audit), ONCA-58 (launch readiness)
 > Target: safely support **5,000 simultaneous users** at low, predictable cost.
 
