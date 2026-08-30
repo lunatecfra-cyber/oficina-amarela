@@ -35,6 +35,19 @@ function normalizeRoleToDb(role: string): string {
   return role === "spokesperson" ? "voz" : role;
 }
 
+/**
+ * Papel que um cadastro pode pedir para si.
+ *
+ * Só porta-voz e editor: 'admin' nunca sai de auto-cadastro. As rotas já
+ * limitavam a escolha, mas a garantia dependia de cada chamador lembrar. O
+ * portão mora aqui, onde a conta é criada, para que nenhum caminho novo
+ * consiga pedir um papel que não seja seu — porta-voz ainda precisa passar
+ * pelo convite logo abaixo.
+ */
+function selfAssignableRole(role: string): Role {
+  return role === "spokesperson" || role === "voz" ? "spokesperson" : "editor";
+}
+
 function normalizeRoleFromDb(papel: string): Role {
   if (papel === "voz" || papel === "spokesperson") return "spokesperson";
   if (papel === "admin") return "admin";
@@ -83,7 +96,8 @@ export async function createAccount(data: {
   const email = limitStr(data.email, LIMITS.email);
   const invitation = data.invitation ?? data.convite;
   const referralCode = validReferralCode(data.referralCode ?? data.codigoIndicacao);
-  const dbPapel = normalizeRoleToDb(data.role);
+  const role = selfAssignableRole(data.role);
+  const dbPapel = normalizeRoleToDb(role);
 
   if (!name)
     return {
@@ -161,7 +175,7 @@ export async function createAccount(data: {
 
   const password_hash = await bcrypt.hash(data.password, 10);
 
-  if (data.role === "spokesperson" || (data.role as string) === "voz") {
+  if (role === "spokesperson") {
     if (!invitation) {
       const error = "Convite especial obrigatório para porta-voz.";
       return {
@@ -187,10 +201,10 @@ export async function createAccount(data: {
         handle,
         name,
         email,
-        role: data.role,
+        role,
         apelido: handle,
         nome: name,
-        papel: data.role,
+        papel: role,
       };
       return { ok: true, account, conta: account };
     }
@@ -211,10 +225,10 @@ export async function createAccount(data: {
     handle,
     name,
     email,
-    role: data.role,
+    role,
     apelido: handle,
     nome: name,
-    papel: data.role,
+    papel: role,
   };
 
   return { ok: true, account, conta: account };
@@ -368,9 +382,10 @@ export async function createGoogleAccount(data: {
   const avatar = data.avatarUrl ?? data.foto ?? null;
   const invitation = data.invitation ?? data.convite;
   const referralCode = validReferralCode(data.referralCode ?? data.codigoIndicacao);
-  const dbPapel = normalizeRoleToDb(data.role);
+  const role = selfAssignableRole(data.role);
+  const dbPapel = normalizeRoleToDb(role);
 
-  if (data.role === "spokesperson" || (data.role as string) === "voz") {
+  if (role === "spokesperson") {
     if (!invitation) {
       const error = "Convite especial obrigatório para porta-voz.";
       return { ok: false, error, erro: error };
@@ -390,10 +405,10 @@ export async function createGoogleAccount(data: {
         handle,
         name: data.name,
         email: data.email,
-        role: data.role,
+        role,
         apelido: handle,
         nome: data.name,
-        papel: data.role,
+        papel: role,
       };
       return { ok: true, account, conta: account };
     }
@@ -413,10 +428,10 @@ export async function createGoogleAccount(data: {
     handle,
     name: data.name,
     email: data.email,
-    role: data.role,
+    role,
     apelido: handle,
     nome: data.name,
-    papel: data.role,
+    papel: role,
   };
 
   return { ok: true, account, conta: account };
