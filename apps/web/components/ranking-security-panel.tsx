@@ -6,8 +6,7 @@ type InvitationItem = {
   id: number;
   email: string;
   status: string;
-  expira_em?: string;
-  expires_at?: string;
+  expiresAt: string;
 };
 
 type AuditEvent = {
