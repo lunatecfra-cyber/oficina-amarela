@@ -1,6 +1,6 @@
 # Cloudflare Cost Model — Oficina Amarela
 
-> Branch: `infra/cloudflare-scale` · Written 2026-08-30 · Recalculated after `840e6a5`
+> Branch: `infra/cloudflare-scale` · Written 2026-08-30 · Verified after `58a9916`
 > **Everything here is modelled, not measured.** No Cloudflare service is deployed
 > yet. Replace each projection with real usage data as soon as Phase 19 produces it;
 > the method matters more than these numbers.
@@ -79,7 +79,8 @@ is what the two scenarios below are built to contrast.
 
 ## 3. Scenario A — current code projected onto D1
 
-This section was recalculated after `840e6a5`. The old estimate of 870 billion
+This section was recalculated after `840e6a5` and remains the bounded model after
+`58a9916`. The old estimate of 870 billion
 rows read is invalid: the global sweep left the per-editor path in `9de7246`.
 No production D1 exists yet, so row counts below are code-derived bounds, not D1
 `meta.rows_read` measurements.
@@ -100,7 +101,9 @@ That is **3 business SQL statements per poll**, plus an authentication lookup on
 cache miss. At peak, stable-isolate routing implies roughly **234 statements/s**
 before the amortised sweep: 67 polls/s × 3.5 statements.
 
-The sweep runs at most once every 5 seconds while traffic exists — **12/minute,
+The deployed target now also has a one-minute Cron Trigger; the request path
+remains as a pre-staging fallback. The database claim still bounds all callers:
+the sweep runs at most once every 5 seconds while traffic exists — **12/minute,
 17,280/day, 518,400/month**, not once per poll. A winning sweep runs one expiry
 statement (plus one release statement only when something expired), then one
 mission-list query and up to 20 pairs of eligibility/offer statements. The worst

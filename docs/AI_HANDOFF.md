@@ -6,9 +6,9 @@
 date:                   2026-08-30
 current model:          GPT-5.6 Sol
 repository:             github.com/lunatecfra-cyber/oficina-amarela
-branch:                 infra/cloudflare-scale  (35 commits ahead of master after this handoff)
+branch:                 infra/cloudflare-scale  (38 commits ahead of master after this handoff)
 base commit audited:    a37d94e  chore: migra linter e formatador de ESLint para Biome
-last implementation:    840e6a5  feat(api): prototipa coordenação de reserva por missão
+last implementation:    58a9916  feat(api): adiciona consumidores de manutenção agendada
 working tree:           clean after the handoff commit
 ```
 
@@ -31,7 +31,8 @@ working product behaviour.
 Done so far: **Phase 0** (audit and baseline), **Phase 1** (Turborepo workspace),
 **Phase 2** (application moved to `apps/web`), **Phase 4** (Hono Worker),
 **Phase 5** (shared packages), the editor queue and six mission lifecycle actions
-in Hono. Local work has also started for Hyperdrive, D1 and Durable Objects.
+in Hono. Local work now includes Hyperdrive wiring, the complete mission queue
+repository on D1, a Durable Object claim coordinator and scheduled consumers.
 Nothing has been deployed and no provider has been removed.
 
 ---
@@ -49,7 +50,7 @@ Turborepo workspace with two applications:
   Its Worker config includes a local `mission:{id}` Durable Object prototype.
 - **`packages/db`** (`@oficina/db`) — PostgreSQL client with Hyperdrive binding
   configuration, atomic queue/lifecycle repositories, scheduler, email outbox,
-  session revocation, and the first D1 schema/lifecycle adapter with parity tests.
+  session revocation, and D1 queue/lifecycle adapters with native parity tests.
 - **`packages/domain`** (`@oficina/domain`) — thirteen framework-free modules
   (electoral ranking, mission transitions, limits, validators, mission types,
   guide, tutorials, cities, news, candidates, schedule, profile, navigation)
@@ -133,15 +134,17 @@ written.
 | `48d9b95` | Made PostgreSQL initialization accept a Hyperdrive connection string; no credential or production URL is committed. |
 | `cca8e89` | Added the first local D1 schema/lifecycle adapter and native parity tests, including all five uniqueness invariants. |
 | `840e6a5` | Added the narrow `mission:{missionId}` Durable Object claim coordinator with stale/duplicate/conflict coverage. |
+| `9104ba4` | Completed the native D1 mission queue adapter, preserving atomic dispatch/accept/reject/expiry and all five uniqueness invariants. |
+| `58a9916` | Added typed scheduled/queue maintenance consumers; the Worker cron now drains mission sweeps and email independently. |
 
 ---
 
 ## Current task
 
-Phase 6 is in progress. The latest coherent slice moved mission lifecycle
-transitions into Hono and removed direct PostgreSQL implementation imports from
-route handlers. The next local slice is the D1 implementation of the existing
-`MissionQueueRepository`; production approval remains deliberately untouched.
+Phase 6 is in progress. Mission lifecycle transitions and the editor queue run
+in Hono behind injected repositories; their PostgreSQL and native D1 adapters
+now share typed outcomes. The next coherent slice is chat/report collaboration;
+production approval remains deliberately untouched.
 
 ## Task state
 
@@ -163,8 +166,11 @@ Too many to list individually — see `git log master..HEAD`. The shape:
   `mission-lifecycle.ts`, injected through `apps/api/src/dependencies.ts`
 - **temporary database path**: `HYPERDRIVE.connectionString` configures the
   existing PostgreSQL client without committing a connection string
-- **local D1**: `packages/db/d1/0001_mission_slice.sql` and the lifecycle adapter
+- **local D1**: `packages/db/d1/0001_mission_slice.sql` and complete mission
+  queue/lifecycle adapters with native Miniflare coverage
 - **local Durable Object**: `MissionCoordinator`, keyed as `mission:{missionId}`
+- **background work**: typed cron/queue consumers in `apps/api/src/background.ts`;
+  no remote Queue binding was created
 - **schema**: PostgreSQL invariants remain in `supabase/schema.sql`; no production
   migration was run
 
@@ -200,7 +206,7 @@ Decided:
 
 ```
 tests run:      npm test · npm run typecheck · biome check . · npm run build
-tests passed:   102 with TEST_DATABASE_URL
+tests passed:   120 with TEST_DATABASE_URL
 tests failed:   0
 ```
 
@@ -220,7 +226,7 @@ Database-backed suites need a throwaway PostgreSQL and are **skipped** without
 docker run -d --rm --name oficina-pg -e POSTGRES_PASSWORD=test \
   -e POSTGRES_DB=oficina -p 5439:5432 postgres:16-alpine
 DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" node scripts/migrar.mjs
-TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test   # 102 passed
+TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test   # 120 passed
 ```
 
 Two things about this setup are worth knowing before adding tests:
@@ -239,9 +245,9 @@ Two things about this setup are worth knowing before adding tests:
 
 Coverage now includes mission claim/offer concurrency, mission lifecycle role
 authorization and transitions, PT-BR API failures, gamification on delivery,
-Hyperdrive-compatible configuration, native D1 parity and the Durable Object
-claim coordinator. Approval, invitation redemption and candidate approval still
-need their own concurrency-sensitive migration coverage.
+Hyperdrive-compatible configuration, native D1 queue/lifecycle parity, the
+Durable Object claim coordinator and scheduled maintenance consumers. Approval,
+invitation redemption and candidate approval still need concurrency coverage.
 
 ## Known issues
 
@@ -258,8 +264,9 @@ Open:
   brute force, recovery spam and per-IP signup flooding went unthrottled for as
   long as that code has been live. The code is fixed; **nobody has reviewed the
   production logs for abuse that got through**. Needs human access.
-- **`P2-11`** — the outbox and sweep drains are driven by request traffic
-  because there is no scheduler. A quiet site does not retry failed email.
+- **`P2-11` staging remainder** — the Worker cron and typed consumer exist
+  locally. The request fallback stays until the Worker is deployed; a real Queue
+  binding still needs Cloudflare credentials.
 - **`P2-12`** — documented rather than fixed: `schema.sql` is the operative
   idempotent artifact and `migrations/*.sql` are run by hand. See
   `supabase/README.md`. Revisit when Phase 9 needs D1 tooling.
@@ -289,7 +296,7 @@ schema status:      supabase/schema.sql — 21 tables, PT-BR names, 7 migrations
                     unique indexes carrying business invariants
 migration status:   LOCAL ONLY — packages/db/d1/0001_mission_slice.sql covers
                     the relevant users/pautas/ofertas/fila_emails slice
-validation status:  LOCAL ONLY — lifecycle adapter parity and all five D1
+validation status:  LOCAL ONLY — queue/lifecycle adapter parity and all five D1
                     uniqueness invariants run against native Miniflare D1
 rollback status:    documented in CLOUDFLARE_CUTOVER_PLAN.md §8, not rehearsed
 ```
@@ -314,12 +321,12 @@ rows and refuses rather than deleting anything.
 
 | Service | State |
 |---|---|
-| Workers | **LOCAL** — dry-run succeeds at 394 KiB / 94 KiB gzip; never deployed |
+| Workers | **LOCAL** — dry-run succeeds at 396 KiB / 95 KiB gzip; never deployed |
 | Hyperdrive | **LOCAL CONFIG ONLY** — binding contract and PostgreSQL test pass; staging resource needs credentials |
-| D1 | **LOCAL PROTOTYPE** — mission schema/lifecycle adapter tested; no database created remotely |
+| D1 | **LOCAL PROTOTYPE** — mission schema and queue/lifecycle adapters tested; no database created remotely |
 | R2 | **PRODUCTION** — already the object store for video uploads (`apps/web/lib/r2.ts`, presigned PUT, browser→R2 direct) |
 | Durable Objects | **LOCAL PROTOTYPE** — `mission:{missionId}` coordinates claims; Worker binding/migration dry-run clean |
-| Queues | NOT STARTED — the outbox in `fila_emails` is the PostgreSQL stand-in, written to be swapped |
+| Queues | **LOCAL CONTRACT** — typed consumer tested; no remote Queue or binding created |
 | Workflows | NOT STARTED |
 | KV | NOT STARTED |
 | Stream | NOT STARTED |
@@ -353,9 +360,9 @@ No previously unknown infrastructure service was discovered during the audit.
 
 ```
 branch:               infra/cloudflare-scale
-last implementation:  840e6a5  feat(api): prototipa coordenação de reserva por missão
+last implementation:  58a9916  feat(api): adiciona consumidores de manutenção agendada
 base:                 a37d94e (master, in sync with origin/master at audit time)
-commits ahead:        35 after this handoff commit
+commits ahead:        38 after this handoff commit
 uncommitted files:    none
 untracked files:      none (.omc/ is gitignored)
 remote:               origin/infra/cloudflare-scale, pushed after validation
@@ -370,25 +377,20 @@ pushed, so no rewrite reached anyone.
 
 ### NEXT 1 — immediately executable
 
-**Complete the local D1 implementation of `MissionQueueRepository`.** Preserve
-the existing atomic transition methods and translate dispatch, offer expiry,
-acceptance and rejection without turning them into CRUD. Run PostgreSQL and
-native D1 behaviour tests for the same typed outcomes, especially the five
-uniqueness invariants.
+**Keep shrinking `apps/web/app/api/missions/[id]/route.ts`.** Move chat/report as
+the next coherent collaboration slice. Approval stays on
+`oficina_private.aprovar_edicao` until its concurrency design is reviewed.
 
 ### NEXT 2
 
-**Keep shrinking `apps/web/app/api/missions/[id]/route.ts`.** The migrated
-actions are reserve, cancel, deliver, re-edit, accept and adjust. Approval stays
-on `oficina_private.aprovar_edicao` until its PostgreSQL/D1 concurrency design
-is reviewed. Chat/report may move as independent vertical slices.
+**Extend D1 only with the newly migrated slice.** Reuse the existing atomic
+repository shape and native Miniflare checks; do not add table-oriented CRUD.
 
 ### NEXT 3
 
-**Extract request-driven background drains into Queue/Cron-invocable consumer
-logic with local tests.** Do not create remote bindings without credentials.
-The same credential boundary applies to the real Hyperdrive resource and the
-vinext/OpenNext staging comparison; none blocks local implementation.
+**Deploy the already-tested cron/consumer wiring in staging when credentials
+exist.** Until then keep the request fallback. The same credential boundary
+applies to Hyperdrive and the vinext/OpenNext staging comparison.
 
 ## Do not redo
 
@@ -402,12 +404,12 @@ vinext/OpenNext staging comparison; none blocks local implementation.
 - The Turborepo move. `apps/web` and `apps/api` build, typecheck, lint and test
   from the root through turbo.
 - The unit-price table in `CLOUDFLARE_COST_MODEL.md` — verified 2026-08-30.
-- The first mission D1 schema/lifecycle adapter and `mission:{id}` coordinator.
+- The mission D1 queue/lifecycle adapters and `mission:{id}` coordinator.
   Extend them; do not replace them with table CRUD or move mission state into DO.
 
-The cost model was recalculated after `840e6a5`: current code projects at most
-10.9 G D1 rows read/month under its explicit bounds. Replace that projection
-with D1 `meta.rows_read` only after the queue adapter runs locally.
+The cost model projects at most 10.9 G D1 rows read/month under its explicit
+bounds. The queue adapter now runs locally; replace the projection only after
+instrumenting real D1 `meta.rows_read` in staging.
 
 ## Warnings
 

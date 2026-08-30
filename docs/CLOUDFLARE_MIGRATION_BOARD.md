@@ -11,14 +11,14 @@ Priorities: `P0` data loss / security / production / irreversible · `P1` migrat
 
 ---
 
-## Baseline (verified 2026-08-30, implementation commit `840e6a5`)
+## Baseline (verified 2026-08-30, implementation commit `58a9916`)
 
 | Check | Command | Result |
 |---|---|---|
-| Tests | `npm test` (turbo, `--concurrency=1`) | **102 passed** with `TEST_DATABASE_URL` — 23 domain + 30 db + 29 api + 14 web + 6 config |
+| Tests | `npm test` (turbo, `--concurrency=1`) | **120 passed** with `TEST_DATABASE_URL` — 23 domain + 44 db + 33 api + 14 web + 6 config |
 | Typecheck | `npm run typecheck` (turbo) | **clean** in all seven packages |
 | Lint | `./node_modules/.bin/biome check .` | **clean** |
-| Build | `npm run build` (turbo) | **succeeds** — Next production build clean; Worker dry-run 394 KiB / 94 KiB gzip with `MISSION_COORDINATOR` |
+| Build | `npm run build` (turbo) | **succeeds** — Next production build clean; Worker dry-run 396 KiB / 95 KiB gzip with `MISSION_COORDINATOR` |
 | Workers compat | `npx vinext check` | **97% compatible** — 0 issues, 1 partial (`@sentry/nextjs` server) |
 
 > `npm run lint` output is mangled by the local RTK shell hook, which parses Biome
@@ -65,8 +65,8 @@ suite truncates.
 | 7 | Introduce database abstractions | **IN PROGRESS** — atomic queue/lifecycle interfaces and lightweight API dependency wiring landed |
 | 8 | Audit PostgreSQL → D1 compatibility | **IN PROGRESS** — full catalogue exists; mission slice translated and tested locally |
 | 9 | Create D1 schema and migration tooling | **IN PROGRESS** — first local mission schema in `packages/db/d1` preserves all five uniqueness invariants |
-| 10 | Migrate data and repositories to D1 | **IN PROGRESS** (local only) — lifecycle adapter has native D1 parity tests; no production data moved |
-| 11 | Introduce Queues | IN PROGRESS — outbox pattern landed on PostgreSQL (`P1-06`), Cloudflare Queues pending |
+| 10 | Migrate data and repositories to D1 | **IN PROGRESS** (local only) — complete mission queue/lifecycle adapters have native D1 parity tests; no production data moved |
+| 11 | Introduce Queues | **IN PROGRESS** — typed consumer and cron handler tested locally; remote Queue binding pending |
 | 12 | Introduce Durable Objects | **IN PROGRESS** (local only) — narrow `mission:{missionId}` claim coordinator with retry/staleness coverage |
 | 13 | Caching and KV | BACKLOG |
 | 14 | Workflows where justified | BACKLOG |
@@ -75,7 +75,7 @@ suite truncates.
 | 17 | Test Cloudflare Email Service | BACKLOG |
 | 18 | Harden observability and security | BACKLOG |
 | 19 | 5,000-user load tests | BACKLOG |
-| 20 | Cost analysis | **IN PROGRESS** — current-code projection recalculated after `840e6a5`; D1 `meta` and Worker CPU measurements wait for staging/load tests |
+| 20 | Cost analysis | **IN PROGRESS** — current-code projection remains bounded after `58a9916`; D1 `meta` and Worker CPU measurements wait for staging/load tests |
 | 21 | Production readiness | BACKLOG |
 | 22 | Production cutover | BACKLOG |
 | 23 | Controlled legacy removal | BACKLOG |
@@ -432,10 +432,10 @@ phases — see `P2-05`.
 |---|---|---|
 | `P0-09` | **The attempt limiter never locked anything.** Detail under `P1-05`. Fixed in `274142d`, but production has been running without brute-force, recovery-spam or signup-flood protection — worth checking `auditoria_admin` and access logs for abuse that went unthrottled. | **DONE** (code) · **BLOCKED** (log review needs production access) |
 | `P1-12` | Single-recipient mission notifications moved onto `fila_emails` (`1f076a9`). Found on the way: the acceptance email linked to `/spokesperson/mission/db-N`, a route that does not exist, and `recordGamificationEvent` was also `void`-fired on delivery, so XP could vanish. Both fixed. Password recovery stays a direct awaited send — the user is waiting on it. | **DONE** |
-| `P2-11` | The `fila_emails` and `tarefas_periodicas` drains are triggered by request traffic, since there is no scheduler. On Cloudflare these become Cron Triggers or Queue consumers; until then, a quiet site does not retry failed email. | BACKLOG |
+| `P2-11` | The Worker now has a one-minute cron plus typed queue consumer for `fila_emails` and mission sweeps. The request path remains as a fallback until staging deployment; no remote Queue binding was created. | **DONE** (local scheduler) · **BLOCKED** (staging credential) |
 | `P0-10` | `.gitignore` had `/node_modules` (root only), so the first workspace install staged `apps/api/node_modules` — ~394k lines. Caught before pushing; the pattern is now `node_modules/`. Check any clone or fork made from an intermediate state. | **DONE** (`e82ccf4`) |
 | `P2-13` | `apps/api` now serves the editor queue and `apps/web` delegates to it in-process. Swapping `api.fetch` for a real Service Binding needs both Workers deployed. | **DONE** (in-process) · BLOCKED (binding needs credentials) |
-| `P1-13` | The Worker accepts `HYPERDRIVE.connectionString`, configures the existing Postgres client before repository use and has a real-PostgreSQL binding test. `wrangler.jsonc` keeps credentials absent; creating the staging binding and proving the network path still needs Cloudflare access. Current bundle: 394 KiB / 94 KiB gzip. | **DONE** (local wiring) · BLOCKED (staging credential) |
+| `P1-13` | The Worker accepts `HYPERDRIVE.connectionString`, configures the existing Postgres client before repository use and has a real-PostgreSQL binding test. `wrangler.jsonc` keeps credentials absent; creating the staging binding and proving the network path still needs Cloudflare access. Current bundle: 396 KiB / 95 KiB gzip. | **DONE** (local wiring) · BLOCKED (staging credential) |
 | `P3-07` | `mission-queue-messages.ts` exists in both `apps/api` and `apps/web`, deliberately, while two HTTP boundaries serve the same operation. Delete the `apps/web` copy when the Next adapter goes away. | BACKLOG |
 | `P3-05` | `apps/web/lib/db.ts` is a two-line re-export of `@oficina/db/client`, kept so the 21 `@/lib/db` importers change exactly once — when they move behind repositories. Delete the shim then. | BACKLOG |
 | `P3-06` | `packages/db` has a barrel (`index.ts`); `packages/domain` deliberately does not, because `cities.ts` is 111 KB. Pick one convention once the packages settle. | BACKLOG |
@@ -481,17 +481,13 @@ catches a refactor quietly dropping an invariant.
 
 ## Immediate next actions
 
-1. **Phases 9–10 — complete the local D1 queue slice.** Port the atomic offer
-   dispatch/accept/reject/expiry operations behind the existing
-   `MissionQueueRepository`, then run the PostgreSQL and native D1 behaviour
-   suites against the same outcomes. Keep the five D1 unique indexes as the
-   durable backstop; do not replace them with Durable Object state.
-2. **Phase 6 — keep shrinking the mission adapter.** Approval stays on the
+1. **Phase 6 — keep shrinking the mission adapter.** Approval stays on the
    PostgreSQL `oficina_private.aprovar_edicao` path until its reviewed D1 design.
    Chat/report can move independently if they form the next coherent slice.
-3. **Phase 11 — remove request-driven drains.** Extract the existing email sweep
-   into a Queue/Cron-invocable consumer with a local invocation test; staging
-   binding creation can wait for credentials.
+2. **Phases 9–10 — extend D1 with each migrated slice.** Preserve atomic
+   repository transitions and add native parity coverage before moving on.
+3. **Phase 11 staging** — deploy the tested cron/consumer wiring and remove the
+   request fallback only after the Worker scheduler is proven.
 4. **`P1-10` / Phase 3** — prototype vinext and OpenNext side by side and record
    the result under `ARCH-01`. `vinext check` reports 97% with no blocking
    issues, but choosing needs a real deploy — **Cloudflare credentials required**.
