@@ -14,17 +14,30 @@ Priorities: `P0` data loss / security / production / irreversible · `P1` migrat
 
 | Check | Command | Result |
 |---|---|---|
-| Tests | `npm test` | **7 passed, 0 failed** (`lib/electoral-ranking.test.ts`) |
+| Tests | `npm test` | **18 passed** without a database, **47 passed** with `TEST_DATABASE_URL` |
 | Typecheck | `npx tsc --noEmit` | **clean** |
 | Lint | `./node_modules/.bin/biome check .` | **clean** — 194 files |
 | Build | `next build` | **succeeds** — 32 pages, 33 route handlers, middleware |
-| Workers compat | `npx vinext check` | **92% compatible** — 1 blocking issue, 1 partial |
+| Workers compat | `npx vinext check` | **97% compatible** — 0 issues, 1 partial (`@sentry/nextjs` server) |
 
 > `npm run lint` output is mangled by the local RTK shell hook, which parses Biome
 > output as ESLint and reports phantom errors. Run the Biome binary directly
 > (`./node_modules/.bin/biome check .`) to get the truth.
 
-Phase 0 is complete. Nothing has been migrated, removed, or deployed.
+Phase 0 is complete. Implementation started 2026-08-30: every P0 that could be
+resolved from the repository is `DONE`, plus P1-01, P1-02, P1-05 and P1-06.
+Nothing has been deployed and no provider has been removed.
+
+**Database-backed tests** need a throwaway PostgreSQL:
+
+```bash
+docker run -d --rm --name oficina-pg -e POSTGRES_PASSWORD=test \
+  -e POSTGRES_DB=oficina -p 5439:5432 postgres:16-alpine
+DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" node scripts/migrar.mjs
+TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test
+```
+
+Without `TEST_DATABASE_URL` those suites skip and `npm test` still passes.
 
 ---
 
@@ -33,7 +46,7 @@ Phase 0 is complete. Nothing has been migrated, removed, or deployed.
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Repository audit and baseline | **DONE** |
-| 1 | Turborepo / workspace setup | READY |
+| 1 | Turborepo / workspace setup | IN PROGRESS |
 | 2 | Move existing app to `apps/web` | BACKLOG |
 | 3 | Validate Next.js on Cloudflare Workers | BACKLOG |
 | 4 | Create `apps/api` with Hono | BACKLOG |
@@ -43,7 +56,7 @@ Phase 0 is complete. Nothing has been migrated, removed, or deployed.
 | 8 | Audit PostgreSQL → D1 compatibility | BACKLOG (findings below already collected) |
 | 9 | Create D1 schema and migration tooling | BACKLOG |
 | 10 | Migrate data and repositories to D1 | BACKLOG |
-| 11 | Introduce Queues | BACKLOG |
+| 11 | Introduce Queues | IN PROGRESS — outbox pattern landed on PostgreSQL (`P1-06`), Cloudflare Queues pending |
 | 12 | Introduce Durable Objects | BACKLOG |
 | 13 | Caching and KV | BACKLOG |
 | 14 | Workflows where justified | BACKLOG |
@@ -62,7 +75,7 @@ Phase 0 is complete. Nothing has been migrated, removed, or deployed.
 ## P0 — correctness, security, irreversibility
 
 ### `P0-01` · Mission claim has a TOCTOU race on the one-mission-per-editor rule
-**Status:** READY · **File:** `lib/missions-db.ts:338-368`
+**Status:** **DONE** (2026-08-30, `51597e5` + `210f681`) · **File:** `lib/missions-db.ts:338-368`
 
 `reserveMission()` checks "does this editor already hold a mission?" with a
 `SELECT`, then reserves with a separate `UPDATE`. Two concurrent requests from the
@@ -74,13 +87,15 @@ partial unique index on `pautas (reservada_por_id) WHERE status IN ('reservada',
 The mission side *is* safe: `UPDATE ... WHERE id = ? AND status = 'disponivel'` is
 a single atomic statement, so two editors cannot claim the same mission.
 
-**Fix:** add the partial unique index as a database invariant, and handle the
-unique violation as the authoritative "you already have a mission" answer.
-Do this **before** the D1 migration, so the invariant is carried across rather
-than invented afterwards.
+**Resolved:** `idx_pautas_missao_ativa_por_editor`, a partial unique index on
+`pautas (reservada_por_id) WHERE status IN ('reservada','em_revisao','reedicao')`.
+`reserveMission()` keeps the pre-check for the message and treats the unique
+violation as authoritative. Reproduced against real PostgreSQL both ways: with
+a warm connection pool and no index, three simultaneous claims left one editor
+holding three missions; with the index, one.
 
 ### `P0-02` · `acceptOffer` can leave an editor holding an offer but no mission
-**Status:** READY · **File:** `lib/queue-db.ts:205-227`
+**Status:** **DONE** (2026-08-30, `5bf9c48`) · **File:** `lib/queue-db.ts:205-227`
 
 The offer row is closed atomically (`status='pendente' → 'aceita'`, checked via
 `RETURNING`), but the follow-up `UPDATE pautas ... WHERE id = ? AND status =
@@ -89,11 +104,14 @@ flipped the mission back to `'disponivel'`, or another path changed it, the offe
 is consumed, the function returns `{ ok: true }`, and the editor is told they
 accepted a mission they do not hold.
 
-**Fix:** make the two statements one conditional transaction, and return a
-conflict when the mission update affects zero rows. Public message stays PT-BR.
+**Resolved:** the order is inverted. The mission is reserved first, gated on
+`EXISTS (… oferta pendente e não expirada)`, and only then is the offer closed.
+`ok: true` now means the editor actually holds the mission. The failure path
+leaves a pending offer that expires on its own without returning a mission that
+is already reserved.
 
 ### `P0-03` · `dispatchMissions` writes an offer and the mission status non-atomically
-**Status:** READY · **File:** `lib/queue-db.ts:102-137`
+**Status:** **DONE** (2026-08-30, `5bf9c48` + `210f681`) · **File:** `lib/queue-db.ts:102-137`
 
 `INSERT INTO ofertas` and `UPDATE pautas SET status='oferecida'` are separate
 statements with no transaction. If the second is lost or raced, a pending offer
@@ -105,11 +123,17 @@ uniqueness guard existed, but **no unique constraint on `ofertas` exists anywher
 in `supabase/`**. The `NOT EXISTS` guards inside `getNextEditor()` are the only
 protection and they are not race-safe.
 
-**Fix:** add `UNIQUE (pauta_id, editor_id)` on `ofertas`, and wrap the dispatch
-pair in a transaction.
+**Resolved:** `idx_ofertas_missao_editor` (`UNIQUE (pauta_id, editor_id)`) plus a
+single statement — a data-modifying CTE claims the mission out of `'disponivel'`
+and inserts the offer from its `RETURNING`, so either both happen or neither
+does. A unique violation now rolls the whole statement back and the mission
+stays claimable, which is what the existing `isUniqueViolation` catch always
+assumed. `rejectOffer()` got the same treatment: it used to be able to strand a
+mission in `'oferecida'` with no pending offer, which the expiry sweep never
+rescued.
 
 ### `P0-04` · Development authentication bypasses must never reach a Worker
-**Status:** READY · **Files:** `lib/server-session.ts:9-40`, `proxy.ts:6-24`
+**Status:** **DONE** (2026-08-30, `9682f05`) · **Files:** `lib/server-session.ts:9-40`, `proxy.ts:6-24`
 
 Three bypasses exist, each guarded by `process.env.NODE_ENV === "development"`
 and some additionally by `!process.env.VERCEL`:
@@ -120,12 +144,18 @@ and some additionally by `!process.env.VERCEL`:
 The `!process.env.VERCEL` half of the guard becomes meaningless the moment the app
 leaves Vercel. On Workers, `NODE_ENV` is set by the build, not the platform.
 
-**Fix:** before any Worker deployment, gate these on an explicit opt-in binding
-(e.g. `ALLOW_DEV_AUTH_BYPASS`) that is absent in every non-local environment, and
-add a test that fails if the bypass is reachable without it.
+**Resolved:** `lib/dev-mode.ts` holds both gates. Each requires `NODE_ENV !==
+"production"` **and** its env var set to exactly `"1"`; nothing looks at the
+hosting provider. `ALLOW_DEV_AUTH_BYPASS` covers god mode, the fabricated
+session, the demo-role session, the proxy passthrough, `/api/auth/dev-login` and
+the fallback JWT secret; `ALLOW_DEMO_CONTENT` covers sample missions and
+profiles. `lib/dev-mode.test.ts` pins the matrix, including a build with
+`NODE_ENV` unset. Client components keep the `NODE_ENV` check — server env never
+reaches them and the production bundle hardcodes `"production"`. Both flags are
+documented in the README.
 
 ### `P0-05` · `lib/db.ts` silently returns empty results when `DATABASE_URL` is missing
-**Status:** READY · **File:** `lib/db.ts:10-24`
+**Status:** **DONE** (2026-08-30, `52bcc2a`) · **File:** `lib/db.ts:10-24`
 
 The Proxy stub resolves every query to `[]`. Intended for build-time module
 evaluation, it also makes a misconfigured production deployment look like an empty
@@ -133,8 +163,13 @@ but healthy database — empty rankings, no missions, "user not found" logins �
 instead of failing loudly. This gets more dangerous during a cutover, when a
 wrong or missing binding is exactly the failure mode being watched for.
 
-**Fix:** restrict the stub to build phase only (or to an explicit flag) and throw
-at runtime otherwise.
+**Resolved:** the stub now exists only during `next build`
+(`NEXT_PHASE=phase-production-build`, needed because static generation runs
+pages that query) or locally with `DATABASE_STUB=1` and `NODE_ENV !==
+"production"`. Anything else throws with instructions. The stub is no longer
+cached on `globalThis`, so it cannot outlive the phase that allowed it, and it
+logs once when used. `lib/db-config.test.ts` pins all five cases, each in its
+own process.
 
 ### `P0-06` · Confirm which database is actually in production
 **Status:** BLOCKED — needs access to the live `DATABASE_URL` · **Owner:** human
@@ -180,7 +215,7 @@ a concurrency test before cutover.
 ## P1 — required for Cloudflare and 5,000 concurrent users
 
 ### `P1-01` · Offer polling is the dominant load and it is all writes
-**Status:** READY · **Files:** `app/api/editor/queue/next/route.ts:28-32`, `components/mission-offer.tsx:17`
+**Status:** **DONE** (2026-08-30, `9de7246`) · **Files:** `app/api/editor/queue/next/route.ts:28-32`, `components/mission-offer.tsx:17`
 
 Every editor polls `GET /api/editor/queue/next` every **15 seconds**. Each poll
 runs, unconditionally:
@@ -194,20 +229,32 @@ With 1,000 concurrent editors that is ~67 req/s, each doing several writes and a
 scan — against a database D1 processes **single-threaded**. This does not survive
 the target load in its current shape and is the single largest scalability item.
 
-**Fix direction:** move dispatch out of the poll path onto a scheduled/queued
-worker; make presence a Durable Object or KV write with a coarse TTL instead of a
-row update per poll; replace polling with a Durable Object push once `P1-08` lands.
+**Resolved for now:** the global sweep is claimed through a periodicity lock
+(`lib/scheduler-db.ts`) — a conditional upsert on `tarefas_periodicas` lets at
+most one request per 5s window run `expireStaleOffers()` + `dispatchMissions()`.
+Everything else goes straight to the pending offer. `markEditorActive()` only
+writes when `ultimo_visto_em` is older than 60s (the presence window is 3
+minutes, so the decision is unchanged). `POST /api/missions` dispatches
+immediately, so a new mission does not wait for the window. Rows read per poll
+drop from ~20,000 to ~10.
+
+**Still open for Phase 12:** presence and offer delivery as a Durable Object
+push instead of polling (`ARCH-05`). The periodicity lock is deliberately
+written to be replaceable by a Cron Trigger or Queue consumer without touching
+the sweep itself.
 
 ### `P1-02` · `getSession()` issues a database read on every authenticated request
-**Status:** READY · **File:** `lib/server-session.ts:46-64`
+**Status:** **DONE** (2026-08-30, `11d14be`) · **File:** `lib/server-session.ts:46-64`
 
 `SELECT sessoes_validas_apos FROM users WHERE id = ?` runs on every session read —
 every page, every API call. At 5,000 concurrent users this alone is thousands of
 D1 reads per second for a value that changes almost never.
 
-**Fix:** cache the revocation cutoff (KV or a short in-Worker cache keyed by user
-id, invalidated on logout-everywhere / ban / password change). Keep the fail-open
-behaviour explicit and documented, or make it fail-closed deliberately.
+**Resolved:** `lib/session-revocation.ts` caches the cutoff for 30s per process
+(per isolate on Workers) and is invalidated on the spot by password change, ban
+and account deletion. The residual staleness only affects instances that did not
+perform the write, and is documented in the module. The transient-database
+fail-open behaviour is unchanged.
 
 ### `P1-03` · Twenty pages are `force-dynamic` with no caching classification
 **Status:** READY
@@ -237,24 +284,49 @@ Affected: `app/page.tsx`, `app/ranking/page.tsx`, `app/agenda/page.tsx`,
 then through the `apps/api` Service Binding (Phase 6).
 
 ### `P1-05` · In-memory rate limiting does not work on Workers
-**Status:** READY · **File:** `app/api/upload/presign/route.ts:14-29` (the `presignsByUser` map, line 16)
+**Status:** **DONE** (2026-08-30, `274142d`) · **File:** `app/api/upload/presign/route.ts:14-29` (the `presignsByUser` map, line 16)
 
 `presignsByUser` is a module-level `Map`. On Workers each isolate has its own
 copy and isolates are created and evicted constantly, so the "10 presigns per
 hour" ceiling effectively disappears.
 
-**Fix:** move to Cloudflare Rate Limiting at the edge, or a Durable Object /
-KV-backed counter. Same review needed for `tentativas_login`-adjacent logic.
+**Resolved:** the presign limit now uses the `tentativas_login` table through
+`recordAttempt`/`isRateLocked`, so it holds across instances, and its refusal
+message is PT-BR like the rest.
+
+**And the adjacent review found a live defect:** `recordAttempt()` did
+`RETURNING tentativas` but compared `row.attempts` — the English name, which is
+never present. The comparison was always `undefined >= max`, so `travado_ate`
+stayed null forever and **login brute force, password-recovery spam and per-IP
+signup flooding were all completely unthrottled**. Reproduced against the
+database: eight attempts against a maximum of five, never locked. Fixed, and
+`lib/rate-limit.test.ts` covers locking, expiry, window reset, key isolation and
+per-call window/lock. Cloudflare edge Rate Limiting is still the Phase 18 target
+in front of this.
 
 ### `P1-06` · Broadcast fans out emails synchronously inside the request
-**Status:** READY · **File:** `app/api/admin/broadcast/route.ts:58-80` (two loops, lines 59 and 72)
+**Status:** **DONE** (2026-08-30, `7a9963f`) · **File:** `app/api/admin/broadcast/route.ts:58-80` (two loops, lines 59 and 72)
 
 `POST /api/admin/broadcast` loops over every editor or every candidate and awaits
 each Resend call in the request. This will exceed Worker CPU and wall-clock limits
 long before the recipient list is interesting.
 
-**Fix:** enqueue one message per recipient with an idempotency key; consume from a
-Queue. First candidate workload for Phase 11.
+**Resolved:** the loop did not even await — it fired `void notify…()` per
+recipient, which in a serverless runtime dies with the response, so most of the
+mail was never sent while the route reported every recipient as notified.
+
+Broadcast now writes one row per recipient into `fila_emails` and answers with
+how many are new. Delivery happens outside the request: `after()` drains right
+after the response (which becomes `waitUntil` on Workers), and the periodic
+mission sweep drains the remainder so retries advance with traffic. The
+idempotency key is group + email + hour. Claiming uses a 5-minute backoff, a
+5-attempt ceiling, and repeats its conditions in the outer `WHERE` instead of
+`FOR UPDATE SKIP LOCKED` — which D1 does not have. `lib/email-dispatch.ts` is
+the seam that becomes a Cloudflare Queue consumer.
+
+**Still open:** the single-recipient notifications elsewhere in the app are
+still `void`-fired and share the same serverless delivery problem. Move them
+onto the same outbox in Phase 11.
 
 ### `P1-07` · PostgreSQL features with no D1 equivalent
 **Status:** READY · **Sources:** `supabase/schema.sql`, `supabase/migrations/*`
@@ -327,8 +399,8 @@ phases — see `P2-05`.
 | `P2-05` | Sentry DSN is not configured in production (`docs/INFRA.md`). The library records nothing today. Turn it on before load testing so the tests produce evidence. | READY |
 | `P2-06` | 17 `scripts/*.mjs` operational scripts connect via `DATABASE_URL`. They need D1 equivalents (`wrangler d1 execute`) or explicit retirement. | BACKLOG |
 | `P2-07` | Domain `oficinaamarela.com.br` still has `v=spf1 -all` and a null MX. Email cannot be delivered from the domain by any provider until DNS is fixed. Blocks Phase 17. | BLOCKED — human |
-| `P2-08` | Test coverage is 7 assertions in one file (`lib/electoral-ranking.test.ts`), all pure-function. There is no coverage of auth, mission claim, or approval. | READY — see `P2-09` |
-| `P2-09` | Add tests **before** touching critical infrastructure: authentication, authorization, mission creation/claim/abandon/submit/approve/revise, ranking, gamification, invitations, candidate approval. | READY |
+| `P2-08` | Test coverage went from 7 pure-function assertions to 47, including PostgreSQL-backed suites for mission concurrency, the periodicity lock, the session-revocation cache, the attempt limiter and the email outbox. `scripts/test-alias-hooks.mjs` resolves the `@/` alias so `node:test` can import `lib/` modules at all. Database suites run serially (`--test-concurrency=1`) because the concurrency suite truncates. | **DONE** |
+| `P2-09` | Covered so far: mission claim/offer concurrency, session revocation, rate limiting, dev-mode gates, database configuration, email outbox. **Still uncovered:** authorization by role, mission abandon/submit/approve/revise, ranking mutation, gamification, invitation redemption, candidate approval. | IN PROGRESS |
 | `P2-10` | Add `.omc/` to `.gitignore` (currently untracked noise in `git status`). | BACKLOG |
 
 ---
@@ -344,13 +416,26 @@ phases — see `P2-05`.
 
 ---
 
+## New items found during implementation
+
+| ID | Item | Status |
+|---|---|---|
+| `P0-09` | **The attempt limiter never locked anything.** Detail under `P1-05`. Fixed in `274142d`, but production has been running without brute-force, recovery-spam or signup-flood protection — worth checking `auditoria_admin` and access logs for abuse that went unthrottled. | **DONE** (code) · **BLOCKED** (log review needs production access) |
+| `P1-12` | Single-recipient notifications (`lib/email.ts` → `sendNotification`) are still fired with `void` from route handlers. Same serverless delivery loss as the broadcast had. Move them onto `fila_emails`. | READY |
+| `P2-11` | The `fila_emails` and `tarefas_periodicas` drains are triggered by request traffic, since there is no scheduler. On Cloudflare these become Cron Triggers or Queue consumers; until then, a quiet site does not retry failed email. | BACKLOG |
+| `P2-12` | `supabase/migrations/*.sql` are not applied by any runner — `scripts/migrar.mjs` applies `supabase/schema.sql` only. The migration files are documentation unless run by hand. Decide on one mechanism before Phase 9. | BACKLOG |
+
+---
+
 ## Immediate next actions
 
-1. **`P1-09`** — add `"type": "module"` to `package.json`, confirm `npm test`,
-   `tsc --noEmit`, Biome and `next build` all still pass. Smallest safe first change.
-2. **`P1-10` / Phase 3** — prototype vinext and OpenNext side by side on a throwaway
-   branch and record the result under `ARCH-01`.
-3. **`P0-01` + `P0-03`** — add the two missing database invariants
-   (`pautas` partial unique index, `ofertas` unique pair) as a new migration on
-   PostgreSQL now, so they are carried into D1 rather than invented there.
-4. **`P0-06`** — confirm the production database provider and take a verified backup.
+1. **Phase 1 / Phase 2** — Turborepo workspace, then move the application into
+   `apps/web` preserving behaviour. Structural migration lands before any
+   infrastructure rewrite.
+2. **`P1-10` / Phase 3** — prototype vinext and OpenNext side by side and record
+   the result under `ARCH-01`. `vinext check` now reports 97% with no blocking
+   issues.
+3. **`P0-06`** — confirm the production database provider and take a verified
+   backup. Blocks Phase 8 onward; needs human access.
+4. **`P0-09` follow-up** — review production logs for abuse that the dead
+   limiter allowed. Needs human access.
