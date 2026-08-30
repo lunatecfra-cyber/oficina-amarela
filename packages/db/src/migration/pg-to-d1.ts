@@ -48,6 +48,8 @@ export const MIGRATION_PLAN: MigrationTable[] = [
   { table: "ranking_aprovacoes" },
   { table: "convites_porta_voz" },
   { table: "indicacoes_recompensas" },
+  { table: "bloqueios_constancia" },
+  { table: "gamificacao_eventos" },
   { table: "auditoria_admin" },
   { table: "fila_emails" },
 ];

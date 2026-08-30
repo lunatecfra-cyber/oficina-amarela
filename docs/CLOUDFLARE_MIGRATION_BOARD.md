@@ -205,8 +205,27 @@ must be carried to Workers verbatim. Do not rotate `AUTH_SECRET` as part of the
 cutover; schedule it separately, after a 30-day overlap.
 
 ### `P0-08` · Candidate approval gate must survive the migration
-**Status:** READY · **Files:** `supabase/migrations/20260829_add_electoral_ranking.sql`,
-`lib/invitations-db.ts`
+**Status:** DONE · **Files:** `packages/db/src/invitation-redemption.ts`,
+`packages/db/src/d1/invitation-redemption.ts`, `apps/web/lib/candidate-legitimacy.test.ts`
+
+An audit settled the domain question first: **there is no second
+"candidate approval" state.** The admin-issued invitation *is* the
+authorization; `perfil_completo` is profile completion, not approval. So the
+gate to protect is the invitation, and nothing else.
+
+Redemption is now an explicit atomic transition on both engines — PostgreSQL
+under `FOR UPDATE`, D1 through a durable single-use redemption row whose trigger
+carries the effects. Concurrency tests prove two simultaneous redemptions yield
+exactly one official account, one consumption and one audit event.
+
+`createAccount` and `createGoogleAccount` also stopped trusting the requested
+role: only `editor` and `spokesperson` are self-assignable, and `spokesperson`
+still requires the invitation. Before that, the guarantee lived in each route's
+clamp — a signup asking for `admin` became an admin if any caller forgot.
+Covered by tests for both signup paths: missing, mismatched, revoked, expired,
+forged and reused invitations.
+
+<details><summary>Original analysis</summary>
 
 `voz` accounts can only be created through
 `oficina_private.criar_porta_voz_com_convite()`, which consumes a single-use
@@ -219,6 +238,7 @@ code reopens the invitation to double-redemption.
 NULL AND revogado_em IS NULL AND expira_em > ? RETURNING id`) followed by the
 insert, inside a D1 batch — or serialise through a Durable Object. Cover it with
 a concurrency test before cutover.
+</details>
 
 ---
 
@@ -338,6 +358,39 @@ the seam that becomes a Cloudflare Queue consumer.
 still `void`-fired and share the same serverless delivery problem. Move them
 onto the same outbox in Phase 11.
 
+
+### `P1-14` · The RLS replacement — and what the audit actually found
+**Status:** DONE · **Files:** `apps/api/src/routes/admin-*.ts`,
+`apps/api/src/session.ts`, `packages/db/src/{invitation-admin,ranking-admin}.ts`
+
+Six tables carry `ENABLE ROW LEVEL SECURITY`: `ranking_ciclos`,
+`ranking_aprovacoes`, `convites_porta_voz`, `indicacoes_recompensas`,
+`bloqueios_constancia`, `auditoria_admin`.
+
+**None of them has a policy.** There is no `CREATE POLICY` anywhere in the
+repository, and no `FORCE ROW LEVEL SECURITY`. Because the application connects
+as the tables' owner, PostgreSQL skips RLS for every query the product makes.
+
+So RLS never authorized anything inside this application. What it protects is
+direct access through a leaked anon key hitting PostgREST — worth keeping, and
+unrelated to D1. There was no policy logic to port. The real work was writing
+the authorization that everyone assumed RLS was doing.
+
+| Table | What RLS actually did | Where authorization lives now | Tested |
+|---|---|---|---|
+| `convites_porta_voz` | nothing (owner bypass) | `requireAdmin` on `/admin/invitations`; redemption gated by token hash + bound e-mail | yes — anonymous/editor/spokesperson denied; redemption concurrency |
+| `auditoria_admin` | nothing | `requireAdmin` on `/admin/ranking` reads; writes only from inside domain transitions | yes |
+| `ranking_aprovacoes` | nothing | `requireAdmin` to cancel; written by mission approval | yes |
+| `bloqueios_constancia` | nothing | `requireAdmin` to grant, max two per editor | yes — including the concurrent grant |
+| `indicacoes_recompensas` | nothing | never written directly; follows approval and cancellation | yes, via those paths |
+| `ranking_ciclos` | nothing | read behind `requireSession`; aggregate leaderboard data | read-only |
+
+The mutating routes for user-owned data take their target from the session, never
+from the request body, so an editor cannot reach another editor's state. Uploads
+are scoped to `uploads/{session.id}/`.
+
+---
+
 ### `P1-07` · PostgreSQL features with no D1 equivalent
 **Status:** READY · **Sources:** `supabase/schema.sql`, `supabase/migrations/*`
 
@@ -345,9 +398,9 @@ D1 is SQLite. Every item below is a required reimplementation, not a syntax twea
 
 | Postgres feature | Where | D1 answer |
 |---|---|---|
-| `plpgsql` stored functions (2) | `oficina_private.criar_porta_voz_com_convite`, `oficina_private.aprovar_edicao` | reimplement in `packages/domain` + D1 batch; see `P0-08` |
+| `plpgsql` stored functions (2) | `oficina_private.criar_porta_voz_com_convite`, `oficina_private.aprovar_edicao` | **DONE** — both reimplemented as explicit atomic transitions with PostgreSQL and D1 adapters and real concurrency tests |
 | Custom schema `oficina_private` | ranking migration | no schemas in SQLite — flatten |
-| `SELECT ... FOR UPDATE` | both functions | conditional single-statement writes or Durable Object |
+| `SELECT ... FOR UPDATE` | both functions, and the consistency-shield grant | **DONE** — PostgreSQL keeps the lock; D1 carries the invariant in a durable event row or a single conditional `INSERT ... SELECT` |
 | `FOR UPDATE SKIP LOCKED` | `lib/electoral-ranking-db.ts:320` (shield consumption) | conditional `UPDATE ... WHERE consumido_em IS NULL RETURNING` |
 | `GENERATED ALWAYS AS (...) STORED` | `users.nivel` | compute in `packages/domain`, or a maintained column |
 | `TEXT[]` arrays | `users.softwares/estilos/nicho/bandeiras/palavras_chave`, `musicas.tags` | JSON columns or join tables |
@@ -362,7 +415,7 @@ D1 is SQLite. Every item below is a required reimplementation, not a syntax twea
 | `= ANY(${array})` | `lib/queue-db.ts:51` | expand to `IN (?, ?, …)`, watch the 100-parameter cap |
 | `(x || ' minutes')::interval` | `lib/queue-db.ts` | compute timestamps in TypeScript |
 | `EXTRACT(DOW/HOUR FROM now() AT TIME ZONE 'America/Sao_Paulo')` | `getNextEditor()` | compute in the Worker; SQLite has no timezone database |
-| `ROW LEVEL SECURITY` on 6 tables | ranking migration | no RLS in D1 — authorization moves entirely into `apps/api`; treat as a **security regression risk** |
+| `ROW LEVEL SECURITY` on 6 tables | ranking migration | **DONE, and the premise was wrong** — see `P1-14` below |
 | `RAISE EXCEPTION ... ERRCODE` | both functions | typed domain errors |
 | Unique-violation code `23505` | `lib/queue-db.ts:21` | SQLite reports `SQLITE_CONSTRAINT_UNIQUE` — the detector must be rewritten |
 
@@ -402,7 +455,7 @@ phases — see `P2-05`.
 
 | ID | Item | Status |
 |---|---|---|
-| `P2-01` | Remove `@vercel/blob` — single call site, `app/api/tools/music/route.ts:1`. Migrate the music upload to R2, then drop the dependency. | READY |
+| `P2-01` | Remove `@vercel/blob` — single call site, `app/api/tools/music/route.ts:1`. Migrate the music upload to R2, then drop the dependency. | **DONE** (`556fd4f`) — zero active usage; only stale prose in older docs mentions it |
 | `P2-02` | `users` has 45 columns mixing account, editor and candidate concerns. Review the split before the D1 schema is frozen (`ARCH-04`). | BACKLOG |
 | `P2-03` | 15 `lib/*-db.ts` modules hold SQL inline with no repository boundary. Extract interfaces in Phase 7 so Postgres and D1 implementations can run side by side. | BACKLOG |
 | `P2-04` | Promote CSP from `Content-Security-Policy-Report-Only` to enforcing (`next.config.ts:34`). It still contains `'unsafe-inline'` and `'unsafe-eval'` in `script-src`. | BACKLOG |
@@ -434,7 +487,7 @@ phases — see `P2-05`.
 | `P1-12` | Single-recipient mission notifications moved onto `fila_emails` (`1f076a9`). Found on the way: the acceptance email linked to `/spokesperson/mission/db-N`, a route that does not exist, and `recordGamificationEvent` was also `void`-fired on delivery, so XP could vanish. Both fixed. Password recovery stays a direct awaited send — the user is waiting on it. | **DONE** |
 | `P2-11` | The Worker now has a one-minute cron plus typed queue consumer for `fila_emails` and mission sweeps. The request path remains as a fallback until staging deployment; no remote Queue binding was created. | **DONE** (local scheduler) · **BLOCKED** (staging credential) |
 | `P0-10` | `.gitignore` had `/node_modules` (root only), so the first workspace install staged `apps/api/node_modules` — ~394k lines. Caught before pushing; the pattern is now `node_modules/`. Check any clone or fork made from an intermediate state. | **DONE** (`e82ccf4`) |
-| `P2-13` | `apps/api` now serves the editor queue and `apps/web` delegates to it in-process. Swapping `api.fetch` for a real Service Binding needs both Workers deployed. | **DONE** (in-process) · BLOCKED (binding needs credentials) |
+| `P2-13` | `apps/api` serves every migrated slice and `apps/web` delegates through `lib/internal-api.ts`. The binding is now *resolvable*: `setApiBinding(env.API)` swaps the in-process app for the real Fetcher, and `apiTransport()` reports which is live. The call needs both Workers deployed. | **DONE** (code) · BLOCKED (binding needs credentials) |
 | `P1-13` | The Worker accepts `HYPERDRIVE.connectionString`, configures the existing Postgres client before repository use and has a real-PostgreSQL binding test. `wrangler.jsonc` keeps credentials absent; creating the staging binding and proving the network path still needs Cloudflare access. Current bundle: 396 KiB / 95 KiB gzip. | **DONE** (local wiring) · BLOCKED (staging credential) |
 | `P3-07` | `mission-queue-messages.ts` exists in both `apps/api` and `apps/web`, deliberately, while two HTTP boundaries serve the same operation. Delete the `apps/web` copy when the Next adapter goes away. | BACKLOG |
 | `P3-05` | `apps/web/lib/db.ts` is a two-line re-export of `@oficina/db/client`, kept so the 21 `@/lib/db` importers change exactly once — when they move behind repositories. Delete the shim then. | BACKLOG |
@@ -481,18 +534,36 @@ catches a refactor quietly dropping an invariant.
 
 ## Immediate next actions
 
-1. **Phase 6 — keep shrinking the mission adapter.** Approval stays on the
-   PostgreSQL `oficina_private.aprovar_edicao` path until its reviewed D1 design.
-   Chat/report can move independently if they form the next coherent slice.
-2. **Phases 9–10 — extend D1 with each migrated slice.** Preserve atomic
-   repository transitions and add native parity coverage before moving on.
-3. **Phase 11 staging** — deploy the tested cron/consumer wiring and remove the
-   request fallback only after the Worker scheduler is proven.
-4. **`P1-10` / Phase 3** — prototype vinext and OpenNext side by side and record
-   the result under `ARCH-01`. `vinext check` reports 97% with no blocking
-   issues, but choosing needs a real deploy — **Cloudflare credentials required**.
+Local engineering has reached **LOCAL STAGING READY**: everything that does not
+need Cloudflare credentials is implemented and tested (184 tests). What remains
+is provisioning, deployment and measurement.
+
+1. **Provision the staging resources.** Every `PROVISIONAR-*` id in
+   `apps/api/wrangler.jsonc` is a placeholder and the deploy fails until it is
+   replaced — deliberately, so a wrong id cannot point somewhere in silence.
+   All three environments already pass `wrangler deploy --dry-run`.
+2. **Apply the D1 schema and deploy `apps/api --env staging`.** The `DB` binding
+   switches the whole repository set to D1; the `BACKGROUND_QUEUE` binding
+   switches maintenance from request-driven to Cron + Queue. Both are
+   all-or-nothing by design.
+3. **`P1-10` / `ARCH-01`** — prototype vinext and OpenNext side by side. Last
+   blocker for an `apps/web` Worker config. Whichever wins calls
+   `setApiBinding(env.API)` once; nothing else in `apps/web` changes.
+4. **Rehearse the migration** with `scripts/migrar-para-d1.mjs` against a copy,
+   dry run first. Validation must come back clean before any real migration.
 5. **`P0-06`** — confirm the production database provider and take a verified
    backup. Blocks production data migration, not local D1 engineering; needs
    human access.
 6. **`P0-09` follow-up** — review production logs for abuse that the dead
    limiter allowed. Needs human access.
+7. **Instrument real D1 `meta.rows_read`** in staging and replace the projection
+   in `CLOUDFLARE_COST_MODEL.md`. Then load test.
+
+### Deferred on purpose
+
+The Next routes still holding logic are all admin-only and correctly gated
+(`admin/users`, `admin/missions/[id]`, `admin/queue`, `admin/reports`,
+`admin/news`, `admin/broadcast`). They do not block staging; migrating them is
+tidiness, not risk reduction. `ARCH-03`/`ARCH-04` (PT-BR table names, the
+45-column `users` table) stay open — nothing in the code forces either decision,
+and neither is worth delaying staging for.

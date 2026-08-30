@@ -4,13 +4,18 @@
 
 ```
 date:                   2026-08-30
-current model:          GPT-5.6 Sol
+current model:          Claude Opus 5  (continuing from GPT-5.6 Sol)
 repository:             github.com/lunatecfra-cyber/oficina-amarela
-branch:                 infra/cloudflare-scale  (38 commits ahead of master after this handoff)
+branch:                 infra/cloudflare-scale
 base commit audited:    a37d94e  chore: migra linter e formatador de ESLint para Biome
-last implementation:    58a9916  feat(api): adiciona consumidores de manutenção agendada
-working tree:           clean after the handoff commit
+last implementation:    c62fb7b
+working tree:           clean; branch pushed
+tests:                  184 passing (domain 23, config 6, db 69, api 61, web 25)
 ```
+
+**Status: LOCAL STAGING READY.** Everything that does not need Cloudflare
+credentials is implemented and tested. The next step is provisioning, not
+coding — see *Staging checklist* below.
 
 ---
 
@@ -141,19 +146,70 @@ written.
 
 ## Current task
 
-Phase 6 is in progress. Mission lifecycle transitions and the editor queue run
-in Hono behind injected repositories; their PostgreSQL and native D1 adapters
-now share typed outcomes. The next coherent slice is chat/report collaboration;
-production approval remains deliberately untouched.
+Phase 6 is complete for every staging-critical slice. The editor queue, mission
+lifecycle, chat/report collaboration, mission approval, invitation redemption,
+invitation administration and the inspector's ranking corrections all run in
+Hono behind injected repositories, with PostgreSQL and native D1 adapters that
+share typed outcomes.
 
 ## Task state
 
 ```
-SESSION CHECKPOINT COMPLETE
+LOCAL STAGING READY — blocked only on Cloudflare provisioning
 ```
 
 Every commit on the branch is validated and self-contained. There is no
 half-finished edit in the working tree.
+
+### Staging checklist — the human-dependent path
+
+Everything below needs an account, not code.
+
+1. **Provision the staging resources.** Every id in `apps/api/wrangler.jsonc`
+   marked `PROVISIONAR-*` is a placeholder, and the deploy fails until it is
+   replaced — deliberately, so a wrong id cannot point somewhere in silence.
+
+   ```
+   wrangler d1 create oficina-amarela-staging
+   wrangler queues create oficina-amarela-manutencao-staging
+   wrangler queues create oficina-amarela-manutencao-staging-dlq
+   wrangler r2 bucket create oficina-amarela-midia-staging
+   wrangler hyperdrive create oficina-amarela-pg-staging \
+     --connection-string "postgres://..." --env staging
+   ```
+
+   Secrets go through `wrangler secret put --env staging` — `AUTH_SECRET`
+   verbatim, or every session dies.
+
+2. **Apply the D1 schema.** `wrangler d1 migrations apply oficina-amarela-staging
+   --env staging`, from `packages/db/d1`.
+
+3. **Deploy `apps/api`.** `wrangler deploy --env staging`. The presence of the
+   `DB` binding switches the whole repository set to D1 (`dependenciesFor`), and
+   the `BACKGROUND_QUEUE` binding switches maintenance from request-driven to
+   Cron + Queue (`maintenanceIsScheduled`). Both are all-or-nothing on purpose.
+
+4. **Decide `ARCH-01`.** vinext and OpenNext side by side, with a real deploy.
+   This is the last thing blocking a `wrangler.jsonc` for `apps/web`. Whichever
+   wins, its Worker entry calls `setApiBinding(env.API)` once — nothing else in
+   `apps/web` needs to know which one it was.
+
+5. **Run the migration rehearsal against a copy.**
+
+   ```
+   node scripts/migrar-para-d1.mjs --origem "postgres://..." --destino ./ensaio-d1 --a-seco
+   node scripts/migrar-para-d1.mjs --origem "postgres://..." --destino ./ensaio-d1
+   ```
+
+   The validation must come back clean before any real migration. It checks
+   counts, identity by key, referential integrity and the business invariants
+   PostgreSQL keeps in partial unique indexes and SQLite cannot.
+
+6. **Collect real metrics.** Instrument D1 `meta.rows_read` in staging and
+   replace the projection in `CLOUDFLARE_COST_MODEL.md`.
+
+7. **Load test**, then review production logs for the unthrottled period
+   (`P0-09`) and confirm the production PostgreSQL provider (`P0-06`).
 
 ---
 
@@ -375,22 +431,28 @@ pushed, so no rewrite reached anyone.
 
 ## Next actions
 
-### NEXT 1 — immediately executable
+Local work that does not need credentials is done. The remaining path is the
+**Staging checklist** under *Task state* — provisioning first, then deploy,
+integration flows, real metrics, the migration rehearsal and a load test.
 
-**Keep shrinking `apps/web/app/api/missions/[id]/route.ts`.** Move chat/report as
-the next coherent collaboration slice. Approval stays on
-`oficina_private.aprovar_edicao` until its concurrency design is reviewed.
+### NEXT 1 — needs a Cloudflare account
 
-### NEXT 2
+Provision the staging resources and replace every `PROVISIONAR-*` placeholder in
+`apps/api/wrangler.jsonc`. All three environments already pass
+`wrangler deploy --dry-run`.
 
-**Extend D1 only with the newly migrated slice.** Reuse the existing atomic
-repository shape and native Miniflare checks; do not add table-oriented CRUD.
+### NEXT 2 — needs a real deploy
 
-### NEXT 3
+Decide `ARCH-01` (vinext vs OpenNext) by deploying both. It is the last blocker
+for an `apps/web` Worker config. The Service Binding adapter is ready either
+way: the winning entry calls `setApiBinding(env.API)` once.
 
-**Deploy the already-tested cron/consumer wiring in staging when credentials
-exist.** Until then keep the request fallback. The same credential boundary
-applies to Hyperdrive and the vinext/OpenNext staging comparison.
+### NEXT 3 — optional, and only if measurement demands it
+
+The Next routes still holding real logic are all admin-only and correctly gated
+(`admin/users`, `admin/missions/[id]`, `admin/queue`, `admin/reports`,
+`admin/news`, `admin/broadcast`). They do not block staging. Migrating them is
+tidiness, not risk reduction — do it when something else makes it worthwhile.
 
 ## Do not redo
 
@@ -425,7 +487,9 @@ instrumenting real D1 `meta.rows_read` in staging.
 
 **Race conditions**
 - Five unique indexes now carry business invariants that used to live only in application checks. **Losing any of them in the D1 translation silently reopens a race that no test outside `mission-concurrency.test.ts` will catch.**
-- `oficina_private.aprovar_edicao()` and `criar_porta_voz_com_convite()` still rely on `FOR UPDATE`. D1 has neither stored procedures nor row locks. Reimplementing them naïvely allows double-scoring an approval and double-redeeming an invitation (`P0-08`).
+- Mission approval and invitation redemption no longer depend on the stored functions: both are explicit atomic transitions with PostgreSQL and D1 implementations and real concurrency tests. The D1 side carries its invariant in a durable event row rather than a lock. Do not "simplify" either back into table-level CRUD.
+- Granting a consistency shield used to count and insert in separate statements with no transaction, and no unique index held the maximum of two. With two warm connections, simultaneous grants gave an editor three. The count now happens after locking the editor's row. On D1 the same rule lives in a single `INSERT ... SELECT` that only produces a row while the balance fits.
+- A concurrency test proves nothing with only one warm connection: the second request spends its time opening a connection while the first finishes, and the race never happens. Warm at least two (`Promise.all` of two `pg_sleep`), and confirm the test fails with the fix removed.
 - Concurrency tests only prove something with a warm connection pool. A test that skips the warm-up passes whether or not the invariant exists.
 
 **Duplicate email delivery**
@@ -434,7 +498,7 @@ instrumenting real D1 `meta.rows_read` in staging.
 - Password recovery is still a direct awaited send, deliberately: the user is waiting on it. Everything else goes through the outbox.
 
 **Security regression**
-- Row Level Security is enabled on 6 tables. D1 has no RLS. All of that authorization must move explicitly into `apps/api` — losing it silently is the most likely security regression in this migration (`P1-07`).
+- Row Level Security is enabled on 6 tables — and **none of them has a single policy**, nor `FORCE ROW LEVEL SECURITY`. Since the application connects as the tables' owner, PostgreSQL skips RLS on every product query: it has never authorized anything inside the app. What it does protect is direct access with a leaked anon key. So there was no policy to port, only authorization to write, and that is now explicit in `apps/api` with negative tests per role. Do not re-derive this by reading the migration and assuming the policies are elsewhere; they do not exist.
 - The attempt limiter was dead in production until `274142d`. Production logs have not been reviewed for abuse that went unthrottled (`P0-09`).
 - CSP is still `Report-Only` and permits `'unsafe-inline'` and `'unsafe-eval'` (`P2-04`).
 

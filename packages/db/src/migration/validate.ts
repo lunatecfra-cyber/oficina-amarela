@@ -29,6 +29,8 @@ const IDENTITY_KEYS: Record<string, string> = {
   ranking_aprovacoes: "pauta_id",
   convites_porta_voz: "id",
   indicacoes_recompensas: "convidado_id",
+  bloqueios_constancia: "id",
+  gamificacao_eventos: "id",
   auditoria_admin: "id",
   fila_emails: "id",
 };
@@ -67,6 +69,22 @@ const BUSINESS_CHECKS: Array<{ name: string; table: string; query: string; detai
             WHERE revogado_em IS NULL
             GROUP BY convidado_id HAVING count(*) > 1`,
     detail: "convidado premiado mais de uma vez",
+  },
+  {
+    name: "evento_gamificacao_duplicado",
+    table: "gamificacao_eventos",
+    query: `SELECT user_id || '/' || regra_id || '/' || referencia AS chave, count(*) AS total
+            FROM gamificacao_eventos
+            GROUP BY user_id, regra_id, referencia HAVING count(*) > 1`,
+    detail: "mesmo evento pontuado mais de uma vez",
+  },
+  {
+    name: "bloqueios_acima_do_limite",
+    table: "bloqueios_constancia",
+    query: `SELECT editor_id AS chave, count(*) AS total FROM bloqueios_constancia
+            WHERE consumido_em IS NULL
+            GROUP BY editor_id HAVING count(*) > 2`,
+    detail: "editor com mais bloqueios disponíveis do que o máximo de dois",
   },
   {
     name: "pontuacao_sem_aprovacao",
