@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test, { after, before, beforeEach, describe } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1MissionLifecycle, type D1DatabaseLike } from "./mission-lifecycle.ts";
+import { applyD1Schema } from "./schema-test-helper.ts";
 
 describe("paridade local D1 da missão", () => {
   const miniflare = new Miniflare(
@@ -21,15 +22,11 @@ describe("paridade local D1 da missão", () => {
 
   before(async () => {
     db = await miniflare.getD1Database("DB");
-    const schema = (
-      await readFile(new URL("../../d1/0001_mission_slice.sql", import.meta.url), "utf8")
-    ).replace(/^--.*$/gm, "");
-    for (const statement of schema
-      .split(";")
-      .map((part) => part.trim())
-      .filter(Boolean)) {
-      await db.prepare(statement).run();
-    }
+    const schema = await readFile(
+      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
+      "utf8",
+    );
+    await applyD1Schema(db as unknown as D1DatabaseLike, schema);
     missions = createD1MissionLifecycle(db as unknown as D1DatabaseLike);
   });
 

@@ -3,18 +3,9 @@ import type {
   MissionActionResult,
   MissionLifecycleRepository,
 } from "../mission-lifecycle.ts";
+import type { D1DatabaseLike } from "./types.ts";
 
-type D1ResultLike = { meta: { changes: number } };
-
-type D1PreparedStatementLike = {
-  bind(...values: unknown[]): D1PreparedStatementLike;
-  first<T = Record<string, unknown>>(): Promise<T | null>;
-  run(): Promise<D1ResultLike>;
-};
-
-export type D1DatabaseLike = {
-  prepare(query: string): D1PreparedStatementLike;
-};
+export type { D1DatabaseLike } from "./types.ts";
 
 const failure = (reason: MissionActionFailure): MissionActionResult => ({ ok: false, reason });
 

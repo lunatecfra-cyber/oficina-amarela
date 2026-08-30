@@ -20,6 +20,15 @@ CREATE TABLE pautas (
   formato TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'disponivel',
   prioridade INTEGER NOT NULL DEFAULT 0,
+  drive_link TEXT,
+  youtube_link TEXT,
+  brief_tom TEXT,
+  brief_cor TEXT,
+  brief_fonte TEXT,
+  brief_refs TEXT,
+  extras TEXT,
+  motivo TEXT,
+  prazo_desejado TEXT,
   reservada_por_id INTEGER REFERENCES users(id),
   reservada_ate TEXT,
   reservada_em TEXT,
@@ -36,6 +45,11 @@ CREATE UNIQUE INDEX idx_pautas_missao_ativa_por_editor
   ON pautas (reservada_por_id)
   WHERE reservada_por_id IS NOT NULL
     AND status IN ('reservada', 'em_revisao', 'reedicao');
+CREATE INDEX idx_pautas_fila
+  ON pautas (prioridade DESC, criada_em ASC)
+  WHERE status IN ('disponivel', 'oferecida');
+CREATE INDEX idx_pautas_porta_voz ON pautas (porta_voz_id);
+CREATE INDEX idx_pautas_reservada_por ON pautas (reservada_por_id);
 
 CREATE TABLE ofertas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,6 +67,40 @@ CREATE UNIQUE INDEX idx_ofertas_pendente_por_missao
   ON ofertas (pauta_id) WHERE status = 'pendente';
 CREATE UNIQUE INDEX idx_ofertas_pendente_por_editor
   ON ofertas (editor_id) WHERE status = 'pendente';
+CREATE INDEX idx_ofertas_editor_status ON ofertas (editor_id, status);
+CREATE INDEX idx_ofertas_pauta ON ofertas (pauta_id);
+CREATE INDEX idx_ofertas_pendentes
+  ON ofertas (oferecida_em) WHERE status = 'pendente';
+
+-- D1/SQLite cannot express PostgreSQL's data-modifying CTEs. These triggers
+-- keep the same all-or-nothing boundary inside the database statement.
+CREATE TRIGGER claim_mission_on_pending_offer
+AFTER INSERT ON ofertas
+WHEN NEW.status = 'pendente'
+BEGIN
+  UPDATE pautas SET status = 'oferecida'
+  WHERE id = NEW.pauta_id AND status IN ('disponivel', 'oferecida');
+  SELECT CASE WHEN changes() = 0 THEN RAISE(ABORT, 'mission_unavailable') END;
+END;
+
+CREATE TRIGGER reserve_mission_on_offer_accept
+AFTER UPDATE OF status ON ofertas
+WHEN OLD.status = 'pendente' AND NEW.status = 'aceita'
+BEGIN
+  UPDATE pautas
+  SET status = 'reservada', reservada_por_id = NEW.editor_id,
+      reservada_em = NEW.respondida_em
+  WHERE id = NEW.pauta_id AND status = 'oferecida';
+  SELECT CASE WHEN changes() = 0 THEN RAISE(ABORT, 'offer_invalid') END;
+END;
+
+CREATE TRIGGER release_mission_on_offer_close
+AFTER UPDATE OF status ON ofertas
+WHEN OLD.status = 'pendente' AND NEW.status IN ('rejeitada', 'expirada')
+BEGIN
+  UPDATE pautas SET status = 'disponivel'
+  WHERE id = NEW.pauta_id AND status = 'oferecida';
+END;
 
 CREATE TABLE fila_emails (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
