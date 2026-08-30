@@ -34,7 +34,7 @@ const TRACKS = [
 
 const TARGET_AUDIENCE = [
   {
-    href: "/signup?role=spokesperson",
+    href: "/criar-conta?papel=voz",
     title: "Sou porta-voz",
     desc: "Você tem o vídeo bruto e precisa que alguém edite. Abre a missão e acompanha até o vídeo voltar pronto.",
     items: ["Grava e manda o link do Drive", "Diz o tom, a cor e o formato", "Assiste, aprova ou pede ajuste"],
@@ -43,7 +43,7 @@ const TARGET_AUDIENCE = [
     ),
   },
   {
-    href: "/signup?role=editor",
+    href: "/criar-conta?papel=editor",
     title: "Sou editor",
     desc: "As missões chegam até você. Aceita, edita, entrega — e sobe de nível a cada trabalho aprovado.",
     items: ["Recebe missão sem disputar", "Uma por vez, sem acúmulo", "Nota e reputação a cada entrega"],

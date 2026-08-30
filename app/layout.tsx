@@ -18,8 +18,11 @@ const sora = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Yellow Workshop",
-  description: "The Video Editors' Guild. Take missions, deliver edits, level up.",
+  title: {
+    default: "Oficina Amarela",
+    template: "%s",
+  },
+  description: "A Confraria dos Editores de Vídeo. Pegue missões, entregue cortes e suba de nível.",
   icons: { icon: "/emblema.png", apple: "/emblema.png" },
 };
 
@@ -30,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="pt-BR"
       className={`${cinzel.variable} ${sora.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

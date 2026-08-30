@@ -7,6 +7,15 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.1.1] - 2026-08-30
+
+### Corrigido
+- **Título do Site e Metadados Globais**:
+  - Atualizado o título padrão no `layout.tsx` para **Oficina Amarela** (substituindo "Yellow Workshop").
+  - Atualizada a descrição padrão para português ("A Confraria dos Editores de Vídeo. Pegue missões, entregue cortes e suba de nível.").
+  - Ajustado atributo de linguagem HTML para `pt-BR`.
+  - Corrigidos links de criação de conta na página inicial para apontar para rotas em português (`/criar-conta?papel=voz` e `/criar-conta?papel=editor`).
+
 ## [0.1.0] - 2026-08-30
 
 ### Adicionado
