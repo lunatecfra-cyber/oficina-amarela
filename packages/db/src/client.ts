@@ -2,9 +2,23 @@ import postgres from "postgres";
 
 declare global {
   var __workshopSql: ReturnType<typeof postgres> | undefined;
+  var __workshopSqlUrl: string | undefined;
 }
 
 const NEXT_BUILD_PHASE = "phase-production-build";
+let boundDatabaseUrl: string | undefined;
+
+/** Configure the connection URL supplied by a Worker binding such as Hyperdrive. */
+export function configureDatabaseUrl(url: string): void {
+  if (!/^postgres(?:ql)?:\/\//.test(url)) {
+    throw new Error("The database binding did not provide a PostgreSQL connection string.");
+  }
+  const currentUrl = globalThis.__workshopSqlUrl ?? boundDatabaseUrl;
+  if (currentUrl && currentUrl !== url) {
+    throw new Error("The database connection cannot change after this Worker isolate starts.");
+  }
+  boundDatabaseUrl = url;
+}
 
 /**
  * Why an empty-result stub is acceptable right now, or null when it is not.
@@ -48,9 +62,14 @@ function createStubClient(reason: string) {
 }
 
 function getClient() {
-  if (globalThis.__workshopSql) return globalThis.__workshopSql;
+  const url = boundDatabaseUrl ?? process.env.DATABASE_URL;
+  if (globalThis.__workshopSql) {
+    if (url && globalThis.__workshopSqlUrl && globalThis.__workshopSqlUrl !== url) {
+      throw new Error("The database connection cannot change after the client is initialized.");
+    }
+    return globalThis.__workshopSql;
+  }
 
-  const url = process.env.DATABASE_URL;
   if (!url) {
     const reason = stubReason();
     if (!reason) {
@@ -67,6 +86,7 @@ function getClient() {
   // prepare: false is required for the transaction pooler
   const client = postgres(url, { prepare: false });
   globalThis.__workshopSql = client;
+  globalThis.__workshopSqlUrl = url;
   return client;
 }
 

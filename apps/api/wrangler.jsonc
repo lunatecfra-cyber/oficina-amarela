@@ -9,6 +9,9 @@
   "observability": {
     "enabled": true
   }
+  // Hyperdrive is intentionally absent until a staging config exists. Create it
+  // with `wrangler hyperdrive create ... --binding HYPERDRIVE --update-config
+  // --env staging`; never commit the origin connection string here.
   // Bindings (D1, R2, Queues, Durable Objects, KV) entram nas fases seguintes.
   // O Worker web vai alcançar este por Service Binding, não pela internet.
 }

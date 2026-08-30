@@ -1,3 +1,4 @@
+import { configureDatabaseUrl } from "@oficina/db/client";
 import { Hono } from "hono";
 import { type ApiDependencies, postgresApiDependencies } from "./dependencies.ts";
 import { createEditorQueue } from "./routes/editor-queue.ts";
@@ -12,9 +13,9 @@ import { createMissionLifecycleRoutes } from "./routes/mission-lifecycle.ts";
  * pronto em vez de cada uma inventar o seu.
  */
 
-/** Bindings do Worker. Vazio por enquanto: D1, R2, Queues e Durable Objects
- *  entram nas fases seguintes. */
-export type Bindings = Record<string, never>;
+export type Bindings = {
+  HYPERDRIVE?: { readonly connectionString: string };
+};
 
 export type Variables = {
   requestId: string;
@@ -29,6 +30,9 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
     const requestId = c.req.header("cf-ray") ?? crypto.randomUUID();
     c.set("requestId", requestId);
     c.header("x-request-id", requestId);
+
+    const hyperdriveUrl = c.env?.HYPERDRIVE?.connectionString;
+    if (hyperdriveUrl) configureDatabaseUrl(hyperdriveUrl);
 
     const startedAt = Date.now();
     await next();

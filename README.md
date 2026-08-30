@@ -112,6 +112,20 @@ R2_PUBLIC_URL=https://midia.seudominio.com.br
 
 O `.env.local` fica em `apps/web/`.
 
+Para o Worker da API em staging, PostgreSQL entra por Hyperdrive. Quando as
+credenciais de **staging** existirem, crie o binding sem gravar a URL no Git:
+
+```bash
+cd apps/api
+npx wrangler hyperdrive create oficina-amarela-staging \
+  --env staging --binding HYPERDRIVE --update-config \
+  --connection-string "$STAGING_DATABASE_URL"
+```
+
+O código usa `env.HYPERDRIVE.connectionString` no Worker e continua aceitando
+`DATABASE_URL` no Next.js e nos testes locais. Não use a URL de produção nesta
+etapa.
+
 ### 4. Executar o schema / migrações do banco
 ```bash
 node --env-file=apps/web/.env.local scripts/migrar.mjs

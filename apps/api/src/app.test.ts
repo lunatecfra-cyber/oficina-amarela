@@ -21,6 +21,15 @@ describe("fronteira da API", () => {
     assert.equal(res.headers.get("x-request-id"), "abc123-GRU");
   });
 
+  test("aceita a connectionString do binding Hyperdrive", async () => {
+    const res = await app.request(
+      "/health",
+      {},
+      { HYPERDRIVE: { connectionString: "postgres://hyperdrive.invalid/oficina" } },
+    );
+    assert.equal(res.status, 200);
+  });
+
   test("rota desconhecida devolve 404 em PT-BR", async () => {
     const res = await app.request("/nao-existe");
     assert.equal(res.status, 404);
