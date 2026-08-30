@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1MissionCollaboration } from "./mission-collaboration.ts";
-import { applyD1Schema } from "./schema-test-helper.ts";
+import { applyD1Schema } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade D1 da colaboração de missão", () => {
