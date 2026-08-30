@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+import { sql } from "./client.ts";
 
 /**
  * Caixa de saída de e-mail.

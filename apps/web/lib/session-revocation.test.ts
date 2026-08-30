@@ -14,7 +14,7 @@ const skip = TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado";
 describe("cache de revogação de sessão", { skip }, async () => {
   const { sql } = await import("@/lib/db");
   const { clearSessionRevocationCache, getSessionRevocationCutoff, invalidateSessionRevocation } =
-    await import("@/lib/session-revocation");
+    await import("@oficina/db/session-revocation");
   const { updatePassword } = await import("@/lib/accounts");
 
   let userId: number;

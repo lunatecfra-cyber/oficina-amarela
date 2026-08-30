@@ -2,6 +2,9 @@
 // por poll de cada editor. Precisa de PostgreSQL real: a garantia está no
 // UPSERT condicional, não no código.
 //
+// A coarsening da presença mora em apps/web/lib/presence.test.ts: depende de
+// queue-db, que ainda não faz parte deste pacote.
+//
 //   TEST_DATABASE_URL="postgres://..." npm test
 
 import assert from "node:assert/strict";
@@ -13,9 +16,8 @@ if (TEST_DATABASE_URL) process.env.DATABASE_URL = TEST_DATABASE_URL;
 const skip = TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado";
 
 describe("trava de periodicidade", { skip }, async () => {
-  const { sql } = await import("@/lib/db");
-  const { claimPeriodicTask } = await import("@/lib/scheduler-db");
-  const { markEditorActive } = await import("@/lib/queue-db");
+  const { sql } = await import("./client.ts");
+  const { claimPeriodicTask } = await import("./scheduler.ts");
 
   const TASK = "teste_varredura";
 
@@ -51,32 +53,5 @@ describe("trava de periodicidade", { skip }, async () => {
       WHERE nome = ${TASK}
     `;
     assert.equal(await claimPeriodicTask(TASK, 60), true);
-  });
-
-  test("presença não regrava dentro da janela", async () => {
-    const [editor] = await sql`
-      INSERT INTO users (apelido, nome, email, papel, ultimo_visto_em)
-      VALUES ('presenca.teste', 'Presença', 'presenca@teste.local', 'editor', now())
-      ON CONFLICT (lower(apelido)) DO UPDATE SET ultimo_visto_em = now()
-      RETURNING id
-    `;
-
-    const seenAt = async () => {
-      const [row] = await sql`SELECT ultimo_visto_em FROM users WHERE id = ${editor.id}`;
-      return new Date(row.ultimo_visto_em).getTime();
-    };
-
-    const before = await seenAt();
-    await markEditorActive(editor.id);
-    assert.equal(await seenAt(), before, "poll dentro da janela não pode gerar escrita");
-
-    await sql`
-      UPDATE users SET ultimo_visto_em = now() - interval '61 seconds' WHERE id = ${editor.id}
-    `;
-    const stale = await seenAt();
-    await markEditorActive(editor.id);
-    assert.ok((await seenAt()) > stale, "passada a janela, o poll precisa renovar a presença");
-
-    await sql`DELETE FROM users WHERE id = ${editor.id}`;
   });
 });

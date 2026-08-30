@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+import { sql } from "./client.ts";
 
 /**
  * Trava de periodicidade para trabalho global disparado por requisição.

@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+import { sql } from "./client.ts";
 
 /**
  * Cache curto do corte de revogação de sessão.

@@ -1,11 +1,11 @@
+import { type DrainResult, drainEmailQueue, enqueueEmails } from "@oficina/db/email-queue";
 import { deliverEmail, type EmailContent } from "@/lib/email";
-import { type DrainResult, drainEmailQueue, enqueueEmails } from "@/lib/email-queue-db";
 
 /**
  * Liga a caixa de saída ao provedor de e-mail.
  *
  * Módulo separado só para não criar ciclo entre lib/email.ts (que monta e
- * entrega) e lib/email-queue-db.ts (que guarda). É este ponto que vira o
+ * entrega) e @oficina/db/email-queue (que guarda). É este ponto que vira o
  * consumidor de Cloudflare Queue depois — o resto não muda.
  */
 

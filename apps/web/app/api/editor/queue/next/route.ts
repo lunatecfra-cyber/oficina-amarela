@@ -1,3 +1,4 @@
+import { claimPeriodicTask, QUEUE_SWEEP_TASK } from "@oficina/db/scheduler";
 import { after, NextResponse } from "next/server";
 import { buildMissionAcceptedEmail } from "@/lib/email";
 import { drainEmailQueueNow, queueMissionNotification } from "@/lib/email-dispatch";
@@ -10,7 +11,6 @@ import {
   markEditorActive,
   pendingOfferForEditor,
 } from "@/lib/queue-db";
-import { claimPeriodicTask, QUEUE_SWEEP_TASK } from "@/lib/scheduler-db";
 import { readSession } from "@/lib/server-session";
 
 // A varredura global (expirar ofertas + despachar) roda no máximo uma vez a

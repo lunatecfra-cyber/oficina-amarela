@@ -15,6 +15,8 @@ const CSP = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Pacotes do workspace são publicados como TypeScript, sem passo de build.
+  transpilePackages: ["@oficina/db"],
   async headers() {
     return [
       {

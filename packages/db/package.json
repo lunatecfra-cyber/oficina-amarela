@@ -1,0 +1,21 @@
+{
+  "name": "@oficina/db",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 src/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@types/node": "^26",
+    "typescript": "^5"
+  }
+}

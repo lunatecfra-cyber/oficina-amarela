@@ -12,8 +12,8 @@ if (TEST_DATABASE_URL) process.env.DATABASE_URL = TEST_DATABASE_URL;
 const skip = TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado";
 
 describe("caixa de saída de e-mail", { skip }, async () => {
-  const { sql } = await import("@/lib/db");
-  const { MAX_ATTEMPTS, drainEmailQueue, enqueueEmails } = await import("@/lib/email-queue-db");
+  const { sql } = await import("./client.ts");
+  const { MAX_ATTEMPTS, drainEmailQueue, enqueueEmails } = await import("./email-queue.ts");
 
   const message = (key: string) => ({
     key,
