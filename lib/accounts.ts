@@ -530,7 +530,20 @@ export async function isRateLocked(
 
 export const taxaTravada = isRateLocked;
 
-export async function recordAttempt(rawKey: string, max = MAX_ATTEMPTS): Promise<void> {
+/**
+ * Conta uma tentativa e tranca a chave ao atingir `max` dentro da janela.
+ *
+ * Vale para qualquer chave, não só login: recuperação de senha, cadastro por
+ * IP e emissão de URL de upload usam a mesma tabela. Como o estado mora no
+ * banco, o limite vale entre instâncias — contador em memória de processo
+ * desaparece assim que existe mais de um isolate.
+ */
+export async function recordAttempt(
+  rawKey: string,
+  max = MAX_ATTEMPTS,
+  windowMinutes = WINDOW_MINUTES,
+  lockMinutes = LOCK_MINUTES,
+): Promise<{ locked: boolean }> {
   const key = rawKey.trim().toLowerCase();
 
   const [row] = await sql`
@@ -538,27 +551,33 @@ export async function recordAttempt(rawKey: string, max = MAX_ATTEMPTS): Promise
     VALUES (${key}, 1, now())
     ON CONFLICT (chave) DO UPDATE SET
       tentativas = CASE
-        WHEN tentativas_login.primeira_em < now() - (${WINDOW_MINUTES} || ' minutes')::interval
+        WHEN tentativas_login.primeira_em < now() - make_interval(mins => ${windowMinutes})
           THEN 1
         ELSE tentativas_login.tentativas + 1
       END,
       primeira_em = CASE
-        WHEN tentativas_login.primeira_em < now() - (${WINDOW_MINUTES} || ' minutes')::interval
+        WHEN tentativas_login.primeira_em < now() - make_interval(mins => ${windowMinutes})
           THEN now()
         ELSE tentativas_login.primeira_em
       END
     RETURNING tentativas
   `;
 
-  if (row && row.attempts >= max) {
+  // A coluna se chama `tentativas`. Lendo `row.attempts` — o nome em inglês —
+  // a comparação era sempre `undefined >= max`, ou seja, false: nenhuma chave
+  // jamais era trancada, em login, recuperação ou cadastro.
+  if (row && Number(row.tentativas) >= max) {
     await sql`
       UPDATE tentativas_login
-      SET travado_ate = now() + (${LOCK_MINUTES} || ' minutes')::interval,
+      SET travado_ate = now() + make_interval(mins => ${lockMinutes}),
           tentativas = 0,
           primeira_em = now()
       WHERE chave = ${key}
     `;
+    return { locked: true };
   }
+
+  return { locked: false };
 }
 
 export const isRateLimited = isRateLocked;

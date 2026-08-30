@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isRateLocked, recordAttempt } from "@/lib/accounts";
 import { generatePresignedUploadUrl } from "@/lib/r2";
 import { readSession } from "@/lib/server-session";
 
@@ -11,21 +12,13 @@ const ACCEPTED_MIME_TYPES = new Set([
 
 const MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
 
-const WINDOW_MS = 60 * 60 * 1000;
+// O limite mora no banco, não em memória de processo: um Map de módulo vive por
+// isolate, e nos Workers isso significa um contador novo a cada isolate criado —
+// na prática, limite nenhum.
+const WINDOW_MINUTES = 60;
 const MAX_PER_HOUR = 10;
-const presignsByUser = new Map<number, number[]>();
 
-function hasExceededUploadLimit(userId: number): boolean {
-  const now = Date.now();
-  const stamps = (presignsByUser.get(userId) ?? []).filter((t) => now - t < WINDOW_MS);
-  if (stamps.length >= MAX_PER_HOUR) {
-    presignsByUser.set(userId, stamps);
-    return true;
-  }
-  stamps.push(now);
-  presignsByUser.set(userId, stamps);
-  return false;
-}
+const uploadKey = (userId: number) => `presign:${userId}`;
 
 export async function POST(request: Request) {
   const session = await readSession();
@@ -36,11 +29,12 @@ export async function POST(request: Request) {
     );
   }
 
-  if (hasExceededUploadLimit(session.id)) {
+  const limit = await isRateLocked(uploadKey(session.id));
+  if (limit.locked) {
     return NextResponse.json(
       {
-        error: "Too many uploads in the past hour. Please try again later.",
-        erro: "Rate limited.",
+        error: "Muitos envios na última hora. Tente de novo mais tarde.",
+        erro: "Muitos envios na última hora. Tente de novo mais tarde.",
       },
       { status: 429 },
     );
@@ -81,6 +75,8 @@ export async function POST(request: Request) {
       { status: 413 },
     );
   }
+
+  await recordAttempt(uploadKey(session.id), MAX_PER_HOUR, WINDOW_MINUTES, WINDOW_MINUTES);
 
   const timestamp = Date.now();
   const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
