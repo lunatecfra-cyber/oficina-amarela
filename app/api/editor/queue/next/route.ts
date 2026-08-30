@@ -74,7 +74,7 @@ export async function POST(request: Request) {
         c.spokesperson.name,
         c.title,
         auth.session.handle,
-        `${new URL(request.url).origin}/spokesperson/mission/db-${missionId}`
+        `${new URL(request.url).origin}/porta-voz/missao/db-${missionId}`
       );
     })().catch((e) => console.error("[notification] failed to notify acceptance", e));
   }

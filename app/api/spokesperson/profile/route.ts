@@ -43,6 +43,7 @@ export async function POST(request: Request) {
     bio: toStringOpt(body?.bio),
     watermarkUrl: toStringOpt(body?.watermarkUrl ?? body?.marcaDagua),
     campaignTaxId: toStringOpt(body?.campaignTaxId ?? body?.cnpjCampanha),
+    candidateNumber: toStringOpt(body?.candidateNumber ?? body?.numeroEleitoral),
     voterRegistrationId: toStringOpt(body?.voterRegistrationId ?? body?.tituloEleitor),
   });
 

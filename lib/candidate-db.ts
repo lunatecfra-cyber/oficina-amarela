@@ -1,6 +1,7 @@
 import { sql } from "@/lib/db";
 import { LIMITS, isValidPhoto, limitStr, limitList, limitOrNull } from "@/lib/limits";
 import { DEFAULT_TINT, type Candidate, type SocialLinks } from "@/lib/candidates";
+import { validateCampaignIdentity } from "@/lib/campaign-identity";
 
 export type CandidateOnboarding = {
   name: string;
@@ -21,6 +22,7 @@ export type CandidateOnboarding = {
   profileCompleted?: boolean;
   watermark?: string;
   campaignTaxId?: string;
+  candidateNumber?: string;
   voterId?: string;
   // compatibility aliases
   nome?: string;
@@ -36,6 +38,7 @@ export type CandidateOnboarding = {
   perfilCompleto?: boolean;
   marcaDagua?: string;
   cnpjCampanha?: string;
+  numeroEleitoral?: string;
   tituloEleitor?: string;
 };
 
@@ -45,7 +48,7 @@ export async function readCandidateOnboarding(userId: number): Promise<Candidate
   const [l] = await sql`
     SELECT name, avatar_url, political_office, running_for, election_year, location,
            campaign_flags, communication_tone, keywords, social_links, bio,
-           profile_completed, watermark, campaign_tax_id, voter_id
+           profile_completed, watermark, campaign_tax_id, candidate_number, voter_id
     FROM users WHERE id = ${userId}
   `;
   if (!l) return null;
@@ -68,6 +71,7 @@ export async function readCandidateOnboarding(userId: number): Promise<Candidate
     profileCompleted: l.profile_completed ?? false,
     watermark: l.watermark ?? undefined,
     campaignTaxId: l.campaign_tax_id ?? undefined,
+    candidateNumber: l.candidate_number ?? undefined,
     voterId: l.voter_id ?? undefined,
     // aliases
     nome: l.name ?? "",
@@ -83,6 +87,7 @@ export async function readCandidateOnboarding(userId: number): Promise<Candidate
     perfilCompleto: l.profile_completed ?? false,
     marcaDagua: l.watermark ?? undefined,
     cnpjCampanha: l.campaign_tax_id ?? undefined,
+    numeroEleitoral: l.candidate_number ?? undefined,
     tituloEleitor: l.voter_id ?? undefined,
   };
 }
@@ -110,6 +115,7 @@ export async function saveCandidateOnboarding(
     watermark?: string;
     watermarkUrl?: string;
     campaignTaxId?: string;
+    candidateNumber?: string;
     voterId?: string;
     voterRegistrationId?: string;
     // aliases
@@ -125,12 +131,18 @@ export async function saveCandidateOnboarding(
     redes?: SocialLinks;
     marcaDagua?: string;
     cnpjCampanha?: string;
+    numeroEleitoral?: string;
     tituloEleitor?: string;
   }
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const rawName = data.name ?? data.nome ?? "";
-  const name = limitStr(rawName, LIMITS.name);
-  if (!name) return { ok: false, error: "Please enter your name.", erro: "Please enter your name." };
+  const identity = validateCampaignIdentity({
+    officialName: rawName,
+    candidateNumber: data.candidateNumber ?? data.numeroEleitoral ?? "",
+    campaignTaxId: data.campaignTaxId ?? data.cnpjCampanha ?? "",
+  });
+  if (!identity.ok) return { ok: false, error: identity.error, erro: identity.error };
+  const name = limitStr(identity.value.officialName, LIMITS.name);
 
   const photo = data.avatarUrl ?? data.photoUrl ?? data.fotoUrl;
   if (!isValidPhoto(photo)) {
@@ -147,7 +159,8 @@ export async function saveCandidateOnboarding(
   const links = data.socialLinks ?? data.redes ?? {};
   const bio = data.bio;
   const watermark = data.watermark ?? data.marcaDagua;
-  const campaignTaxId = data.campaignTaxId ?? data.cnpjCampanha;
+  const campaignTaxId = identity.value.campaignTaxId;
+  const candidateNumber = identity.value.candidateNumber;
   const voterId = data.voterId ?? data.tituloEleitor;
 
   await sql`
@@ -165,6 +178,7 @@ export async function saveCandidateOnboarding(
       bio = ${limitOrNull(bio, LIMITS.bio)},
       watermark = ${limitOrNull(watermark, LIMITS.name)},
       campaign_tax_id = ${limitOrNull(campaignTaxId, LIMITS.name)},
+      candidate_number = ${candidateNumber},
       voter_id = ${limitOrNull(voterId, LIMITS.name)},
       profile_completed = true
     WHERE id = ${userId}
@@ -192,6 +206,7 @@ type CandidateRow = {
   created_at: string;
   watermark: string | null;
   campaign_tax_id: string | null;
+  candidate_number: string | null;
   voter_id: string | null;
 };
 
@@ -215,6 +230,7 @@ function rowToCandidate(l: CandidateRow): Candidate {
     since: new Date(l.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
     watermark: l.watermark ?? undefined,
     campaignTaxId: l.campaign_tax_id ?? undefined,
+    candidateNumber: l.candidate_number ?? undefined,
     voterId: l.voter_id ?? undefined,
     // aliases
     nome: l.name,
@@ -231,6 +247,7 @@ function rowToCandidate(l: CandidateRow): Candidate {
     desde: new Date(l.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
     marcaDagua: l.watermark ?? undefined,
     cnpjCampanha: l.campaign_tax_id ?? undefined,
+    numeroEleitoral: l.candidate_number ?? undefined,
     tituloEleitor: l.voter_id ?? undefined,
   };
 }
@@ -239,7 +256,7 @@ export async function readOwnCandidate(userId: number): Promise<Candidate | null
   const [l] = await sql`
     SELECT id, handle, name, avatar_url, political_office, running_for, election_year,
            location, campaign_flags, communication_tone, keywords, social_links, bio,
-           created_at, watermark, campaign_tax_id, voter_id
+           created_at, watermark, campaign_tax_id, candidate_number, voter_id
     FROM users
     WHERE id = ${userId}
   `;
@@ -253,7 +270,7 @@ export async function readPublicCandidate(slug: string): Promise<Candidate | nul
   const [l] = await sql`
     SELECT id, handle, name, avatar_url, political_office, running_for, election_year,
            location, campaign_flags, communication_tone, keywords, social_links, bio,
-           created_at, watermark, campaign_tax_id, voter_id
+           created_at, watermark, campaign_tax_id, candidate_number, voter_id
     FROM users
     WHERE lower(handle) = lower(${slug}) AND role = 'spokesperson' AND profile_completed = true AND is_banned = false
   `;
@@ -268,7 +285,7 @@ export async function readCandidatesByHandles(handles: string[]): Promise<Map<st
   const rows = await sql`
     SELECT id, handle, name, avatar_url, political_office, running_for, election_year,
            location, campaign_flags, communication_tone, keywords, social_links, bio,
-           created_at, watermark, campaign_tax_id, voter_id
+           created_at, watermark, campaign_tax_id, candidate_number, voter_id
     FROM users
     WHERE handle = ANY(${handles})
   `;

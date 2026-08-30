@@ -197,7 +197,7 @@ async function dispatchNotifications(
   const c = await missionContacts(missionId);
   if (!c) return;
 
-  const spokespersonUrl = `${origin}/spokesperson/mission/db-${missionId}`;
+  const spokespersonUrl = `${origin}/porta-voz/missao/db-${missionId}`;
   const editorUrl = `${origin}/editor`;
 
   if (action === "deliver" && c.spokesperson) {

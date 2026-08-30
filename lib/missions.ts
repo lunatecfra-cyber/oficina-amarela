@@ -56,6 +56,7 @@ export type Mission = {
   deliveryVideoUrl?: string;
   watermark?: string;
   campaignTaxId?: string;
+  candidateNumber?: string;
   voterId?: string;
   revisionRequestedBy?: "inspector" | "spokesperson" | "inspetor" | "porta_voz";
   reeditRequestedBy?: "inspector" | "spokesperson" | "inspetor" | "porta_voz";
@@ -75,6 +76,7 @@ export type Mission = {
   videoEntregaUrl?: string;
   marcaDagua?: string;
   cnpjCampanha?: string;
+  numeroEleitoral?: string;
   tituloEleitor?: string;
   reedicaoPedidaPor?: "inspector" | "spokesperson" | "inspetor" | "porta_voz";
 };
@@ -373,3 +375,59 @@ export function currentStage(status: string): number {
 }
 
 export const etapaAtual = currentStage;
+
+/**
+ * Os quatro grupos que o porta-voz vê no resumo da tela inicial.
+ *
+ * É agrupamento de APRESENTAÇÃO — não muda status nem regra. Repare que
+ * `approved` cai em "em revisão", e não em "concluída": nesse ponto o vídeo
+ * passou pelo controle de qualidade mas ainda espera o aceite do porta-voz.
+ * Só `finished` é trabalho encerrado.
+ */
+export type SpokespersonBucket =
+  | "waiting_editor"
+  | "editing"
+  | "reviewing"
+  | "done";
+
+export const SPOKESPERSON_BUCKET_LABEL: Record<SpokespersonBucket, string> = {
+  waiting_editor: "Aguardando editor",
+  editing: "Em edição",
+  reviewing: "Em revisão",
+  done: "Concluídas",
+};
+
+export function spokespersonBucket(status: string): SpokespersonBucket {
+  switch (status) {
+    case "available":
+    case "disponivel":
+    case "offered":
+    case "oferecida":
+    case "ofertada":
+      return "waiting_editor";
+    case "reserved":
+    case "reservada":
+    case "mine":
+    case "minha":
+    case "revision_requested":
+    case "reedit":
+    case "reedicao":
+      return "editing";
+    case "in_review":
+    case "em_revisao":
+    case "approved":
+    case "aprovada":
+      return "reviewing";
+    case "completed":
+    case "finished":
+    case "finalizada":
+      return "done";
+    default:
+      return "waiting_editor";
+  }
+}
+
+/** A missão está parada esperando uma ação do porta-voz? */
+export function waitingOnSpokesperson(status: string): boolean {
+  return status === "approved" || status === "aprovada";
+}

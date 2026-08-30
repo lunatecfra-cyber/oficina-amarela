@@ -58,7 +58,8 @@ export function ReportButton({
     <div>
       {!isOpen ? (
         <button
-          className="text-xs uppercase tracking-[0.12em] text-muted-2 transition-colors hover:text-danger"
+          /* link-toque: continua discreto, mas o alvo sai de 16px pra 44 */
+          className="link-toque -ml-3 text-xs uppercase tracking-[0.12em] text-muted-2 hover:text-danger"
           onClick={() => setIsOpen(true)}
         >
           🚩 Denunciar esta missão

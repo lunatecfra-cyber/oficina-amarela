@@ -159,7 +159,7 @@ function ReviewCard({
     <li className="rounded-2xl border border-line bg-surface/70 p-4 lg:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
         <Link
-          href={`/candidate/${cand.slug}`}
+          href={`/candidato/${cand.slug}`}
           className="group flex flex-none items-center gap-3 lg:w-56"
         >
           <span

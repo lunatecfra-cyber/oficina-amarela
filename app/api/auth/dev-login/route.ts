@@ -18,13 +18,13 @@ const DEV_ACCOUNTS: Record<Role, { handle: string; name: string; email: string; 
     handle: "dev.spokesperson",
     name: "Dev Spokesperson",
     email: "dev.spokesperson@yellowworkshop.local",
-    destination: "/spokesperson",
+    destination: "/porta-voz",
   },
   admin: {
     handle: "dev.admin",
     name: "Dev Inspector",
     email: "dev.admin@yellowworkshop.local",
-    destination: "/inspector",
+    destination: "/inspetor",
   },
 };
 
@@ -47,9 +47,9 @@ export async function GET(request: Request) {
   const destination =
     targetParam === "profile" || targetParam === "perfil"
       ? role === "editor"
-        ? "/editor/create-profile"
+        ? "/editor/criar-perfil"
         : role === "spokesperson"
-          ? "/spokesperson/create-profile"
+          ? "/porta-voz/criar-perfil"
           : acc.destination
       : acc.destination;
 

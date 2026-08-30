@@ -30,6 +30,7 @@ type MissionRow = {
   delivery_video_url: string | null;
   watermark: string | null;
   campaign_tax_id: string | null;
+  candidate_number: string | null;
   voter_id: string | null;
 };
 
@@ -69,6 +70,7 @@ function rowToMission(r: MissionRow): Mission {
     deliveryVideoUrl: r.delivery_video_url ?? undefined,
     watermark: r.watermark ?? undefined,
     campaignTaxId: r.campaign_tax_id ?? undefined,
+    candidateNumber: r.candidate_number ?? undefined,
     voterId: r.voter_id ?? undefined,
     // compatibility aliases
     portaVoz: r.spokesperson_name,
@@ -87,6 +89,7 @@ function rowToMission(r: MissionRow): Mission {
     videoEntregaUrl: r.delivery_video_url ?? undefined,
     marcaDagua: r.watermark ?? undefined,
     cnpjCampanha: r.campaign_tax_id ?? undefined,
+    numeroEleitoral: r.candidate_number ?? undefined,
     tituloEleitor: r.voter_id ?? undefined,
   };
 }
@@ -97,7 +100,7 @@ const BASE_SELECT = sql`
          m.drive_link, m.youtube_link, m.status, m.reserved_at, m.delivery_link,
          m.inspector_notes, m.created_at,
          m.extras, m.motivation, m.desired_deadline, m.revision_requested_by,
-         m.raw_video_url, m.delivery_video_url, m.watermark, m.campaign_tax_id, m.voter_id,
+         m.raw_video_url, m.delivery_video_url, m.watermark, m.campaign_tax_id, m.candidate_number, m.voter_id,
          e.handle AS reserved_by_handle
   FROM missions m
   JOIN users u ON u.id = m.spokesperson_id
@@ -127,6 +130,7 @@ export async function createMission(data: {
   voterRegistrationId?: string;
   watermark?: string;
   campaignTaxId?: string;
+  candidateNumber?: string;
   voterId?: string;
   // aliases
   portaVozId?: number;
@@ -140,6 +144,7 @@ export async function createMission(data: {
   videoBrutoUrl?: string;
   marcaDagua?: string;
   cnpjCampanha?: string;
+  numeroEleitoral?: string;
   tituloEleitor?: string;
 }): Promise<{ ok: true; id: number } | { ok: false; error: string; erro?: string }> {
   const spokespersonId = data.spokespersonId ?? data.portaVozId;
@@ -166,6 +171,7 @@ export async function createMission(data: {
     rawVideoUrl: limitOrNull(data.rawVideoUrl ?? data.videoBrutoUrl, LIMITS.link),
     watermark: limitOrNull(data.watermark ?? data.marcaDagua, LIMITS.briefField),
     campaignTaxId: limitOrNull(data.campaignTaxId ?? data.cnpjCampanha, LIMITS.briefField),
+    candidateNumber: limitOrNull(data.candidateNumber ?? data.numeroEleitoral, 5),
     voterId: limitOrNull(data.voterId ?? data.tituloEleitor, LIMITS.briefField),
   };
 
@@ -173,7 +179,7 @@ export async function createMission(data: {
     INSERT INTO missions (spokesperson_id, title, format, drive_link, youtube_link,
                          brief_tone, brief_color, brief_font, brief_references,
                          extras, motivation, desired_deadline, raw_video_url,
-                         watermark, campaign_tax_id, voter_id)
+                         watermark, campaign_tax_id, candidate_number, voter_id)
     VALUES (${spokespersonId}, ${title}, ${rawFormat},
             ${brief.driveLink}, ${brief.youtubeLink},
             ${brief.tone}, ${brief.color},
@@ -184,6 +190,7 @@ export async function createMission(data: {
             ${brief.rawVideoUrl},
             ${brief.watermark},
             ${brief.campaignTaxId},
+            ${brief.candidateNumber},
             ${brief.voterId})
     RETURNING id
   `;

@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS users (
   social_links JSONB,
   watermark TEXT,
   campaign_tax_id TEXT,
+  candidate_number TEXT,
   voter_id TEXT,
   last_seen_at TIMESTAMPTZ
 );
@@ -100,6 +101,7 @@ CREATE TABLE IF NOT EXISTS missions (
   delivery_video_url TEXT,
   watermark TEXT,
   campaign_tax_id TEXT,
+  candidate_number TEXT,
   voter_id TEXT,
   status TEXT NOT NULL DEFAULT 'available'
     CHECK (status IN ('available', 'offered', 'reserved', 'in_review', 'revision_requested', 'approved', 'completed')),

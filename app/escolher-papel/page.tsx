@@ -34,7 +34,7 @@ export default async function ChooseRolePage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
       <div className="mb-8 flex flex-col items-center text-center">
-        <Logo size="large" />
+        <Logo size="large" showName={false} />
         <p className="text-gold-grad mt-3 font-[family-name:var(--font-display)] text-xl font-semibold tracking-[0.15em]">
           OFICINA AMARELA
         </p>

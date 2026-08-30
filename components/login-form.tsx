@@ -20,9 +20,9 @@ function LoginFormContent() {
     if (!handle.trim() || !password) {
       setError(
         !handle.trim() && !password
-          ? "Preencha apelido e senha."
+          ? "Preencha apelido ou e-mail e senha."
           : !handle.trim()
-            ? "Digite seu apelido."
+            ? "Digite seu apelido ou e-mail."
             : "Digite sua senha."
       );
       return;
@@ -44,7 +44,9 @@ function LoginFormContent() {
     }
 
     const role = data.role ?? data.papel;
-    router.push(role === "editor" ? "/editor" : "/spokesperson");
+    // "/spokesperson" não existe — a área do porta-voz é "/porta-voz". Quem
+    // entrava como porta-voz caía num 404 logo depois de acertar a senha.
+    router.push(role === "editor" ? "/editor" : "/porta-voz");
     router.refresh();
   }
 
@@ -114,7 +116,7 @@ function LoginFormContent() {
             htmlFor="handle"
             className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
           >
-            Apelido
+            Apelido ou e-mail
           </label>
           <div className="relative flex items-center">
             <svg
@@ -132,7 +134,7 @@ function LoginFormContent() {
               id="handle"
               name="handle"
               className="field-input"
-              placeholder="seu apelido"
+              placeholder="seu apelido ou e-mail"
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}

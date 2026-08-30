@@ -10,3 +10,10 @@ export function partnersHeader(role: Role | null | undefined): HeaderType {
 
 export const partnersHeaderRole = partnersHeader;
 export const cabecalhoParceiros = partnersHeader;
+
+export function partnersReturnPath(role: Role | null | undefined) {
+  if (role === "admin") return "/inspetor";
+  if (role === "spokesperson") return "/porta-voz";
+  if (role === "editor") return "/editor";
+  return "/";
+}

@@ -1,32 +1,32 @@
-CREATE TABLE IF NOT EXISTS gamification_rules (
+CREATE TABLE IF NOT EXISTS gamificacao_regras (
   id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
+  titulo TEXT NOT NULL,
+  descricao TEXT NOT NULL,
   xp INT NOT NULL CHECK (xp > 0),
-  cycle TEXT NOT NULL CHECK (cycle IN ('daily', 'one_time')),
-  is_active BOOLEAN NOT NULL DEFAULT true
+  ciclo TEXT NOT NULL CHECK (ciclo IN ('daily', 'one_time')),
+  ativa BOOLEAN NOT NULL DEFAULT true
 );
 
-INSERT INTO gamification_rules (id, title, description, xp, cycle)
+INSERT INTO gamificacao_regras (id, titulo, descricao, xp, ciclo)
 VALUES
-  ('daily_login', 'Visited the workshop', 'Logged into Yellow Workshop today.', 10, 'daily'),
-  ('mission_delivered', 'Delivered a mission', 'Submitted a valid video edit for review.', 40, 'one_time')
+  ('entrada_diaria', 'Entrou no site', 'Acesse a Oficina Amarela hoje.', 25, 'daily'),
+  ('missao_entregue', 'Entregou um vídeo', 'Cada vídeo entregue soma 100 XP.', 100, 'one_time')
 ON CONFLICT (id) DO UPDATE SET
-  title = EXCLUDED.title,
-  description = EXCLUDED.description,
+  titulo = EXCLUDED.titulo,
+  descricao = EXCLUDED.descricao,
   xp = EXCLUDED.xp,
-  cycle = EXCLUDED.cycle,
-  is_active = true;
+  ciclo = EXCLUDED.ciclo,
+  ativa = true;
 
-CREATE TABLE IF NOT EXISTS gamification_events (
+CREATE TABLE IF NOT EXISTS gamificacao_eventos (
   id BIGSERIAL PRIMARY KEY,
   user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  rule_id TEXT NOT NULL REFERENCES gamification_rules(id),
-  reference TEXT NOT NULL,
+  regra_id TEXT NOT NULL REFERENCES gamificacao_regras(id),
+  referencia TEXT NOT NULL,
   xp INT NOT NULL CHECK (xp > 0),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (user_id, rule_id, reference)
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, regra_id, referencia)
 );
 
-CREATE INDEX IF NOT EXISTS idx_gamification_events_user_date
-  ON gamification_events (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_gamificacao_eventos_user_data
+  ON gamificacao_eventos (user_id, criado_em DESC);

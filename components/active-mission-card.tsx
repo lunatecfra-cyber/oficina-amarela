@@ -73,6 +73,7 @@ export function ActiveMissionCard({
   const revisionBy = currentMission.revisionRequestedBy ?? currentMission.reedicaoPedidaPor;
   const watermark = currentMission.watermark ?? currentMission.marcaDagua;
   const campaignTaxId = currentMission.campaignTaxId ?? currentMission.cnpjCampanha;
+  const candidateNumber = currentMission.candidateNumber ?? currentMission.numeroEleitoral;
   const voterId = currentMission.voterId ?? currentMission.tituloEleitor;
   const desiredDeadline = currentMission.desiredDeadline ?? currentMission.prazoDesejado;
   const extras = currentMission.extras;
@@ -156,7 +157,7 @@ export function ActiveMissionCard({
         </div>
       )}
 
-      {(watermark || campaignTaxId || voterId) && (
+      {(watermark || campaignTaxId || candidateNumber || voterId) && (
         <div className="mt-4 rounded-2xl border border-gold/40 bg-gold/[0.06] p-4 flex gap-3">
           <div className="mt-1">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-gold">
@@ -173,6 +174,7 @@ export function ActiveMissionCard({
             <ul className="mt-2 space-y-1 text-sm text-text">
               {watermark && <li><span className="text-muted-2">Marca d&apos;água:</span> {watermark}</li>}
               {campaignTaxId && <li><span className="text-muted-2">CNPJ:</span> {campaignTaxId}</li>}
+              {candidateNumber && <li><span className="text-muted-2">Número eleitoral:</span> {candidateNumber}</li>}
               {voterId && <li><span className="text-muted-2">Título de Eleitor:</span> {voterId}</li>}
             </ul>
           </div>

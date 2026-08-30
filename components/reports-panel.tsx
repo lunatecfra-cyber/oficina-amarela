@@ -141,7 +141,7 @@ export function ReportsPanel({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
-                        href={`/spokesperson/mission/db-${missionId}`}
+                        href={`/porta-voz/missao/db-${missionId}`}
                         className="truncate font-medium text-gold-hi hover:underline"
                       >
                         {missionTitle}
@@ -163,7 +163,7 @@ export function ReportsPanel({
                     <div className="flex flex-none flex-col gap-2 lg:w-44">
                       {reportedHandle && (
                         <Link
-                          href={`/inspector/accounts?q=${encodeURIComponent(reportedHandle)}`}
+                          href={`/inspetor/contas?q=${encodeURIComponent(reportedHandle)}`}
                           className="btn-ghost text-center text-xs"
                         >
                           Ver conta de {reportedHandle}

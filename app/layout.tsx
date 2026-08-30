@@ -18,8 +18,12 @@ const sora = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Yellow Workshop",
-  description: "The Video Editors' Guild. Take missions, deliver edits, level up.",
+  // O nome da marca não se traduz: é "Oficina Amarela" na tela, no domínio e
+  // em todo o resto do sistema. Este título é o que aparece na aba do
+  // navegador, no compartilhamento e na busca.
+  title: "Oficina Amarela",
+  description:
+    "A guilda de quem edita. Porta-vozes mandam o vídeo bruto, editores recebem uma missão por vez e todo mundo evolui junto.",
   icons: { icon: "/emblema.png", apple: "/emblema.png" },
 };
 
@@ -30,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="pt-BR"
       className={`${cinzel.variable} ${sora.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

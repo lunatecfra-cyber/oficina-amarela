@@ -27,6 +27,7 @@ export async function POST(request: Request) {
   const desiredDeadline = body?.desiredDeadline ?? body?.prazo;
   const watermarkUrl = body?.watermarkUrl ?? body?.marcaDagua;
   const campaignTaxId = body?.campaignTaxId ?? body?.cnpjCampanha;
+  const candidateNumber = body?.candidateNumber ?? body?.numeroEleitoral;
   const voterRegistrationId = body?.voterRegistrationId ?? body?.tituloEleitor;
 
   if (typeof title !== "string" || !title.trim()) {
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
     desiredDeadline: typeof desiredDeadline === "string" ? desiredDeadline : undefined,
     watermarkUrl: typeof watermarkUrl === "string" ? watermarkUrl : undefined,
     campaignTaxId: typeof campaignTaxId === "string" ? campaignTaxId : undefined,
+    candidateNumber: typeof candidateNumber === "string" ? candidateNumber : undefined,
     voterRegistrationId: typeof voterRegistrationId === "string" ? voterRegistrationId : undefined,
   });
 

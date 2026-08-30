@@ -1,3 +1,66 @@
+-- Prepara o schema legado que existe hoje em produção. A migration ainda não
+-- foi aplicada no projeto, então estes ajustes ficam no mesmo passo atômico.
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS banido BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS banido_em TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS motivo_banimento TEXT,
+  ADD COLUMN IF NOT EXISTS link_portfolio TEXT,
+  ADD COLUMN IF NOT EXISTS marca_dagua TEXT,
+  ADD COLUMN IF NOT EXISTS cnpj_campanha TEXT,
+  ADD COLUMN IF NOT EXISTS titulo_eleitor TEXT,
+  ADD COLUMN IF NOT EXISTS ultimo_visto_em TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS codigo_indicacao UUID NOT NULL DEFAULT gen_random_uuid(),
+  ADD COLUMN IF NOT EXISTS indicado_por_id INT REFERENCES users(id) ON DELETE SET NULL;
+
+ALTER TABLE pautas
+  ADD COLUMN IF NOT EXISTS youtube_link TEXT,
+  ADD COLUMN IF NOT EXISTS video_bruto_url TEXT,
+  ADD COLUMN IF NOT EXISTS video_entrega_url TEXT,
+  ADD COLUMN IF NOT EXISTS reservada_em TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS reedicao_pedida_por TEXT,
+  ADD COLUMN IF NOT EXISTS extras TEXT,
+  ADD COLUMN IF NOT EXISTS motivo TEXT,
+  ADD COLUMN IF NOT EXISTS marca_dagua TEXT,
+  ADD COLUMN IF NOT EXISTS cnpj_campanha TEXT,
+  ADD COLUMN IF NOT EXISTS titulo_eleitor TEXT,
+  ADD COLUMN IF NOT EXISTS prioridade INT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS pontuada BOOLEAN NOT NULL DEFAULT false;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'portfolio_link'
+  ) THEN
+    EXECUTE 'UPDATE users SET link_portfolio = COALESCE(link_portfolio, portfolio_link)';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'pautas' AND column_name = 'cortes_extras'
+  ) THEN
+    EXECUTE 'UPDATE pautas SET extras = COALESCE(extras, cortes_extras)';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'pautas' AND column_name = 'contexto'
+  ) THEN
+    EXECUTE 'UPDATE pautas SET motivo = COALESCE(motivo, contexto)';
+  END IF;
+END;
+$$;
+
+ALTER TABLE pautas DROP CONSTRAINT IF EXISTS pautas_status_check;
+ALTER TABLE pautas ADD CONSTRAINT pautas_status_check CHECK (
+  status IN ('disponivel', 'oferecida', 'reservada', 'em_revisao', 'reedicao', 'aprovada', 'finalizada')
+);
+
+ALTER TABLE pautas DROP CONSTRAINT IF EXISTS pautas_reedicao_pedida_por_check;
+ALTER TABLE pautas ADD CONSTRAINT pautas_reedicao_pedida_por_check CHECK (
+  reedicao_pedida_por IS NULL OR reedicao_pedida_por IN ('inspetor', 'porta_voz')
+);
+
 CREATE TABLE IF NOT EXISTS ranking_ciclos (
   id BIGSERIAL PRIMARY KEY,
   nome TEXT NOT NULL,
@@ -60,14 +123,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_convites_porta_voz_email_aberto
   ON convites_porta_voz (lower(email))
   WHERE usado_em IS NULL AND revogado_em IS NULL;
 
-ALTER TABLE users ADD COLUMN IF NOT EXISTS codigo_indicacao UUID NOT NULL DEFAULT gen_random_uuid();
-ALTER TABLE users ADD COLUMN IF NOT EXISTS indicado_por_id INT REFERENCES users(id) ON DELETE SET NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_codigo_indicacao ON users (codigo_indicacao);
 
 CREATE TABLE IF NOT EXISTS indicacoes_recompensas (
   convidado_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   convidador_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  pontos INT NOT NULL DEFAULT 100 CHECK (pontos = 100),
+  pontos INT NOT NULL DEFAULT 50 CHECK (pontos = 50),
   premiado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
   revogado_em TIMESTAMPTZ,
   motivo_revogacao TEXT,
@@ -173,7 +234,7 @@ $$;
 
 REVOKE ALL ON FUNCTION oficina_private.criar_porta_voz_com_convite(
   TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, UUID
-) FROM PUBLIC;
+) FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION oficina_private.aprovar_edicao(
   p_pauta_id INT,
@@ -218,7 +279,7 @@ BEGIN
   END IF;
 
   UPDATE users
-  SET entregues = entregues + 1, reputacao = reputacao + 25, streak = streak + 1
+  SET entregues = entregues + 1, streak = streak + 1
   WHERE users.id = v_editor_id;
 
   UPDATE users u
@@ -251,4 +312,5 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION oficina_private.aprovar_edicao(INT, INT, TEXT, INT, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION oficina_private.aprovar_edicao(INT, INT, TEXT, INT, TEXT)
+  FROM PUBLIC, anon, authenticated;

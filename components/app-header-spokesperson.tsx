@@ -1,55 +1,94 @@
 import Link from "next/link";
-import { Logo } from "@/components/logo";
+import { Marca } from "@/components/brand-mark";
 import { LogoutButton } from "@/components/logout-button";
 import { LocalGuide } from "@/components/local-guide";
 import { readSession } from "@/lib/server-session";
 
 export async function AppHeaderSpokesperson() {
   const session = await readSession();
-  
+
   if (!session) return null;
+
+  const isAdmin = session.role === "admin";
 
   return (
     <header className="border-b border-line-soft">
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4 lg:px-8">
-        <Link href="/porta-voz" className="flex items-center gap-3">
-          <Logo size="normal" />
-          <span className="hidden font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold sm:inline">
-            OFICINA AMARELA
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-2 sm:gap-4">
-          <LocalGuide />
-
+      {/*
+        No celular o cabeçalho é DUAS LINHAS: marca em cima, navegação embaixo.
+        Numa linha só não cabia — com o papel de admin aparece um link a mais
+        ("Inspetor") e o conjunto transbordava a tela; e para caber, cada link
+        acabava com 16 a 26px de altura, longe dos 44 que o dedo acerta.
+        A partir de `sm` volta a ser uma linha só.
+      */}
+      <div className="mx-auto w-full max-w-5xl px-5 lg:px-8">
+        <div className="flex items-center justify-between gap-3 py-3 sm:py-4">
           <Link
-            href="/porta-voz/perfil"
-            className="text-sm text-muted transition-colors hover:text-text"
+            href="/porta-voz"
+            className="flex min-h-11 flex-none items-center gap-2.5 lg:gap-3"
           >
-            <span className="hidden sm:inline">
-              {session.name} · {session.role === "admin" ? "inspetor" : "porta-voz"}
-            </span>
-            <span className="sm:hidden">Perfil</span>
+            <Marca subtitle />
           </Link>
 
+          {/* Na linha de cima ficam só o guia e o sair; o resto desce. */}
+          <div className="flex flex-none items-center gap-1 sm:gap-4">
+            <LocalGuide />
+
+            <Link
+              href="/porta-voz/perfil"
+              className="link-toque hidden text-sm text-muted hover:text-text sm:inline-flex"
+            >
+              {session.name} · {isAdmin ? "inspetor" : "porta-voz"}
+            </Link>
+
+            <Link
+              href="/parceiros"
+              className="link-toque hidden text-sm text-muted hover:text-text sm:inline-flex"
+            >
+              Parceiros
+            </Link>
+
+            {isAdmin && (
+              <Link
+                href="/inspetor"
+                className="link-toque hidden border border-line text-xs font-medium text-muted hover:border-gold-lo/60 hover:text-gold-hi sm:inline-flex"
+              >
+                Inspetor
+              </Link>
+            )}
+
+            <LogoutButton className="link-toque text-xs uppercase tracking-[0.12em] text-muted hover:text-silver-hi" />
+          </div>
+        </div>
+
+        {/* Navegação do celular: alvos inteiros, rolando de lado se precisar. */}
+        <nav className="-mx-5 flex items-center gap-1 overflow-x-auto px-5 pb-1 sm:hidden">
+          <Link
+            href="/porta-voz"
+            className="link-toque flex-none whitespace-nowrap text-sm text-muted hover:text-text"
+          >
+            Missões
+          </Link>
+          <Link
+            href="/porta-voz/perfil"
+            className="link-toque flex-none whitespace-nowrap text-sm text-muted hover:text-text"
+          >
+            Perfil
+          </Link>
           <Link
             href="/parceiros"
-            className="text-sm text-muted transition-colors hover:text-text"
+            className="link-toque flex-none whitespace-nowrap text-sm text-muted hover:text-text"
           >
             Parceiros
           </Link>
-
-          {session.role === "admin" && (
+          {isAdmin && (
             <Link
               href="/inspetor"
-              className="rounded-full border border-line px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-gold-lo/60 hover:text-gold-hi"
+              className="link-toque flex-none whitespace-nowrap border border-line text-sm font-medium text-muted hover:border-gold-lo/60 hover:text-gold-hi"
             >
               Inspetor
             </Link>
           )}
-
-          <LogoutButton className="text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-silver-hi" />
-        </div>
+        </nav>
       </div>
     </header>
   );

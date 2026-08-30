@@ -90,6 +90,13 @@ test("shield automatically saves a missed week", () => {
   });
 });
 
+test("current open week does not reset consistency before it ends", () => {
+  const result = calculateConsistency([true, true, true, true, "pending"], 0);
+
+  assert.equal(result.sequence, 4);
+  assert.equal(result.eligibleForDraw, true);
+});
+
 test("referral awards after two videos and caps at five per month", () => {
   assert.equal(canReferralAward(2, 4, false), true);
   assert.equal(canReferralAward(1, 4, false), false);

@@ -16,6 +16,7 @@ import {
 import { initials, DEFAULT_TINT } from "@/lib/candidates";
 import type { EditorOnboarding } from "@/lib/profile-db";
 import { SelectLocation } from "@/components/select-location";
+import { WhatsappField, onlyDigits } from "@/components/whatsapp-field";
 import { compressPhoto } from "@/lib/compress-photo";
 
 function parseLocation(value: string): { state: string; city: string } {
@@ -127,6 +128,7 @@ export function CreateEditorProfileForm({
   const [styles, setStyles] = useState<string[]>(data.styles ?? (data as any).estilos ?? []);
 
   const [portfolioLink, setPortfolioLink] = useState(data.portfolioLink ?? "");
+  const [whatsapp, setWhatsapp] = useState(onlyDigits((data as any).whatsapp ?? ""));
   const [niche, setNiche] = useState<string[]>(data.niche ?? (data as any).nicho ?? []);
 
   const [error, setError] = useState("");
@@ -211,6 +213,7 @@ export function CreateEditorProfileForm({
         softwares,
         styles,
         portfolioLink,
+        whatsapp,
         niche,
         // compatibility aliases
         nome: name,
@@ -551,6 +554,17 @@ export function CreateEditorProfileForm({
             <p className="mt-2 text-xs text-muted-2">
               Depois da primeira entrega aprovada, seu portfólio aqui dentro se preenche sozinho.
             </p>
+
+            <div className="mt-6">
+              <WhatsappField
+                value={whatsapp}
+                onChange={(v) => {
+                  setWhatsapp(v);
+                  setError("");
+                }}
+                hint="Com DDD. Fica visível pro porta-voz da missão que você pegar."
+              />
+            </div>
           </div>
 
           <div>

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { AppHeaderInspector } from "@/components/app-header-inspector";
 import { AppHeaderSpokesperson } from "@/components/app-header-spokesperson";
 import { readSession } from "@/lib/server-session";
-import { partnersHeaderRole } from "@/lib/navigation";
+import { partnersHeaderRole, partnersReturnPath } from "@/lib/navigation";
 
 export const metadata: Metadata = { title: "Parceiros — Oficina Amarela" };
 
@@ -29,6 +30,7 @@ const PARTNERS = [
 export default async function PartnersPage() {
   const session = await readSession();
   const headerVariant = partnersHeaderRole(session?.role);
+  const returnPath = partnersReturnPath(session?.role);
 
   return (
     <>
@@ -42,6 +44,9 @@ export default async function PartnersPage() {
       <main className="flex-1">
         <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
           <div className="mb-8">
+            <Link href={returnPath} className="link-toque mb-4 inline-flex text-sm text-muted hover:text-text">
+              ← Voltar
+            </Link>
             <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
               Parceiros
             </h1>

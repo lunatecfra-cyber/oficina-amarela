@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "@/components/logo";
+import { Marca } from "@/components/brand-mark";
 import { LogoutButton } from "@/components/logout-button";
 import { EditorNav } from "@/components/editor-nav";
 import { LocalGuide } from "@/components/local-guide";
@@ -15,16 +15,13 @@ export async function AppHeader() {
     return (
       <header className="border-b border-line-soft">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-4 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <Logo size="normal" />
-            <span className="hidden font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold sm:inline">
-              OFICINA AMARELA
-            </span>
+          <Link href="/" className="flex min-h-11 flex-none items-center gap-2.5 lg:gap-3">
+            <Marca />
           </Link>
 
           <Link
             href="/login"
-            className="text-sm text-muted transition-colors hover:text-gold-hi"
+            className="link-toque text-sm text-muted hover:text-gold-hi"
           >
             Entrar
           </Link>
@@ -51,11 +48,8 @@ export async function AppHeader() {
     <header className="border-b border-line-soft">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-8">
         <div className="flex min-w-0 items-center gap-6">
-          <Link href="/editor" className="flex flex-none items-center gap-3">
-            <Logo size="normal" />
-            <span className="hidden font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold sm:inline">
-              OFICINA AMARELA
-            </span>
+          <Link href="/editor" className="flex min-h-11 flex-none items-center gap-2.5 lg:gap-3">
+            <Marca />
           </Link>
 
           <div className="hidden sm:block">
@@ -65,15 +59,6 @@ export async function AppHeader() {
 
         <div className="flex flex-none items-center gap-2 sm:gap-4">
           <LocalGuide />
-
-          {session.role === "admin" && (
-            <Link
-              href="/inspetor"
-              className="rounded-full border border-line px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-gold-lo/60 hover:text-gold-hi"
-            >
-              Inspetor
-            </Link>
-          )}
 
           <Link
             href="/perfil"

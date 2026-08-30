@@ -28,17 +28,17 @@ const RULES: Record<"daily_login" | "mission_delivered", Omit<DayChallenge, "com
     id: "daily_login",
     title: "Entrou no site",
     description: "Acesse a Oficina Amarela hoje.",
-    xp: 10,
+    xp: 25,
     titulo: "Entrou no site",
     descricao: "Acesse a Oficina Amarela hoje.",
   },
   mission_delivered: {
     id: "mission_delivered",
-    title: "Entregue uma missão hoje",
-    description: "Envie uma edição válida para revisão.",
-    xp: 40,
-    titulo: "Entregue uma missão hoje",
-    descricao: "Envie uma edição válida para revisão.",
+    title: "Entregou um vídeo",
+    description: "Cada vídeo entregue soma 100 XP.",
+    xp: 100,
+    titulo: "Entregou um vídeo",
+    descricao: "Cada vídeo entregue soma 100 XP.",
   },
 };
 
@@ -59,13 +59,13 @@ export async function recordGamificationEvent(
 
   const [event] = await sql`
     WITH new_event AS (
-      INSERT INTO gamification_events (user_id, rule_id, reference, xp)
-      VALUES (${userId}, ${normRule}, ${reference}, ${rule.xp})
-      ON CONFLICT (user_id, rule_id, reference) DO NOTHING
+      INSERT INTO gamificacao_eventos (user_id, regra_id, referencia, xp)
+      VALUES (${userId}, ${normRule === "daily_login" ? "entrada_diaria" : "missao_entregue"}, ${reference}, ${rule.xp})
+      ON CONFLICT (user_id, regra_id, referencia) DO NOTHING
       RETURNING xp
     )
     UPDATE users
-    SET reputation = users.reputation + new_event.xp
+    SET reputacao = users.reputacao + new_event.xp
     FROM new_event
     WHERE users.id = ${userId}
     RETURNING new_event.xp
@@ -89,11 +89,11 @@ export async function listDailyChallenges(userId: number): Promise<DayChallenge[
   let rows: { rule_id: unknown }[] = [];
   try {
     rows = (await sql`
-      SELECT rule_id
-      FROM gamification_events
+      SELECT regra_id AS rule_id
+      FROM gamificacao_eventos
       WHERE user_id = ${userId}
-        AND ((rule_id IN ('daily_login', 'entrada_diaria') AND reference = ${today})
-          OR (rule_id IN ('mission_delivered', 'missao_entregue') AND created_at AT TIME ZONE 'America/Sao_Paulo' >= ${today}::date))
+        AND ((regra_id = 'entrada_diaria' AND referencia = ${today})
+          OR (regra_id = 'missao_entregue' AND criado_em AT TIME ZONE 'America/Sao_Paulo' >= ${today}::date))
     `) as unknown as { rule_id: unknown }[];
   } catch {
     // Graceful fallback

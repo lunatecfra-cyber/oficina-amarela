@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { HEADLINES, MAX_HEADLINES } from "@/lib/profile";
 import type { EditableProfile, PerfilEditavel } from "@/lib/profile-db";
+import { WhatsappField, onlyDigits } from "@/components/whatsapp-field";
 
 function chip(active: boolean, blocked = false) {
   return `rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -28,6 +29,7 @@ export function EditProfileForm({
   const [headline, setHeadline] = useState<string[]>(data.headline ?? []);
   const [location, setLocation] = useState(data.location ?? (data as any).localizacao ?? "");
   const [bio, setBio] = useState(data.bio ?? "");
+  const [whatsapp, setWhatsapp] = useState(onlyDigits((data as any).whatsapp ?? ""));
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -47,7 +49,7 @@ export function EditProfileForm({
     const resp = await fetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ headline, bio, location, localizacao: location }),
+      body: JSON.stringify({ headline, bio, location, whatsapp, localizacao: location }),
     });
     setIsSaving(false);
 
@@ -125,6 +127,18 @@ export function EditProfileForm({
           placeholder="Ex: Petrópolis, RJ"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
+        />
+      </div>
+
+      <div className="mb-4">
+        <WhatsappField
+          value={whatsapp}
+          onChange={(v) => {
+            setWhatsapp(v);
+            setError("");
+          }}
+          labelClassName="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+          hint="Com DDD. Fica visível pro porta-voz da missão que você pegar."
         />
       </div>
 

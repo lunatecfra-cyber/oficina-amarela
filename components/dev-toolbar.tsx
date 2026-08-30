@@ -100,7 +100,7 @@ export function DevToolbar() {
               </span>
               <button
                 onClick={closeMenu}
-                className="text-muted-2 transition-colors hover:text-white"
+                className="flex min-h-11 min-w-11 items-center justify-center text-muted-2 transition-colors hover:text-white"
                 title="Close"
               >
                 ✕
@@ -112,12 +112,12 @@ export function DevToolbar() {
                 <>
                   <div className="rounded border border-line bg-surface/50 p-2">
                     <span className="mb-2 block text-xs font-semibold text-muted">Accounts & Profiles</span>
-                    <Link href="/signup?role=spokesperson" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">➔ Create Spokesperson</Link>
-                    <Link href="/signup?role=editor" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">➔ Create Editor</Link>
+                    <Link href="/criar-conta?role=spokesperson" onClick={closeMenu} className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">➔ Create Spokesperson</Link>
+                    <Link href="/criar-conta?role=editor" onClick={closeMenu} className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">➔ Create Editor</Link>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
                     <span className="mb-2 block text-xs font-semibold text-muted">Actions</span>
-                    <Link href="/porta-voz/nova-pauta" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">➔ New Mission</Link>
+                    <Link href="/porta-voz/nova-pauta" onClick={closeMenu} className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">➔ New Mission</Link>
                   </div>
                 </>
               )}
@@ -126,22 +126,22 @@ export function DevToolbar() {
                 <>
                   <div className="rounded border border-line bg-surface/50 p-2">
                     <span className="mb-2 block text-xs font-semibold text-muted">Quick Login (No Password)</span>
-                    <a href="/api/auth/dev-login?role=spokesperson" className="block text-sm text-silver hover:text-gold-hi py-1">🔓 Sign in as Spokesperson</a>
-                    <a href="/api/auth/dev-login?role=editor" className="block text-sm text-silver hover:text-gold-hi py-1">🔓 Sign in as Editor</a>
-                    <a href="/api/auth/dev-login?role=admin" className="block text-sm text-silver hover:text-gold-hi py-1">🔓 Sign in as Admin / Inspector</a>
+                    <a href="/api/auth/dev-login?role=spokesperson" className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">🔓 Sign in as Spokesperson</a>
+                    <a href="/api/auth/dev-login?role=editor" className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">🔓 Sign in as Editor</a>
+                    <a href="/api/auth/dev-login?role=admin" className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">🔓 Sign in as Admin / Inspector</a>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
                     <span className="mb-2 block text-xs font-semibold text-muted">Session</span>
-                    <button type="button" onClick={handleLogout} className="block w-full py-1 text-left text-sm text-red-400 hover:text-red-300">🚪 Log Out</button>
-                    <Link href="/api/auth/session" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">🔍 Inspect Session JSON</Link>
+                    <button type="button" onClick={handleLogout} className="flex min-h-11 w-full items-center text-left text-sm text-red-400 hover:text-red-300">🚪 Log Out</button>
+                    <Link href="/api/auth/session" onClick={closeMenu} className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">🔍 Inspect Session JSON</Link>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
                     <span className="mb-2 block text-xs font-semibold text-muted">Dashboards</span>
-                    <Link href="/porta-voz" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Spokesperson Dashboard</Link>
-                    <Link href="/editor" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Editor Workbench</Link>
-                    <Link href="/agenda" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Editor Schedule</Link>
-                    <Link href="/inspetor" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Inspector Dashboard</Link>
-                    <Link href="/ranking" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Leaderboard</Link>
+                    <Link href="/porta-voz" onClick={closeMenu} className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">Spokesperson Dashboard</Link>
+                    <Link href="/editor" onClick={closeMenu} className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">Editor Workbench</Link>
+                    <Link href="/agenda" onClick={closeMenu} className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">Editor Schedule</Link>
+                    <Link href="/inspetor" onClick={closeMenu} className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">Inspector Dashboard</Link>
+                    <Link href="/ranking" onClick={closeMenu} className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">Leaderboard</Link>
                   </div>
                 </>
               )}
@@ -150,7 +150,7 @@ export function DevToolbar() {
                 <>
                   <div className="rounded border border-line bg-surface/50 p-2">
                     <span className="mb-2 block text-xs font-semibold text-muted">Production Hub</span>
-                    <a href="https://yellowworkshop.dev" target="_blank" rel="noopener noreferrer" className="block text-sm text-silver hover:text-gold-hi py-1">🌐 yellowworkshop.dev ↗</a>
+                    <a href="https://yellowworkshop.dev" target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center text-sm text-silver hover:text-gold-hi">🌐 yellowworkshop.dev ↗</a>
                   </div>
                 </>
               )}
@@ -159,16 +159,16 @@ export function DevToolbar() {
                 <>
                   <div className="rounded border border-line bg-surface/50 p-2">
                     <span className="mb-2 block text-xs font-semibold text-muted">Master Controls</span>
-                    <button onClick={toggleGodMode} className="w-full text-left block text-sm text-silver hover:text-gold-hi py-1">
+                    <button onClick={toggleGodMode} className="flex min-h-11 w-full items-center text-left text-sm text-silver hover:text-gold-hi">
                       {godModeActive ? "🔓 Disable God Mode" : "🔐 Enable God Mode (Bypass Auth)"}
                     </button>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
                     <span className="mb-2 block text-xs font-semibold text-muted">Layout & Caches</span>
-                    <button onClick={toggleXray} className="w-full text-left block text-sm text-silver hover:text-gold-hi py-1">
+                    <button onClick={toggleXray} className="flex min-h-11 w-full items-center text-left text-sm text-silver hover:text-gold-hi">
                       {xrayActive ? "🟢 X-Ray Active (Disable)" : "🔘 Enable X-Ray Mode"}
                     </button>
-                    <button onClick={hardReset} className="w-full text-left block text-sm text-red-400 hover:text-red-300 py-1">
+                    <button onClick={hardReset} className="flex min-h-11 w-full items-center text-left text-sm text-red-400 hover:text-red-300">
                       💥 Clear All (Hard Reset)
                     </button>
                   </div>
@@ -200,7 +200,7 @@ export function DevToolbar() {
 
           <button
             onClick={() => toggleTab("creation")}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`flex min-h-11 items-center rounded-full px-3 text-xs font-medium transition-colors ${
               openTab === "creation"
                 ? "bg-gold/20 text-gold-hi"
                 : "text-muted hover:bg-surface hover:text-silver"
@@ -210,7 +210,7 @@ export function DevToolbar() {
           </button>
           <button
             onClick={() => toggleTab("tests")}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`flex min-h-11 items-center rounded-full px-3 text-xs font-medium transition-colors ${
               openTab === "tests"
                 ? "bg-gold/20 text-gold-hi"
                 : "text-muted hover:bg-surface hover:text-silver"
@@ -220,7 +220,7 @@ export function DevToolbar() {
           </button>
           <button
             onClick={() => toggleTab("online")}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`flex min-h-11 items-center rounded-full px-3 text-xs font-medium transition-colors ${
               openTab === "online"
                 ? "bg-gold/20 text-gold-hi"
                 : "text-muted hover:bg-surface hover:text-silver"
@@ -230,7 +230,7 @@ export function DevToolbar() {
           </button>
           <button
             onClick={() => toggleTab("tools")}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`flex min-h-11 items-center rounded-full px-3 text-xs font-medium transition-colors ${
               openTab === "tools"
                 ? "bg-gold/20 text-gold-hi"
                 : "text-muted hover:bg-surface hover:text-silver"

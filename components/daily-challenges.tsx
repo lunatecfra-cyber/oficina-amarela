@@ -9,24 +9,19 @@ export function DailyChallenges({
 }) {
   const list = challenges ?? (desafios as any) ?? [];
   const completed = list.filter((d: any) => d.completed || d.cumprido).length;
-  const earnedXp = list
-    .filter((d: any) => d.completed || d.cumprido)
-    .reduce((total: number, d: any) => total + d.xp, 0);
-  const totalXp = list.reduce((total: number, d: any) => total + d.xp, 0);
 
   return (
     <section className="mb-8">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-gold">
-            Desafios do dia
+            Atividade de hoje
           </h2>
           <p className="mt-1 text-xs text-muted-2">
-            XP extra por manter o ritmo. Independe da missão que você está fazendo.
+            Entrar rende 25 XP uma vez. Cada vídeo entregue soma 100 XP, sem limite diário.
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <span className="text-gold-hi">+{earnedXp}/{totalXp} XP</span>
           <span className="text-muted">{completed}/{list.length} feitos</span>
         </div>
       </div>
@@ -41,6 +36,7 @@ export function DailyChallenges({
           const isDone = d.completed || d.cumprido;
           const title = d.title ?? d.titulo;
           const description = d.description ?? d.descricao;
+          const isDelivery = d.id === "mission_delivered" || d.id === "missao_entregue";
 
           return (
             <article
@@ -59,7 +55,7 @@ export function DailyChallenges({
                   {isDone ? "feito" : "hoje"}
                 </span>
                 <span className="rounded-md border border-gold-lo/40 bg-gold/[0.08] px-1.5 py-0.5 text-[10px] font-medium text-gold-hi">
-                  +{d.xp} XP
+                  {isDelivery ? "+100 XP por entrega" : `+${d.xp} XP`}
                 </span>
               </div>
               <p className={`mt-2 text-sm font-medium ${isDone ? "text-muted line-through" : "text-text"}`}>
@@ -67,7 +63,13 @@ export function DailyChallenges({
               </p>
               <p className="mt-1 text-xs text-muted-2">{description}</p>
               <span className={`mt-auto pt-4 text-xs font-medium ${isDone ? "text-ok" : "text-muted-2"}`}>
-                {isDone ? "Concluído pela atividade registrada" : "Conclua a ação para liberar o XP"}
+                {isDelivery
+                  ? isDone
+                    ? "Entrega registrada. Outras entregas hoje também valem 100 XP."
+                    : "A primeira entrega de hoje aparece aqui."
+                  : isDone
+                    ? "Concluído pela atividade registrada"
+                    : "Conclua a ação para liberar o XP"}
               </span>
             </article>
           );

@@ -24,7 +24,6 @@ export async function cancelElectoralApproval(
     ), usuario_corrigido AS (
       UPDATE users u
       SET entregues = GREATEST(u.entregues - 1, 0),
-          reputacao = GREATEST(u.reputacao - 25, 0),
           streak = GREATEST(u.streak - 1, 0),
           nota = (SELECT round(avg(a.nota)::numeric, 2)
                   FROM avaliacoes a WHERE a.editor_id = u.id AND a.pauta_id <> ${missionId})
@@ -197,6 +196,7 @@ export async function getEditorProgress(editorId: number) {
     ), resultados AS (
       SELECT s.inicio::date AS semana, s.meta, count(a.pauta_id)::int AS quantidade,
              count(a.pauta_id) >= s.meta AS cumpriu,
+             s.fim <= now() AS encerrada,
              EXISTS (SELECT 1 FROM bloqueios_constancia b
                      WHERE b.editor_id = ${editorId} AND b.consumido_semana = s.inicio::date) AS salvo
       FROM semanas s
@@ -224,9 +224,12 @@ export async function getEditorProgress(editorId: number) {
     };
   }
   const weeks = Array.isArray(row.semanas)
-    ? (row.semanas as Array<{ cumpriu: boolean; salvo: boolean }>)
+    ? (row.semanas as Array<{ cumpriu: boolean; salvo: boolean; encerrada: boolean }>)
     : [];
-  const consistency = calculateConsistency(weeks.map((w) => w.cumpriu || w.salvo), 0);
+  const consistency = calculateConsistency(
+    weeks.map((w) => (w.cumpriu || w.salvo ? true : w.encerrada ? false : "pending")),
+    0,
+  );
   return {
     weeks: row.semanas,
     semanas: row.semanas,

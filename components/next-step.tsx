@@ -5,7 +5,7 @@ const STEPS = [
     number: "01",
     title: "Escolha seu papel",
     text: "Entre como porta-voz ou editor e veja apenas o caminho que faz sentido para você.",
-    href: "/signup",
+    href: "/criar-conta",
     // aliases
     numero: "01",
     titulo: "Escolha seu papel",
@@ -24,7 +24,7 @@ const STEPS = [
     number: "03",
     title: "Evolua com a guilda",
     text: "Cada trabalho aprovado fortalece sua reputação e abre espaço para os próximos passos.",
-    href: "/partners",
+    href: "/parceiros",
     numero: "03",
     titulo: "Evolua com a guilda",
     texto: "Cada trabalho aprovado fortalece sua reputação e abre espaço para os próximos passos.",

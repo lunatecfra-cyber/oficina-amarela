@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import type { Format, Formato } from "@/lib/missions";
 import { TutorialButton, TutorialDrive } from "@/components/tutorial-drive";
@@ -23,6 +23,7 @@ type FormData = {
   rawVideoUrl: string;
   watermark: string;
   campaignTaxId: string;
+  candidateNumber: string;
   voterId: string;
 };
 
@@ -41,20 +42,30 @@ const EMPTY_FORM: FormData = {
   rawVideoUrl: "",
   watermark: "",
   campaignTaxId: "",
+  candidateNumber: "",
   voterId: "",
 };
 
+/**
+ * As cinco etapas, na ordem em que a pessoa pensa: primeiro o material, depois
+ * o que ela quer que aconteça com ele, depois o gosto, depois as obrigações, e
+ * por último como o vídeo precisa sair.
+ */
 const STEPS = [
   "O vídeo bruto",
-  "Cortes específicos",
-  "O estilo",
-  "Contexto",
+  "Objetivo da edição",
+  "Referências",
+  "Orientações",
   "Formato",
-];
+] as const;
+
+/** Onde o rascunho fica guardado — só neste navegador, nada vai pro servidor. */
+const DRAFT_KEY = "oficina:rascunho-missao";
 
 interface NewMissionFormProps {
   defaultWatermark?: string;
   defaultCampaignTaxId?: string;
+  defaultCandidateNumber?: string;
   defaultVoterId?: string;
   marcaDaguaPadrao?: string;
   cnpjCampanhaPadrao?: string;
@@ -64,6 +75,7 @@ interface NewMissionFormProps {
 export function NewMissionForm({
   defaultWatermark,
   defaultCampaignTaxId,
+  defaultCandidateNumber,
   defaultVoterId,
   marcaDaguaPadrao,
   cnpjCampanhaPadrao,
@@ -75,6 +87,55 @@ export function NewMissionForm({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  // só depois que o rascunho antigo foi lido é que passamos a gravar — senão o
+  // primeiro render gravaria o formulário vazio por cima do que estava salvo
+  const readyToSave = useRef(false);
+
+  // recupera o rascunho no navegador (nunca no primeiro useState: o servidor
+  // não tem localStorage e o React acusaria diferença de hidratação)
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as { data?: Partial<FormData>; step?: number };
+        if (saved.data) {
+          setData((d) => ({ ...d, ...saved.data }));
+          setStep(Math.min(Math.max(saved.step ?? 0, 0), STEPS.length - 1));
+          setDraftRestored(true);
+        }
+      }
+    } catch {
+      // rascunho corrompido ou armazenamento bloqueado: começa do zero
+    }
+    readyToSave.current = true;
+  }, []);
+
+  // grava a cada mudança, com uma pausa pra não escrever a cada tecla
+  useEffect(() => {
+    if (!readyToSave.current || isSubmitted) return;
+    const id = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ data, step }));
+        setDraftSavedAt(new Date());
+      } catch {
+        // sem espaço ou modo privado: seguir sem rascunho é melhor que travar
+      }
+    }, 600);
+    return () => window.clearTimeout(id);
+  }, [data, step, isSubmitted]);
+
+  function clearDraft() {
+    try {
+      window.localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // nada a fazer
+    }
+    setDraftSavedAt(null);
+    setDraftRestored(false);
+  }
 
   useEffect(() => {
     if (!isTutorialOpen) return;
@@ -94,13 +155,17 @@ export function NewMissionForm({
       ...d,
       watermark: d.watermark || wm,
       campaignTaxId: d.campaignTaxId || tax,
+      candidateNumber: d.candidateNumber || defaultCandidateNumber || "",
       voterId: d.voterId || voter,
     }));
-  }, [defaultWatermark, defaultCampaignTaxId, defaultVoterId, marcaDaguaPadrao, cnpjCampanhaPadrao, tituloEleitorPadrao]);
+  }, [defaultWatermark, defaultCampaignTaxId, defaultCandidateNumber, defaultVoterId, marcaDaguaPadrao, cnpjCampanhaPadrao, tituloEleitorPadrao]);
 
   const setField = <K extends keyof FormData>(k: K, v: FormData[K]) => {
     setData((d) => ({ ...d, [k]: v }));
     setError("");
+    // o aviso de "recuperado" só faz sentido até a pessoa mexer em alguma coisa;
+    // daí em diante o que interessa é saber que o novo texto está salvo
+    setDraftRestored(false);
   };
 
   function validate(p: number): string {
@@ -125,13 +190,20 @@ export function NewMissionForm({
   function handleNext() {
     const e = validate(step);
     if (e) return setError(e);
-    if (step < STEPS.length - 1) setStep(step + 1);
-    else handleSubmit();
+    if (step < STEPS.length - 1) {
+      setStep(step + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      handleSubmit();
+    }
   }
 
   function handlePrev() {
     setError("");
-    if (step > 0) setStep(step - 1);
+    if (step > 0) {
+      setStep(step - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   async function handleSubmit() {
@@ -154,6 +226,7 @@ export function NewMissionForm({
         rawVideoUrl: data.rawVideoUrl,
         watermark: data.watermark,
         campaignTaxId: data.campaignTaxId,
+        candidateNumber: data.candidateNumber,
         voterId: data.voterId,
         // compatibility aliases
         titulo: data.title,
@@ -166,6 +239,7 @@ export function NewMissionForm({
         videoBrutoUrl: data.rawVideoUrl,
         marcaDagua: data.watermark,
         cnpjCampanha: data.campaignTaxId,
+        numeroEleitoral: data.candidateNumber,
         tituloEleitor: data.voterId,
       }),
     });
@@ -176,12 +250,13 @@ export function NewMissionForm({
       setError(body?.error ?? body?.erro ?? "Não deu pra criar a missão. Tenta de novo.");
       return;
     }
+    clearDraft();
     setIsSubmitted(true);
   }
 
   if (isSubmitted) {
     return (
-      <div className="mx-auto w-full max-w-lg py-16 text-center">
+      <div className="mx-auto w-full max-w-lg px-5 py-16 text-center">
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-ok/40 bg-ok/10">
           <svg
             viewBox="0 0 24 24"
@@ -194,19 +269,19 @@ export function NewMissionForm({
             <path d="M20 6 9 17l-5-5" />
           </svg>
         </div>
-        <h1 className="mt-6 font-[family-name:var(--font-display)] text-3xl font-semibold text-text">
+        <h1 className="mt-6 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
           Missão enviada!
         </h1>
-        <p className="mt-3 text-muted">
+        <p className="mt-3 text-sm leading-relaxed text-muted">
           Ela já está na fila dos editores. Você acompanha o status na sua área e
           recebe o vídeo pronto por aqui.
         </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href="/porta-voz" className="btn-gold sm:w-56">
+        <div className="mt-8 flex flex-col gap-3">
+          <Link href="/porta-voz" className="btn-gold">
             Ver minhas missões
           </Link>
           <button
-            className="btn-ghost sm:w-56"
+            className="btn-ghost"
             onClick={() => {
               setData(EMPTY_FORM);
               setStep(0);
@@ -221,216 +296,298 @@ export function NewMissionForm({
   }
 
   const isLastStep = step === STEPS.length - 1;
+  const currentName = STEPS[step];
 
   return (
-    <div className="mx-auto w-full max-w-xl py-8 lg:py-12">
-      <div className="mb-8" data-guia="passos-briefing">
-        <div className="flex items-center justify-between text-xs text-muted">
-          <span className="uppercase tracking-[0.14em] text-gold">
+    <div className="mx-auto w-full max-w-xl px-5 pb-32 pt-6 lg:pb-12 lg:pt-10">
+      {/* Progresso: quanto falta, em que ponto está, e se está salvo. */}
+      <div className="mb-7" data-guia="passos-briefing">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-gold">
             Passo {step + 1} de {STEPS.length}
           </span>
-          <span>{STEPS[step]}</span>
+          <span className="text-xs text-muted">{currentName}</span>
         </div>
-        <div className="mt-3 flex gap-1.5">
-          {STEPS.map((_, i) => (
+        <div
+          className="mt-2.5 flex gap-1.5"
+          role="progressbar"
+          aria-valuenow={step + 1}
+          aria-valuemin={1}
+          aria-valuemax={STEPS.length}
+          aria-label={`Passo ${step + 1} de ${STEPS.length}: ${currentName}`}
+        >
+          {STEPS.map((name, i) => (
             <span
-              key={i}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                i <= step ? "bg-gold" : "bg-line"
+              key={name}
+              className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+                i < step ? "bg-gold-lo" : i === step ? "bg-gold" : "bg-line"
               }`}
             />
           ))}
         </div>
+
+        {/* "Salvamento visual": a pessoa precisa ver que não vai perder o que digitou. */}
+        <p className="mt-2.5 flex min-h-4 items-center gap-1.5 text-xs text-muted-2">
+          {draftRestored ? (
+            <>
+              <span aria-hidden="true">↩</span>
+              Rascunho de antes recuperado
+            </>
+          ) : draftSavedAt ? (
+            <>
+              <span aria-hidden="true" className="text-ok">
+                ✓
+              </span>
+              Rascunho salvo neste aparelho
+            </>
+          ) : null}
+        </p>
       </div>
 
-      <div className="min-h-[280px]">
-        {step === 0 && (
-          <StepContainer title="O vídeo bruto" subtitle="O material que o editor vai trabalhar.">
-            <LegalNotice />
+      {step === 0 && (
+        <StepContainer
+          title="O vídeo bruto"
+          subtitle="O material que o editor vai trabalhar."
+        >
+          <FieldWrapper label="Título da missão">
+            <input
+              className="field-input !pl-4"
+              placeholder="ex.: Corte sobre segurança no bairro"
+              value={data.title}
+              onChange={(e) => setField("title", e.target.value)}
+              autoFocus
+            />
+          </FieldWrapper>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FieldWrapper label="Marca d'água">
-                <input
-                  className="field-input !pl-4"
-                  placeholder="ex.: Candidato Oficial - #12345"
-                  value={data.watermark}
-                  onChange={(e) => setField("watermark", e.target.value)}
-                />
-              </FieldWrapper>
-              <FieldWrapper label="CNPJ da campanha">
-                <input
-                  className="field-input !pl-4"
-                  placeholder="00.000.000/0000-00"
-                  value={data.campaignTaxId}
-                  onChange={(e) => setField("campaignTaxId", e.target.value)}
-                />
-              </FieldWrapper>
-            </div>
+          <UploadDropzone onUploadSuccess={(url) => setField("rawVideoUrl", url)} />
 
-            <FieldWrapper label="Título de Eleitor (TSE)">
-              <input
-                className="field-input !pl-4"
-                placeholder="0000 0000 0000"
-                value={data.voterId}
-                onChange={(e) => setField("voterId", e.target.value)}
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-line" />
+            <span className="text-xs font-medium text-muted">ou cole um link</span>
+            <div className="h-px flex-1 bg-line" />
+          </div>
+
+          <FieldWrapper label="Link do Drive" guide="campo-drive">
+            <input
+              className="field-input !pl-4"
+              placeholder="cole o link de compartilhamento"
+              value={data.driveLink}
+              onChange={(e) => setField("driveLink", e.target.value)}
+              inputMode="url"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
+            <TutorialButton onClick={() => setIsTutorialOpen(true)} />
+          </FieldWrapper>
+
+          <FieldWrapper label="Link do YouTube">
+            <input
+              className="field-input !pl-4"
+              placeholder="cole o link do vídeo"
+              value={data.youtubeLink}
+              onChange={(e) => setField("youtubeLink", e.target.value)}
+              inputMode="url"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
+          </FieldWrapper>
+        </StepContainer>
+      )}
+
+      {step === 1 && (
+        <StepContainer
+          title="Objetivo da edição"
+          subtitle="O que esse vídeo precisa fazer? Quanto mais claro, mais o editor acerta de primeira."
+          optional
+        >
+          <FieldWrapper label="Por que esse vídeo importa">
+            <textarea
+              className="field-input !pl-4 min-h-32 resize-y"
+              placeholder="ex.: resposta a um tema que bombou essa semana"
+              value={data.reason}
+              onChange={(e) => setField("reason", e.target.value)}
+            />
+          </FieldWrapper>
+
+          <FieldWrapper label="Trechos ou cortes que precisam entrar">
+            <textarea
+              className="field-input !pl-4 min-h-28 resize-y"
+              placeholder={"ex.: usar do minuto 3:20 ao 3:45\nlink de outro bruto pra encaixar"}
+              value={data.extras}
+              onChange={(e) => setField("extras", e.target.value)}
+            />
+          </FieldWrapper>
+        </StepContainer>
+      )}
+
+      {step === 2 && (
+        <StepContainer
+          title="Referências"
+          subtitle="O jeitão que você quer. Se não souber dizer, pode pular."
+          optional
+        >
+          <FieldWrapper label="Vídeos ou estilos de referência">
+            <textarea
+              className="field-input !pl-4 min-h-24 resize-y"
+              placeholder="ex.: estilo podcast, cortes secos"
+              value={data.refs}
+              onChange={(e) => setField("refs", e.target.value)}
+            />
+          </FieldWrapper>
+
+          <FieldWrapper label="Tom">
+            <input
+              className="field-input !pl-4"
+              placeholder="ex.: direto e firme"
+              value={data.tone}
+              onChange={(e) => setField("tone", e.target.value)}
+            />
+          </FieldWrapper>
+
+          <FieldWrapper label="Cor">
+            <input
+              className="field-input !pl-4"
+              placeholder="ex.: quente / fria"
+              value={data.color}
+              onChange={(e) => setField("color", e.target.value)}
+            />
+          </FieldWrapper>
+
+          <FieldWrapper label="Fonte da legenda">
+            <input
+              className="field-input !pl-4"
+              placeholder="ex.: bold condensada"
+              value={data.font}
+              onChange={(e) => setField("font", e.target.value)}
+            />
+          </FieldWrapper>
+        </StepContainer>
+      )}
+
+      {step === 3 && (
+        <StepContainer
+          title="Orientações"
+          subtitle="O que o editor precisa colocar no vídeo por obrigação."
+        >
+          <LegalNotice />
+
+          <FieldWrapper label="Marca d'água">
+            <input
+              className="field-input !pl-4"
+              placeholder="ex.: Candidato Oficial - #12345"
+              value={data.watermark}
+              onChange={(e) => setField("watermark", e.target.value)}
+            />
+          </FieldWrapper>
+
+          <FieldWrapper label="CNPJ da campanha">
+            <input
+              className="field-input !pl-4"
+              placeholder="00.000.000/0000-00"
+              value={data.campaignTaxId}
+              onChange={(e) => setField("campaignTaxId", e.target.value)}
+              inputMode="numeric"
+            />
+          </FieldWrapper>
+
+          <FieldWrapper label="Número eleitoral">
+            <input
+              className="field-input !pl-4"
+              placeholder="ex.: 13"
+              value={data.candidateNumber}
+              onChange={(e) => setField("candidateNumber", e.target.value.replace(/\D/g, ""))}
+              maxLength={5}
+              inputMode="numeric"
+            />
+          </FieldWrapper>
+        </StepContainer>
+      )}
+
+      {step === 4 && (
+        <StepContainer title="Formato" subtitle="Como você precisa do vídeo.">
+          {/*
+            ONDE O FORMATO LONGO (16:9) ESTÁ ESCONDIDO — aguardando decisão do dono.
+
+            O formato `long` já é aceito de ponta a ponta; só não existe jeito de
+            escolhê-lo. O caminho inteiro já suporta:
+              - `lib/missions.ts`        → type VideoFormat = "short" | "long" | "longo"
+              - `lib/missions.ts`        → FORMAT_LABEL.long = "Vídeo longo (16:9 · no YouTube)"
+              - `app/api/missions/route.ts:17` → aceita "long" e o alias "longo"
+              - `lib/missions-db.ts:152` → valida contra "short" | "long"
+              - `supabase/schema.sql:92` → CHECK (format IN ('short', 'long'))
+              - `lib/missions.ts`        → há missões de demonstração com format: "long"
+
+            O único ponto que trava é este cartão fixo: ele não é um campo, é um
+            rótulo. `data.format` nasce como "short" em EMPTY_FORM e nada escreve
+            nele — por isso a validação `if (p === 4 && !data.format)` nunca falha.
+
+            PRA LIBERAR: trocar este bloco por dois botões de escolha gravando
+            setField("format", "short" | "long"). Nada de backend precisa mudar.
+            NÃO FAZER sem o dono aprovar: liberar muda o que uma missão pode ser.
+          */}
+          <FieldWrapper label="Formato do vídeo">
+            <div className="flex items-center gap-3 rounded-xl border border-gold bg-gold/10 px-4 py-3.5">
+              <span
+                aria-hidden="true"
+                className="h-9 w-5 flex-none rounded-sm border-2 border-gold-hi"
               />
-            </FieldWrapper>
-
-            <FieldWrapper label="Título da missão">
-              <input
-                className="field-input !pl-4"
-                placeholder="ex.: Corte sobre segurança no bairro"
-                value={data.title}
-                onChange={(e) => setField("title", e.target.value)}
-                autoFocus
-              />
-            </FieldWrapper>
-
-            <div className="mt-4">
-              <UploadDropzone
-                onUploadSuccess={(url) => setField("rawVideoUrl", url)}
-              />
+              <span>
+                <span className="block text-sm font-medium text-text">
+                  Short 9:16
+                </span>
+                <span className="text-xs text-muted">
+                  vertical, até 90 segundos
+                </span>
+              </span>
             </div>
+          </FieldWrapper>
 
-            <div className="mt-4 flex items-center gap-4">
-              <div className="h-px flex-1 bg-line" />
-              <span className="text-xs text-muted font-medium">OU COLE LINKS MANUALMENTE</span>
-              <div className="h-px flex-1 bg-line" />
-            </div>
+          <FieldWrapper label="Prazo desejado (opcional)">
+            <input
+              type="date"
+              className="field-input !pl-4"
+              value={data.deadline}
+              onChange={(e) => setField("deadline", e.target.value)}
+            />
+          </FieldWrapper>
 
-            <div className="grid gap-4 sm:grid-cols-2 mt-2">
-              <FieldWrapper label="Link do Drive (opcional)" guide="campo-drive">
-                <input
-                  className="field-input !pl-4"
-                  placeholder="cole o link de compartilhamento, se tiver"
-                  value={data.driveLink}
-                  onChange={(e) => setField("driveLink", e.target.value)}
-                  inputMode="url"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                />
-                <TutorialButton onClick={() => setIsTutorialOpen(true)} />
-              </FieldWrapper>
-              <FieldWrapper label="Link do YouTube (opcional)">
-                <input
-                  className="field-input !pl-4"
-                  placeholder="cole o link do vídeo no YouTube, se tiver"
-                  value={data.youtubeLink}
-                  onChange={(e) => setField("youtubeLink", e.target.value)}
-                  inputMode="url"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                />
-              </FieldWrapper>
-            </div>
-          </StepContainer>
-        )}
-
-        {step === 1 && (
-          <StepContainer
-            title="Cortes específicos"
-            subtitle="Tem algum trecho, corte ou material extra que precisa entrar? (opcional)"
-          >
-            <FieldWrapper label="Links ou trechos (um por linha)">
-              <textarea
-                className="field-input !pl-4 min-h-32 resize-y"
-                placeholder={"ex.: usar do minuto 3:20 ao 3:45\nlink de outro bruto pra encaixar"}
-                value={data.extras}
-                onChange={(e) => setField("extras", e.target.value)}
-              />
-            </FieldWrapper>
-          </StepContainer>
-        )}
-
-        {step === 2 && (
-          <StepContainer
-            title="O estilo"
-            subtitle="Quanto mais claro, mais o editor acerta de primeira. (opcional)"
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FieldWrapper label="Tom">
-                <input
-                  className="field-input !pl-4"
-                  placeholder="ex.: direto e firme"
-                  value={data.tone}
-                  onChange={(e) => setField("tone", e.target.value)}
-                />
-              </FieldWrapper>
-              <FieldWrapper label="Cor">
-                <input
-                  className="field-input !pl-4"
-                  placeholder="ex.: quente / fria"
-                  value={data.color}
-                  onChange={(e) => setField("color", e.target.value)}
-                />
-              </FieldWrapper>
-              <FieldWrapper label="Fonte / legenda">
-                <input
-                  className="field-input !pl-4"
-                  placeholder="ex.: bold condensada"
-                  value={data.font}
-                  onChange={(e) => setField("font", e.target.value)}
-                />
-              </FieldWrapper>
-              <FieldWrapper label="Referências">
-                <input
-                  className="field-input !pl-4"
-                  placeholder="ex.: estilo podcast"
-                  value={data.refs}
-                  onChange={(e) => setField("refs", e.target.value)}
-                />
-              </FieldWrapper>
-            </div>
-          </StepContainer>
-        )}
-
-        {step === 3 && (
-          <StepContainer
-            title="Contexto"
-            subtitle="Por que esse vídeo importa? Ajuda o editor a entender a intenção. (opcional)"
-          >
-            <FieldWrapper label="Motivo / motivação">
-              <textarea
-                className="field-input !pl-4 min-h-32 resize-y"
-                placeholder="ex.: resposta a um tema que bombou essa semana"
-                value={data.reason}
-                onChange={(e) => setField("reason", e.target.value)}
-              />
-            </FieldWrapper>
-          </StepContainer>
-        )}
-
-        {step === 4 && (
-          <StepContainer title="Formato" subtitle="Como você precisa do vídeo.">
-            <FieldWrapper label="Formato">
-              <div className="rounded-xl border border-gold bg-gold/10 p-4">
-                <span className="block font-medium text-text">Short 9:16</span>
-                <span className="text-xs text-muted">vertical</span>
-              </div>
-            </FieldWrapper>
-          </StepContainer>
-        )}
-      </div>
+          <p className="text-xs leading-relaxed text-muted-2">
+            Ao enviar, a missão entra na fila e um editor da guilda pega. Você
+            acompanha tudo na sua área.
+          </p>
+        </StepContainer>
+      )}
 
       {error && (
-        <p role="alert" className="mt-4 text-sm text-danger">
+        <p
+          role="alert"
+          className="mt-5 rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
+        >
           {error}
         </p>
       )}
 
-      <div className="mt-8 flex items-center justify-between gap-3">
-        {step > 0 ? (
-          <button className="btn-ghost w-32" onClick={handlePrev}>
-            Voltar
+      {/* No celular a dupla de botões fica fixa no rodapé: sempre ao alcance do
+          polegar, sem precisar rolar até o fim de um passo comprido. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink/95 px-5 py-3.5 backdrop-blur lg:static lg:mt-9 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+        <div className="mx-auto flex w-full max-w-xl items-center gap-3">
+          {step > 0 ? (
+            <button className="btn-ghost w-28 flex-none" onClick={handlePrev}>
+              Voltar
+            </button>
+          ) : (
+            <Link href="/porta-voz" className="btn-ghost w-28 flex-none text-center">
+              Cancelar
+            </Link>
+          )}
+          <button
+            className="btn-gold flex-1"
+            onClick={handleNext}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Enviando…" : isLastStep ? "Enviar missão" : "Continuar"}
           </button>
-        ) : (
-          <Link href="/porta-voz" className="btn-ghost w-32 text-center">
-            Cancelar
-          </Link>
-        )}
-        <button className="btn-gold flex-1" onClick={handleNext} disabled={isSubmitting}>
-          {isSubmitting ? "Enviando…" : isLastStep ? "Enviar missão" : "Continuar"}
-        </button>
+        </div>
       </div>
 
       <TutorialDrive
@@ -445,19 +602,28 @@ export function NewMissionForm({
 function StepContainer({
   title,
   subtitle,
+  optional,
   children,
 }: {
   title: string;
   subtitle: string;
+  optional?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text">
-        {title}
-      </h1>
-      <p className="mt-1 mb-6 text-sm text-muted">{subtitle}</p>
-      <div className="flex flex-col gap-4">{children}</div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text">
+          {title}
+        </h1>
+        {optional && (
+          <span className="rounded-full border border-line bg-ink-2 px-2.5 py-0.5 text-xs text-muted-2">
+            pode pular
+          </span>
+        )}
+      </div>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted">{subtitle}</p>
+      <div className="mt-7 flex flex-col gap-5">{children}</div>
     </div>
   );
 }
@@ -473,7 +639,7 @@ function FieldWrapper({
 }) {
   return (
     <label className="block" data-guia={guide} data-guide={guide}>
-      <span className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+      <span className="mb-2 block text-xs font-medium uppercase tracking-[0.1em] text-muted">
         {label}
       </span>
       {children}

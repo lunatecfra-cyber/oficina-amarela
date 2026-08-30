@@ -146,13 +146,14 @@ export async function createAccount(data: {
 export const criarConta = createAccount;
 
 export async function authenticate(
-  handle: string,
+  identity: string,
   password: string
 ): Promise<{ ok: true; account: UserAccount; conta?: UserAccount } | { ok: false; error: string; erro?: string }> {
   const [row] = await sql`
     SELECT id, handle, name, email, role, password_hash, is_banned
     FROM users
-    WHERE lower(handle) = lower(${handle.trim()})
+    WHERE lower(handle) = lower(${identity.trim()})
+       OR lower(email) = lower(${identity.trim()})
   `;
 
   const hash = row?.password_hash ?? DUMMY_HASH;

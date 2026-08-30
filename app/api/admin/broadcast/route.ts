@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       p.email,
       p.name,
       summary.freeEditors,
-      `${origin}/spokesperson/new-mission`
+      `${origin}/porta-voz/nova-pauta`
     );
   }
   return NextResponse.json({ ok: true, sent: recipients.length, enviados: recipients.length });

@@ -9,7 +9,9 @@ export function IncompleteProfileBanner({
 }) {
   const currentRole = role ?? papel ?? "editor";
   const isEditor = currentRole === "editor";
-  const destination = isEditor ? "/editor/create-profile" : "/spokesperson/create-profile";
+  // as rotas públicas são em PT-BR: "/editor/create-profile" e
+  // "/spokesperson/create-profile" não existem e davam 404
+  const destination = isEditor ? "/editor/criar-perfil" : "/porta-voz/criar-perfil";
   const description = isEditor
     ? "Adicione suas skills, softwares e portfólio pra guilda te conhecer melhor."
     : "Preencha cargo, bandeiras e estilo pra sua missão sair redonda.";
@@ -28,7 +30,7 @@ export function IncompleteProfileBanner({
         </div>
         <Link
           href={destination}
-          className="inline-flex flex-none items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold-hi transition-colors hover:bg-gold/20"
+          className="inline-flex min-h-11 flex-none items-center justify-center gap-2 rounded-xl border border-gold/30 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold-hi transition-colors hover:bg-gold/20"
         >
           Completar perfil
           <svg

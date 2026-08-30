@@ -36,12 +36,15 @@ export const ELECTORAL_AWARDS = [
 
 export const PREMIOS_ELEITORAIS = ELECTORAL_AWARDS;
 
-export function calculateConsistency(completedWeeks: boolean[], availableShields: number) {
+export type ConsistencyWeek = boolean | "pending";
+
+export function calculateConsistency(completedWeeks: ConsistencyWeek[], availableShields: number) {
   let sequence = 0;
   let maxSequence = 0;
   let consumedShields = 0;
 
   for (const completed of completedWeeks) {
+    if (completed === "pending") continue;
     if (completed) {
       sequence += 1;
     } else if (consumedShields < availableShields) {

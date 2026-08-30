@@ -99,16 +99,21 @@ export async function getSystemOverview(): Promise<SystemOverview> {
       )
   `;
 
-  const inQueue = Number(counts.in_queue ?? 0);
-  const offered = Number(counts.offered ?? 0);
-  const inEditing = Number(counts.in_editing ?? 0);
-  const inReview = Number(counts.in_review ?? 0);
-  const inRevision = Number(counts.in_revision ?? 0);
-  const completed = Number(counts.completed ?? 0);
-  const spokespersons = Number(users.spokespersons ?? 0);
-  const editors = Number(users.editors ?? 0);
-  const freeEditors = Number(free.free_editors ?? 0);
-  const banned = Number(users.banned ?? 0);
+  // `?.` e não `.`: sem DATABASE_URL o wrapper de lib/db.ts devolve `[]` em
+  // toda query, então o destructuring acima entrega `undefined` e o acesso
+  // direto derrubava a página inteira ("Cannot read properties of undefined").
+  // Com o banco ligado nada muda; sem ele, o Panorama abre zerado em vez de
+  // quebrar — que é como o resto do sistema se comporta localmente.
+  const inQueue = Number(counts?.in_queue ?? 0);
+  const offered = Number(counts?.offered ?? 0);
+  const inEditing = Number(counts?.in_editing ?? 0);
+  const inReview = Number(counts?.in_review ?? 0);
+  const inRevision = Number(counts?.in_revision ?? 0);
+  const completed = Number(counts?.completed ?? 0);
+  const spokespersons = Number(users?.spokespersons ?? 0);
+  const editors = Number(users?.editors ?? 0);
+  const freeEditors = Number(free?.free_editors ?? 0);
+  const banned = Number(users?.banned ?? 0);
 
   return {
     inQueue,

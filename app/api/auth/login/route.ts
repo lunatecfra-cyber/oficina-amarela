@@ -14,11 +14,11 @@ import { recordDailyLogin } from "@/lib/gamification-db";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  const handle = body?.handle ?? body?.apelido;
+  const handle = body?.identity ?? body?.email ?? body?.handle ?? body?.apelido;
   const password = body?.password ?? body?.senha;
 
   if (typeof handle !== "string" || typeof password !== "string") {
-    return NextResponse.json({ error: "Please provide both handle and password.", erro: "Please provide both handle and password." }, { status: 400 });
+    return NextResponse.json({ error: "Informe apelido ou e-mail e senha.", erro: "Informe apelido ou e-mail e senha." }, { status: 400 });
   }
 
   const ip = requestIpAddress(request);

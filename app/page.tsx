@@ -5,6 +5,7 @@ import { OnAppear } from "@/components/on-appear";
 import { MouseGlow } from "@/components/mouse-glow";
 import { NextStep } from "@/components/next-step";
 import { FestivalAwards } from "@/components/festival-awards";
+import { Supporters } from "@/components/supporters";
 import { publishedNews } from "@/lib/news-db";
 
 export const revalidate = 300;
@@ -34,7 +35,9 @@ const TRACKS = [
 
 const TARGET_AUDIENCE = [
   {
-    href: "/signup?role=spokesperson",
+    // a rota é /criar-conta (a /signup não existe e dava 404). O papel não
+    // viaja na query: quem escolhe é o próprio formulário, no primeiro passo.
+    href: "/criar-conta",
     title: "Sou porta-voz",
     desc: "Você tem o vídeo bruto e precisa que alguém edite. Abre a missão e acompanha até o vídeo voltar pronto.",
     items: ["Grava e manda o link do Drive", "Diz o tom, a cor e o formato", "Assiste, aprova ou pede ajuste"],
@@ -43,7 +46,7 @@ const TARGET_AUDIENCE = [
     ),
   },
   {
-    href: "/signup?role=editor",
+    href: "/criar-conta",
     title: "Sou editor",
     desc: "As missões chegam até você. Aceita, edita, entrega — e sobe de nível a cada trabalho aprovado.",
     items: ["Recebe missão sem disputar", "Uma por vez, sem acúmulo", "Nota e reputação a cada entrega"],
@@ -116,11 +119,17 @@ export default async function Home() {
               </div>
             </div>
 
-            <h1 className="text-gold-grad text-center font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.92] tracking-[0.1em] sm:text-left sm:text-6xl lg:text-7xl">
-              <span className="entra-linha" style={{ "--linha-atraso": "340ms" } as React.CSSProperties}>
+            <h1 className="text-center font-[family-name:var(--font-display)] text-5xl font-semibold leading-[0.92] tracking-[0.1em] sm:text-left sm:text-6xl lg:text-7xl">
+              {/* O gradiente vai em CADA LINHA, não no <h1>.
+                  As linhas animam com transform, e um elemento transformado
+                  ganha camada própria — fora do recorte `background-clip: text`
+                  do pai. Com o gradiente no pai, o nome da marca sumia da home:
+                  ocupava o espaço, herdava o preenchimento transparente e nunca
+                  era pintado. Recorte e texto precisam morar no mesmo elemento. */}
+              <span className="entra-linha text-gold-grad" style={{ "--linha-atraso": "340ms" } as React.CSSProperties}>
                 OFICINA
               </span>
-              <span className="entra-linha" style={{ "--linha-atraso": "460ms" } as React.CSSProperties}>
+              <span className="entra-linha text-gold-grad" style={{ "--linha-atraso": "460ms" } as React.CSSProperties}>
                 AMARELA
               </span>
             </h1>
@@ -143,7 +152,7 @@ export default async function Home() {
             </Link>
             <Link
               href="/login"
-              className="inline-block px-3 py-2 text-sm text-muted transition-colors hover:text-gold-hi"
+              className="link-toque text-sm text-muted"
             >
               Já sou membro
             </Link>
@@ -242,9 +251,9 @@ export default async function Home() {
               <OnAppear key={q.title} delay={i * 120} className="flex">
                 <Link
                   href={q.href}
-                  className="role-card group flex flex-1 flex-col rounded-2xl border border-line bg-surface/70 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-gold/60 hover:bg-surface-2 hover:shadow-[0_18px_40px_rgba(0,0,0,0.45)] lg:p-8"
+                  className="role-card vidro group flex flex-1 flex-col rounded-2xl p-6 transition-[transform,border-color,box-shadow] duration-[550ms] ease-[var(--ease-mola)] hover:-translate-y-1 hover:border-gold/40 hover:shadow-[0_1px_0_rgba(255,255,255,0.07)_inset,0_14px_32px_rgba(0,0,0,0.46),0_32px_70px_rgba(0,0,0,0.34)] active:translate-y-0 active:scale-[0.995] lg:p-8"
                 >
-                  <span className="inline-grid h-11 w-11 place-items-center rounded-xl border border-line bg-ink-2 text-silver transition-colors group-hover:border-gold/50 group-hover:text-gold">
+                  <span className="inline-grid h-11 w-11 place-items-center rounded-xl border border-line bg-ink-2 text-silver transition-all duration-500 ease-[var(--ease-mola)] group-hover:scale-105 group-hover:border-gold/50 group-hover:text-gold">
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
@@ -288,6 +297,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <Supporters />
 
       <section className="border-t border-line-soft px-6 py-16 lg:py-20">
         <div className="mx-auto w-full max-w-3xl">
@@ -345,19 +356,21 @@ export default async function Home() {
             </Link>
           </div>
 
-          <p className="mt-6 text-xs text-muted-2">
-            <Link href="/termos" className="inline-block py-2 hover:text-muted">
+          {/* flex-wrap em vez de texto corrido: cada link precisa dos 44px de
+              alvo, e empilhados no celular eles não se colam um no outro */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-1 text-xs text-muted-2">
+            <Link href="/termos" className="link-toque">
               Termos de uso
             </Link>
-            <span className="px-1">·</span>
-            <Link href="/privacidade" className="inline-block py-2 hover:text-muted">
+            <span aria-hidden="true">·</span>
+            <Link href="/privacidade" className="link-toque">
               Política de privacidade
             </Link>
-            <span className="px-1">·</span>
-            <Link href="/parceiros" className="inline-block py-2 hover:text-muted">
+            <span aria-hidden="true">·</span>
+            <Link href="/parceiros" className="link-toque">
               Parceiros
             </Link>
-          </p>
+          </div>
         </div>
       </section>
 

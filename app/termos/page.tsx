@@ -8,7 +8,7 @@ export default function TermsPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-10 lg:px-8 lg:py-14">
       <Link href="/" className="flex items-center gap-3">
-        <Logo size="normal" />
+        <Logo size="normal" showName={false} />
         <span className="font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold">
           OFICINA AMARELA
         </span>
@@ -41,9 +41,9 @@ export default function TermsPage() {
           </h2>
           <ul className="list-disc pl-5">
             <li>Cada editor reserva apenas 1 missão por vez</li>
-            <li>Ao reservar, o acesso ao vídeo bruto é liberado automaticamente para o e-mail do editor</li>
-            <li>Se o prazo vencer sem entrega, a missão volta pra fila e o acesso é revogado</li>
-            <li>Ao entregar, aprovar ou o editor cancelar, o acesso ao arquivo também é revogado</li>
+            <li>Ao reservar, o editor recebe o link informado pelo porta-voz</li>
+            <li>O porta-voz concede e revoga as permissões diretamente no próprio Google Drive</li>
+            <li>Se o prazo vencer sem entrega, a missão volta pra fila da plataforma</li>
           </ul>
         </section>
 

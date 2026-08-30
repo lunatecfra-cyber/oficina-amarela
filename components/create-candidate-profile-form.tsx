@@ -20,6 +20,9 @@ import type { CandidateOnboarding, OnboardingCandidato } from "@/lib/candidate-d
 import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
 import { SelectLocation } from "@/components/select-location";
 import { compressPhoto } from "@/lib/compress-photo";
+import { CampaignIdentity } from "@/components/campaign-identity";
+import { WhatsappField, onlyDigits } from "@/components/whatsapp-field";
+import { validateCampaignIdentity } from "@/lib/campaign-identity";
 import { LegalNotice } from "@/components/legal-notice";
 
 function parseLocation(value: string): { state: string; city: string } {
@@ -78,6 +81,8 @@ export function CreateCandidateProfileForm({
     marcaDagua: "",
     campaignTaxId: "",
     cnpjCampanha: "",
+    candidateNumber: "",
+    numeroEleitoral: "",
     voterId: "",
     tituloEleitor: "",
     socialLinks: {},
@@ -106,6 +111,11 @@ export function CreateCandidateProfileForm({
   const [watermark, setWatermark] = useState(data.watermark ?? (data as any).marcaDagua ?? "");
   const [campaignTaxId, setCampaignTaxId] = useState(data.campaignTaxId ?? (data as any).cnpjCampanha ?? "");
   const [voterId, setVoterId] = useState(data.voterId ?? (data as any).tituloEleitor ?? "");
+  const [whatsapp, setWhatsapp] = useState(onlyDigits((data as any).whatsapp ?? ""));
+  // número de urna (13, 22...). Diferente do título de eleitor acima.
+  const [candidateNumber, setCandidateNumber] = useState(
+    data.candidateNumber ?? data.numeroEleitoral ?? "",
+  );
 
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(data.socialLinks ?? (data as any).redes ?? {});
 
@@ -212,6 +222,18 @@ export function CreateCandidateProfileForm({
       setActiveTab("objective");
       return;
     }
+    // Identificação de campanha é obrigatória. A regra é a de
+    // `lib/campaign-identity.ts` — a mesma que a prévia da tarja usa.
+    const identidade = validateCampaignIdentity({
+      officialName: name,
+      candidateNumber,
+      campaignTaxId,
+    });
+    if (!identidade.ok) {
+      setError(identidade.error);
+      setActiveTab("channels");
+      return;
+    }
     setError("");
     setIsSaving(true);
 
@@ -234,6 +256,8 @@ export function CreateCandidateProfileForm({
         bio,
         watermark,
         campaignTaxId,
+        candidateNumber,
+        whatsapp,
         voterId,
         // compatibility aliases
         nome: name,
@@ -247,6 +271,7 @@ export function CreateCandidateProfileForm({
         redes: socialLinks,
         marcaDagua: watermark,
         cnpjCampanha: campaignTaxId,
+        numeroEleitoral: candidateNumber,
         tituloEleitor: voterId,
       }),
     });
@@ -670,13 +695,24 @@ export function CreateCandidateProfileForm({
           </button>
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
-              Suas redes
+              Contato e redes
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Só o @ ou o link já ajuda. A gente usa pra conferir seu estilo de
-              postagem — o editor precisa saber onde o vídeo vai ao ar pra editar
-              no formato certo.
+              O WhatsApp destrava a conversa direta com o editor. Só o @ ou o
+              link das redes já ajuda — o editor precisa saber onde o vídeo vai
+              ao ar pra editar no formato certo.
             </p>
+
+            <div className="mt-4">
+              <WhatsappField
+                value={whatsapp}
+                onChange={(v) => {
+                  setWhatsapp(v);
+                  setError("");
+                }}
+                hint="Com DDD. Fica visível pro editor que pegar sua missão."
+              />
+            </div>
 
             <div className="mt-4 flex flex-col gap-3">
               <div className="relative flex items-center">
@@ -720,20 +756,41 @@ export function CreateCandidateProfileForm({
 
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
-              Regras Eleitorais (TSE)
+              Identificação de campanha
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Essas informações serão preenchidas automaticamente nas suas missões para que o editor inclua nos vídeos.
+              Obrigatório. Vai automático em toda missão, pro editor colocar no
+              vídeo — e monta a tarja que ele encaixa na lateral.
             </p>
 
             <div className="mt-4">
               <LegalNotice />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 mt-4">
+            <div className="mt-5">
+              <CampaignIdentity
+                name={name}
+                onNameChange={(v) => {
+                  setName(v);
+                  setError("");
+                }}
+                candidateNumber={candidateNumber}
+                onCandidateNumberChange={(v) => {
+                  setCandidateNumber(v);
+                  setError("");
+                }}
+                campaignTaxId={campaignTaxId}
+                onCampaignTaxIdChange={(v) => {
+                  setCampaignTaxId(v);
+                  setError("");
+                }}
+              />
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="marcaDagua" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-                  Marca d&apos;água
+                <label htmlFor="marcaDagua" className="mb-2 block text-xs font-medium uppercase tracking-[0.1em] text-muted">
+                  Marca d&apos;água <span className="text-muted-2">(opcional)</span>
                 </label>
                 <input
                   id="marcaDagua"
@@ -747,35 +804,23 @@ export function CreateCandidateProfileForm({
                 />
               </div>
               <div>
-                <label htmlFor="cnpjCampanha" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-                  CNPJ da Campanha
+                {/* Não confundir com o número eleitoral acima: este é o título
+                    de eleitor, que segue indo pro briefing das missões. */}
+                <label htmlFor="tituloEleitor" className="mb-2 block text-xs font-medium uppercase tracking-[0.1em] text-muted">
+                  Título de eleitor <span className="text-muted-2">(opcional)</span>
                 </label>
                 <input
-                  id="cnpjCampanha"
+                  id="tituloEleitor"
                   className="field-input !pl-4"
-                  placeholder="00.000.000/0000-00"
-                  value={campaignTaxId}
+                  placeholder="0000 0000 0000"
+                  inputMode="numeric"
+                  value={voterId}
                   onChange={(e) => {
-                    setCampaignTaxId(e.target.value);
+                    setVoterId(e.target.value);
                     setError("");
                   }}
                 />
               </div>
-            </div>
-            <div className="mt-4">
-              <label htmlFor="tituloEleitor" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-                Título de Eleitor
-              </label>
-              <input
-                id="tituloEleitor"
-                className="field-input !pl-4"
-                placeholder="0000 0000 0000"
-                value={voterId}
-                onChange={(e) => {
-                  setVoterId(e.target.value);
-                  setError("");
-                }}
-              />
             </div>
           </div>
 

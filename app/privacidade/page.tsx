@@ -8,7 +8,7 @@ export default function PrivacyPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-10 lg:px-8 lg:py-14">
       <Link href="/" className="flex items-center gap-3">
-        <Logo size="normal" />
+        <Logo size="normal" showName={false} />
         <span className="font-[family-name:var(--font-display)] text-sm font-semibold tracking-[0.24em] text-gold">
           OFICINA AMARELA
         </span>
