@@ -7,9 +7,9 @@ date:                   2026-08-30
 current model:          Claude Opus 5
 recommended next model: GPT-5.6 Sol  (see "Next Actions" for why)
 repository:             github.com/lunatecfra-cyber/oficina-amarela
-branch:                 infra/cloudflare-scale  (16 commits ahead of master, not pushed)
+branch:                 infra/cloudflare-scale  (19 commits ahead of master, not pushed)
 base commit audited:    a37d94e  chore: migra linter e formatador de ESLint para Biome
-HEAD:                   e82ccf4  feat(api): adiciona worker hono inicial
+HEAD:                   2f16d47  docs(db): explica o que roda e o que é registro em supabase/
 working tree:           clean (.omc/ is now gitignored)
 ```
 
@@ -103,6 +103,8 @@ written.
 |---|---|
 | `ad2b60f` | Turborepo workspace. Application moved to `apps/web`; `scripts/`, `supabase/`, `docs/` stay at the root. Behaviour preserved. |
 | `e82ccf4` | `apps/api` — minimal Hono Worker with `/health`, request id (reusing `cf-ray`), structured JSON logs and PT-BR error shape. Compiles under `wrangler deploy --dry-run` (62.9 KiB). |
+| `1f076a9` | All four mission notifications moved onto the outbox. Found on the way: the acceptance email linked to `/spokesperson/mission/db-N`, a route that does not exist, and `recordGamificationEvent` was `void`-fired on delivery, so XP could vanish in a serverless runtime. |
+| `2f16d47` | `supabase/README.md` — `schema.sql` is the operative idempotent artifact; `migrations/*.sql` record `ALTER TABLE`-style changes and are run by hand. Nothing applied those files, and this branch added three. |
 
 ---
 
@@ -224,14 +226,11 @@ Open:
   brute force, recovery spam and per-IP signup flooding went unthrottled for as
   long as that code has been live. The code is fixed; **nobody has reviewed the
   production logs for abuse that got through**. Needs human access.
-- **`P1-12`** — single-recipient notifications still use `void sendNotification(…)`
-  from route handlers, with the same serverless delivery loss the broadcast had.
-  Move them onto `fila_emails`.
 - **`P2-11`** — the outbox and sweep drains are driven by request traffic
   because there is no scheduler. A quiet site does not retry failed email.
-- **`P2-12`** — `supabase/migrations/*.sql` are applied by no runner;
-  `scripts/migrar.mjs` applies `schema.sql` only. The migration files are
-  documentation until someone runs them. Decide on one mechanism before Phase 9.
+- **`P2-12`** — documented rather than fixed: `schema.sql` is the operative
+  idempotent artifact and `migrations/*.sql` are run by hand. See
+  `supabase/README.md`. Revisit when Phase 9 needs D1 tooling.
 - **`P2-07`** — `oficinaamarela.com.br` still publishes `v=spf1 -all` and a null
   MX. No provider can deliver. Blocks Phase 17. Needs human action.
 - **`P1-11`** — `@sentry/nextjs` server integration on Workers needs manual
@@ -319,9 +318,9 @@ No previously unknown infrastructure service was discovered during the audit.
 
 ```
 branch:               infra/cloudflare-scale
-HEAD:                 e82ccf4  feat(api): adiciona worker hono inicial
+HEAD:                 2f16d47  docs(db): explica o que roda e o que é registro em supabase/
 base:                 a37d94e (master, in sync with origin/master at audit time)
-commits ahead:        16
+commits ahead:        19
 uncommitted files:    none
 untracked files:      none (.omc/ is gitignored)
 not pushed:           the branch has never been pushed to origin
@@ -359,9 +358,10 @@ catch a repository refactor quietly dropping an invariant.
 
 ### NEXT 2
 
-**`P1-12`** — move single-recipient notifications onto `fila_emails`. The
-outbox, the drain and the tests already exist; this is wiring `sendNotification`
-call sites to `enqueueEmails` and is a good second task for the same session.
+**`P1-11`** — `@sentry/nextjs` server integration on Workers, and `P2-05` —
+turn the production Sentry DSN on. Both are small, both are prerequisites for
+Phase 19 producing usable evidence, and neither depends on the Phase 5
+extraction. Good second task in the same session.
 
 ### NEXT 3
 
@@ -412,7 +412,7 @@ modelled ~870 billion D1 rows read per month from the per-poll sweep, which
 **Duplicate email delivery**
 - `fila_emails.chave` is the only thing preventing a repeated broadcast from mailing everyone twice. Keep the key stable when moving to Cloudflare Queues.
 - Cloudflare Email Service and Resend must never both send the same message.
-- Single-recipient notifications are still `void`-fired and are being lost in serverless today (`P1-12`).
+- Password recovery is still a direct awaited send, deliberately: the user is waiting on it. Everything else goes through the outbox.
 
 **Security regression**
 - Row Level Security is enabled on 6 tables. D1 has no RLS. All of that authorization must move explicitly into `apps/api` — losing it silently is the most likely security regression in this migration (`P1-07`).
