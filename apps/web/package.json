@@ -15,8 +15,8 @@
     "deploy:vinext": "vinext-cloudflare deploy --config dist/server/wrangler.json",
     "build:vinext:staging": "CLOUDFLARE_ENV=staging vinext build",
     "build:vinext:production": "CLOUDFLARE_ENV=production vinext build",
-    "deploy:staging": "npm run build:vinext:staging && vinext-cloudflare deploy --config dist/server/wrangler.json",
-    "deploy:production": "npm run build:vinext:production && vinext-cloudflare deploy --config dist/server/wrangler.json"
+    "deploy:staging": "vinext-cloudflare deploy --env staging",
+    "deploy:production": "vinext-cloudflare deploy --env production"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1121.0",
