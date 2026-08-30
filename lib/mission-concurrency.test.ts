@@ -71,6 +71,8 @@ describe("concorrência da fila de missões", { skip }, async () => {
     );
   });
 
+  // TRUNCATE ... CASCADE zera o banco inteiro: os arquivos de teste que tocam o
+  // mesmo PostgreSQL precisam rodar em série (--test-concurrency=1 no script).
   beforeEach(async () => {
     // Aquece o pool: com uma única conexão aberta o driver serializa as
     // chamadas e a corrida nunca acontece — os testes passariam sem provar nada.

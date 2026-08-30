@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { validateSpokespersonInvitation } from "@/lib/invitations-db";
 import { LIMITS, limitStr, SLOTS } from "@/lib/limits";
 import type { Role } from "@/lib/session";
+import { invalidateSessionRevocation } from "@/lib/session-revocation";
 
 export type UserAccount = {
   id: number;
@@ -468,6 +469,7 @@ export async function deleteAccount(
   `;
 
   await sql`DELETE FROM users WHERE id = ${userId}`;
+  invalidateSessionRevocation(userId);
   return { ok: true };
 }
 
@@ -501,6 +503,7 @@ export async function updatePassword(
     SET senha_hash = ${senha_hash}, sessoes_validas_apos = now()
     WHERE id = ${userId}
   `;
+  invalidateSessionRevocation(userId);
   return { ok: true };
 }
 

@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
 import type { Role } from "@/lib/session";
+import { invalidateSessionRevocation } from "@/lib/session-revocation";
 
 export type UserListItem = {
   id: number;
@@ -198,6 +199,7 @@ export async function banUser(
     WHERE id = ${userId} AND papel <> 'admin'
     RETURNING id
   `;
+  if (updated) invalidateSessionRevocation(userId);
   if (!updated) {
     return {
       ok: false,

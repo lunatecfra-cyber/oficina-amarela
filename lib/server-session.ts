@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { sql } from "@/lib/db";
 import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
 import { COOKIE_NAME, type UserSession, verifySessionToken } from "@/lib/session";
+import { getSessionRevocationCutoff } from "@/lib/session-revocation";
 
 export async function getSession(): Promise<UserSession | null> {
   const jar = await cookies();
@@ -45,18 +45,15 @@ export async function getSession(): Promise<UserSession | null> {
   if (typeof session.issuedAt !== "number") return null;
 
   try {
-    const [row] = await sql`
-      SELECT sessoes_validas_apos FROM users WHERE id = ${session.id}
-    `;
+    const cutoffSeconds = await getSessionRevocationCutoff(session.id);
 
-    if (!row) {
+    if (cutoffSeconds === null) {
       if (isDevAuthBypassEnabled() && jar.get("workshop_demo_role")?.value === session.role) {
         return session;
       }
       return null;
     }
 
-    const cutoffSeconds = Math.floor(new Date(row.sessoes_validas_apos).getTime() / 1000);
     if (session.issuedAt < cutoffSeconds) return null;
   } catch {
     // Database transient error: allow valid JWT signature
