@@ -228,6 +228,43 @@ describe("concorrência da fila de missões", { skip }, async () => {
     assert.equal(offers.length, 0);
   });
 
+  test("o banco recusa duas ofertas vivas para a mesma missão", async () => {
+    const missionId = await createMission("oferecida");
+    const [primeiro, segundo] = editorIds;
+    const offer = (editorId: number) => sql`
+      INSERT INTO ofertas (pauta_id, editor_id, expira_em)
+      VALUES (${missionId}, ${editorId}, now() + interval '5 minutes')
+    `;
+
+    await offer(primeiro);
+    await assert.rejects(
+      () => offer(segundo),
+      (e: { code?: string }) => e.code === "23505",
+    );
+
+    // Respondida, a linha sai do índice parcial e a rodada seguinte acontece.
+    await sql`UPDATE ofertas SET status = 'rejeitada' WHERE pauta_id = ${missionId}`;
+    await offer(segundo);
+  });
+
+  test("o banco recusa duas ofertas vivas para o mesmo editor", async () => {
+    const [primeira, segunda] = [
+      await createMission("oferecida"),
+      await createMission("oferecida"),
+    ];
+    const [editorId] = editorIds;
+    const offer = (missionId: number) => sql`
+      INSERT INTO ofertas (pauta_id, editor_id, expira_em)
+      VALUES (${missionId}, ${editorId}, now() + interval '5 minutes')
+    `;
+
+    await offer(primeira);
+    await assert.rejects(
+      () => offer(segunda),
+      (e: { code?: string }) => e.code === "23505",
+    );
+  });
+
   test("o banco recusa oferta duplicada para o mesmo par missão/editor", async () => {
     const missionId = await createMission("oferecida");
     const [editorId] = editorIds;
@@ -237,6 +274,9 @@ describe("concorrência da fila de missões", { skip }, async () => {
     `;
 
     await insert();
+    // Tira do índice de "oferta viva" para provar que o par (missão, editor)
+    // é barrado por si só, e não pelo outro índice.
+    await sql`UPDATE ofertas SET status = 'rejeitada' WHERE pauta_id = ${missionId}`;
     await assert.rejects(insert, (error: { code?: string }) => error.code === "23505");
   });
 

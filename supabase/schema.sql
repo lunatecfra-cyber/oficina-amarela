@@ -157,6 +157,13 @@ CREATE INDEX IF NOT EXISTS idx_ofertas_pendentes ON ofertas (oferecida_em) WHERE
 -- Invariante: um editor recebe no máximo uma oferta por missão.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_missao_editor ON ofertas (pauta_id, editor_id);
 
+-- Invariantes: no máximo uma oferta viva por missão e uma por editor.
+-- Parciais em 'pendente': aceita, recusada ou expirada sai do índice.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_pendente_por_missao
+  ON ofertas (pauta_id) WHERE status = 'pendente';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_pendente_por_editor
+  ON ofertas (editor_id) WHERE status = 'pendente';
+
 -- Caixa de saída de e-mail: enfileirar na requisição, enviar depois, com chave
 -- de idempotência e retentativa. Ver lib/email-queue-db.ts.
 CREATE TABLE IF NOT EXISTS fila_emails (

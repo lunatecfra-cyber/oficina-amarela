@@ -87,6 +87,15 @@ sql.end = () => getClient().end();
  *  supabase/migrations/20260830_add_mission_concurrency_invariants.sql). */
 export const ACTIVE_MISSION_PER_EDITOR_INDEX = "idx_pautas_missao_ativa_por_editor";
 export const OFFER_PER_MISSION_EDITOR_INDEX = "idx_ofertas_missao_editor";
+export const LIVE_OFFER_PER_MISSION_INDEX = "idx_ofertas_pendente_por_missao";
+export const LIVE_OFFER_PER_EDITOR_INDEX = "idx_ofertas_pendente_por_editor";
+
+/** Toda invariante de unicidade da tabela de ofertas. */
+export const OFFER_UNIQUE_INDEXES = [
+  OFFER_PER_MISSION_EDITOR_INDEX,
+  LIVE_OFFER_PER_MISSION_INDEX,
+  LIVE_OFFER_PER_EDITOR_INDEX,
+];
 
 /**
  * Detecta violação de unicidade do PostgreSQL (SQLSTATE 23505), opcionalmente

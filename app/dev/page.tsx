@@ -1,6 +1,13 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
 
 export default function DevToolbarPage() {
+  // Página estática com links de "entrar como inspetor". A rota de dev-login já
+  // recusa fora do desenvolvimento, mas a página em si ficava pública e
+  // indexável — some junto com o portão.
+  if (!isDevAuthBypassEnabled()) notFound();
+
   return (
     <div className="mx-auto w-full max-w-xl px-6 py-16">
       <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text">

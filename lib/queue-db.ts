@@ -1,7 +1,7 @@
 import {
   ACTIVE_MISSION_PER_EDITOR_INDEX,
   isUniqueViolation,
-  OFFER_PER_MISSION_EDITOR_INDEX,
+  OFFER_UNIQUE_INDEXES,
   sql,
 } from "@/lib/db";
 import type { Mission } from "@/lib/missions";
@@ -150,9 +150,10 @@ export async function dispatchMissions(): Promise<number> {
       `;
       if (created.length > 0) dispatched++;
     } catch (e) {
-      // idx_ofertas_missao_editor: esse editor já viu essa missão. O comando
-      // inteiro reverte, então a missão continua 'disponivel' pro próximo.
-      if (!isUniqueViolation(e, OFFER_PER_MISSION_EDITOR_INDEX)) throw e;
+      // Alguma invariante de oferta barrou o par (missão, editor): já viu essa
+      // missão, já tem oferta viva, ou a missão já tem uma. O comando inteiro
+      // reverte, então a missão continua 'disponivel' pro próximo.
+      if (!OFFER_UNIQUE_INDEXES.some((index) => isUniqueViolation(e, index))) throw e;
     }
   }
   return dispatched;

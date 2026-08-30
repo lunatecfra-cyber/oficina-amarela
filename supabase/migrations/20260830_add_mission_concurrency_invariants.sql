@@ -29,3 +29,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_pautas_missao_ativa_por_editor
 -- missão", mas a restrição não existia — o catch nunca disparava.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_missao_editor
   ON ofertas (pauta_id, editor_id);
+
+-- (3) Uma oferta viva por missão, e uma por editor.
+--
+-- scripts/testar-trava.mjs já afirmava que estes índices eram "o que impede
+-- dois editores receberem a mesma missão" — mas eles nunca existiram no schema.
+-- getNextEditor() faz as duas checagens em NOT EXISTS, o que não é seguro sob
+-- concorrência, exatamente como acontecia na reserva.
+--
+-- Parciais em status = 'pendente': assim que a oferta é aceita, recusada ou
+-- expira, a linha sai do índice e a rodada seguinte pode acontecer.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_pendente_por_missao
+  ON ofertas (pauta_id)
+  WHERE status = 'pendente';
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_pendente_por_editor
+  ON ofertas (editor_id)
+  WHERE status = 'pendente';
