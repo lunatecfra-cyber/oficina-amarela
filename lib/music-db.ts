@@ -61,7 +61,7 @@ export async function addMusicTrack(
   tags: string[],
   url: string,
   size: number | null,
-  addedBy: number
+  addedBy: number,
 ): Promise<void> {
   await sql`
     INSERT INTO musicas (nome, tags, url, tamanho, adicionado_por)

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySessionToken, COOKIE_NAME } from "@/lib/session";
+import { COOKIE_NAME, verifySessionToken } from "@/lib/session";
 
 export default async function proxy(request: NextRequest) {
-  if (process.env.NODE_ENV === "development" && request.cookies.get("dev_god_mode")?.value === "true") {
+  if (
+    process.env.NODE_ENV === "development" &&
+    request.cookies.get("dev_god_mode")?.value === "true"
+  ) {
     return NextResponse.next();
   }
 
@@ -20,7 +23,11 @@ export default async function proxy(request: NextRequest) {
   const defaultArea = session.role === "spokesperson" ? "/spokesperson" : "/editor";
 
   // Inspector / Admin protected area
-  if (pathname.startsWith("/inspector") || pathname.startsWith("/inspetor") || pathname.startsWith("/admin")) {
+  if (
+    pathname.startsWith("/inspector") ||
+    pathname.startsWith("/inspetor") ||
+    pathname.startsWith("/admin")
+  ) {
     if (session.role !== "admin") {
       return NextResponse.redirect(new URL(defaultArea, request.url));
     }
@@ -28,7 +35,8 @@ export default async function proxy(request: NextRequest) {
   }
 
   // Role enforcement
-  const isSpokespersonRoute = pathname.startsWith("/spokesperson") || pathname.startsWith("/porta-voz");
+  const isSpokespersonRoute =
+    pathname.startsWith("/spokesperson") || pathname.startsWith("/porta-voz");
   const requiredRole = isSpokespersonRoute ? "spokesperson" : "editor";
 
   if (session.role !== "admin" && session.role !== requiredRole) {

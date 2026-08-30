@@ -1,16 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { LIMITS } from "@/lib/limits";
 
-export function ReportButton({
-  missionId,
-  pautaId,
-}: {
-  missionId?: string;
-  pautaId?: string;
-}) {
+export function ReportButton({ missionId, pautaId }: { missionId?: string; pautaId?: string }) {
   const effectiveId = missionId ?? pautaId ?? "";
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);

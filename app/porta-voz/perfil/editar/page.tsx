@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { EditCandidateProfileForm } from "@/components/edit-candidate-profile-form";
 import { DeleteAccount } from "@/components/delete-account";
+import { EditCandidateProfileForm } from "@/components/edit-candidate-profile-form";
 import { SetPassword } from "@/components/set-password";
-import { readCandidateOnboarding } from "@/lib/candidate-db";
 import { accountHasPassword } from "@/lib/accounts";
+import { readCandidateOnboarding } from "@/lib/candidate-db";
 import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Editar perfil — Oficina Amarela" };

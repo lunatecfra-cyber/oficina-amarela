@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatMessage, Mensagem } from "@/lib/chat-db";
 import { LIMITS } from "@/lib/limits";
 
@@ -32,7 +32,7 @@ function textWithLinks(text: string): React.ReactNode[] {
       </a>
     ) : (
       part
-    )
+    ),
   );
 }
 
@@ -58,9 +58,8 @@ export function MissionChat({
   compacto?: boolean;
 }) {
   const effectiveId = missionId ?? pautaId ?? "";
-  const effectiveInitial = (initialMessages && initialMessages.length > 0)
-    ? initialMessages
-    : (mensagensIniciais ?? []);
+  const effectiveInitial =
+    initialMessages && initialMessages.length > 0 ? initialMessages : (mensagensIniciais ?? []);
   const allowSend = canSend && podeEnviar;
   const isCompact = compact || compacto;
 
@@ -72,7 +71,10 @@ export function MissionChat({
   const endRef = useRef<HTMLLIElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const lastTs = messages.length > 0 ? (messages[messages.length - 1].createdAt ?? (messages[messages.length - 1] as any).criadaEm) : null;
+  const lastTs =
+    messages.length > 0
+      ? (messages[messages.length - 1].createdAt ?? (messages[messages.length - 1] as any).criadaEm)
+      : null;
 
   const poll = useCallback(async () => {
     try {
@@ -163,7 +165,9 @@ export function MissionChat({
         <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
           Conversa da missão
         </h2>
-        <span className="text-xs text-muted">{messages.length} {messages.length === 1 ? "mensagem" : "mensagens"}</span>
+        <span className="text-xs text-muted">
+          {messages.length} {messages.length === 1 ? "mensagem" : "mensagens"}
+        </span>
       </div>
 
       {messages.length === 0 ? (
@@ -171,13 +175,18 @@ export function MissionChat({
           Ninguém falou ainda. Pergunta, combina detalhes do vídeo — fica tudo registrado aqui.
         </p>
       ) : (
-        <ul className={`flex flex-col gap-2 ${isCompact ? "max-h-64" : "max-h-96"} overflow-y-auto pr-1`}>
+        <ul
+          className={`flex flex-col gap-2 ${isCompact ? "max-h-64" : "max-h-96"} overflow-y-auto pr-1`}
+        >
           {messages.map((m) => {
             const authorName = m.authorName ?? (m as any).autorNome;
             const authorRole = m.authorRole ?? (m as any).autorPapel;
             const createdAt = m.createdAt ?? (m as any).criadaEm;
             const content = m.text ?? (m as any).texto;
-            const isAdmin = String(authorRole) === "admin" || String(authorRole) === "inspector" || String(authorRole) === "inspetor";
+            const isAdmin =
+              String(authorRole) === "admin" ||
+              String(authorRole) === "inspector" ||
+              String(authorRole) === "inspetor";
 
             return (
               <li key={m.id} className="rounded-xl border border-line bg-ink-2/50 px-3.5 py-2.5">
@@ -194,7 +203,9 @@ export function MissionChat({
                   </span>
                   <span className="ml-auto text-[11px] text-muted-2">{formatTime(createdAt)}</span>
                 </div>
-                <p className="mt-1 whitespace-pre-line break-words text-sm text-text/90">{textWithLinks(content)}</p>
+                <p className="mt-1 whitespace-pre-line break-words text-sm text-text/90">
+                  {textWithLinks(content)}
+                </p>
               </li>
             );
           })}

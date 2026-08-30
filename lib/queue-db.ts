@@ -20,10 +20,7 @@ export type Oferta = Offer;
 
 function isUniqueViolation(e: unknown): boolean {
   return (
-    typeof e === "object" &&
-    e !== null &&
-    "code" in e &&
-    (e as { code?: unknown }).code === "23505"
+    typeof e === "object" && e !== null && "code" in e && (e as { code?: unknown }).code === "23505"
   );
 }
 
@@ -58,10 +55,7 @@ export async function expireTimedOutOffers(): Promise<number> {
 
 export const expirarOfertasVencidas = expireTimedOutOffers;
 
-async function getNextEditor(
-  missionId: number,
-  spokespersonId: number
-): Promise<number | null> {
+async function getNextEditor(missionId: number, spokespersonId: number): Promise<number | null> {
   const [row] = await sql`
     WITH agora AS (
       SELECT
@@ -210,7 +204,7 @@ export const ofertaPendente = getPendingOffer;
 
 export async function acceptOffer(
   missionId: number,
-  editorId: number
+  editorId: number,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const closed = await sql`
     UPDATE ofertas SET status = 'aceita', respondida_em = now()
@@ -219,7 +213,11 @@ export async function acceptOffer(
     RETURNING id
   `;
   if (closed.length === 0) {
-    return { ok: false, error: "Essa oferta não é mais válida.", erro: "Essa oferta não é mais válida." };
+    return {
+      ok: false,
+      error: "Essa oferta não é mais válida.",
+      erro: "Essa oferta não é mais válida.",
+    };
   }
 
   await sql`
@@ -236,7 +234,7 @@ export const aceitarOferta = acceptOffer;
 
 export async function rejectOffer(
   missionId: number,
-  editorId: number
+  editorId: number,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const closed = await sql`
     UPDATE ofertas SET status = 'rejeitada', respondida_em = now()
@@ -244,7 +242,11 @@ export async function rejectOffer(
     RETURNING id
   `;
   if (closed.length === 0) {
-    return { ok: false, error: "Essa oferta não é mais válida.", erro: "Essa oferta não é mais válida." };
+    return {
+      ok: false,
+      error: "Essa oferta não é mais válida.",
+      erro: "Essa oferta não é mais válida.",
+    };
   }
 
   await sql`

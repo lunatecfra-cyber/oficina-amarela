@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
 import { ScheduleView } from "@/components/schedule-view";
-import { taskFromMission } from "@/lib/schedule";
 import { missionReservedBy } from "@/lib/missions-db";
+import { taskFromMission } from "@/lib/schedule";
 import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Agenda — Oficina Amarela" };

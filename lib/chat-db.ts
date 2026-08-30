@@ -1,6 +1,6 @@
 import { sql } from "@/lib/db";
 import { LIMITS, limitStr } from "@/lib/limits";
-import type { UserSession, Role } from "@/lib/session";
+import type { Role, UserSession } from "@/lib/session";
 
 export type Message = {
   id: string;
@@ -33,7 +33,12 @@ type MessageRow = {
 };
 
 function rowToMessage(r: MessageRow): Message {
-  const role: Role = r.papel === "voz" || r.papel === "spokesperson" ? "spokesperson" : r.papel === "admin" ? "admin" : "editor";
+  const role: Role =
+    r.papel === "voz" || r.papel === "spokesperson"
+      ? "spokesperson"
+      : r.papel === "admin"
+        ? "admin"
+        : "editor";
   return {
     id: `m-${r.id}`,
     missionId: r.pauta_id,
@@ -69,7 +74,10 @@ export const missionMessages = getMissionMessages;
 export const messagesOfMission = getMissionMessages;
 export const mensagensDaPauta = getMissionMessages;
 
-export async function getMissionMessagesAfter(missionId: number, afterIso: string): Promise<Message[]> {
+export async function getMissionMessagesAfter(
+  missionId: number,
+  afterIso: string,
+): Promise<Message[]> {
   const rows = await sql`${BASE_SELECT}
     WHERE m.pauta_id = ${missionId} AND m.criada_em > ${afterIso}
     ORDER BY m.criada_em ASC
@@ -80,9 +88,7 @@ export async function getMissionMessagesAfter(missionId: number, afterIso: strin
 export const messagesOfMissionAfter = getMissionMessagesAfter;
 export const mensagensDaPautaApos = getMissionMessagesAfter;
 
-export async function getMissionsMessages(
-  missionIds: number[]
-): Promise<Map<number, Message[]>> {
+export async function getMissionsMessages(missionIds: number[]): Promise<Map<number, Message[]>> {
   const map = new Map<number, Message[]>();
   if (missionIds.length === 0) return map;
 
@@ -104,8 +110,10 @@ export const mensagensDePautas = getMissionsMessages;
 export async function postChatMessage(
   missionId: number,
   session: UserSession,
-  rawText: string
-): Promise<{ ok: true; message: Message; mensagem?: Message } | { ok: false; error: string; erro?: string }> {
+  rawText: string,
+): Promise<
+  { ok: true; message: Message; mensagem?: Message } | { ok: false; error: string; erro?: string }
+> {
   const text = limitStr(rawText, LIMITS.message);
   if (!text) {
     return { ok: false, error: "Mensagem vazia.", erro: "Mensagem vazia." };

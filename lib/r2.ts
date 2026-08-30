@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 declare global {
@@ -29,11 +29,7 @@ function getClient(): S3Client {
 
 const BUCKET = process.env.R2_BUCKET || "yellow-workshop-videos";
 
-export async function generatePresignedUrl(
-  key: string,
-  contentType: string,
-  sizeBytes: number
-) {
+export async function generatePresignedUrl(key: string, contentType: string, sizeBytes: number) {
   const url = await getSignedUrl(
     getClient(),
     new PutObjectCommand({
@@ -42,7 +38,7 @@ export async function generatePresignedUrl(
       ContentType: contentType,
       ContentLength: sizeBytes,
     }),
-    { expiresIn: 3600 }
+    { expiresIn: 3600 },
   );
 
   const base = process.env.R2_PUBLIC_BASE_URL;

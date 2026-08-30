@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
+import { readCandidateOnboarding } from "@/lib/candidate-db";
 import {
-  MISSIONS,
   FORMAT_LABELS,
-  STATUS_LABELS,
-  spokespersonStatusMessage,
+  MISSIONS,
   type Mission,
   type MissionStatus,
+  STATUS_LABELS,
+  spokespersonStatusMessage,
 } from "@/lib/missions";
 import { availableMissions, spokespersonMissions } from "@/lib/missions-db";
-import { readCandidateOnboarding } from "@/lib/candidate-db";
 import { readSession } from "@/lib/server-session";
-import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Minhas Missões — Oficina Amarela" };
@@ -25,11 +25,8 @@ function formatDate(iso: string) {
 }
 
 function timeSince(iso: string) {
-  const midnight = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const days = Math.round(
-    (midnight(new Date()) - midnight(new Date(iso))) / 86_400_000,
-  );
+  const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((midnight(new Date()) - midnight(new Date(iso))) / 86_400_000);
   if (days <= 0) return "hoje";
   if (days === 1) return "ontem";
   if (days < 30) return `há ${days} dias`;
@@ -101,9 +98,9 @@ function MissionCardContainer({
     <li
       data-guia={guide}
       data-guide={guide}
-      className={`overflow-hidden rounded-2xl border border-l-[3px] border-line bg-surface/60 ${
-        statusBorderColor(mission.status)
-      } ${real ? "transition-colors hover:border-gold/40 hover:bg-surface-2" : ""}`}
+      className={`overflow-hidden rounded-2xl border border-l-[3px] border-line bg-surface/60 ${statusBorderColor(
+        mission.status,
+      )} ${real ? "transition-colors hover:border-gold/40 hover:bg-surface-2" : ""}`}
     >
       {real && <GoldStripe />}
       <div className="p-4 lg:p-5">
@@ -130,21 +127,26 @@ export default async function SpokespersonHome() {
   ]);
   const isIncompleteProfile = onboarding ? !onboarding.profileComplete : true;
 
-  const demoMine = DEMO_MODE ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === session?.name) : [];
+  const demoMine = DEMO_MODE
+    ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === session?.name)
+    : [];
   const myMissions = [...realMine, ...demoMine];
 
-  const demoAvailable = DEMO_MODE ? MISSIONS.filter((p) => p.status === "available" || (p as any).status === "disponivel") : [];
-  const generalQueue = [
-    ...realAvailable,
-    ...demoAvailable,
-  ].sort((a, b) => {
+  const demoAvailable = DEMO_MODE
+    ? MISSIONS.filter((p) => p.status === "available" || (p as any).status === "disponivel")
+    : [];
+  const generalQueue = [...realAvailable, ...demoAvailable].sort((a, b) => {
     const aDate = a.createdAt ?? (a as any).criadaEm ?? "";
     const bDate = b.createdAt ?? (b as any).criadaEm ?? "";
     return aDate.localeCompare(bDate);
   });
 
-  const inQueue = myMissions.filter((p) => p.status === "available" || (p as any).status === "disponivel");
-  const inProgress = myMissions.filter((p) => p.status !== "available" && (p as any).status !== "disponivel");
+  const inQueue = myMissions.filter(
+    (p) => p.status === "available" || (p as any).status === "disponivel",
+  );
+  const inProgress = myMissions.filter(
+    (p) => p.status !== "available" && (p as any).status !== "disponivel",
+  );
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
@@ -163,11 +165,7 @@ export default async function SpokespersonHome() {
             Acompanhe o status de cada vídeo que você mandou pra guilda.
           </p>
         </div>
-        <Link
-          href="/porta-voz/nova-pauta"
-          className="btn-gold w-auto px-6"
-          data-guia="nova-missao"
-        >
+        <Link href="/porta-voz/nova-pauta" className="btn-gold w-auto px-6" data-guia="nova-missao">
           + Nova missão
         </Link>
       </div>
@@ -203,15 +201,15 @@ export default async function SpokespersonHome() {
                     <MissionCardContainer
                       key={p.id}
                       mission={p}
-                      guide={
-                        n === 0 && inProgress.length === 0 ? "cartao-missao" : undefined
-                      }
+                      guide={n === 0 && inProgress.length === 0 ? "cartao-missao" : undefined}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text transition-colors group-hover:text-gold-hi">
                           {title}
                         </h3>
-                        <BadgePill>{FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}</BadgePill>
+                        <BadgePill>
+                          {FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}
+                        </BadgePill>
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-2">
                         <span>
@@ -265,24 +263,27 @@ export default async function SpokespersonHome() {
                             {title}
                           </h3>
                           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-2">
-                            <BadgePill>{FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}</BadgePill>
+                            <BadgePill>
+                              {FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}
+                            </BadgePill>
                             <span className="rounded-full border border-line bg-ink-2 px-2.5 py-0.5 text-[11px] font-medium text-muted-2">
-                              {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? (STATUS_LABELS as any)[(p as any).status] ?? status}
+                              {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ??
+                                (STATUS_LABELS as any)[(p as any).status] ??
+                                status}
                             </span>
                             <span>
                               criada {timeSince(createdAt)} · {formatDate(createdAt)}
                             </span>
                           </div>
                           {reservedBy && (
-                            <p className="mt-1 text-xs text-muted">
-                              editor: {reservedBy}
-                            </p>
+                            <p className="mt-1 text-xs text-muted">editor: {reservedBy}</p>
                           )}
-                          {(status === "reedit" || (status as any) === "reedicao") && inspectorNotes && (
-                            <p className="mt-1.5 text-xs italic text-muted-2">
-                              &ldquo;{inspectorNotes}&rdquo;
-                            </p>
-                          )}
+                          {(status === "reedit" || (status as any) === "reedicao") &&
+                            inspectorNotes && (
+                              <p className="mt-1.5 text-xs italic text-muted-2">
+                                &ldquo;{inspectorNotes}&rdquo;
+                              </p>
+                            )}
                         </div>
                         {msg.text && (
                           <span

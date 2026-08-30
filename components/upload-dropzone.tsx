@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 
 export type UploadState = "idle" | "uploading" | "success" | "error";
 
@@ -30,7 +30,7 @@ export function UploadDropzone({
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
   };
 
   const handleFile = async (file: File) => {
@@ -124,12 +124,12 @@ export function UploadDropzone({
           state === "uploading"
             ? "border-gold/50 bg-gold/5"
             : state === "success"
-            ? "border-ok/50 bg-ok/5"
-            : state === "error"
-            ? "border-danger/50 bg-danger/5"
-            : isDragging
-            ? "border-gold bg-gold/10"
-            : "border-line bg-surface/50 hover:border-silver-lo hover:bg-surface"
+              ? "border-ok/50 bg-ok/5"
+              : state === "error"
+                ? "border-danger/50 bg-danger/5"
+                : isDragging
+                  ? "border-gold bg-gold/10"
+                  : "border-line bg-surface/50 hover:border-silver-lo hover:bg-surface"
         }`}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -164,13 +164,18 @@ export function UploadDropzone({
               stroke="currentColor"
               strokeWidth={2}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              />
             </svg>
           </div>
           <p className="text-lg font-medium text-text">{label}</p>
           <p className="mt-1 text-sm text-muted">Arraste o vídeo aqui ou clique para escolher</p>
           <p className="mt-2 text-xs text-silver-lo">
-            Máx. {maxSizeMB > 1000 ? `${(maxSizeMB / 1000).toFixed(1)} GB` : `${maxSizeMB} MB`} &middot; MP4, MOV, AVI, etc.
+            Máx. {maxSizeMB > 1000 ? `${(maxSizeMB / 1000).toFixed(1)} GB` : `${maxSizeMB} MB`}{" "}
+            &middot; MP4, MOV, AVI, etc.
           </p>
         </>
       )}
@@ -194,7 +199,13 @@ export function UploadDropzone({
       {state === "success" && (
         <div className="flex flex-col items-center">
           <div className="mb-2 flex items-center gap-2 text-ok">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
             <span className="font-medium">{fileName}</span>
@@ -216,8 +227,18 @@ export function UploadDropzone({
 
       {state === "error" && (
         <div className="flex flex-col items-center">
-          <svg className="mb-2 h-8 w-8 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="mb-2 h-8 w-8 text-danger"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <p className="text-danger">{errorMessage}</p>
           <button

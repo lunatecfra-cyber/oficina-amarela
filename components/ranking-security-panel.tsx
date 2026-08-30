@@ -75,7 +75,9 @@ export function RankingSecurityPanel() {
       body: JSON.stringify(body),
     });
     const data = await res.json();
-    setMessage(res.ok ? "Ação concluída." : data.error ?? data.erro ?? "Não foi possível concluir.");
+    setMessage(
+      res.ok ? "Ação concluída." : (data.error ?? data.erro ?? "Não foi possível concluir."),
+    );
     if (res.ok && endpoint === "/api/admin/ranking") await loadAudit();
     return { res, data };
   }
@@ -104,23 +106,41 @@ export function RankingSecurityPanel() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <button className="btn-gold w-auto px-4" type="submit">Gerar</button>
+            <button className="btn-gold w-auto px-4" type="submit">
+              Gerar
+            </button>
           </form>
           {link && (
             <div className="mt-3">
-              <label htmlFor="link-convite" className="text-xs text-muted">Link para envio manual</label>
-              <input id="link-convite" readOnly className="field-input mt-1" value={link} onFocus={(e) => e.currentTarget.select()} />
+              <label htmlFor="link-convite" className="text-xs text-muted">
+                Link para envio manual
+              </label>
+              <input
+                id="link-convite"
+                readOnly
+                className="field-input mt-1"
+                value={link}
+                onFocus={(e) => e.currentTarget.select()}
+              />
             </div>
           )}
           <ul className="mt-5 space-y-2 text-sm">
             {invitations.map((invitation) => (
-              <li key={invitation.id} className="flex items-center justify-between gap-3 border-t border-line-soft pt-2">
-                <span className="min-w-0 truncate text-muted">{invitation.email} · {invitation.status}</span>
+              <li
+                key={invitation.id}
+                className="flex items-center justify-between gap-3 border-t border-line-soft pt-2"
+              >
+                <span className="min-w-0 truncate text-muted">
+                  {invitation.email} · {invitation.status}
+                </span>
                 {invitation.status === "valido" && (
                   <button
                     className="text-xs text-danger hover:underline"
                     onClick={async () => {
-                      await postAction({ action: "revoke", id: invitation.id }, "/api/admin/invitations");
+                      await postAction(
+                        { action: "revoke", id: invitation.id },
+                        "/api/admin/invitations",
+                      );
                       await loadInvitations();
                     }}
                   >
@@ -148,7 +168,11 @@ export function RankingSecurityPanel() {
             action="grant_shield"
             onSubmit={postAction}
           />
-          {message && <p role="status" className="mt-4 text-sm text-muted">{message}</p>}
+          {message && (
+            <p role="status" className="mt-4 text-sm text-muted">
+              {message}
+            </p>
+          )}
         </section>
       </div>
 
@@ -159,17 +183,25 @@ export function RankingSecurityPanel() {
         ) : (
           <ul className="mt-4 flex flex-col gap-3">
             {auditLogs.map((log) => (
-              <li key={log.id} className="flex flex-col gap-1 border-t border-line-soft pt-3 text-sm">
+              <li
+                key={log.id}
+                className="flex flex-col gap-1 border-t border-line-soft pt-3 text-sm"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                   <span className="font-medium text-text">
                     {ACTION_LABELS[log.acao] ?? log.acao}
-                    <span className="text-muted-2"> · {log.entidade} #{log.entidade_id}</span>
+                    <span className="text-muted-2">
+                      {" "}
+                      · {log.entidade} #{log.entidade_id}
+                    </span>
                   </span>
                   <span className="text-xs text-muted-2">{formatDateTime(log.criado_em)}</span>
                 </div>
                 <p className="text-xs text-muted">
                   {log.ator_nome ?? "—"}
-                  {(log.detalhes?.motivo || log.detalhes?.reason) && <> · {log.detalhes.motivo || log.detalhes.reason}</>}
+                  {(log.detalhes?.motivo || log.detalhes?.reason) && (
+                    <> · {log.detalhes.motivo || log.detalhes.reason}</>
+                  )}
                 </p>
               </li>
             ))}
@@ -210,9 +242,18 @@ function ActionForm({
       }}
     >
       <p className="text-sm font-medium text-text">{title}</p>
-      <input name="id" type="number" min="1" required className="field-input" placeholder={placeholder} />
+      <input
+        name="id"
+        type="number"
+        min="1"
+        required
+        className="field-input"
+        placeholder={placeholder}
+      />
       <input name="motivo" required className="field-input" placeholder="Motivo obrigatório" />
-      <button type="submit" className="btn-ghost">Confirmar</button>
+      <button type="submit" className="btn-ghost">
+        Confirmar
+      </button>
     </form>
   );
 }

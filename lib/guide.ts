@@ -77,9 +77,7 @@ const SCRIPTS: readonly (GuideScript & { match: (route: string) => boolean })[] 
     key: "mission-detail",
     version: 1,
     title: "Acompanhando o vídeo",
-    match: (r) =>
-      /^\/spokesperson\/mission\//.test(r) ||
-      /^\/porta-voz\/missao\//.test(r),
+    match: (r) => /^\/spokesperson\/mission\//.test(r) || /^\/porta-voz\/missao\//.test(r),
     steps: [
       {
         target: "ver-entrega",

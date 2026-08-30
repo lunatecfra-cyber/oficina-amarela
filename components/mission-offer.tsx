@@ -1,11 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FORMAT_LABEL, type Mission } from "@/lib/missions";
 import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 
-type Offer = { mission?: Mission; pauta?: Mission; expiresAt?: string; expiraEm?: string; order?: number; ordem?: number };
+type Offer = {
+  mission?: Mission;
+  pauta?: Mission;
+  expiresAt?: string;
+  expiraEm?: string;
+  order?: number;
+  ordem?: number;
+};
 
 const POLL_INTERVAL_MS = 15_000;
 
@@ -111,7 +118,12 @@ export function MissionOffer({
       fetch("/api/editor/queue/next", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ missionId: m.id, pautaId: m.id, action: "decline", acao: "recusar" }),
+        body: JSON.stringify({
+          missionId: m.id,
+          pautaId: m.id,
+          action: "decline",
+          acao: "recusar",
+        }),
       }).catch(() => {});
     }
   }
@@ -224,17 +236,13 @@ export function MissionOffer({
           <div className="mt-4 flex flex-col gap-2 text-xs">
             {extras && (
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-2">
-                  Cortes pedidos
-                </p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-2">Cortes pedidos</p>
                 <p className="mt-0.5 whitespace-pre-line text-muted">{extras}</p>
               </div>
             )}
             {motivation && (
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-2">
-                  Contexto
-                </p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-2">Contexto</p>
                 <p className="mt-0.5 whitespace-pre-line text-muted">{motivation}</p>
               </div>
             )}

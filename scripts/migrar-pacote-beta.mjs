@@ -39,7 +39,10 @@ console.log("  ✓ índice denuncias.status");
 const check = await sql`
   SELECT table_name FROM information_schema.tables
   WHERE table_schema = 'public' AND table_name IN ('mensagens','denuncias')`;
-console.log("Confirmação — tabelas presentes:", check.map((r) => r.table_name));
+console.log(
+  "Confirmação — tabelas presentes:",
+  check.map((r) => r.table_name),
+);
 
 console.log("Pacote beta — parte 2: fim do prazo de reserva...");
 

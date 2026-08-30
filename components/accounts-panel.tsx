@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { initials } from "@/lib/candidates";
-import type { Role, Papel } from "@/lib/session";
+import type { Papel, Role } from "@/lib/session";
 
 type UserListItem = {
   id: number;
@@ -184,7 +184,7 @@ export function AccountsPanel() {
 async function openDetail(
   id: number,
   setDetail: (d: UserDetail | null) => void,
-  setError: (m: string) => void
+  setError: (m: string) => void,
 ) {
   try {
     const resp = await fetch(`/api/admin/users/${id}`);
@@ -292,8 +292,7 @@ function DetailPanel({
   const banReason = d.banReason ?? (d as any).motivoBanimento;
   const bannedAt = d.bannedAt ?? (d as any).banidoEm;
 
-  const handleMatches =
-    typedHandle.trim().toLowerCase() === handle.toLowerCase();
+  const handleMatches = typedHandle.trim().toLowerCase() === handle.toLowerCase();
 
   async function handleConfirm() {
     if (confirming === "delete" && !handleMatches) {
@@ -339,8 +338,11 @@ function DetailPanel({
     }
   }
 
-  const isCandidate = (String(role) === "spokesperson" || String(role) === "voz") && (!!politicalRole || !!runningFor);
-  const isAdmin = String(role) === "inspector" || String(role) === "admin" || String(role) === "inspetor";
+  const isCandidate =
+    (String(role) === "spokesperson" || String(role) === "voz") &&
+    (!!politicalRole || !!runningFor);
+  const isAdmin =
+    String(role) === "inspector" || String(role) === "admin" || String(role) === "inspetor";
 
   return (
     <div className="rounded-2xl border border-line bg-surface/80 p-4 lg:p-5">
@@ -391,9 +393,7 @@ function DetailPanel({
         <div className="mt-4 rounded-lg border border-danger/30 bg-danger/5 p-3">
           <p className="text-[11px] uppercase tracking-wider text-danger/80">Motivo da suspensão</p>
           <p className="mt-1 text-sm text-text">{banReason}</p>
-          {bannedAt && (
-            <p className="mt-1 text-xs text-muted">Desde {formatDate(bannedAt)}</p>
-          )}
+          {bannedAt && <p className="mt-1 text-xs text-muted">Desde {formatDate(bannedAt)}</p>}
         </div>
       )}
 
@@ -440,12 +440,12 @@ function DetailPanel({
       {confirming === "delete" && (
         <div className="mt-5 rounded-xl border border-danger/40 bg-danger/[0.06] p-3">
           <p className="text-sm text-text">
-            Apagar a conta de <b>{handle}</b> não tem volta. Some o cadastro,
-            o histórico de entregas e a nota.
+            Apagar a conta de <b>{handle}</b> não tem volta. Some o cadastro, o histórico de
+            entregas e a nota.
           </p>
           <p className="mt-1.5 text-xs text-muted">
-            Missão que essa pessoa tiver em mãos volta pra fila. O que já foi
-            entregue e está em revisão continua com você.
+            Missão que essa pessoa tiver em mãos volta pra fila. O que já foi entregue e está em
+            revisão continua com você.
           </p>
           <p className="mt-3 text-xs text-muted">
             Se for só afastar por um tempo, <b>Banir</b> resolve e dá pra desfazer.

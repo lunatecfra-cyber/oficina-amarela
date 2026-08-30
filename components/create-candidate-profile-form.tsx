@@ -1,25 +1,25 @@
 "use client";
 
-import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { LegalNotice } from "@/components/legal-notice";
+import { SelectLocation } from "@/components/select-location";
+import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
+import type { CandidateOnboarding } from "@/lib/candidate-db";
 import {
-  ELECTION_YEARS,
-  THEME_FLAGS,
-  POLITICAL_ROLES,
   BRAZILIAN_STATES,
-  TONE_EXAMPLES,
-  SUGGESTED_KEYWORDS,
-  DEFAULT_TINT,
   COMMUNICATION_TONES,
+  DEFAULT_TINT,
+  ELECTION_YEARS,
   generateSuggestedBio,
   initials,
+  POLITICAL_ROLES,
   type SocialLinks,
+  SUGGESTED_KEYWORDS,
+  THEME_FLAGS,
+  TONE_EXAMPLES,
 } from "@/lib/candidates";
-import type { CandidateOnboarding } from "@/lib/candidate-db";
-import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
-import { SelectLocation } from "@/components/select-location";
 import { compressPhoto } from "@/lib/compress-photo";
-import { LegalNotice } from "@/components/legal-notice";
 
 function parseLocation(value: string): { state: string; city: string } {
   if (!value) return { state: "", city: "" };
@@ -55,58 +55,69 @@ export function CreateCandidateProfileForm({
   const fileRef = useRef<HTMLInputElement>(null);
   const autoBioAttempted = useRef(false);
 
-  const data = initial ?? inicial ?? {
-    name: "",
-    nome: "",
-    role: "",
-    cargo: "",
-    runningFor: "",
-    disputaPor: "",
-    electionYear: "2026",
-    anoEleicao: "2026",
-    location: "",
-    localizacao: "",
-    causes: [],
-    bandeiras: [],
-    communicationTone: "",
-    tomComunicacao: "",
-    keywords: [],
-    palavrasChave: [],
-    bio: "",
-    watermark: "",
-    marcaDagua: "",
-    campaignTaxId: "",
-    cnpjCampanha: "",
-    voterId: "",
-    tituloEleitor: "",
-    socialLinks: {},
-    redes: {},
-  };
+  const data = initial ??
+    inicial ?? {
+      name: "",
+      nome: "",
+      role: "",
+      cargo: "",
+      runningFor: "",
+      disputaPor: "",
+      electionYear: "2026",
+      anoEleicao: "2026",
+      location: "",
+      localizacao: "",
+      causes: [],
+      bandeiras: [],
+      communicationTone: "",
+      tomComunicacao: "",
+      keywords: [],
+      palavrasChave: [],
+      bio: "",
+      watermark: "",
+      marcaDagua: "",
+      campaignTaxId: "",
+      cnpjCampanha: "",
+      voterId: "",
+      tituloEleitor: "",
+      socialLinks: {},
+      redes: {},
+    };
 
   const [activeTab, setActiveTab] = useState<Tab>("objective");
 
   const [name, setName] = useState(data.name ?? (data as any).nome ?? "");
-  const [photo, setPhoto] = useState<string | undefined>(data.photoUrl ?? (data as any).avatarUrl ?? (data as any).fotoUrl);
+  const [photo, setPhoto] = useState<string | undefined>(
+    data.photoUrl ?? (data as any).avatarUrl ?? (data as any).fotoUrl,
+  );
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [role, setRole] = useState(data.role ?? (data as any).cargo ?? "");
   const [runningFor, setRunningFor] = useState(data.runningFor ?? (data as any).disputaPor ?? "");
-  const [electionYear, setElectionYear] = useState(data.electionYear ?? (data as any).anoEleicao ?? "2026");
+  const [electionYear, setElectionYear] = useState(
+    data.electionYear ?? (data as any).anoEleicao ?? "2026",
+  );
   const parsed = parseLocation(data.location ?? (data as any).localizacao ?? "");
   const [stateUf, setStateUf] = useState(parsed.state);
   const [cityName, setCityName] = useState(parsed.city);
   const [causes, setCauses] = useState<string[]>(data.causes ?? (data as any).bandeiras ?? []);
 
   const [tone, setTone] = useState(data.communicationTone ?? (data as any).tomComunicacao ?? "");
-  const [keywords, setKeywords] = useState<string[]>(data.keywords ?? (data as any).palavrasChave ?? []);
+  const [keywords, setKeywords] = useState<string[]>(
+    data.keywords ?? (data as any).palavrasChave ?? [],
+  );
   const [newKeyword, setNewKeyword] = useState("");
   const [bio, setBio] = useState(data.bio ?? "");
 
   const [watermark, setWatermark] = useState(data.watermark ?? (data as any).marcaDagua ?? "");
-  const [campaignTaxId, setCampaignTaxId] = useState(data.campaignTaxId ?? (data as any).cnpjCampanha ?? "");
+  const [campaignTaxId, setCampaignTaxId] = useState(
+    data.campaignTaxId ?? (data as any).cnpjCampanha ?? "",
+  );
   const [voterId, setVoterId] = useState(data.voterId ?? (data as any).tituloEleitor ?? "");
 
-  const [socialLinks, setSocialLinks] = useState<SocialLinks>(data.socialLinks ?? (data as any).redes ?? {});
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(
+    data.socialLinks ?? (data as any).redes ?? {},
+  );
 
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -308,8 +319,8 @@ export function CreateCandidateProfileForm({
               Quem é você
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Nome e foto — é o que editores e o público vão ver primeiro. A foto é
-              opcional: sem ela, usamos suas iniciais.
+              Nome e foto — é o que editores e o público vão ver primeiro. A foto é opcional: sem
+              ela, usamos suas iniciais.
             </p>
 
             <div className="mt-5 flex flex-col items-start gap-6 sm:flex-row sm:items-center">
@@ -355,7 +366,10 @@ export function CreateCandidateProfileForm({
                 </button>
 
                 {photoError && (
-                  <p role="alert" className="mt-2 max-w-[11rem] text-center text-[11px] text-danger">
+                  <p
+                    role="alert"
+                    className="mt-2 max-w-[11rem] text-center text-[11px] text-danger"
+                  >
                     {photoError}
                   </p>
                 )}
@@ -499,11 +513,7 @@ export function CreateCandidateProfileForm({
             </div>
           </div>
 
-          <button
-            type="button"
-            className="btn-gold self-start"
-            onClick={() => advanceTo("style")}
-          >
+          <button type="button" className="btn-gold self-start" onClick={() => advanceTo("style")}>
             Avançar →
           </button>
         </section>
@@ -672,9 +682,8 @@ export function CreateCandidateProfileForm({
               Suas redes
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Só o @ ou o link já ajuda. A gente usa pra conferir seu estilo de
-              postagem — o editor precisa saber onde o vídeo vai ao ar pra editar
-              no formato certo.
+              Só o @ ou o link já ajuda. A gente usa pra conferir seu estilo de postagem — o editor
+              precisa saber onde o vídeo vai ao ar pra editar no formato certo.
             </p>
 
             <div className="mt-4 flex flex-col gap-3">
@@ -722,7 +731,8 @@ export function CreateCandidateProfileForm({
               Regras Eleitorais (TSE)
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Essas informações serão preenchidas automaticamente nas suas missões para que o editor inclua nos vídeos.
+              Essas informações serão preenchidas automaticamente nas suas missões para que o editor
+              inclua nos vídeos.
             </p>
 
             <div className="mt-4">
@@ -731,7 +741,10 @@ export function CreateCandidateProfileForm({
 
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
               <div>
-                <label htmlFor="marcaDagua" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+                <label
+                  htmlFor="marcaDagua"
+                  className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+                >
                   Marca d&apos;água
                 </label>
                 <input
@@ -746,7 +759,10 @@ export function CreateCandidateProfileForm({
                 />
               </div>
               <div>
-                <label htmlFor="cnpjCampanha" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+                <label
+                  htmlFor="cnpjCampanha"
+                  className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+                >
                   CNPJ da Campanha
                 </label>
                 <input
@@ -762,7 +778,10 @@ export function CreateCandidateProfileForm({
               </div>
             </div>
             <div className="mt-4">
-              <label htmlFor="tituloEleitor" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+              <label
+                htmlFor="tituloEleitor"
+                className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+              >
                 Título de Eleitor
               </label>
               <input
@@ -800,7 +819,9 @@ export function CreateCandidateProfileForm({
                       src={photo}
                       alt={name || (data.name ?? (data as any).nome ?? "")}
                       className="h-16 w-16 rounded-xl object-cover"
-                      style={{ boxShadow: "0 0 0 3px var(--color-ink), 0 0 0 4px rgba(244,206,31,0.55)" }}
+                      style={{
+                        boxShadow: "0 0 0 3px var(--color-ink), 0 0 0 4px rgba(244,206,31,0.55)",
+                      }}
                     />
                   ) : (
                     <span
@@ -822,9 +843,14 @@ export function CreateCandidateProfileForm({
                   {runningFor && <span className="text-muted-2"> — {runningFor}</span>}
                   {electionYear && <span className="text-muted-2"> · {electionYear}</span>}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-2">{cityName ? `${cityName}/${stateUf}` : "—"}</p>
+                <p className="mt-0.5 text-xs text-muted-2">
+                  {cityName ? `${cityName}/${stateUf}` : "—"}
+                </p>
 
-                {(socialLinks.instagram || socialLinks.youtube || socialLinks.tiktok || socialLinks.x) && (
+                {(socialLinks.instagram ||
+                  socialLinks.youtube ||
+                  socialLinks.tiktok ||
+                  socialLinks.x) && (
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-2">
                     {socialLinks.instagram && (
                       <span className="inline-flex items-center gap-1">

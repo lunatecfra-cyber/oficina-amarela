@@ -26,8 +26,12 @@ export function DailyChallenges({
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <span className="text-gold-hi">+{earnedXp}/{totalXp} XP</span>
-          <span className="text-muted">{completed}/{list.length} feitos</span>
+          <span className="text-gold-hi">
+            +{earnedXp}/{totalXp} XP
+          </span>
+          <span className="text-muted">
+            {completed}/{list.length} feitos
+          </span>
         </div>
       </div>
       <div className="mb-4 h-1 overflow-hidden rounded-full bg-line" aria-hidden="true">
@@ -52,8 +56,12 @@ export function DailyChallenges({
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className={`flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] ${isDone ? "text-ok" : "text-muted-2"}`}>
-                  <span className={`grid h-5 w-5 place-items-center rounded-full border text-[10px] ${isDone ? "border-ok bg-ok/15" : "border-line group-hover:border-gold/60"}`}>
+                <span
+                  className={`flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] ${isDone ? "text-ok" : "text-muted-2"}`}
+                >
+                  <span
+                    className={`grid h-5 w-5 place-items-center rounded-full border text-[10px] ${isDone ? "border-ok bg-ok/15" : "border-line group-hover:border-gold/60"}`}
+                  >
                     {isDone ? "✓" : "·"}
                   </span>
                   {isDone ? "feito" : "hoje"}
@@ -62,12 +70,18 @@ export function DailyChallenges({
                   +{d.xp} XP
                 </span>
               </div>
-              <p className={`mt-2 text-sm font-medium ${isDone ? "text-muted line-through" : "text-text"}`}>
+              <p
+                className={`mt-2 text-sm font-medium ${isDone ? "text-muted line-through" : "text-text"}`}
+              >
                 {title}
               </p>
               <p className="mt-1 text-xs text-muted-2">{description}</p>
-              <span className={`mt-auto pt-4 text-xs font-medium ${isDone ? "text-ok" : "text-muted-2"}`}>
-                {isDone ? "Concluído pela atividade registrada" : "Conclua a ação para liberar o XP"}
+              <span
+                className={`mt-auto pt-4 text-xs font-medium ${isDone ? "text-ok" : "text-muted-2"}`}
+              >
+                {isDone
+                  ? "Concluído pela atividade registrada"
+                  : "Conclua a ação para liberar o XP"}
               </span>
             </article>
           );

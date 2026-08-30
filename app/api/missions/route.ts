@@ -5,10 +5,23 @@ import { readSession } from "@/lib/server-session";
 export async function POST(request: Request) {
   const session = await readSession();
   if (!session) {
-    return NextResponse.json({ error: "Please log in first.", erro: "Please log in first." }, { status: 401 });
+    return NextResponse.json(
+      { error: "Please log in first.", erro: "Please log in first." },
+      { status: 401 },
+    );
   }
-  if (String(session.role) !== "spokesperson" && String(session.role) !== "voz" && String(session.role) !== "admin") {
-    return NextResponse.json({ error: "Only spokespersons may dispatch missions.", erro: "Only spokespersons may dispatch missions." }, { status: 403 });
+  if (
+    String(session.role) !== "spokesperson" &&
+    String(session.role) !== "voz" &&
+    String(session.role) !== "admin"
+  ) {
+    return NextResponse.json(
+      {
+        error: "Only spokespersons may dispatch missions.",
+        erro: "Only spokespersons may dispatch missions.",
+      },
+      { status: 403 },
+    );
   }
 
   const body = await request.json().catch(() => null);
@@ -30,7 +43,10 @@ export async function POST(request: Request) {
   const voterRegistrationId = body?.voterRegistrationId ?? body?.tituloEleitor;
 
   if (typeof title !== "string" || !title.trim()) {
-    return NextResponse.json({ error: "Please provide a mission title.", erro: "Please provide a mission title." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Please provide a mission title.", erro: "Please provide a mission title." },
+      { status: 400 },
+    );
   }
 
   const result = await createMission({

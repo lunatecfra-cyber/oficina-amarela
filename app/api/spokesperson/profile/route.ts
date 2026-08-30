@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { saveCandidateOnboarding } from "@/lib/candidate-db";
-import { readSession } from "@/lib/server-session";
 import type { SocialLinks } from "@/lib/candidates";
+import { readSession } from "@/lib/server-session";
 
 const toStringOpt = (v: unknown) => (typeof v === "string" ? v : undefined);
-const toStringList = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === "string") : []);
+const toStringList = (v: unknown) =>
+  Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
 
 function parseSocials(v: unknown): SocialLinks {
   if (typeof v !== "object" || v === null) return {};
@@ -18,15 +19,32 @@ function parseSocials(v: unknown): SocialLinks {
 
 export async function POST(request: Request) {
   const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Please log in first.", erro: "Please log in first." }, { status: 401 });
-  if (String(session.role) !== "spokesperson" && String(session.role) !== "voz" && String(session.role) !== "admin") {
-    return NextResponse.json({ error: "Only spokespersons may configure candidate profiles.", erro: "Only spokespersons." }, { status: 403 });
+  if (!session)
+    return NextResponse.json(
+      { error: "Please log in first.", erro: "Please log in first." },
+      { status: 401 },
+    );
+  if (
+    String(session.role) !== "spokesperson" &&
+    String(session.role) !== "voz" &&
+    String(session.role) !== "admin"
+  ) {
+    return NextResponse.json(
+      {
+        error: "Only spokespersons may configure candidate profiles.",
+        erro: "Only spokespersons.",
+      },
+      { status: 403 },
+    );
   }
 
   const body = await request.json().catch(() => null);
   const name = body?.name ?? body?.nome;
   if (typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "Please enter candidate name.", erro: "Please enter candidate name." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Please enter candidate name.", erro: "Please enter candidate name." },
+      { status: 400 },
+    );
   }
 
   const result = await saveCandidateOnboarding(session.id, {
@@ -46,6 +64,7 @@ export async function POST(request: Request) {
     voterRegistrationId: toStringOpt(body?.voterRegistrationId ?? body?.tituloEleitor),
   });
 
-  if (!result.ok) return NextResponse.json({ error: result.error, erro: result.error }, { status: 400 });
+  if (!result.ok)
+    return NextResponse.json({ error: result.error, erro: result.error }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

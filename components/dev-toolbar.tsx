@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type SessionData = Record<string, unknown> | null;
 
@@ -10,7 +10,7 @@ export function DevToolbar() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [openTab, setOpenTab] = useState<"creation" | "tests" | "online" | "tools" | null>(null);
-  
+
   const [xrayActive, setXrayActive] = useState(false);
   const [godModeActive, setGodModeActive] = useState(false);
   const [sessionData, setSessionData] = useState<SessionData>(null);
@@ -47,11 +47,15 @@ export function DevToolbar() {
   };
 
   const hardReset = async () => {
-    if (confirm("This will clear ALL LocalStorage, SessionStorage, Cookies and log out. Proceed?")) {
+    if (
+      confirm("This will clear ALL LocalStorage, SessionStorage, Cookies and log out. Proceed?")
+    ) {
       localStorage.clear();
       sessionStorage.clear();
       document.cookie.split(";").forEach((c) => {
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
       });
       await fetch("/api/auth/logout", { method: "POST" });
       router.push("/");
@@ -82,11 +86,15 @@ export function DevToolbar() {
   return (
     <>
       {xrayActive && (
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
           * { outline: 1px solid rgba(255, 0, 0, 0.2) !important; }
           div { outline: 1px solid rgba(0, 0, 255, 0.15) !important; }
           span, a, button { outline: 1px dashed rgba(0, 255, 0, 0.35) !important; }
-        `}} />
+        `,
+          }}
+        />
       )}
       <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center">
         {openTab && (
@@ -111,13 +119,33 @@ export function DevToolbar() {
               {openTab === "creation" && (
                 <>
                   <div className="rounded border border-line bg-surface/50 p-2">
-                    <span className="mb-2 block text-xs font-semibold text-muted">Accounts & Profiles</span>
-                    <Link href="/signup?role=spokesperson" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">➔ Create Spokesperson</Link>
-                    <Link href="/signup?role=editor" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">➔ Create Editor</Link>
+                    <span className="mb-2 block text-xs font-semibold text-muted">
+                      Accounts & Profiles
+                    </span>
+                    <Link
+                      href="/signup?role=spokesperson"
+                      onClick={closeMenu}
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      ➔ Create Spokesperson
+                    </Link>
+                    <Link
+                      href="/signup?role=editor"
+                      onClick={closeMenu}
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      ➔ Create Editor
+                    </Link>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
                     <span className="mb-2 block text-xs font-semibold text-muted">Actions</span>
-                    <Link href="/porta-voz/nova-pauta" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">➔ New Mission</Link>
+                    <Link
+                      href="/porta-voz/nova-pauta"
+                      onClick={closeMenu}
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      ➔ New Mission
+                    </Link>
                   </div>
                 </>
               )}
@@ -125,60 +153,151 @@ export function DevToolbar() {
               {openTab === "tests" && (
                 <>
                   <div className="rounded border border-line bg-surface/50 p-2">
-                    <span className="mb-2 block text-xs font-semibold text-muted">Quick Login (No Password)</span>
-                    <a href="/api/auth/dev-login?role=spokesperson" className="block text-sm text-silver hover:text-gold-hi py-1">🔓 Sign in as Spokesperson</a>
-                    <a href="/api/auth/dev-login?role=editor" className="block text-sm text-silver hover:text-gold-hi py-1">🔓 Sign in as Editor</a>
-                    <a href="/api/auth/dev-login?role=admin" className="block text-sm text-silver hover:text-gold-hi py-1">🔓 Sign in as Admin / Inspector</a>
+                    <span className="mb-2 block text-xs font-semibold text-muted">
+                      Quick Login (No Password)
+                    </span>
+                    <a
+                      href="/api/auth/dev-login?role=spokesperson"
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      🔓 Sign in as Spokesperson
+                    </a>
+                    <a
+                      href="/api/auth/dev-login?role=editor"
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      🔓 Sign in as Editor
+                    </a>
+                    <a
+                      href="/api/auth/dev-login?role=admin"
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      🔓 Sign in as Admin / Inspector
+                    </a>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
                     <span className="mb-2 block text-xs font-semibold text-muted">Session</span>
-                    <button type="button" onClick={handleLogout} className="block w-full py-1 text-left text-sm text-red-400 hover:text-red-300">🚪 Log Out</button>
-                    <Link href="/api/auth/session" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">🔍 Inspect Session JSON</Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="block w-full py-1 text-left text-sm text-red-400 hover:text-red-300"
+                    >
+                      🚪 Log Out
+                    </button>
+                    <Link
+                      href="/api/auth/session"
+                      onClick={closeMenu}
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      🔍 Inspect Session JSON
+                    </Link>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
                     <span className="mb-2 block text-xs font-semibold text-muted">Dashboards</span>
-                    <Link href="/porta-voz" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Spokesperson Dashboard</Link>
-                    <Link href="/editor" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Editor Workbench</Link>
-                    <Link href="/agenda" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Editor Schedule</Link>
-                    <Link href="/inspetor" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Inspector Dashboard</Link>
-                    <Link href="/ranking" onClick={closeMenu} className="block text-sm text-silver hover:text-gold-hi py-1">Leaderboard</Link>
+                    <Link
+                      href="/porta-voz"
+                      onClick={closeMenu}
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      Spokesperson Dashboard
+                    </Link>
+                    <Link
+                      href="/editor"
+                      onClick={closeMenu}
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      Editor Workbench
+                    </Link>
+                    <Link
+                      href="/agenda"
+                      onClick={closeMenu}
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      Editor Schedule
+                    </Link>
+                    <Link
+                      href="/inspetor"
+                      onClick={closeMenu}
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      Inspector Dashboard
+                    </Link>
+                    <Link
+                      href="/ranking"
+                      onClick={closeMenu}
+                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                    >
+                      Leaderboard
+                    </Link>
                   </div>
                 </>
               )}
 
               {openTab === "online" && (
-                <>
-                  <div className="rounded border border-line bg-surface/50 p-2">
-                    <span className="mb-2 block text-xs font-semibold text-muted">Production Hub</span>
-                    <a href="https://yellowworkshop.dev" target="_blank" rel="noopener noreferrer" className="block text-sm text-silver hover:text-gold-hi py-1">🌐 yellowworkshop.dev ↗</a>
-                  </div>
-                </>
+                <div className="rounded border border-line bg-surface/50 p-2">
+                  <span className="mb-2 block text-xs font-semibold text-muted">
+                    Production Hub
+                  </span>
+                  <a
+                    href="https://yellowworkshop.dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-sm text-silver hover:text-gold-hi py-1"
+                  >
+                    🌐 yellowworkshop.dev ↗
+                  </a>
+                </div>
               )}
 
               {openTab === "tools" && (
                 <>
                   <div className="rounded border border-line bg-surface/50 p-2">
-                    <span className="mb-2 block text-xs font-semibold text-muted">Master Controls</span>
-                    <button onClick={toggleGodMode} className="w-full text-left block text-sm text-silver hover:text-gold-hi py-1">
+                    <span className="mb-2 block text-xs font-semibold text-muted">
+                      Master Controls
+                    </span>
+                    <button
+                      onClick={toggleGodMode}
+                      className="w-full text-left block text-sm text-silver hover:text-gold-hi py-1"
+                    >
                       {godModeActive ? "🔓 Disable God Mode" : "🔐 Enable God Mode (Bypass Auth)"}
                     </button>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
-                    <span className="mb-2 block text-xs font-semibold text-muted">Layout & Caches</span>
-                    <button onClick={toggleXray} className="w-full text-left block text-sm text-silver hover:text-gold-hi py-1">
+                    <span className="mb-2 block text-xs font-semibold text-muted">
+                      Layout & Caches
+                    </span>
+                    <button
+                      onClick={toggleXray}
+                      className="w-full text-left block text-sm text-silver hover:text-gold-hi py-1"
+                    >
                       {xrayActive ? "🟢 X-Ray Active (Disable)" : "🔘 Enable X-Ray Mode"}
                     </button>
-                    <button onClick={hardReset} className="w-full text-left block text-sm text-red-400 hover:text-red-300 py-1">
+                    <button
+                      onClick={hardReset}
+                      className="w-full text-left block text-sm text-red-400 hover:text-red-300 py-1"
+                    >
                       💥 Clear All (Hard Reset)
                     </button>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
                     <span className="mb-2 flex items-center justify-between text-xs font-semibold text-muted">
                       <span>Current Session</span>
-                      <button onClick={() => { setSessionData(null); loadSession(); }} className="text-muted hover:text-silver">↻</button>
+                      <button
+                        onClick={() => {
+                          setSessionData(null);
+                          loadSession();
+                        }}
+                        className="text-muted hover:text-silver"
+                      >
+                        ↻
+                      </button>
                     </span>
                     <div className="max-h-40 overflow-y-auto rounded bg-ink-2 p-2 text-[10px] font-mono text-muted-2">
-                      {loadingSession ? "Loading..." : <pre>{JSON.stringify(sessionData, null, 2)}</pre>}
+                      {loadingSession ? (
+                        "Loading..."
+                      ) : (
+                        <pre>{JSON.stringify(sessionData, null, 2)}</pre>
+                      )}
                     </div>
                   </div>
                 </>

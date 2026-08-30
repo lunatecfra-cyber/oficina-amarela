@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -52,7 +52,10 @@ function ResetPasswordContent() {
     return (
       <div className="w-full max-w-sm text-center">
         <p className="text-sm text-danger">Esse link está incompleto ou inválido.</p>
-        <Link href="/recuperar" className="mt-6 inline-block text-sm font-medium text-gold-hi hover:underline">
+        <Link
+          href="/recuperar"
+          className="mt-6 inline-block text-sm font-medium text-gold-hi hover:underline"
+        >
           Pedir um novo link
         </Link>
       </div>
@@ -71,7 +74,10 @@ function ResetPasswordContent() {
     <div className="w-full max-w-sm">
       <form onSubmit={onSubmit} noValidate>
         <div className="mb-4">
-          <label htmlFor="password" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+          <label
+            htmlFor="password"
+            className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+          >
             Nova senha
           </label>
           <input
@@ -89,7 +95,10 @@ function ResetPasswordContent() {
         </div>
 
         <div className="mb-5">
-          <label htmlFor="confirmPassword" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+          <label
+            htmlFor="confirmPassword"
+            className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+          >
             Confirmar nova senha
           </label>
           <input

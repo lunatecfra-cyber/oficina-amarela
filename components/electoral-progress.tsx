@@ -25,15 +25,32 @@ function formatShortDate(ymd: string) {
 
 function FlameIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden="true">
-      <path d="M12 3.5s5.2 4 5.2 8.6a5.2 5.2 0 0 1-10.4 0c0-1.7.8-3.2 1.8-4.4.3 1.2 1 2 1.9 2.3.3-2.6.7-4.6 1.5-6.5Z" strokeLinejoin="round" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 3.5s5.2 4 5.2 8.6a5.2 5.2 0 0 1-10.4 0c0-1.7.8-3.2 1.8-4.4.3 1.2 1 2 1.9 2.3.3-2.6.7-4.6 1.5-6.5Z"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function ShieldIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      className={className}
+      aria-hidden="true"
+    >
       <path d="M12 3.5 19 6v6c0 4-3 7-7 8.5C8 19 5 16 5 12V6Z" strokeLinejoin="round" />
     </svg>
   );
@@ -70,7 +87,9 @@ export function ElectoralProgress({
   const currentWeek = weekList.length > 0 ? weekList[weekList.length - 1] : null;
   const pastWeeks = weekList.slice(0, -1);
   const remaining = currentWeek ? Math.max(0, currentWeek.meta - currentWeek.quantidade) : 0;
-  const progressPct = currentWeek ? Math.min(100, Math.round((currentWeek.quantidade / currentWeek.meta) * 100)) : 0;
+  const progressPct = currentWeek
+    ? Math.min(100, Math.round((currentWeek.quantidade / currentWeek.meta) * 100))
+    : 0;
   const savedByShield = weekList.filter((s) => !s.cumpriu && s.salvo).length;
   const MAX_SHIELDS = 2;
 
@@ -84,7 +103,9 @@ export function ElectoralProgress({
               Esta semana
             </span>
             <span className="font-[family-name:var(--font-display)] text-sm font-semibold text-text">
-              <span className={currentWeek.cumpriu ? "text-gold-hi" : "text-text"}>{currentWeek.quantidade}</span>
+              <span className={currentWeek.cumpriu ? "text-gold-hi" : "text-text"}>
+                {currentWeek.quantidade}
+              </span>
               <span className="text-muted-2">/{currentWeek.meta}</span>
             </span>
           </div>
@@ -135,8 +156,8 @@ export function ElectoralProgress({
       </div>
 
       <p className="text-xs leading-relaxed text-muted-2">
-        Um bloqueio é gasto sozinho quando você não fecha a meta da semana — ele
-        segura a sequência no lugar em vez de zerar.
+        Um bloqueio é gasto sozinho quando você não fecha a meta da semana — ele segura a sequência
+        no lugar em vez de zerar.
         {savedByShield > 0 && (
           <>
             {" "}
@@ -195,18 +216,22 @@ export function ElectoralProgress({
           className={`mt-0.5 h-4 w-4 flex-none ${isEligible ? "text-gold-hi" : "text-muted-2"}`}
           aria-hidden="true"
         >
-          <path d="M12 3.5 14.4 9l5.6.5-4.3 3.8 1.3 5.7L12 16l-5 3 1.3-5.7L4 9.5 9.6 9Z" strokeLinejoin="round" />
+          <path
+            d="M12 3.5 14.4 9l5.6.5-4.3 3.8 1.3 5.7L12 16l-5 3 1.3-5.7L4 9.5 9.6 9Z"
+            strokeLinejoin="round"
+          />
         </svg>
         <p className={`text-xs leading-relaxed ${isEligible ? "text-text" : "text-muted"}`}>
           {isEligible ? (
             <>
-              <b className="font-medium text-gold-hi">Você está no sorteio por constância.</b>{" "}
-              É preciso manter 4 semanas seguidas — você já tem.
+              <b className="font-medium text-gold-hi">Você está no sorteio por constância.</b> É
+              preciso manter 4 semanas seguidas — você já tem.
             </>
           ) : (
             <>
-              Sorteio por constância: some <b className="font-medium text-text">4 semanas seguidas</b>{" "}
-              cumprindo a meta pra entrar.
+              Sorteio por constância: some{" "}
+              <b className="font-medium text-text">4 semanas seguidas</b> cumprindo a meta pra
+              entrar.
             </>
           )}
         </p>

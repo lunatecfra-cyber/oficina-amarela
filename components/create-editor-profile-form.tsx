@@ -1,22 +1,22 @@
 "use client";
 
-import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { SelectLocation } from "@/components/select-location";
+import { DEFAULT_TINT, initials } from "@/lib/candidates";
+import { compressPhoto } from "@/lib/compress-photo";
 import {
-  STYLES,
-  HEADLINES,
-  MAX_STYLES,
-  MAX_HEADLINES,
-  NICHES,
   EDITING_LEVELS,
+  HEADLINES,
+  MAX_HEADLINES,
+  MAX_STYLES,
+  NICHES,
+  type OptionWithPhrase,
   PC_SETUPS,
   SOFTWARES,
-  type OptionWithPhrase,
+  STYLES,
 } from "@/lib/profile";
-import { initials, DEFAULT_TINT } from "@/lib/candidates";
 import type { EditorOnboarding } from "@/lib/profile-db";
-import { SelectLocation } from "@/components/select-location";
-import { compressPhoto } from "@/lib/compress-photo";
 
 function parseLocation(value: string): { state: string; city: string } {
   if (!value) return { state: "", city: "" };
@@ -45,9 +45,7 @@ function chip(active: boolean, disabled = false) {
 
 function cardClass(active: boolean) {
   return `w-full rounded-xl border p-3 text-left transition-colors ${
-    active
-      ? "border-gold-lo bg-gold/10"
-      : "border-line bg-surface hover:border-gold/30"
+    active ? "border-gold-lo bg-gold/10" : "border-line bg-surface hover:border-gold/30"
   }`;
 }
 
@@ -91,28 +89,31 @@ export function CreateEditorProfileForm({
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  const data = initial ?? inicial ?? {
-    name: "",
-    nome: "",
-    headline: [],
-    location: "",
-    localizacao: "",
-    bio: "",
-    editingLevel: "",
-    nivelEdicao: "",
-    pcSetup: "",
-    setupPc: "",
-    softwares: [],
-    styles: [],
-    estilos: [],
-    portfolioLink: "",
-    niche: [],
-    nicho: [],
-  };
+  const data = initial ??
+    inicial ?? {
+      name: "",
+      nome: "",
+      headline: [],
+      location: "",
+      localizacao: "",
+      bio: "",
+      editingLevel: "",
+      nivelEdicao: "",
+      pcSetup: "",
+      setupPc: "",
+      softwares: [],
+      styles: [],
+      estilos: [],
+      portfolioLink: "",
+      niche: [],
+      nicho: [],
+    };
 
   const [activeTab, setActiveTab] = useState<Tab>("identity");
   const [name, setName] = useState(data.name ?? (data as any).nome ?? "");
-  const [photo, setPhoto] = useState<string | undefined>(data.photoUrl ?? (data as any).avatarUrl ?? (data as any).fotoUrl);
+  const [photo, setPhoto] = useState<string | undefined>(
+    data.photoUrl ?? (data as any).avatarUrl ?? (data as any).fotoUrl,
+  );
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const parsed = parseLocation(data.location ?? (data as any).localizacao ?? "");
@@ -121,7 +122,9 @@ export function CreateEditorProfileForm({
   const [headline, setHeadline] = useState<string[]>(data.headline ?? []);
   const [bio, setBio] = useState(data.bio ?? "");
 
-  const [editingLevel, setEditingLevel] = useState(data.editingLevel ?? (data as any).nivelEdicao ?? "");
+  const [editingLevel, setEditingLevel] = useState(
+    data.editingLevel ?? (data as any).nivelEdicao ?? "",
+  );
   const [pcSetup, setPcSetup] = useState(data.pcSetup ?? (data as any).setupPc ?? "");
   const [softwares, setSoftwares] = useState<string[]>(data.softwares ?? []);
   const [styles, setStyles] = useState<string[]>(data.styles ?? (data as any).estilos ?? []);
@@ -276,8 +279,8 @@ export function CreateEditorProfileForm({
               Quem é você
             </h2>
             <p className="mt-1 text-sm text-muted">
-              É o que o porta-voz vê antes de escolher quem edita. A foto é
-              opcional: sem ela, usamos suas iniciais.
+              É o que o porta-voz vê antes de escolher quem edita. A foto é opcional: sem ela,
+              usamos suas iniciais.
             </p>
 
             <div className="mt-5 flex flex-col items-start gap-6 sm:flex-row sm:items-center">
@@ -323,7 +326,10 @@ export function CreateEditorProfileForm({
                 </button>
 
                 {photoError && (
-                  <p role="alert" className="mt-2 max-w-[11rem] text-center text-[11px] text-danger">
+                  <p
+                    role="alert"
+                    className="mt-2 max-w-[11rem] text-center text-[11px] text-danger"
+                  >
                     {photoError}
                   </p>
                 )}
@@ -408,7 +414,9 @@ export function CreateEditorProfileForm({
                 })}
               </div>
               {headline.length >= MAX_HEADLINES && (
-                <p className="mt-2 text-xs text-muted-2">Máximo de {MAX_HEADLINES} especialidades.</p>
+                <p className="mt-2 text-xs text-muted-2">
+                  Máximo de {MAX_HEADLINES} especialidades.
+                </p>
               )}
             </div>
 
@@ -430,11 +438,7 @@ export function CreateEditorProfileForm({
             </div>
           </div>
 
-          <button
-            type="button"
-            className="btn-gold self-start"
-            onClick={() => advanceTo("desk")}
-          >
+          <button type="button" className="btn-gold self-start" onClick={() => advanceTo("desk")}>
             Avançar →
           </button>
         </section>
@@ -454,7 +458,11 @@ export function CreateEditorProfileForm({
               Nível de edição
             </h2>
             <p className="mt-1 text-sm text-muted">Sem julgamento — é só pra calibrar sua fila.</p>
-            <CardSelector options={EDITING_LEVELS} value={editingLevel} onSelect={setEditingLevel} />
+            <CardSelector
+              options={EDITING_LEVELS}
+              value={editingLevel}
+              onSelect={setEditingLevel}
+            />
           </div>
 
           <div>
@@ -557,7 +565,9 @@ export function CreateEditorProfileForm({
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
               Nicho de atuação
             </h2>
-            <p className="mt-1 text-sm text-muted">Pode marcar os dois, se editar nos dois formatos.</p>
+            <p className="mt-1 text-sm text-muted">
+              Pode marcar os dois, se editar nos dois formatos.
+            </p>
             <div className="mt-3 flex flex-col gap-2">
               {NICHES.map((n) => {
                 const label = n.label ?? (n as any).rotulo;

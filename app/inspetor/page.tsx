@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { InspectorQueue } from "@/components/inspector-queue";
-import { missionsInReview } from "@/lib/missions-db";
 import { readCandidatesByHandles } from "@/lib/candidate-db";
 import { missionsMessages } from "@/lib/chat-db";
+import { missionsInReview } from "@/lib/missions-db";
 
 export const metadata: Metadata = { title: "Controle de Qualidade — Oficina Amarela" };
 export const dynamic = "force-dynamic";

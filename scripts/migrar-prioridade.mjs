@@ -13,7 +13,7 @@ import postgres from "postgres";
 const url = process.env.DATABASE_URL;
 if (!url) {
   console.error(
-    'Falta DATABASE_URL. Rode com:\n  DATABASE_URL="postgres://..." node scripts/migrar-prioridade.mjs'
+    'Falta DATABASE_URL. Rode com:\n  DATABASE_URL="postgres://..." node scripts/migrar-prioridade.mjs',
   );
   process.exit(1);
 }

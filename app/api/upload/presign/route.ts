@@ -17,9 +17,7 @@ const presignsByUser = new Map<number, number[]>();
 
 function hasExceededUploadLimit(userId: number): boolean {
   const now = Date.now();
-  const stamps = (presignsByUser.get(userId) ?? []).filter(
-    (t) => now - t < WINDOW_MS
-  );
+  const stamps = (presignsByUser.get(userId) ?? []).filter((t) => now - t < WINDOW_MS);
   if (stamps.length >= MAX_PER_HOUR) {
     presignsByUser.set(userId, stamps);
     return true;
@@ -32,13 +30,19 @@ function hasExceededUploadLimit(userId: number): boolean {
 export async function POST(request: Request) {
   const session = await readSession();
   if (!session) {
-    return NextResponse.json({ error: "Please log in first.", erro: "Please log in first." }, { status: 401 });
+    return NextResponse.json(
+      { error: "Please log in first.", erro: "Please log in first." },
+      { status: 401 },
+    );
   }
 
   if (hasExceededUploadLimit(session.id)) {
     return NextResponse.json(
-      { error: "Too many uploads in the past hour. Please try again later.", erro: "Rate limited." },
-      { status: 429 }
+      {
+        error: "Too many uploads in the past hour. Please try again later.",
+        erro: "Rate limited.",
+      },
+      { status: 429 },
     );
   }
 
@@ -48,22 +52,34 @@ export async function POST(request: Request) {
   const size = body?.size ?? body?.tamanho;
 
   if (!filename || !contentType) {
-    return NextResponse.json({ error: "Missing filename or contentType parameter.", erro: "Missing parameters." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing filename or contentType parameter.", erro: "Missing parameters." },
+      { status: 400 },
+    );
   }
 
   if (!ACCEPTED_MIME_TYPES.has(contentType)) {
     return NextResponse.json(
-      { error: "Only video media formats are accepted (MP4, MOV, AVI, WebM).", erro: "Unsupported format." },
-      { status: 415 }
+      {
+        error: "Only video media formats are accepted (MP4, MOV, AVI, WebM).",
+        erro: "Unsupported format.",
+      },
+      { status: 415 },
     );
   }
 
   const sizeBytes = Number(size);
   if (!Number.isInteger(sizeBytes) || sizeBytes <= 0) {
-    return NextResponse.json({ error: "Missing or invalid file byte size.", erro: "Invalid size." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing or invalid file byte size.", erro: "Invalid size." },
+      { status: 400 },
+    );
   }
   if (sizeBytes > MAX_BYTES) {
-    return NextResponse.json({ error: "File exceeds max 2 GB limit.", erro: "File too large." }, { status: 413 });
+    return NextResponse.json(
+      { error: "File exceeds max 2 GB limit.", erro: "File too large." },
+      { status: 413 },
+    );
   }
 
   const timestamp = Date.now();
@@ -75,6 +91,9 @@ export async function POST(request: Request) {
     return NextResponse.json(urls);
   } catch (error) {
     console.error("R2 presign error:", error);
-    return NextResponse.json({ error: "Failed to generate presigned upload URL.", erro: "Presign failure." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to generate presigned upload URL.", erro: "Presign failure." },
+      { status: 500 },
+    );
   }
 }

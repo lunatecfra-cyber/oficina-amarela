@@ -20,7 +20,7 @@ function getClient() {
     return new Proxy(stubClient, {
       get(target, prop) {
         if (prop in target) return target[prop];
-        return function() { return Promise.resolve([]); };
+        return () => Promise.resolve([]);
       },
     }) as unknown as ReturnType<typeof postgres>;
   }

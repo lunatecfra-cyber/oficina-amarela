@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { findAccountByEmail, recordAttempt, isRateLimited } from "@/lib/accounts";
+import { findAccountByEmail, isRateLimited, recordAttempt } from "@/lib/accounts";
+import { isEmailConfigured, isTestSender, sendPasswordRecoveryEmail } from "@/lib/email";
 import { requestIpAddress } from "@/lib/ip";
 import { createRecoveryToken } from "@/lib/session";
-import { isEmailConfigured, sendPasswordRecoveryEmail, isTestSender } from "@/lib/email";
 
 const DEFAULT_RESPONSE = {
   ok: true,
@@ -15,34 +15,32 @@ export async function POST(request: Request) {
   const email = body?.email;
 
   if (typeof email !== "string" || !email.trim()) {
-    return NextResponse.json({ error: "Digite seu e-mail.", erro: "Digite seu e-mail." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Digite seu e-mail.", erro: "Digite seu e-mail." },
+      { status: 400 },
+    );
   }
 
   if (!isEmailConfigured() || isTestSender()) {
     return NextResponse.json(
       {
-        error: "Envio de e-mail não configurado. Se você criou a conta com o Google, pode entrar por lá.",
+        error:
+          "Envio de e-mail não configurado. Se você criou a conta com o Google, pode entrar por lá.",
         erro: "Envio de e-mail não configurado.",
       },
-      { status: 503 }
+      { status: 503 },
     );
   }
 
   const emailKey = `recover:${email}`;
   const ipKey = `recover-ip:${requestIpAddress(request)}`;
 
-  const [lockEmail, lockIp] = await Promise.all([
-    isRateLimited(emailKey),
-    isRateLimited(ipKey),
-  ]);
+  const [lockEmail, lockIp] = await Promise.all([isRateLimited(emailKey), isRateLimited(ipKey)]);
   if (lockEmail.locked || lockIp.locked) {
     return NextResponse.json(DEFAULT_RESPONSE);
   }
 
-  await Promise.all([
-    recordAttempt(emailKey, 3),
-    recordAttempt(ipKey, 15),
-  ]);
+  await Promise.all([recordAttempt(emailKey, 3), recordAttempt(ipKey, 15)]);
 
   const account = await findAccountByEmail(email);
   if (account) {
@@ -53,8 +51,11 @@ export async function POST(request: Request) {
 
     if (!sent) {
       return NextResponse.json(
-        { error: "Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.", erro: "Não foi possível enviar o e-mail agora." },
-        { status: 503 }
+        {
+          error: "Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.",
+          erro: "Não foi possível enviar o e-mail agora.",
+        },
+        { status: 503 },
       );
     }
   }

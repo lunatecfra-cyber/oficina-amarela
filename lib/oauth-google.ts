@@ -47,7 +47,7 @@ export type PerfilGoogle = GoogleProfile;
 
 export async function exchangeCodeForProfile(
   code: string,
-  redirectUri: string
+  redirectUri: string,
 ): Promise<GoogleProfile | null> {
   const c = credentials();
   if (!c) return null;

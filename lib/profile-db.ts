@@ -1,11 +1,6 @@
 import { sql } from "@/lib/db";
-import { LIMITS, isValidPhoto, limitStr, limitList, limitOrNull } from "@/lib/limits";
-import type {
-  EditorRanking,
-  HistoryItem,
-  PortfolioItem,
-  EditorProfile,
-} from "@/lib/profile";
+import { isValidPhoto, LIMITS, limitList, limitOrNull, limitStr } from "@/lib/limits";
+import type { EditorProfile, EditorRanking, HistoryItem, PortfolioItem } from "@/lib/profile";
 
 export type EditableProfile = {
   headline: string[];
@@ -62,7 +57,7 @@ export const lerPerfilEditavel = readEditableProfile;
 
 export async function saveEditableProfile(
   userId: number,
-  data: { headline?: string[]; bio?: string; location?: string; localizacao?: string }
+  data: { headline?: string[]; bio?: string; location?: string; localizacao?: string },
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   try {
     const loc = data.location ?? data.localizacao;
@@ -76,7 +71,11 @@ export async function saveEditableProfile(
     return { ok: true };
   } catch (err) {
     console.error("[profile] error saving editable profile:", err);
-    return { ok: false, error: "Erro ao salvar perfil. Tente novamente.", erro: "Erro ao salvar perfil. Tente novamente." };
+    return {
+      ok: false,
+      error: "Erro ao salvar perfil. Tente novamente.",
+      erro: "Erro ao salvar perfil. Tente novamente.",
+    };
   }
 }
 
@@ -193,7 +192,7 @@ export async function saveEditorOnboarding(
     nivelEdicao?: string;
     setupPc?: string;
     nicho?: string[];
-  }
+  },
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const rawName = data.name ?? data.nome ?? "";
   const name = limitStr(rawName, LIMITS.name);
@@ -201,7 +200,11 @@ export async function saveEditorOnboarding(
 
   const avatar = data.avatarUrl ?? data.photoUrl ?? data.fotoUrl;
   if (!isValidPhoto(avatar)) {
-    return { ok: false, error: "A foto precisa ser imagem e ter menos de 1,5 MB.", erro: "A foto precisa ser imagem e ter menos de 1,5 MB." };
+    return {
+      ok: false,
+      error: "A foto precisa ser imagem e ter menos de 1,5 MB.",
+      erro: "A foto precisa ser imagem e ter menos de 1,5 MB.",
+    };
   }
 
   const rawLocation = data.location ?? data.localizacao;
@@ -237,7 +240,9 @@ export async function saveEditorOnboarding(
 
 export const salvarOnboardingEditor = saveEditorOnboarding;
 
-export async function readEditorProfile(handleOrId: string | number): Promise<EditorProfile | null> {
+export async function readEditorProfile(
+  handleOrId: string | number,
+): Promise<EditorProfile | null> {
   try {
     const whereClause =
       typeof handleOrId === "number"

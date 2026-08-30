@@ -1,12 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type SlotsInfo = {
   editor: { total: number; enrolled?: number; inscritos?: number; free?: number; livres?: number };
-  spokesperson?: { total: number; enrolled?: number; inscritos?: number; free?: number; livres?: number };
+  spokesperson?: {
+    total: number;
+    enrolled?: number;
+    inscritos?: number;
+    free?: number;
+    livres?: number;
+  };
   voz?: { total: number; enrolled?: number; inscritos?: number; free?: number; livres?: number };
 };
 
@@ -20,7 +26,8 @@ export function SignupForm({
   const router = useRouter();
   const searchParams = useSearchParams();
   const convite = searchParams.get("convite") ?? searchParams.get("invitation") ?? undefined;
-  const codigoIndicacao = searchParams.get("indicacao") ?? searchParams.get("referral") ?? undefined;
+  const codigoIndicacao =
+    searchParams.get("indicacao") ?? searchParams.get("referral") ?? undefined;
 
   const [role, setRole] = useState<"spokesperson" | "editor">(() => {
     return convite ? "spokesperson" : "editor";
@@ -177,32 +184,26 @@ export function SignupForm({
       {slots && (
         <p className="mb-4 text-center text-xs text-muted-2">
           {role === "editor" ? (
-            <>
-              {editorFree === 0 ? (
-                <span className="text-danger">Sem vagas de editor no momento.</span>
-              ) : (
-                <>
-                  <span className="font-semibold text-gold">{editorFree}</span> vaga
-                  {editorFree !== 1 ? "s" : ""} de editor{" "}
-                  <span className="text-muted-2">
-                    ({editorEnrolled}/{editorTotal})
-                  </span>
-                </>
-              )}
-            </>
+            editorFree === 0 ? (
+              <span className="text-danger">Sem vagas de editor no momento.</span>
+            ) : (
+              <>
+                <span className="font-semibold text-gold">{editorFree}</span> vaga
+                {editorFree !== 1 ? "s" : ""} de editor{" "}
+                <span className="text-muted-2">
+                  ({editorEnrolled}/{editorTotal})
+                </span>
+              </>
+            )
+          ) : voiceFree === 0 ? (
+            <span className="text-danger">Sem vagas de candidato no momento.</span>
           ) : (
             <>
-              {voiceFree === 0 ? (
-                <span className="text-danger">Sem vagas de candidato no momento.</span>
-              ) : (
-                <>
-                  <span className="font-semibold text-gold">{voiceFree}</span> vaga
-                  {voiceFree !== 1 ? "s" : ""} de candidato{" "}
-                  <span className="text-muted-2">
-                    ({voiceEnrolled}/{voiceTotal})
-                  </span>
-                </>
-              )}
+              <span className="font-semibold text-gold">{voiceFree}</span> vaga
+              {voiceFree !== 1 ? "s" : ""} de candidato{" "}
+              <span className="text-muted-2">
+                ({voiceEnrolled}/{voiceTotal})
+              </span>
             </>
           )}
         </p>
@@ -210,7 +211,10 @@ export function SignupForm({
 
       <form onSubmit={onSubmit} noValidate>
         <div className="mb-4">
-          <label htmlFor="name" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+          <label
+            htmlFor="name"
+            className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+          >
             Nome
           </label>
           <input
@@ -252,7 +256,10 @@ export function SignupForm({
         </div>
 
         <div className="mb-4">
-          <label htmlFor="email" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+          <label
+            htmlFor="email"
+            className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+          >
             E-mail
           </label>
           <input
@@ -273,7 +280,10 @@ export function SignupForm({
         </div>
 
         <div className="mb-4">
-          <label htmlFor="password" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+          <label
+            htmlFor="password"
+            className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+          >
             Senha
           </label>
           <input
@@ -326,11 +336,17 @@ export function SignupForm({
 
       <p className="mt-5 text-center text-xs leading-relaxed text-muted-2">
         Ao criar sua conta você concorda com os{" "}
-        <Link href="/termos" className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline">
+        <Link
+          href="/termos"
+          className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline"
+        >
           Termos de Uso
         </Link>{" "}
         e a{" "}
-        <Link href="/privacidade" className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline">
+        <Link
+          href="/privacidade"
+          className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline"
+        >
           Política de Privacidade
         </Link>
         .
@@ -338,7 +354,10 @@ export function SignupForm({
 
       <p className="mt-5 text-center text-sm text-muted">
         Já é membro?{" "}
-        <Link href="/login" className="inline-block px-2 py-2 font-medium text-gold-hi hover:underline">
+        <Link
+          href="/login"
+          className="inline-block px-2 py-2 font-medium text-gold-hi hover:underline"
+        >
           Entrar
         </Link>
       </p>

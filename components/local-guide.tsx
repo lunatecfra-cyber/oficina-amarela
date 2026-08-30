@@ -1,10 +1,10 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { usePathname } from "next/navigation";
 import { GuideDemo } from "@/components/guide-demo";
-import { seenKey, getRouteGuide, type GuideStep, type RouteScript } from "@/lib/guide";
+import { type GuideStep, getRouteGuide, type RouteScript, seenKey } from "@/lib/guide";
 
 type Box = { top: number; left: number; width: number; height: number };
 
@@ -32,7 +32,10 @@ export function LocalGuide() {
     const list = r.steps ?? (r as any).passos ?? [];
     return list.filter((p: any) => {
       const target = p.target ?? p.alvo;
-      return document.querySelector(`[data-guia="${target}"]`) || document.querySelector(`[data-guide="${target}"]`);
+      return (
+        document.querySelector(`[data-guia="${target}"]`) ||
+        document.querySelector(`[data-guide="${target}"]`)
+      );
     });
   }, []);
 
@@ -119,7 +122,7 @@ export function LocalGuide() {
       side: fitsBottom ? "bottom" : "top",
       beak: Math.max(14, Math.min(box.left + box.width / 2 - left - 6, w - 26)),
     });
-  }, [box, index]);
+  }, [box]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -134,7 +137,7 @@ export function LocalGuide() {
 
   useEffect(() => {
     if (isOpen) balloonRef.current?.focus();
-  }, [isOpen, index]);
+  }, [isOpen]);
 
   if (!script) return null;
 

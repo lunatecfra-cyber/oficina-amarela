@@ -33,7 +33,7 @@ export const BRAZIL_STATES = [
 ] as const;
 
 export const CITIES_BY_STATE: Record<string, readonly string[]> = {
-  "AC": [
+  AC: [
     "Acrelândia",
     "Assis Brasil",
     "Brasiléia",
@@ -57,7 +57,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Tarauacá",
     "Xapuri",
   ],
-  "AL": [
+  AL: [
     "Água Branca",
     "Anadia",
     "Arapiraca",
@@ -161,7 +161,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "União dos Palmares",
     "Viçosa",
   ],
-  "AM": [
+  AM: [
     "Alvarães",
     "Amaturá",
     "Anamã",
@@ -225,7 +225,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Urucará",
     "Urucurituba",
   ],
-  "AP": [
+  AP: [
     "Amapá",
     "Calçoene",
     "Cutias",
@@ -243,7 +243,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Tartarugalzinho",
     "Vitória do Jari",
   ],
-  "BA": [
+  BA: [
     "Abaíra",
     "Abaré",
     "Acajutiba",
@@ -662,7 +662,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Wenceslau Guimarães",
     "Xique-Xique",
   ],
-  "CE": [
+  CE: [
     "Abaiara",
     "Acarape",
     "Acaraú",
@@ -848,10 +848,8 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Várzea Alegre",
     "Viçosa do Ceará",
   ],
-  "DF": [
-    "Brasília",
-  ],
-  "ES": [
+  DF: ["Brasília"],
+  ES: [
     "Afonso Cláudio",
     "Água Doce do Norte",
     "Águia Branca",
@@ -931,7 +929,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Vila Velha",
     "Vitória",
   ],
-  "GO": [
+  GO: [
     "Abadia de Goiás",
     "Abadiânia",
     "Acreúna",
@@ -1179,7 +1177,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Vila Boa",
     "Vila Propício",
   ],
-  "MA": [
+  MA: [
     "Açailândia",
     "Afonso Cunha",
     "Água Doce do Maranhão",
@@ -1398,7 +1396,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Vitorino Freire",
     "Zé Doca",
   ],
-  "MG": [
+  MG: [
     "Abadia dos Dourados",
     "Abaeté",
     "Abre Campo",
@@ -2253,7 +2251,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Volta Grande",
     "Wenceslau Braz",
   ],
-  "MS": [
+  MS: [
     "Água Clara",
     "Alcinópolis",
     "Amambai",
@@ -2334,7 +2332,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Três Lagoas",
     "Vicentina",
   ],
-  "MT": [
+  MT: [
     "Acorizal",
     "Água Boa",
     "Alta Floresta",
@@ -2477,7 +2475,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Vila Bela da Santíssima Trindade",
     "Vila Rica",
   ],
-  "PA": [
+  PA: [
     "Abaetetuba",
     "Abel Figueiredo",
     "Acará",
@@ -2623,7 +2621,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Vitória do Xingu",
     "Xinguara",
   ],
-  "PB": [
+  PB: [
     "Água Branca",
     "Aguiar",
     "Alagoa Grande",
@@ -2848,7 +2846,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Vista Serrana",
     "Zabelê",
   ],
-  "PE": [
+  PE: [
     "Abreu e Lima",
     "Afogados da Ingazeira",
     "Afrânio",
@@ -3035,7 +3033,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Vitória de Santo Antão",
     "Xexéu",
   ],
-  "PI": [
+  PI: [
     "Acauã",
     "Agricolândia",
     "Água Branca",
@@ -3261,7 +3259,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Vila Nova do Piauí",
     "Wall Ferraz",
   ],
-  "PR": [
+  PR: [
     "Abatiá",
     "Adrianópolis",
     "Agudos do Sul",
@@ -3662,7 +3660,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Wenceslau Braz",
     "Xambrê",
   ],
-  "RJ": [
+  RJ: [
     "Angra dos Reis",
     "Aperibé",
     "Araruama",
@@ -3756,7 +3754,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Vassouras",
     "Volta Redonda",
   ],
-  "RN": [
+  RN: [
     "Acari",
     "Afonso Bezerra",
     "Água Nova",
@@ -3925,7 +3923,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Viçosa",
     "Vila Flor",
   ],
-  "RO": [
+  RO: [
     "Alta Floresta D'Oeste",
     "Alto Alegre dos Parecis",
     "Alto Paraíso",
@@ -3979,7 +3977,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Vale do Paraíso",
     "Vilhena",
   ],
-  "RR": [
+  RR: [
     "Alto Alegre",
     "Amajari",
     "Boa Vista",
@@ -3996,7 +3994,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "São Luiz do Anauá",
     "Uiramutã",
   ],
-  "RS": [
+  RS: [
     "Aceguá",
     "Água Santa",
     "Agudo",
@@ -4495,7 +4493,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Westfália",
     "Xangri-lá",
   ],
-  "SC": [
+  SC: [
     "Abdon Batista",
     "Abelardo Luz",
     "Agrolândia",
@@ -4792,7 +4790,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Xaxim",
     "Zortéa",
   ],
-  "SE": [
+  SE: [
     "Amparo do São Francisco",
     "Aquidabã",
     "Aracaju",
@@ -4869,7 +4867,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Tomar do Geru",
     "Umbaúba",
   ],
-  "SP": [
+  SP: [
     "Adamantina",
     "Adolfo",
     "Aguaí",
@@ -5516,7 +5514,7 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Votuporanga",
     "Zacarias",
   ],
-  "TO": [
+  TO: [
     "Abreulândia",
     "Aguiarnópolis",
     "Aliança do Tocantins",

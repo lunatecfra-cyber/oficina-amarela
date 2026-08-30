@@ -31,7 +31,6 @@ export default async function RankingPage() {
       <AppHeader />
       <main className="flex-1">
         <div className="mx-auto w-full max-w-3xl px-4 py-6 lg:px-8 lg:py-10">
-
           {/* ---- cabeçalho do ciclo ---- */}
           <div className="flex items-baseline justify-between gap-3">
             <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text lg:text-2xl">
@@ -52,7 +51,8 @@ export default async function RankingPage() {
             </span>
           </div>
           <p className="mt-1 text-xs text-muted">
-            Conta vídeos aprovados até <b className="font-medium text-muted">25 de outubro de 2026</b>.
+            Conta vídeos aprovados até{" "}
+            <b className="font-medium text-muted">25 de outubro de 2026</b>.
           </p>
 
           {/* ---- a guilda: quantos ativos agora e o recorde ---- */}
@@ -62,7 +62,9 @@ export default async function RankingPage() {
                 {activeCount}
               </p>
               <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-[0.04em] text-muted-2">
-                editores ativos<br />esta semana
+                editores ativos
+                <br />
+                esta semana
               </p>
             </div>
             <div className="flex-1 rounded-lg border border-line-soft bg-white/[0.02] px-3 py-2.5">
@@ -70,7 +72,9 @@ export default async function RankingPage() {
                 {milestone}
               </p>
               <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-[0.04em] text-muted-2">
-                maior marca<br />do ciclo
+                maior marca
+                <br />
+                do ciclo
               </p>
             </div>
             <div className="flex-1 rounded-lg border border-line-soft bg-white/[0.02] px-3 py-2.5">
@@ -78,7 +82,9 @@ export default async function RankingPage() {
                 {myRankIdx === -1 ? "—" : `${myRankIdx + 1}º`}
               </p>
               <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-[0.04em] text-muted-2">
-                sua<br />posição
+                sua
+                <br />
+                posição
               </p>
             </div>
           </div>
@@ -93,13 +99,10 @@ export default async function RankingPage() {
                 {ranking.awards.length} de 4 liberados
               </span>
             </div>
-            <ElectoralAwards
-              unlockedAwards={ranking.awards}
-              highestActiveCount={milestone}
-            />
+            <ElectoralAwards unlockedAwards={ranking.awards} highestActiveCount={milestone} />
             <p className="mt-2 text-[11px] leading-relaxed text-muted-2">
-              Os prêmios se abrem conforme a guilda cresce — quanto mais editores
-              ativos, mais gente premiada no fim.
+              Os prêmios se abrem conforme a guilda cresce — quanto mais editores ativos, mais gente
+              premiada no fim.
             </p>
           </section>
 
@@ -112,8 +115,8 @@ export default async function RankingPage() {
             {ordered.length === 0 ? (
               <div className="rounded-lg border border-dashed border-line p-10 text-center">
                 <p className="text-sm text-muted">
-                  Ninguém no ranking ainda. Ele se preenche conforme os editores
-                  completam o perfil e entregam.
+                  Ninguém no ranking ainda. Ele se preenche conforme os editores completam o perfil
+                  e entregam.
                 </p>
                 <Link
                   href="/editor"
@@ -135,7 +138,15 @@ export default async function RankingPage() {
                     const eu = e.id === session.id;
                     const pos = i + 1;
                     const level =
-                      pos === 1 ? "ouro" : pos === 2 ? "prata" : pos === 3 ? "bronze" : eu ? "voce" : "normal";
+                      pos === 1
+                        ? "ouro"
+                        : pos === 2
+                          ? "prata"
+                          : pos === 3
+                            ? "bronze"
+                            : eu
+                              ? "voce"
+                              : "normal";
                     return (
                       <div
                         key={String(e.id)}
@@ -223,7 +234,6 @@ export default async function RankingPage() {
               </>
             )}
           </section>
-
         </div>
       </main>
     </>

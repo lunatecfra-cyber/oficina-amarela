@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import type { Format, Formato } from "@/lib/missions";
-import { TutorialButton, TutorialDrive } from "@/components/tutorial-drive";
-import { looksLikeLink, looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
-import { UploadDropzone } from "@/components/upload-dropzone";
+import { useEffect, useState } from "react";
 import { LegalNotice } from "@/components/legal-notice";
+import { TutorialButton, TutorialDrive } from "@/components/tutorial-drive";
+import { UploadDropzone } from "@/components/upload-dropzone";
+import type { Format, Formato } from "@/lib/missions";
+import { looksLikeDriveLink, looksLikeLink, looksLikeYoutubeLink } from "@/lib/validators";
 
 type FormData = {
   title: string;
@@ -44,13 +44,7 @@ const EMPTY_FORM: FormData = {
   voterId: "",
 };
 
-const STEPS = [
-  "O vídeo bruto",
-  "Cortes específicos",
-  "O estilo",
-  "Contexto",
-  "Formato",
-];
+const STEPS = ["O vídeo bruto", "Cortes específicos", "O estilo", "Contexto", "Formato"];
 
 interface NewMissionFormProps {
   defaultWatermark?: string;
@@ -96,7 +90,14 @@ export function NewMissionForm({
       campaignTaxId: d.campaignTaxId || tax,
       voterId: d.voterId || voter,
     }));
-  }, [defaultWatermark, defaultCampaignTaxId, defaultVoterId, marcaDaguaPadrao, cnpjCampanhaPadrao, tituloEleitorPadrao]);
+  }, [
+    defaultWatermark,
+    defaultCampaignTaxId,
+    defaultVoterId,
+    marcaDaguaPadrao,
+    cnpjCampanhaPadrao,
+    tituloEleitorPadrao,
+  ]);
 
   const setField = <K extends keyof FormData>(k: K, v: FormData[K]) => {
     setData((d) => ({ ...d, [k]: v }));
@@ -198,8 +199,8 @@ export function NewMissionForm({
           Missão enviada!
         </h1>
         <p className="mt-3 text-muted">
-          Ela já está na fila dos editores. Você acompanha o status na sua área e
-          recebe o vídeo pronto por aqui.
+          Ela já está na fila dos editores. Você acompanha o status na sua área e recebe o vídeo
+          pronto por aqui.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link href="/porta-voz" className="btn-gold sm:w-56">
@@ -247,7 +248,7 @@ export function NewMissionForm({
         {step === 0 && (
           <StepContainer title="O vídeo bruto" subtitle="O material que o editor vai trabalhar.">
             <LegalNotice />
-            
+
             <div className="grid gap-4 sm:grid-cols-2">
               <FieldWrapper label="Marca d'água">
                 <input
@@ -266,7 +267,7 @@ export function NewMissionForm({
                 />
               </FieldWrapper>
             </div>
-            
+
             <FieldWrapper label="Título de Eleitor (TSE)">
               <input
                 className="field-input !pl-4"
@@ -287,9 +288,7 @@ export function NewMissionForm({
             </FieldWrapper>
 
             <div className="mt-4">
-              <UploadDropzone
-                onUploadSuccess={(url) => setField("rawVideoUrl", url)}
-              />
+              <UploadDropzone onUploadSuccess={(url) => setField("rawVideoUrl", url)} />
             </div>
 
             <div className="mt-4 flex items-center gap-4">

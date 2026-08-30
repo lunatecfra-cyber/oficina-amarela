@@ -12,10 +12,6 @@ assert.equal(
   "porta-voz",
   "inspetor deve manter o cabeçalho de porta-voz/inspetor",
 );
-assert.equal(
-  cabecalhoParceiros("editor"),
-  "editor",
-  "editor deve manter o cabeçalho de editor",
-);
+assert.equal(cabecalhoParceiros("editor"), "editor", "editor deve manter o cabeçalho de editor");
 
 console.log("OK: cabeçalho de Parceiros respeita o papel da sessão");

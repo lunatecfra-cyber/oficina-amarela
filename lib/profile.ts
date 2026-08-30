@@ -1,4 +1,4 @@
-import type { VideoFormat, Formato } from "@/lib/missions";
+import type { Formato, VideoFormat } from "@/lib/missions";
 
 export type Tier = "Aprendiz" | "Oficial" | "Artífice" | "Mestre-Artesão";
 export type Nivel = Tier;
@@ -180,7 +180,16 @@ export function levelProgress(deliveredCount: number) {
       next = TIERS[i + 1] ?? null;
     }
   }
-  if (!next) return { current, atual: current, next: null, proximo: null, pct: 100, remaining: 0, faltam: 0 };
+  if (!next)
+    return {
+      current,
+      atual: current,
+      next: null,
+      proximo: null,
+      pct: 100,
+      remaining: 0,
+      faltam: 0,
+    };
   const range = next.minimum - current.minimum;
   const done = deliveredCount - current.minimum;
   const pct = Math.round((done / range) * 100);
@@ -314,7 +323,12 @@ export const DEFAULT_EDITOR_PROFILE: EditorProfile = {
   ],
   achievements: [
     { icon: "⚡", name: "Entrega em menos de 2h", icone: "⚡", nome: "Entrega em menos de 2h" },
-    { icon: "🎯", name: "10 aprovações sem refação", icone: "🎯", nome: "10 aprovações sem refação" },
+    {
+      icon: "🎯",
+      name: "10 aprovações sem refação",
+      icone: "🎯",
+      nome: "10 aprovações sem refação",
+    },
     { icon: "🔥", name: "Ritmo de 5 dias seguidos", icone: "🔥", nome: "Ritmo de 5 dias seguidos" },
   ],
   apelido: "jr.eneias",
@@ -343,7 +357,12 @@ export const DEFAULT_EDITOR_PROFILE: EditorProfile = {
   ],
   conquistas: [
     { icon: "⚡", name: "Entrega em menos de 2h", icone: "⚡", nome: "Entrega em menos de 2h" },
-    { icon: "🎯", name: "10 aprovações sem refação", icone: "🎯", nome: "10 aprovações sem refação" },
+    {
+      icon: "🎯",
+      name: "10 aprovações sem refação",
+      icone: "🎯",
+      nome: "10 aprovações sem refação",
+    },
     { icon: "🔥", name: "Ritmo de 5 dias seguidos", icone: "🔥", nome: "Ritmo de 5 dias seguidos" },
   ],
 };

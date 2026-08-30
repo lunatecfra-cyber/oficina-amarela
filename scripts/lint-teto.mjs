@@ -32,13 +32,11 @@ if (erros > TETO_ERROS || avisos > TETO_AVISOS) {
     console.error(`\n${r.filePath}`);
     for (const m of r.messages) {
       const tipo = m.severity === 2 ? "erro " : "aviso";
-      console.error(
-        `  ${tipo} ${m.line}:${m.column}  ${m.message}  [${m.ruleId ?? "?"}]`
-      );
+      console.error(`  ${tipo} ${m.line}:${m.column}  ${m.message}  [${m.ruleId ?? "?"}]`);
     }
   }
   console.error(
-    `\n::error::Lint piorou (${erros} erros / ${avisos} avisos; teto ${TETO_ERROS}/${TETO_AVISOS}). Corrija o que foi introduzido.`
+    `\n::error::Lint piorou (${erros} erros / ${avisos} avisos; teto ${TETO_ERROS}/${TETO_AVISOS}). Corrija o que foi introduzido.`,
   );
   process.exit(1);
 }

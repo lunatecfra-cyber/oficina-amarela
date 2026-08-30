@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
-import { LIMITS, SLOTS, limitStr } from "@/lib/limits";
 import { sql } from "@/lib/db";
-import type { Role } from "@/lib/session";
 import { validateSpokespersonInvitation } from "@/lib/invitations-db";
+import { LIMITS, limitStr, SLOTS } from "@/lib/limits";
+import type { Role } from "@/lib/session";
 
 export type UserAccount = {
   id: number;
@@ -71,9 +71,24 @@ export async function createAccount(data: {
   const referralCode = validReferralCode(data.referralCode ?? data.codigoIndicacao);
   const dbPapel = normalizeRoleToDb(data.role);
 
-  if (!name) return { ok: false, error: "Digite seu nome.", isConflict: false, conflict: false, erro: "Digite seu nome.", conflito: false };
+  if (!name)
+    return {
+      ok: false,
+      error: "Digite seu nome.",
+      isConflict: false,
+      conflict: false,
+      erro: "Digite seu nome.",
+      conflito: false,
+    };
   if (data.password.length > 200) {
-    return { ok: false, error: "Senha longa demais.", isConflict: false, conflict: false, erro: "Senha longa demais.", conflito: false };
+    return {
+      ok: false,
+      error: "Senha longa demais.",
+      isConflict: false,
+      conflict: false,
+      erro: "Senha longa demais.",
+      conflito: false,
+    };
   }
   if (!isValidHandle(handle)) {
     return {
@@ -86,20 +101,48 @@ export async function createAccount(data: {
     };
   }
   if (!RE_EMAIL.test(email)) {
-    return { ok: false, error: "Digite um e-mail válido.", isConflict: false, conflict: false, erro: "Digite um e-mail válido.", conflito: false };
+    return {
+      ok: false,
+      error: "Digite um e-mail válido.",
+      isConflict: false,
+      conflict: false,
+      erro: "Digite um e-mail válido.",
+      conflito: false,
+    };
   }
   if (data.password.length < 6) {
-    return { ok: false, error: "Senha precisa de pelo menos 6 caracteres.", isConflict: false, conflict: false, erro: "Senha precisa de pelo menos 6 caracteres.", conflito: false };
+    return {
+      ok: false,
+      error: "Senha precisa de pelo menos 6 caracteres.",
+      isConflict: false,
+      conflict: false,
+      erro: "Senha precisa de pelo menos 6 caracteres.",
+      conflito: false,
+    };
   }
 
   const [handleInUse] = await sql`SELECT id FROM users WHERE lower(apelido) = lower(${handle})`;
   if (handleInUse) {
-    return { ok: false, error: "Esse apelido já está em uso.", isConflict: true, conflict: true, erro: "Esse apelido já está em uso.", conflito: true };
+    return {
+      ok: false,
+      error: "Esse apelido já está em uso.",
+      isConflict: true,
+      conflict: true,
+      erro: "Esse apelido já está em uso.",
+      conflito: true,
+    };
   }
 
   const [emailInUse] = await sql`SELECT id FROM users WHERE lower(email) = lower(${email})`;
   if (emailInUse) {
-    return { ok: false, error: "Esse e-mail já está cadastrado.", isConflict: true, conflict: true, erro: "Esse e-mail já está cadastrado.", conflito: true };
+    return {
+      ok: false,
+      error: "Esse e-mail já está cadastrado.",
+      isConflict: true,
+      conflict: true,
+      erro: "Esse e-mail já está cadastrado.",
+      conflito: true,
+    };
   }
 
   const password_hash = await bcrypt.hash(data.password, 10);
@@ -107,7 +150,14 @@ export async function createAccount(data: {
   if (data.role === "spokesperson" || (data.role as string) === "voz") {
     const validInvite = await validateSpokespersonInvitation(invitation ?? "", email);
     if (!validInvite.ok) {
-      return { ok: false, error: validInvite.error, isConflict: false, conflict: false, erro: validInvite.error, conflito: false };
+      return {
+        ok: false,
+        error: validInvite.error,
+        isConflict: false,
+        conflict: false,
+        erro: validInvite.error,
+        conflito: false,
+      };
     }
     try {
       const [row] = await sql`
@@ -128,7 +178,14 @@ export async function createAccount(data: {
       };
       return { ok: true, account, conta: account };
     } catch {
-      return { ok: false, error: "Convite inválido, expirado ou já utilizado.", isConflict: false, conflict: false, erro: "Convite inválido, expirado ou já utilizado.", conflito: false };
+      return {
+        ok: false,
+        error: "Convite inválido, expirado ou já utilizado.",
+        isConflict: false,
+        conflict: false,
+        erro: "Convite inválido, expirado ou já utilizado.",
+        conflito: false,
+      };
     }
   }
 
@@ -157,8 +214,11 @@ export const criarConta = createAccount;
 
 export async function authenticate(
   handle: string,
-  password: string
-): Promise<{ ok: true; account: UserAccount; conta?: UserAccount } | { ok: false; error: string; erro?: string }> {
+  password: string,
+): Promise<
+  | { ok: true; account: UserAccount; conta?: UserAccount }
+  | { ok: false; error: string; erro?: string }
+> {
   const [row] = await sql`
     SELECT id, apelido, nome, email, papel, senha_hash, banido
     FROM users
@@ -168,12 +228,20 @@ export async function authenticate(
   const hash = row?.senha_hash ?? DUMMY_HASH;
   const passwordMatches = await bcrypt.compare(password, hash);
 
-  if (!row || !row.senha_hash || !passwordMatches) {
-    return { ok: false, error: "Apelido ou senha incorretos.", erro: "Apelido ou senha incorretos." };
+  if (!row?.senha_hash || !passwordMatches) {
+    return {
+      ok: false,
+      error: "Apelido ou senha incorretos.",
+      erro: "Apelido ou senha incorretos.",
+    };
   }
 
   if (row.banido) {
-    return { ok: false, error: "Conta suspensa. Fale com a fiscalização.", erro: "Conta suspensa. Fale com a fiscalização." };
+    return {
+      ok: false,
+      error: "Conta suspensa. Fale com a fiscalização.",
+      erro: "Conta suspensa. Fale com a fiscalização.",
+    };
   }
 
   const role = normalizeRoleFromDb(row.papel);
@@ -195,14 +263,21 @@ export const autenticar = authenticate;
 
 export async function findGoogleAccount(
   googleId: string,
-  email: string
-): Promise<{ ok: true; account: UserAccount | null; conta?: UserAccount | null } | { ok: false; error: string; erro?: string }> {
+  email: string,
+): Promise<
+  | { ok: true; account: UserAccount | null; conta?: UserAccount | null }
+  | { ok: false; error: string; erro?: string }
+> {
   const [byGoogleId] = await sql`
     SELECT id, apelido, nome, email, papel, banido FROM users WHERE google_id = ${googleId}
   `;
   if (byGoogleId) {
     if (byGoogleId.banido) {
-      return { ok: false, error: "Conta suspensa. Fale com a fiscalização.", erro: "Conta suspensa. Fale com a fiscalização." };
+      return {
+        ok: false,
+        error: "Conta suspensa. Fale com a fiscalização.",
+        erro: "Conta suspensa. Fale com a fiscalização.",
+      };
     }
     const role = normalizeRoleFromDb(byGoogleId.papel);
     const acc: UserAccount = {
@@ -243,12 +318,20 @@ export async function findGoogleAccount(
     SELECT id FROM users WHERE lower(email) = lower(${email}) AND banido = true
   `;
   if (bannedByEmail) {
-    return { ok: false, error: "Conta suspensa. Fale com a fiscalização.", erro: "Conta suspensa. Fale com a fiscalização." };
+    return {
+      ok: false,
+      error: "Conta suspensa. Fale com a fiscalização.",
+      erro: "Conta suspensa. Fale com a fiscalização.",
+    };
   }
 
   const [byEmail] = await sql`SELECT id FROM users WHERE lower(email) = lower(${email})`;
   if (byEmail) {
-    return { ok: false, error: "Este e-mail já está vinculado a outra conta.", erro: "Este e-mail já está vinculado a outra conta." };
+    return {
+      ok: false,
+      error: "Este e-mail já está vinculado a outra conta.",
+      erro: "Este e-mail já está vinculado a outra conta.",
+    };
   }
 
   return { ok: true, account: null, conta: null };
@@ -267,7 +350,10 @@ export async function createGoogleAccount(data: {
   convite?: string;
   referralCode?: string;
   codigoIndicacao?: string;
-}): Promise<{ ok: true; account: UserAccount; conta?: UserAccount } | { ok: false; error: string; erro?: string }> {
+}): Promise<
+  | { ok: true; account: UserAccount; conta?: UserAccount }
+  | { ok: false; error: string; erro?: string }
+> {
   const handle = await generateUniqueHandle(data.email);
   const avatar = data.avatarUrl ?? data.foto ?? null;
   const invitation = data.invitation ?? data.convite;
@@ -296,7 +382,11 @@ export async function createGoogleAccount(data: {
       };
       return { ok: true, account, conta: account };
     } catch {
-      return { ok: false, error: "Convite inválido, expirado ou já utilizado.", erro: "Convite inválido, expirado ou já utilizado." };
+      return {
+        ok: false,
+        error: "Convite inválido, expirado ou já utilizado.",
+        erro: "Convite inválido, expirado ou já utilizado.",
+      };
     }
   }
 
@@ -352,7 +442,7 @@ export const contaTemSenha = accountHasPassword;
 
 export async function deleteAccount(
   userId: number,
-  confirmation: string
+  confirmation: string,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const [row] = await sql`
     SELECT apelido, senha_hash FROM users WHERE id = ${userId}
@@ -383,10 +473,7 @@ export async function deleteAccount(
 
 export const apagarConta = deleteAccount;
 
-export async function isRecoveryLinkUsed(
-  userId: number,
-  issuedAtMs: number
-): Promise<boolean> {
+export async function isRecoveryLinkUsed(userId: number, issuedAtMs: number): Promise<boolean> {
   const [row] = await sql`
     SELECT sessoes_validas_apos FROM users WHERE id = ${userId}
   `;
@@ -399,10 +486,14 @@ export const isRecoveryTokenAlreadyUsed = isRecoveryLinkUsed;
 
 export async function updatePassword(
   userId: number,
-  newPassword: string
+  newPassword: string,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   if (newPassword.length < 6) {
-    return { ok: false, error: "Senha precisa de pelo menos 6 caracteres.", erro: "Senha precisa de pelo menos 6 caracteres." };
+    return {
+      ok: false,
+      error: "Senha precisa de pelo menos 6 caracteres.",
+      erro: "Senha precisa de pelo menos 6 caracteres.",
+    };
   }
   const senha_hash = await bcrypt.hash(newPassword, 10);
   await sql`
@@ -421,7 +512,7 @@ const LOCK_MINUTES = 15;
 const WINDOW_MINUTES = 15;
 
 export async function isRateLocked(
-  rawKey: string
+  rawKey: string,
 ): Promise<{ locked: boolean; minutes: number; travado?: boolean; minutos?: number }> {
   const key = rawKey.trim().toLowerCase();
   const [row] = await sql`SELECT travado_ate FROM tentativas_login WHERE chave = ${key}`;
@@ -436,10 +527,7 @@ export async function isRateLocked(
 
 export const taxaTravada = isRateLocked;
 
-export async function recordAttempt(
-  rawKey: string,
-  max = MAX_ATTEMPTS
-): Promise<void> {
+export async function recordAttempt(rawKey: string, max = MAX_ATTEMPTS): Promise<void> {
   const key = rawKey.trim().toLowerCase();
 
   const [row] = await sql`
@@ -481,7 +569,8 @@ const MAX_LOGINS_PER_IP = 30;
 
 export const isIpLoginLocked = (ip: string) => isRateLocked(`loginip:${ip}`);
 export const isLoginLockedByIp = isIpLoginLocked;
-export const recordIpLoginFailure = (ip: string) => recordAttempt(`loginip:${ip}`, MAX_LOGINS_PER_IP);
+export const recordIpLoginFailure = (ip: string) =>
+  recordAttempt(`loginip:${ip}`, MAX_LOGINS_PER_IP);
 export const recordLoginFailureByIp = recordIpLoginFailure;
 
 export const loginTravadoPorIp = isIpLoginLocked;
@@ -503,8 +592,8 @@ export const countEnrolledByRole = countEnrolled;
 export const contarInscritos = countEnrolled;
 
 export async function checkRoleSlots(
-  role: Role
-): Promise<{ ok: true} | { ok: false; error: string; erro?: string }> {
+  role: Role,
+): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const max = SLOTS[role as keyof typeof SLOTS];
   if (max === undefined) return { ok: true };
 
@@ -520,7 +609,12 @@ export async function checkRoleSlots(
 export const checarVagaPapel = checkRoleSlots;
 
 async function generateUniqueHandle(email: string): Promise<string> {
-  const base = email.split("@")[0].toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 20) || "usuario";
+  const base =
+    email
+      .split("@")[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9._]/g, "")
+      .slice(0, 20) || "usuario";
   let handle = base;
 
   for (let n = 1; n <= 50; n++) {

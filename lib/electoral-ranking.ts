@@ -28,10 +28,54 @@ export const calcularPremios = calculateUnlockedAwards;
  * Visual showcase metadata: label and milestone for each award in unlock order.
  */
 export const ELECTORAL_AWARDS = [
-  { chave: "ingresso_top1" as const, key: "ingresso_top1" as const, ativos: 10, activeThreshold: 10, premio: "Ingresso", award: "Ingresso", quem: "Top 1", target: "Top 1", segredo: false, isSecret: false },
-  { chave: "bandeira_top2" as const, key: "bandeira_top2" as const, ativos: 20, activeThreshold: 20, premio: "Bandeira", award: "Bandeira", quem: "Top 2", target: "Top 2", segredo: true, isSecret: true },
-  { chave: "caneca_top3" as const, key: "caneca_top3" as const, ativos: 30, activeThreshold: 30, premio: "Caneca", award: "Caneca", quem: "Top 3", target: "Top 3", segredo: true, isSecret: true },
-  { chave: "sorteio_constancia" as const, key: "sorteio_constancia" as const, ativos: 50, activeThreshold: 50, premio: "Sorteio", award: "Sorteio", quem: "Por constância", target: "Por constância", segredo: false, isSecret: false },
+  {
+    chave: "ingresso_top1" as const,
+    key: "ingresso_top1" as const,
+    ativos: 10,
+    activeThreshold: 10,
+    premio: "Ingresso",
+    award: "Ingresso",
+    quem: "Top 1",
+    target: "Top 1",
+    segredo: false,
+    isSecret: false,
+  },
+  {
+    chave: "bandeira_top2" as const,
+    key: "bandeira_top2" as const,
+    ativos: 20,
+    activeThreshold: 20,
+    premio: "Bandeira",
+    award: "Bandeira",
+    quem: "Top 2",
+    target: "Top 2",
+    segredo: true,
+    isSecret: true,
+  },
+  {
+    chave: "caneca_top3" as const,
+    key: "caneca_top3" as const,
+    ativos: 30,
+    activeThreshold: 30,
+    premio: "Caneca",
+    award: "Caneca",
+    quem: "Top 3",
+    target: "Top 3",
+    segredo: true,
+    isSecret: true,
+  },
+  {
+    chave: "sorteio_constancia" as const,
+    key: "sorteio_constancia" as const,
+    ativos: 50,
+    activeThreshold: 50,
+    premio: "Sorteio",
+    award: "Sorteio",
+    quem: "Por constância",
+    target: "Por constância",
+    segredo: false,
+    isSecret: false,
+  },
 ] as const;
 
 export const PREMIOS_ELEITORAIS = ELECTORAL_AWARDS;

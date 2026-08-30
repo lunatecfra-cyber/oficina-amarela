@@ -51,7 +51,7 @@ function brasiliaDate(date = new Date()): string {
 export async function recordGamificationEvent(
   userId: number,
   ruleId: GamificationEventType,
-  reference: string
+  reference: string,
 ): Promise<{ recorded: boolean; xp: number; registrado?: boolean }> {
   const normRule: "entrada_diaria" | "missao_entregue" =
     ruleId === "daily_login" || ruleId === "entrada_diaria" ? "entrada_diaria" : "missao_entregue";

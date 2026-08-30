@@ -1,7 +1,7 @@
-import dotenv from 'dotenv';
-import postgres from 'postgres';
+import dotenv from "dotenv";
+import postgres from "postgres";
 
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: ".env.local" });
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -10,7 +10,7 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
-const sql = postgres(databaseUrl, { ssl: 'require' });
+const sql = postgres(databaseUrl, { ssl: "require" });
 
 async function testConnection() {
   try {
@@ -18,7 +18,7 @@ async function testConnection() {
     const [usuarios] = await sql`SELECT count(*) as total FROM usuarios`;
     const [pautas] = await sql`SELECT count(*) as total FROM pautas`;
     const [entregas] = await sql`SELECT count(*) as total FROM entregas`;
-    
+
     console.log("-----------------------------------------");
     console.log("✅ CONEXÃO COM O BANCO BEM-SUCEDIDA!");
     console.log("-----------------------------------------");

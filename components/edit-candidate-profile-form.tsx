@@ -1,26 +1,26 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { LegalNotice } from "@/components/legal-notice";
+import { SelectLocation } from "@/components/select-location";
+import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
+import type { CandidateOnboarding } from "@/lib/candidate-db";
 import {
-  ELECTION_YEARS,
-  THEME_FLAGS,
-  POLITICAL_ROLES,
   BRAZILIAN_STATES,
-  TONE_EXAMPLES,
-  SUGGESTED_KEYWORDS,
-  DEFAULT_TINT,
   COMMUNICATION_TONES,
+  DEFAULT_TINT,
+  ELECTION_YEARS,
   generateSuggestedBio,
   initials,
+  POLITICAL_ROLES,
   type SocialLinks,
+  SUGGESTED_KEYWORDS,
+  THEME_FLAGS,
+  TONE_EXAMPLES,
 } from "@/lib/candidates";
-import type { CandidateOnboarding } from "@/lib/candidate-db";
-import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
-import { SelectLocation } from "@/components/select-location";
 import { compressPhoto } from "@/lib/compress-photo";
-import { LegalNotice } from "@/components/legal-notice";
 
 function parseLocation(value: string): { state: string; city: string } {
   if (!value) return { state: "", city: "" };
@@ -50,55 +50,66 @@ export function EditCandidateProfileForm({
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const data = initial ?? inicial ?? {
-    name: "",
-    nome: "",
-    role: "",
-    cargo: "",
-    runningFor: "",
-    disputaPor: "",
-    electionYear: "2026",
-    anoEleicao: "2026",
-    location: "",
-    localizacao: "",
-    causes: [],
-    bandeiras: [],
-    communicationTone: "",
-    tomComunicacao: "",
-    keywords: [],
-    palavrasChave: [],
-    bio: "",
-    watermark: "",
-    marcaDagua: "",
-    campaignTaxId: "",
-    cnpjCampanha: "",
-    voterId: "",
-    tituloEleitor: "",
-    socialLinks: {},
-    redes: {},
-  };
+  const data = initial ??
+    inicial ?? {
+      name: "",
+      nome: "",
+      role: "",
+      cargo: "",
+      runningFor: "",
+      disputaPor: "",
+      electionYear: "2026",
+      anoEleicao: "2026",
+      location: "",
+      localizacao: "",
+      causes: [],
+      bandeiras: [],
+      communicationTone: "",
+      tomComunicacao: "",
+      keywords: [],
+      palavrasChave: [],
+      bio: "",
+      watermark: "",
+      marcaDagua: "",
+      campaignTaxId: "",
+      cnpjCampanha: "",
+      voterId: "",
+      tituloEleitor: "",
+      socialLinks: {},
+      redes: {},
+    };
 
   const [name, setName] = useState(data.name ?? (data as any).nome ?? "");
-  const [photo, setPhoto] = useState<string | undefined>(data.photoUrl ?? (data as any).avatarUrl ?? (data as any).fotoUrl);
+  const [photo, setPhoto] = useState<string | undefined>(
+    data.photoUrl ?? (data as any).avatarUrl ?? (data as any).fotoUrl,
+  );
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [role, setRole] = useState(data.role ?? (data as any).cargo ?? "");
   const [runningFor, setRunningFor] = useState(data.runningFor ?? (data as any).disputaPor ?? "");
-  const [electionYear, setElectionYear] = useState(data.electionYear ?? (data as any).anoEleicao ?? "2026");
+  const [electionYear, setElectionYear] = useState(
+    data.electionYear ?? (data as any).anoEleicao ?? "2026",
+  );
   const parsed = parseLocation(data.location ?? (data as any).localizacao ?? "");
   const [stateUf, setStateUf] = useState(parsed.state);
   const [cityName, setCityName] = useState(parsed.city);
   const [causes, setCauses] = useState<string[]>(data.causes ?? (data as any).bandeiras ?? []);
 
   const [tone, setTone] = useState(data.communicationTone ?? (data as any).tomComunicacao ?? "");
-  const [keywords, setKeywords] = useState<string[]>(data.keywords ?? (data as any).palavrasChave ?? []);
+  const [keywords, setKeywords] = useState<string[]>(
+    data.keywords ?? (data as any).palavrasChave ?? [],
+  );
   const [newKeyword, setNewKeyword] = useState("");
   const [bio, setBio] = useState(data.bio ?? "");
   const [watermark, setWatermark] = useState(data.watermark ?? (data as any).marcaDagua ?? "");
-  const [campaignTaxId, setCampaignTaxId] = useState(data.campaignTaxId ?? (data as any).cnpjCampanha ?? "");
+  const [campaignTaxId, setCampaignTaxId] = useState(
+    data.campaignTaxId ?? (data as any).cnpjCampanha ?? "",
+  );
   const [voterId, setVoterId] = useState(data.voterId ?? (data as any).tituloEleitor ?? "");
 
-  const [socialLinks, setSocialLinks] = useState<SocialLinks>(data.socialLinks ?? (data as any).redes ?? {});
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(
+    data.socialLinks ?? (data as any).redes ?? {},
+  );
 
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -257,9 +268,7 @@ export function EditCandidateProfileForm({
               onChange={onChoosePhoto}
             />
 
-            {isProcessingPhoto && (
-              <p className="mt-2 text-[11px] text-muted">Preparando a foto…</p>
-            )}
+            {isProcessingPhoto && <p className="mt-2 text-[11px] text-muted">Preparando a foto…</p>}
             {photoError && (
               <p role="alert" className="mt-2 max-w-[11rem] text-center text-[11px] text-danger">
                 {photoError}
@@ -511,10 +520,11 @@ export function EditCandidateProfileForm({
         <div>
           <h2 className={sectionTitle}>Regras Eleitorais (TSE)</h2>
           <p className="mt-1 text-sm text-muted">
-            Essas informações serão preenchidas automaticamente nas suas missões para que o editor inclua nos vídeos.
+            Essas informações serão preenchidas automaticamente nas suas missões para que o editor
+            inclua nos vídeos.
           </p>
         </div>
-        
+
         <LegalNotice />
 
         <div className="grid gap-4 sm:grid-cols-2 mt-2">

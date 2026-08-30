@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 
 export interface ToolItem {
   name: string;
@@ -86,7 +86,11 @@ export function ToolsList({
 
         {searchTrim && (
           <span className="text-xs text-muted">
-            Encontradas <b className="text-gold-hi">{filteredCategories.reduce((acc, c) => acc + (c.tools?.length ?? 0), 0)}</b> ferramentas
+            Encontradas{" "}
+            <b className="text-gold-hi">
+              {filteredCategories.reduce((acc, c) => acc + (c.tools?.length ?? 0), 0)}
+            </b>{" "}
+            ferramentas
           </span>
         )}
       </div>
@@ -121,10 +125,7 @@ export function ToolsList({
             <p className="mt-1 text-sm text-muted">
               Não encontramos nada para &quot;{search}&quot;. Tente outro termo ou limpe a busca.
             </p>
-            <button
-              onClick={() => setSearch("")}
-              className="mt-4 btn-ghost inline-block text-xs"
-            >
+            <button onClick={() => setSearch("")} className="mt-4 btn-ghost inline-block text-xs">
               Limpar pesquisa
             </button>
           </div>
@@ -173,11 +174,7 @@ export function ToolsList({
                           className="h-3.5 w-3.5 flex-none text-muted-2 transition-colors group-hover/f:text-gold ml-1"
                           aria-hidden="true"
                         >
-                          <path
-                            d="M5 3l5 5-5 5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
+                          <path d="M5 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </a>
                     </li>

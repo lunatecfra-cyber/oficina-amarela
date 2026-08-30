@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { missionByIdOfSpokesperson, queuePosition, totalInQueue } from "@/lib/missions-db";
-import { readOwnCandidate } from "@/lib/candidate-db";
-import { requireSession } from "@/lib/server-session";
-import { looksLikeLink, looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
-import {
-  MISSION_STAGES,
-  FORMAT_LABELS,
-  STATUS_LABELS,
-  currentStage,
-  spokespersonStatusMessage,
-} from "@/lib/missions";
-import { MissionActions } from "@/components/mission-actions";
 import { CandidateAvatar } from "@/components/candidate-avatar";
+import { MissionActions } from "@/components/mission-actions";
 import { MissionChat } from "@/components/mission-chat";
 import { ReportButton } from "@/components/report-button";
+import { readOwnCandidate } from "@/lib/candidate-db";
 import { missionMessages } from "@/lib/chat-db";
+import {
+  currentStage,
+  FORMAT_LABELS,
+  MISSION_STAGES,
+  STATUS_LABELS,
+  spokespersonStatusMessage,
+} from "@/lib/missions";
+import { missionByIdOfSpokesperson, queuePosition, totalInQueue } from "@/lib/missions-db";
+import { requireSession } from "@/lib/server-session";
+import { looksLikeDriveLink, looksLikeLink, looksLikeYoutubeLink } from "@/lib/validators";
 
 export const metadata: Metadata = { title: "Missão — Oficina Amarela" };
 export const dynamic = "force-dynamic";
@@ -39,8 +39,7 @@ function formatPureDate(ymd: string) {
 }
 
 function timeSince(iso: string) {
-  const midnight = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const days = Math.round((midnight(new Date()) - midnight(new Date(iso))) / 86_400_000);
   if (days <= 0) return "hoje";
   if (days === 1) return "ontem";
@@ -49,11 +48,7 @@ function timeSince(iso: string) {
   return months === 1 ? "há 1 mês" : `há ${months} meses`;
 }
 
-export default async function MissionDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function MissionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
   const { id: rawId } = await params;
 
@@ -125,7 +120,11 @@ export default async function MissionDetailPage({
             <span className="rounded-full border border-line bg-ink-2 px-2.5 py-0.5">
               {FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}
             </span>
-            <span>{STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? (STATUS_LABELS as any)[status] ?? status}</span>
+            <span>
+              {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ??
+                (STATUS_LABELS as any)[status] ??
+                status}
+            </span>
             <span aria-hidden="true">·</span>
             <span>
               criada {timeSince(createdAt)} · {formatDate(createdAt)}
@@ -134,8 +133,7 @@ export default async function MissionDetailPage({
 
           {isAvailable && position > 0 && (
             <p className="mt-3 text-xs text-muted">
-              Posição <b className="text-text">{position}</b> de {total} na fila
-              dos editores
+              Posição <b className="text-text">{position}</b> de {total} na fila dos editores
             </p>
           )}
 
@@ -169,22 +167,19 @@ export default async function MissionDetailPage({
         </div>
       </header>
 
-      {(isInReview || isApproved) && (
-        <MissionActions id={mission.id} inReview={isInReview} />
-      )}
+      {(isInReview || isApproved) && <MissionActions id={mission.id} inReview={isInReview} />}
 
       {candidate && (
         <section className="mb-8 flex items-center gap-4 rounded-2xl border border-line bg-surface/60 p-5">
-          <CandidateAvatar
-            candidate={candidate}
-            className="h-14 w-14 text-lg"
-          />
+          <CandidateAvatar candidate={candidate} className="h-14 w-14 text-lg" />
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-text">
               {candidate.name ?? (candidate as any).nome}
             </p>
             {(candidate.location ?? (candidate as any).local) && (
-              <p className="mt-0.5 text-xs text-muted">{candidate.location ?? (candidate as any).local}</p>
+              <p className="mt-0.5 text-xs text-muted">
+                {candidate.location ?? (candidate as any).local}
+              </p>
             )}
           </div>
         </section>
@@ -194,14 +189,13 @@ export default async function MissionDetailPage({
         <section className="mb-8 rounded-2xl border border-line bg-surface/60 p-5">
           {reservedBy && (
             <p className="text-sm text-muted">
-              Editor responsável:{" "}
-              <span className="font-medium text-text">{reservedBy}</span>
+              Editor responsável: <span className="font-medium text-text">{reservedBy}</span>
             </p>
           )}
           {reservedAt && (
             <p className="mt-1 text-xs text-muted-2">
-              Com o editor desde {formatDate(reservedAt, false)} · sem prazo —
-              é dele até entregar ou devolver
+              Com o editor desde {formatDate(reservedAt, false)} · sem prazo — é dele até entregar
+              ou devolver
             </p>
           )}
           {deliveryLink && looksLikeLink(deliveryLink) && (
@@ -218,7 +212,8 @@ export default async function MissionDetailPage({
         </section>
       )}
 
-      {((driveLink && looksLikeDriveLink(driveLink)) || (youtubeLink && looksLikeYoutubeLink(youtubeLink))) && (
+      {((driveLink && looksLikeDriveLink(driveLink)) ||
+        (youtubeLink && looksLikeYoutubeLink(youtubeLink))) && (
         <section className="mb-6">
           <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-gold">
             Vídeo bruto
@@ -262,10 +257,12 @@ export default async function MissionDetailPage({
             ] as const
           ).map(([label, value]) => (
             <div key={label}>
-              <dt className="text-[11px] uppercase tracking-wide text-muted-2">
-                {label}
-              </dt>
-              <dd className={value ? "mt-0.5 text-sm text-text" : "mt-0.5 text-sm text-muted-2 italic"}>
+              <dt className="text-[11px] uppercase tracking-wide text-muted-2">{label}</dt>
+              <dd
+                className={
+                  value ? "mt-0.5 text-sm text-text" : "mt-0.5 text-sm text-muted-2 italic"
+                }
+              >
                 {value ?? "não informado"}
               </dd>
             </div>
@@ -278,10 +275,10 @@ export default async function MissionDetailPage({
             ] as const
           ).map(([label, value]) => (
             <div key={label} className="sm:col-span-2">
-              <dt className="text-[11px] uppercase tracking-wide text-muted-2">
-                {label}
-              </dt>
-              <dd className={`mt-0.5 text-sm ${value ? "whitespace-pre-line text-text" : "text-muted-2 italic"}`}>
+              <dt className="text-[11px] uppercase tracking-wide text-muted-2">{label}</dt>
+              <dd
+                className={`mt-0.5 text-sm ${value ? "whitespace-pre-line text-text" : "text-muted-2 italic"}`}
+              >
                 {value ?? "não informado"}
               </dd>
             </div>

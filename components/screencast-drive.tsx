@@ -153,9 +153,7 @@ export function ScreencastDrive() {
             <div className="cast-barra">Compartilhar “bairro-02.mp4”</div>
             <div className="cast-linha" style={{ gap: 6 }}>
               <span aria-hidden="true">🔗</span>
-              <span style={{ color: "#137333", fontWeight: 600 }}>
-                Qualquer pessoa com o link
-              </span>
+              <span style={{ color: "#137333", fontWeight: 600 }}>Qualquer pessoa com o link</span>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "10px 9px" }}>
               <span

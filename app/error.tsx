@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
-import Link from "next/link";
 import * as Sentry from "@sentry/nextjs";
+import Link from "next/link";
+import { useEffect } from "react";
 
 export default function ErrorPage({
   error,
@@ -31,9 +31,7 @@ export default function ErrorPage({
         </p>
 
         {error.digest && (
-          <p className="mt-3 font-mono text-[11px] text-muted-2">
-            Error ID: {error.digest}
-          </p>
+          <p className="mt-3 font-mono text-[11px] text-muted-2">Error ID: {error.digest}</p>
         )}
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">

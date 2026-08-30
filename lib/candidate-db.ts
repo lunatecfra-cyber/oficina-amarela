@@ -1,6 +1,6 @@
+import { type Candidate, DEFAULT_TINT, type SocialLinks } from "@/lib/candidates";
 import { sql } from "@/lib/db";
-import { LIMITS, isValidPhoto, limitStr, limitList, limitOrNull } from "@/lib/limits";
-import { DEFAULT_TINT, type Candidate, type SocialLinks } from "@/lib/candidates";
+import { isValidPhoto, LIMITS, limitList, limitOrNull, limitStr } from "@/lib/limits";
 
 export type CandidateOnboarding = {
   name: string;
@@ -126,7 +126,7 @@ export async function saveCandidateOnboarding(
     marcaDagua?: string;
     cnpjCampanha?: string;
     tituloEleitor?: string;
-  }
+  },
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const rawName = data.name ?? data.nome ?? "";
   const name = limitStr(rawName, LIMITS.name);
@@ -134,7 +134,11 @@ export async function saveCandidateOnboarding(
 
   const photo = data.avatarUrl ?? data.photoUrl ?? data.fotoUrl;
   if (!isValidPhoto(photo)) {
-    return { ok: false, error: "A foto precisa ser imagem e ter menos de 1,5 MB.", erro: "A foto precisa ser imagem e ter menos de 1,5 MB." };
+    return {
+      ok: false,
+      error: "A foto precisa ser imagem e ter menos de 1,5 MB.",
+      erro: "A foto precisa ser imagem e ter menos de 1,5 MB.",
+    };
   }
 
   const office = data.politicalOffice ?? data.role ?? data.cargo;

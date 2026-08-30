@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { HEADLINES, MAX_HEADLINES } from "@/lib/profile";
 import type { EditableProfile } from "@/lib/profile-db";
 
@@ -106,9 +106,7 @@ export function EditProfileForm({
           })}
         </div>
         {headline.length >= MAX_HEADLINES && (
-          <p className="mt-2 text-xs text-muted-2">
-            Máximo de {MAX_HEADLINES} especialidades.
-          </p>
+          <p className="mt-2 text-xs text-muted-2">Máximo de {MAX_HEADLINES} especialidades.</p>
         )}
       </div>
 
@@ -161,8 +159,7 @@ export function EditProfileForm({
       </div>
 
       <p className="mt-6 border-t border-line pt-4 text-xs text-muted-2">
-        Foto, softwares, estilos, formato, nível de edição e setup ficam no
-        formulário completo.{" "}
+        Foto, softwares, estilos, formato, nível de edição e setup ficam no formulário completo.{" "}
         <Link href="/editor/criar-perfil" className="text-gold-hi hover:underline">
           Editar a bancada →
         </Link>

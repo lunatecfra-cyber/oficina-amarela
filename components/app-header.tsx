@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Logo } from "@/components/logo";
-import { LogoutButton } from "@/components/logout-button";
 import { EditorNav } from "@/components/editor-nav";
 import { LocalGuide } from "@/components/local-guide";
+import { Logo } from "@/components/logo";
+import { LogoutButton } from "@/components/logout-button";
 import type { Editor } from "@/lib/missions";
 import { readEditorProfile } from "@/lib/profile-db";
 import { readSession } from "@/lib/server-session";
@@ -22,10 +22,7 @@ export async function AppHeader() {
             </span>
           </Link>
 
-          <Link
-            href="/login"
-            className="text-sm text-muted transition-colors hover:text-gold-hi"
-          >
+          <Link href="/login" className="text-sm text-muted transition-colors hover:text-gold-hi">
             Entrar
           </Link>
         </div>

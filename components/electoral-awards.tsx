@@ -1,9 +1,23 @@
-import { ELECTORAL_AWARDS, type ElectoralAward, type PremioEleitoral } from "@/lib/electoral-ranking";
+import {
+  ELECTORAL_AWARDS,
+  type ElectoralAward,
+  type PremioEleitoral,
+} from "@/lib/electoral-ranking";
 
 function TicketIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden="true">
-      <path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h13A1.5 1.5 0 0 1 20 8.5v2a2 2 0 0 0 0 3.9v2A1.5 1.5 0 0 1 18.5 18h-13A1.5 1.5 0 0 1 4 16.4v-2a2 2 0 0 0 0-3.9Z" strokeLinejoin="round" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M4 8.5A1.5 1.5 0 0 1 5.5 7h13A1.5 1.5 0 0 1 20 8.5v2a2 2 0 0 0 0 3.9v2A1.5 1.5 0 0 1 18.5 18h-13A1.5 1.5 0 0 1 4 16.4v-2a2 2 0 0 0 0-3.9Z"
+        strokeLinejoin="round"
+      />
       <path d="M13 7v11" strokeDasharray="2 2.4" strokeLinecap="round" />
     </svg>
   );
@@ -11,7 +25,14 @@ function TicketIcon({ className }: { className?: string }) {
 
 function FlagIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      className={className}
+      aria-hidden="true"
+    >
       <path d="M6 20V4" strokeLinecap="round" />
       <path d="M6 5h11l-3 3.5L17 12H6" strokeLinejoin="round" />
     </svg>
@@ -20,7 +41,14 @@ function FlagIcon({ className }: { className?: string }) {
 
 function MugIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      className={className}
+      aria-hidden="true"
+    >
       <path d="M5 8h11v8a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4Z" strokeLinejoin="round" />
       <path d="M16 10.5h1.8a2.6 2.6 0 0 1 0 5.2H16" strokeLinecap="round" />
     </svg>
@@ -29,18 +57,41 @@ function MugIcon({ className }: { className?: string }) {
 
 function DrawIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden="true">
-      <path d="M12 3.5 14.4 9l5.6.5-4.3 3.8 1.3 5.7L12 16l-5 3 1.3-5.7L4 9.5 9.6 9Z" strokeLinejoin="round" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 3.5 14.4 9l5.6.5-4.3 3.8 1.3 5.7L12 16l-5 3 1.3-5.7L4 9.5 9.6 9Z"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function MysteryGiftIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden="true">
-      <path d="M4 10.5h16V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19Z" strokeLinejoin="round" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M4 10.5h16V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19Z"
+        strokeLinejoin="round"
+      />
       <path d="M3 7.5h18v3H3zM12 7.5v13" strokeLinejoin="round" />
-      <path d="M12 7.5S10.6 3.5 8.6 3.5a2 2 0 0 0 0 4M12 7.5s1.4-4 3.4-4a2 2 0 0 1 0 4" strokeLinecap="round" />
+      <path
+        d="M12 7.5S10.6 3.5 8.6 3.5a2 2 0 0 0 0 4M12 7.5s1.4-4 3.4-4a2 2 0 0 1 0 4"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -98,12 +149,10 @@ export function ElectoralAwards({
             />
 
             <div className="min-w-0 flex-1">
-              <p className={`text-sm font-medium ${isUnlocked || isNext ? "text-text" : "text-muted"}`}>
-                {isHidden ? (
-                  <span className="italic">Presente misterioso</span>
-                ) : (
-                  p.award
-                )}{" "}
+              <p
+                className={`text-sm font-medium ${isUnlocked || isNext ? "text-text" : "text-muted"}`}
+              >
+                {isHidden ? <span className="italic">Presente misterioso</span> : p.award}{" "}
                 <span className="font-normal text-muted-2">· {p.target}</span>
               </p>
               <p className="mt-0.5 text-[11px] text-muted-2">

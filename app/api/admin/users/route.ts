@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
+import { banUser, removeUser, searchUsers, unbanUser } from "@/lib/admin-users";
 import { readSession } from "@/lib/server-session";
-import {
-  searchUsers,
-  banUser,
-  unbanUser,
-  removeUser,
-} from "@/lib/admin-users";
 
 async function requireAdmin() {
   const session = await readSession();
-  if (!session) return { ok: false as const, resp: NextResponse.json({ error: "Faça login.", erro: "Faça login." }, { status: 401 }) };
+  if (!session)
+    return {
+      ok: false as const,
+      resp: NextResponse.json({ error: "Faça login.", erro: "Faça login." }, { status: 401 }),
+    };
   if (session.role !== "admin") {
-    return { ok: false as const, resp: NextResponse.json({ error: "Só o inspetor.", erro: "Só o inspetor." }, { status: 403 }) };
+    return {
+      ok: false as const,
+      resp: NextResponse.json({ error: "Só o inspetor.", erro: "Só o inspetor." }, { status: 403 }),
+    };
   }
   return { ok: true as const, session };
 }
@@ -45,7 +47,10 @@ export async function POST(request: Request) {
           : null;
 
   if (typeof userId !== "number" || !Number.isFinite(userId)) {
-    return NextResponse.json({ error: "Identificador de usuário inválido.", erro: "Usuário inválido." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Identificador de usuário inválido.", erro: "Usuário inválido." },
+      { status: 400 },
+    );
   }
   if (!action) {
     return NextResponse.json({ error: "Ação inválida.", erro: "Ação inválida." }, { status: 400 });
@@ -54,7 +59,7 @@ export async function POST(request: Request) {
   if (action === "delete" && userId === auth.session.id) {
     return NextResponse.json(
       { error: "Para apagar a sua própria conta, use a tela de perfil.", erro: "Auto exclusão." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 

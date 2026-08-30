@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createAccount, checkRoleSlots, recordAttempt, isRateLimited } from "@/lib/accounts";
-import { requestIpAddress } from "@/lib/ip";
-import { createSessionToken, COOKIE_NAME, COOKIE_OPTS, type Role } from "@/lib/session";
+import { NextResponse } from "next/server";
+import { checkRoleSlots, createAccount, isRateLimited, recordAttempt } from "@/lib/accounts";
 import { recordDailyLogin } from "@/lib/gamification-db";
+import { requestIpAddress } from "@/lib/ip";
+import { COOKIE_NAME, COOKIE_OPTS, createSessionToken, type Role } from "@/lib/session";
 
 const MAX_SIGNUPS_PER_IP = 10;
 
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         error: `Muitas contas criadas deste IP. Tente novamente em ${lock.minutes} min.`,
         erro: `Muitas contas criadas deste IP. Tente novamente em ${lock.minutes} min.`,
       },
-      { status: 429 }
+      { status: 429 },
     );
   }
 
@@ -27,10 +27,25 @@ export async function POST(request: Request) {
   const email = body?.email;
   const password = body?.password ?? body?.senha;
   const rawRole = body?.role ?? body?.papel;
-  const invitation = typeof body?.invitation === "string" ? body.invitation : typeof body?.convite === "string" ? body.convite : undefined;
-  const referralCode = typeof body?.referralCode === "string" ? body.referralCode : typeof body?.codigoIndicacao === "string" ? body.codigoIndicacao : undefined;
+  const invitation =
+    typeof body?.invitation === "string"
+      ? body.invitation
+      : typeof body?.convite === "string"
+        ? body.convite
+        : undefined;
+  const referralCode =
+    typeof body?.referralCode === "string"
+      ? body.referralCode
+      : typeof body?.codigoIndicacao === "string"
+        ? body.codigoIndicacao
+        : undefined;
 
-  const role: Role = rawRole === "spokesperson" || rawRole === "voz" ? "spokesperson" : rawRole === "editor" ? "editor" : "editor";
+  const role: Role =
+    rawRole === "spokesperson" || rawRole === "voz"
+      ? "spokesperson"
+      : rawRole === "editor"
+        ? "editor"
+        : "editor";
 
   if (
     typeof name !== "string" ||
@@ -38,11 +53,23 @@ export async function POST(request: Request) {
     typeof email !== "string" ||
     typeof password !== "string"
   ) {
-    return NextResponse.json({ error: "Preencha todos os campos obrigatórios.", erro: "Preencha todos os campos obrigatórios." }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: "Preencha todos os campos obrigatórios.",
+        erro: "Preencha todos os campos obrigatórios.",
+      },
+      { status: 400 },
+    );
   }
 
   if (rawRole !== "spokesperson" && rawRole !== "voz" && rawRole !== "editor") {
-    return NextResponse.json({ error: "Escolha se você é candidato ou editor.", erro: "Escolha se você é candidato ou editor." }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: "Escolha se você é candidato ou editor.",
+        erro: "Escolha se você é candidato ou editor.",
+      },
+      { status: 400 },
+    );
   }
 
   const slotCheck = await checkRoleSlots(role);
@@ -66,7 +93,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(
       { error: result.error, erro: result.error },
-      { status: result.conflict ? 409 : 400 }
+      { status: result.conflict ? 409 : 400 },
     );
   }
 
@@ -76,7 +103,7 @@ export async function POST(request: Request) {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, COOKIE_OPTS);
   void recordDailyLogin(result.account.id).catch((e) =>
-    console.error("[gamification] failed to record login", e)
+    console.error("[gamification] failed to record login", e),
   );
 
   return NextResponse.json({ ok: true, ...result.account });

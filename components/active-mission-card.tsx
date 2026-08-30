@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FORMAT_LABEL, type Mission } from "@/lib/missions";
-import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
+import { useState } from "react";
 import { MissionChat } from "@/components/mission-chat";
+import { ReportButton } from "@/components/report-button";
 import { TutorialButton, TutorialDrive } from "@/components/tutorial-drive";
 import { UploadDropzone } from "@/components/upload-dropzone";
 import type { ChatMessage } from "@/lib/chat-db";
-import { ReportButton } from "@/components/report-button";
+import { FORMAT_LABEL, type Mission } from "@/lib/missions";
+import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 
 function Chip({ k, v }: { k: string; v: string }) {
   return (
@@ -68,7 +68,11 @@ export function ActiveMissionCard({
   const rawVideoUrl = currentMission.rawVideoUrl ?? currentMission.videoBrutoUrl;
   const driveLink = currentMission.driveLink;
   const youtubeLink = currentMission.youtubeLink;
-  const deliveredVideoUrl = currentMission.deliveryVideoUrl ?? currentMission.videoEntregaUrl ?? currentMission.deliveryLink ?? currentMission.entregaLink;
+  const deliveredVideoUrl =
+    currentMission.deliveryVideoUrl ??
+    currentMission.videoEntregaUrl ??
+    currentMission.deliveryLink ??
+    currentMission.entregaLink;
   const inspectorNotes = currentMission.inspectorNotes ?? currentMission.notasInspetor;
   const revisionBy = currentMission.revisionRequestedBy ?? currentMission.reedicaoPedidaPor;
   const watermark = currentMission.watermark ?? currentMission.marcaDagua;
@@ -150,17 +154,25 @@ export function ActiveMissionCard({
               ? "O porta-voz pediu um ajuste"
               : "O controle de qualidade pediu um ajuste"}
           </p>
-          <p className="mt-2 whitespace-pre-line text-sm text-text">
-            {inspectorNotes}
-          </p>
+          <p className="mt-2 whitespace-pre-line text-sm text-text">{inspectorNotes}</p>
         </div>
       )}
 
       {(watermark || campaignTaxId || voterId) && (
         <div className="mt-4 rounded-2xl border border-gold/40 bg-gold/[0.06] p-4 flex gap-3">
           <div className="mt-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-gold">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="w-5 h-5 text-gold"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
           </div>
           <div>
@@ -171,23 +183,34 @@ export function ActiveMissionCard({
               As seguintes informações devem aparecer de forma legível no vídeo final:
             </p>
             <ul className="mt-2 space-y-1 text-sm text-text">
-              {watermark && <li><span className="text-muted-2">Marca d&apos;água:</span> {watermark}</li>}
-              {campaignTaxId && <li><span className="text-muted-2">CNPJ:</span> {campaignTaxId}</li>}
-              {voterId && <li><span className="text-muted-2">Título de Eleitor:</span> {voterId}</li>}
+              {watermark && (
+                <li>
+                  <span className="text-muted-2">Marca d&apos;água:</span> {watermark}
+                </li>
+              )}
+              {campaignTaxId && (
+                <li>
+                  <span className="text-muted-2">CNPJ:</span> {campaignTaxId}
+                </li>
+              )}
+              {voterId && (
+                <li>
+                  <span className="text-muted-2">Título de Eleitor:</span> {voterId}
+                </li>
+              )}
             </ul>
           </div>
         </div>
       )}
 
-      {(rawVideoUrl || (driveLink && looksLikeDriveLink(driveLink)) || (youtubeLink && looksLikeYoutubeLink(youtubeLink))) && (
+      {(rawVideoUrl ||
+        (driveLink && looksLikeDriveLink(driveLink)) ||
+        (youtubeLink && looksLikeYoutubeLink(youtubeLink))) && (
         <div className="mt-5 rounded-2xl border border-gold/30 bg-gradient-to-r from-gold/[0.08] to-gold/[0.03] p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-gold">
             Acesso ao bruto
           </p>
-          <p
-            className="mt-3 flex flex-wrap items-center gap-2"
-            data-guia="abrir-bruto"
-          >
+          <p className="mt-3 flex flex-wrap items-center gap-2" data-guia="abrir-bruto">
             {rawVideoUrl && (
               <a
                 href={rawVideoUrl}
@@ -197,7 +220,11 @@ export function ActiveMissionCard({
                 className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-base font-semibold text-surface transition-colors hover:bg-gold-hi"
               >
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5" aria-hidden="true">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L9 11.586V4a1 1 0 011-1z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L9 11.586V4a1 1 0 011-1z"
+                    clipRule="evenodd"
+                  />
                   <path d="M4 16a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" />
                 </svg>
                 Baixar Vídeo
@@ -210,7 +237,14 @@ export function ActiveMissionCard({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 px-5 py-2.5 text-base font-semibold text-gold-hi transition-colors hover:bg-gold/20"
               >
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4" aria-hidden="true">
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                >
                   <path d="M5 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 Abrir pasta no Drive
@@ -223,7 +257,14 @@ export function ActiveMissionCard({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 px-5 py-2.5 text-base font-semibold text-gold-hi transition-colors hover:bg-gold/20"
               >
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4" aria-hidden="true">
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                >
                   <path d="M5 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 Abrir no YouTube
@@ -231,17 +272,15 @@ export function ActiveMissionCard({
             )}
           </p>
           <p className="mt-3 text-xs text-muted-2">
-            Se o Drive pedir permissão, peça a liberação a quem criou a missão —
-            hoje esse acesso ainda é liberado à mão.
+            Se o Drive pedir permissão, peça a liberação a quem criou a missão — hoje esse acesso
+            ainda é liberado à mão.
           </p>
         </div>
       )}
 
       {hasBrief && (
         <div className="mt-4 rounded-2xl border border-line bg-surface/60 p-4">
-          <p className="text-xs uppercase tracking-[0.12em] text-muted">
-            O que foi pedido
-          </p>
+          <p className="text-xs uppercase tracking-[0.12em] text-muted">O que foi pedido</p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {(currentMission.brief?.tone ?? currentMission.brief?.tom) && (
               <Chip k="tom" v={(currentMission.brief.tone ?? currentMission.brief.tom)!} />
@@ -258,22 +297,14 @@ export function ActiveMissionCard({
             <div className="mt-3 flex flex-col gap-2 text-xs">
               {extras && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-2">
-                    Cortes pedidos
-                  </p>
-                  <p className="mt-0.5 whitespace-pre-line text-muted">
-                    {extras}
-                  </p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-2">Cortes pedidos</p>
+                  <p className="mt-0.5 whitespace-pre-line text-muted">{extras}</p>
                 </div>
               )}
               {motivation && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-2">
-                    Contexto
-                  </p>
-                  <p className="mt-0.5 whitespace-pre-line text-muted">
-                    {motivation}
-                  </p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-2">Contexto</p>
+                  <p className="mt-0.5 whitespace-pre-line text-muted">{motivation}</p>
                 </div>
               )}
             </div>
@@ -285,8 +316,8 @@ export function ActiveMissionCard({
         <>
           <div className="mt-5 rounded-2xl border border-ok/40 bg-ok/[0.06] p-4">
             <p className="flex flex-wrap items-center gap-2 text-sm text-text">
-              <span className="text-ok">✓</span> Entregue. Agora é com o controle
-              de qualidade — assim que aprovarem, a próxima missão chega pra você.
+              <span className="text-ok">✓</span> Entregue. Agora é com o controle de qualidade —
+              assim que aprovarem, a próxima missão chega pra você.
               {deliveredVideoUrl && (
                 <a
                   href={deliveredVideoUrl}
@@ -301,8 +332,8 @@ export function ActiveMissionCard({
           </div>
 
           <p className="mt-3 text-xs text-muted-2">
-            Precisa trocar o vídeo? Fale com quem pediu a missão — depois de
-            aprovada, ela não volta pra edição sozinha.
+            Precisa trocar o vídeo? Fale com quem pediu a missão — depois de aprovada, ela não volta
+            pra edição sozinha.
           </p>
         </>
       ) : (
@@ -322,7 +353,9 @@ export function ActiveMissionCard({
 
             <div className="mt-4 flex items-center gap-4">
               <div className="h-px flex-1 bg-line" />
-              <span className="text-[10px] text-muted font-medium uppercase tracking-widest">OU COLE UM LINK</span>
+              <span className="text-[10px] text-muted font-medium uppercase tracking-widest">
+                OU COLE UM LINK
+              </span>
               <div className="h-px flex-1 bg-line" />
             </div>
 

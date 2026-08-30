@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { isGoogleOAuthConfigured, buildGoogleAuthUrl } from "@/lib/oauth-google";
+import { NextResponse } from "next/server";
+import { buildGoogleAuthUrl, isGoogleOAuthConfigured } from "@/lib/oauth-google";
 import {
-  STATE_COOKIE_OPTS,
   createSignedState,
-  STATE_COOKIE_NAME,
   INVITATION_COOKIE_NAME,
   REFERRAL_COOKIE_NAME,
+  STATE_COOKIE_NAME,
+  STATE_COOKIE_OPTS,
 } from "@/lib/session";
 
 export async function GET(request: Request) {
@@ -14,8 +14,12 @@ export async function GET(request: Request) {
 
   if (!isGoogleOAuthConfigured()) {
     return NextResponse.json(
-      { error: "Google OAuth is not configured yet (missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).", erro: "Google OAuth not configured." },
-      { status: 503 }
+      {
+        error:
+          "Google OAuth is not configured yet (missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).",
+        erro: "Google OAuth not configured.",
+      },
+      { status: 503 },
     );
   }
 

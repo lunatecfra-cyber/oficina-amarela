@@ -1,12 +1,12 @@
 import Link from "next/link";
+import { LocalGuide } from "@/components/local-guide";
 import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
-import { LocalGuide } from "@/components/local-guide";
 import { readSession } from "@/lib/server-session";
 
 export async function AppHeaderSpokesperson() {
   const session = await readSession();
-  
+
   if (!session) return null;
 
   return (
@@ -32,10 +32,7 @@ export async function AppHeaderSpokesperson() {
             <span className="sm:hidden">Perfil</span>
           </Link>
 
-          <Link
-            href="/parceiros"
-            className="text-sm text-muted transition-colors hover:text-text"
-          >
+          <Link href="/parceiros" className="text-sm text-muted transition-colors hover:text-text">
             Parceiros
           </Link>
 

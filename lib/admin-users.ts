@@ -173,11 +173,21 @@ export const verDetalhesUsuario = viewUserDetails;
 
 export async function banUser(
   userId: number,
-  reason: string
+  reason: string,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const cleanReason = reason.trim();
-  if (!cleanReason) return { ok: false, error: "Escreva o motivo do banimento.", erro: "Escreva o motivo do banimento." };
-  if (cleanReason.length > 500) return { ok: false, error: "Motivo longo demais (máx. 500).", erro: "Motivo longo demais (máx. 500)." };
+  if (!cleanReason)
+    return {
+      ok: false,
+      error: "Escreva o motivo do banimento.",
+      erro: "Escreva o motivo do banimento.",
+    };
+  if (cleanReason.length > 500)
+    return {
+      ok: false,
+      error: "Motivo longo demais (máx. 500).",
+      erro: "Motivo longo demais (máx. 500).",
+    };
 
   const [updated] = await sql`
     UPDATE users
@@ -189,7 +199,11 @@ export async function banUser(
     RETURNING id
   `;
   if (!updated) {
-    return { ok: false, error: "Não dá pra banir essa conta (admin ou inexistente).", erro: "Não dá pra banir essa conta (admin ou inexistente)." };
+    return {
+      ok: false,
+      error: "Não dá pra banir essa conta (admin ou inexistente).",
+      erro: "Não dá pra banir essa conta (admin ou inexistente).",
+    };
   }
   return { ok: true };
 }
@@ -197,7 +211,7 @@ export async function banUser(
 export const banirUsuario = banUser;
 
 export async function unbanUser(
-  userId: number
+  userId: number,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const [updated] = await sql`
     UPDATE users
@@ -214,14 +228,20 @@ export async function unbanUser(
 export const desbanirUsuario = unbanUser;
 
 export async function removeUser(
-  userId: number
-): Promise<{ ok: true; handle: string; apelido?: string } | { ok: false; error: string; erro?: string }> {
+  userId: number,
+): Promise<
+  { ok: true; handle: string; apelido?: string } | { ok: false; error: string; erro?: string }
+> {
   const [target] = await sql`
     SELECT id, apelido, papel FROM users WHERE id = ${userId}
   `;
   if (!target) return { ok: false, error: "Conta não encontrada.", erro: "Conta não encontrada." };
   if (target.papel === "admin") {
-    return { ok: false, error: "Conta de inspetor não pode ser apagada por aqui.", erro: "Conta de inspetor não pode ser apagada por aqui." };
+    return {
+      ok: false,
+      error: "Conta de inspetor não pode ser apagada por aqui.",
+      erro: "Conta de inspetor não pode ser apagada por aqui.",
+    };
   }
 
   await sql`

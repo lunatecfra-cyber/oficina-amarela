@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
-import { EditProfileForm } from "@/components/edit-profile-form";
 import { DeleteAccount } from "@/components/delete-account";
+import { EditProfileForm } from "@/components/edit-profile-form";
 import { SetPassword } from "@/components/set-password";
 import { accountHasPassword } from "@/lib/accounts";
 import { readEditableProfile } from "@/lib/profile-db";

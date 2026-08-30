@@ -79,106 +79,127 @@ body {
 }
 
 @layer components {
-.text-silver-grad {
-  background: linear-gradient(180deg, var(--color-silver-hi) 0%, var(--color-silver) 48%, var(--color-silver-lo) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
+  .text-silver-grad {
+    background: linear-gradient(
+      180deg,
+      var(--color-silver-hi) 0%,
+      var(--color-silver) 48%,
+      var(--color-silver-lo) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 
-.text-gold-grad {
-  background: linear-gradient(180deg, var(--color-gold-hi) 0%, var(--color-gold) 55%, var(--color-gold-lo) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
+  .text-gold-grad {
+    background: linear-gradient(
+      180deg,
+      var(--color-gold-hi) 0%,
+      var(--color-gold) 55%,
+      var(--color-gold-lo) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 
-.field-input {
-  width: 100%;
-  padding: 0.875rem 0.95rem 0.875rem 2.75rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 0.75rem;
-  color: var(--color-text);
-  /* 16px cravado, e não 0.95rem.
+  .field-input {
+    width: 100%;
+    padding: 0.875rem 0.95rem 0.875rem 2.75rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 0.75rem;
+    color: var(--color-text);
+    /* 16px cravado, e não 0.95rem.
      Abaixo disso o Safari do iPhone dá zoom sozinho quando o campo recebe
      foco: a tela salta, o resto do formulário sai de vista e a pessoa precisa
      voltar com o dedo. 16px é o limite exato em que ele deixa quieto. */
-  font-size: 16px;
-  /* área de toque: 44px é o mínimo que a mão acerta sem errar. O padding acima
+    font-size: 16px;
+    /* área de toque: 44px é o mínimo que a mão acerta sem errar. O padding acima
      já leva além disso, mas o mínimo protege se alguém apertar o padding
      depois. */
-  min-height: 44px;
-  transition: border-color 0.25s var(--ease-guild), box-shadow 0.25s var(--ease-guild), background 0.25s;
-}
+    min-height: 44px;
+    transition:
+      border-color 0.25s var(--ease-guild),
+      box-shadow 0.25s var(--ease-guild),
+      background 0.25s;
+  }
 
-.field-input::placeholder {
-  color: var(--color-muted-2);
-}
+  .field-input::placeholder {
+    color: var(--color-muted-2);
+  }
 
-.field-input:focus {
-  outline: none;
-  border-color: var(--color-gold);
-  background: var(--color-surface-2);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.13);
-}
+  .field-input:focus {
+    outline: none;
+    border-color: var(--color-gold);
+    background: var(--color-surface-2);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.13);
+  }
 
-.field-input:-webkit-autofill,
-.field-input:-webkit-autofill:hover,
-.field-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--color-text);
-  caret-color: var(--color-text);
-  -webkit-box-shadow: 0 0 0 40px var(--color-surface) inset;
-  transition: background-color 9999s ease-in-out 0s;
-}
+  .field-input:-webkit-autofill,
+  .field-input:-webkit-autofill:hover,
+  .field-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-text);
+    caret-color: var(--color-text);
+    -webkit-box-shadow: 0 0 0 40px var(--color-surface) inset;
+    transition: background-color 9999s ease-in-out 0s;
+  }
 
-.btn-gold {
-  position: relative;
-  width: 100%;
-  padding: 0.9rem 1rem;
-  /* 44px é o menor alvo que o dedo acerta de primeira. O padding já passa
+  .btn-gold {
+    position: relative;
+    width: 100%;
+    padding: 0.9rem 1rem;
+    /* 44px é o menor alvo que o dedo acerta de primeira. O padding já passa
      disso na maioria dos casos, mas botão com texto curto encolhia abaixo —
      e errar o botão principal é o pior lugar pra economizar espaço. */
-  min-height: 44px;
-  border: 0;
-  border-radius: 0.75rem;
-  background: linear-gradient(180deg, #fbe9a6, #f4ce1f 55%, #c79c12);
-  color: #1a1405;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  overflow: hidden;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px rgba(0, 0, 0, 0.5);
-  transition: transform 0.18s var(--ease-guild), box-shadow 0.25s var(--ease-guild);
-}
+    min-height: 44px;
+    border: 0;
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, #fbe9a6, #f4ce1f 55%, #c79c12);
+    color: #1a1405;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.5) inset,
+      0 10px 24px rgba(0, 0, 0, 0.5);
+    transition:
+      transform 0.18s var(--ease-guild),
+      box-shadow 0.25s var(--ease-guild);
+  }
 
-.btn-gold:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 14px 30px rgba(0, 0, 0, 0.6);
-}
+  .btn-gold:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 14px 30px rgba(0, 0, 0, 0.6);
+  }
 
-.btn-gold:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
+  .btn-gold:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
 
-.btn-ghost {
-  width: 100%;
-  padding: 0.85rem 1rem;
-  min-height: 44px;
-  border: 1px solid var(--color-line);
-  border-radius: 0.75rem;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.2s var(--ease-guild), background 0.2s var(--ease-guild);
-}
+  .btn-ghost {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    min-height: 44px;
+    border: 1px solid var(--color-line);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      border-color 0.2s var(--ease-guild),
+      background 0.2s var(--ease-guild);
+  }
 
-.btn-ghost:hover {
-  border-color: var(--color-silver-lo);
-  background: var(--color-surface-2);
-}
+  .btn-ghost:hover {
+    border-color: var(--color-silver-lo);
+    background: var(--color-surface-2);
+  }
 }
 
 :focus-visible {
@@ -368,7 +389,12 @@ body {
   content: "";
   position: absolute;
   inset: -60% -40%;
-  background: linear-gradient(75deg, transparent 42%, rgba(244, 206, 31, 0.16) 50%, transparent 58%);
+  background: linear-gradient(
+    75deg,
+    transparent 42%,
+    rgba(244, 206, 31, 0.16) 50%,
+    transparent 58%
+  );
   transform: translateX(-140%);
   transition: transform 0.75s var(--ease-guild);
   pointer-events: none;
@@ -399,7 +425,9 @@ body {
 
 /* hover 3D: inclinação dinâmica (CSS custom properties setadas via JS) */
 .carta.virada {
-  transition: transform 0.9s var(--ease-guild), box-shadow 0.35s var(--ease-guild);
+  transition:
+    transform 0.9s var(--ease-guild),
+    box-shadow 0.35s var(--ease-guild);
 }
 
 .carta.virada:hover {
@@ -478,7 +506,12 @@ body {
   content: "";
   position: absolute;
   inset: -60% -40%;
-  background: linear-gradient(75deg, transparent 42%, rgba(244, 206, 31, 0.08) 50%, transparent 58%);
+  background: linear-gradient(
+    75deg,
+    transparent 42%,
+    rgba(244, 206, 31, 0.08) 50%,
+    transparent 58%
+  );
   transform: translateX(-140%);
   transition: transform 0.75s var(--ease-guild);
 }
@@ -508,8 +541,15 @@ body {
 }
 
 @keyframes selo-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.08); opacity: 0.2; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.2;
+  }
 }
 
 /* micro-animação: itens de responsabilidade surgem após o flip */

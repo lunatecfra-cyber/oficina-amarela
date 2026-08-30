@@ -1,6 +1,6 @@
-import type { Candidate, Candidato } from "@/lib/candidates";
 import { ProximityLocation } from "@/components/proximity-location";
 import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
+import type { Candidate, Candidato } from "@/lib/candidates";
 
 export function CandidateData({
   candidate,
@@ -23,7 +23,12 @@ export function CandidateData({
   const flags = cand.causes ?? (cand as any).bandeiras;
   const keywords = cand.keywords ?? (cand as any).palavrasChave;
 
-  const hasSocials = !!(socialLinks?.instagram || socialLinks?.youtube || socialLinks?.tiktok || socialLinks?.x);
+  const hasSocials = !!(
+    socialLinks?.instagram ||
+    socialLinks?.youtube ||
+    socialLinks?.tiktok ||
+    socialLinks?.x
+  );
 
   return (
     <>
@@ -65,9 +70,7 @@ export function CandidateData({
           )}
         </div>
       )}
-      {bio && (
-        <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-muted">{bio}</p>
-      )}
+      {bio && <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-muted">{bio}</p>}
       {(tone || (flags && flags.length > 0)) && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {tone && (

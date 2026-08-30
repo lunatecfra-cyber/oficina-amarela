@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type { NewsItemDb, NovidadeDb } from "@/lib/news-db";
 
 export function NewsPanel({
@@ -59,7 +59,7 @@ export function NewsPanel({
       l.map((x) => {
         const isPub = x.published ?? (x as any).publicada;
         return x.id === n.id ? { ...x, published: !isPub, publicada: !isPub } : x;
-      })
+      }),
     );
     router.refresh();
   }
@@ -122,7 +122,11 @@ export function NewsPanel({
           </p>
         )}
 
-        <button className="btn-gold mt-4 w-full sm:w-52" onClick={handlePublish} disabled={isSaving}>
+        <button
+          className="btn-gold mt-4 w-full sm:w-52"
+          onClick={handlePublish}
+          disabled={isSaving}
+        >
           {isSaving ? "Publicando…" : "Publicar"}
         </button>
       </section>
@@ -134,8 +138,8 @@ export function NewsPanel({
 
         {list.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-line-soft bg-surface/40 p-6 text-center text-sm text-muted">
-            Nenhuma ainda. Enquanto não houver, a página inicial mostra o texto
-            que veio junto com o sistema.
+            Nenhuma ainda. Enquanto não houver, a página inicial mostra o texto que veio junto com o
+            sistema.
           </p>
         ) : (
           <ul className="mt-4 flex flex-col gap-3">
@@ -172,7 +176,10 @@ export function NewsPanel({
                   </div>
 
                   <div className="mt-3 flex gap-2">
-                    <button className="btn-ghost w-36 !py-2 text-xs" onClick={() => handleToggle(n)}>
+                    <button
+                      className="btn-ghost w-36 !py-2 text-xs"
+                      onClick={() => handleToggle(n)}
+                    >
                       {isPub ? "Tirar do ar" : "Pôr no ar"}
                     </button>
                     <button

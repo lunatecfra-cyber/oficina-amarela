@@ -7,16 +7,22 @@ export function FestivalAwards() {
       <div className="mx-auto grid w-full max-w-5xl items-center gap-8 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
         <div>
           <p className="text-[11px] uppercase tracking-[0.16em] text-gold-lo">Premiação especial</p>
-          <h2 id="premiacao-titulo" className="mt-3 max-w-md font-[family-name:var(--font-display)] text-3xl font-semibold leading-tight text-text lg:text-5xl">
+          <h2
+            id="premiacao-titulo"
+            className="mt-3 max-w-md font-[family-name:var(--font-display)] text-3xl font-semibold leading-tight text-text lg:text-5xl"
+          >
             O topo leva você ao festival.
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-muted lg:text-base">
-            Na produção do vídeo de honra e da edição, quem mais se destacar
-            chega ao prêmio principal.
+            Na produção do vídeo de honra e da edição, quem mais se destacar chega ao prêmio
+            principal.
           </p>
         </div>
 
-        <div className="relative mx-auto h-80 w-full max-w-lg" aria-label="Premiação: primeiro lugar ganha ingresso; segundo e terceiro ganham presentes misteriosos">
+        <div
+          className="relative mx-auto h-80 w-full max-w-lg"
+          aria-label="Premiação: primeiro lugar ganha ingresso; segundo e terceiro ganham presentes misteriosos"
+        >
           <div className="premio-item premio-bandeira" aria-hidden="true">
             <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M16 52V10m0 2h29l-8 9 8 9H16" />

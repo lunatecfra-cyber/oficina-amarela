@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
+import { notifyMissionAccepted } from "@/lib/email";
+import { missionContacts } from "@/lib/missions-db";
 import {
   acceptMissionOffer,
+  declineMissionOffer,
   dispatchMissions,
   expireStaleOffers,
   markEditorActive,
   pendingOfferForEditor,
-  declineMissionOffer,
 } from "@/lib/queue-db";
-import { missionContacts } from "@/lib/missions-db";
-import { notifyMissionAccepted } from "@/lib/email";
 import { readSession } from "@/lib/server-session";
 
 async function authenticateEditor() {
@@ -22,7 +22,8 @@ async function authenticateEditor() {
 
 export async function GET() {
   const auth = await authenticateEditor();
-  if ("error" in auth) return NextResponse.json({ error: auth.error, erro: auth.error }, { status: auth.status });
+  if ("error" in auth)
+    return NextResponse.json({ error: auth.error, erro: auth.error }, { status: auth.status });
 
   await markEditorActive(auth.session.id);
   await expireStaleOffers();
@@ -36,12 +37,16 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const auth = await authenticateEditor();
-  if ("error" in auth) return NextResponse.json({ error: auth.error, erro: auth.error }, { status: auth.status });
+  if ("error" in auth)
+    return NextResponse.json({ error: auth.error, erro: auth.error }, { status: auth.status });
 
   const body = await request.json().catch(() => null);
   const missionId = Number(String(body?.missionId ?? body?.pautaId ?? "").replace(/^db-/, ""));
   if (!Number.isInteger(missionId)) {
-    return NextResponse.json({ error: "Invalid mission identifier.", erro: "Invalid mission." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid mission identifier.", erro: "Invalid mission." },
+      { status: 400 },
+    );
   }
 
   await markEditorActive(auth.session.id);
@@ -55,7 +60,10 @@ export async function POST(request: Request) {
         : null;
 
   if (!result) {
-    return NextResponse.json({ error: "Unknown queue action.", erro: "Unknown action." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Unknown queue action.", erro: "Unknown action." },
+      { status: 400 },
+    );
   }
   if (!result.ok) {
     return NextResponse.json({ error: result.error, erro: result.error }, { status: 409 });
@@ -74,7 +82,7 @@ export async function POST(request: Request) {
         c.spokesperson.name,
         c.title,
         auth.session.handle,
-        `${new URL(request.url).origin}/spokesperson/mission/db-${missionId}`
+        `${new URL(request.url).origin}/spokesperson/mission/db-${missionId}`,
       );
     })().catch((e) => console.error("[notification] failed to notify acceptance", e));
   }

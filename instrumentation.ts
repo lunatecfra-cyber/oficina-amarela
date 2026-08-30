@@ -8,11 +8,7 @@ export function register() {
   }
 }
 
-export const onRequestError: Instrumentation.onRequestError = async (
-  err,
-  request,
-  context
-) => {
+export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
   const digest =
     typeof err === "object" && err !== null && "digest" in err
       ? String((err as { digest?: unknown }).digest)

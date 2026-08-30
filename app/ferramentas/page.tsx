@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
+import { type ToolCategory, ToolsList } from "@/components/tools-list";
 import { requireSession } from "@/lib/server-session";
-import { ToolsList, type ToolCategory } from "@/components/tools-list";
 
 export const metadata: Metadata = { title: "Ferramentas — Oficina Amarela" };
 
@@ -13,11 +13,23 @@ const CATEGORIES: ToolCategory[] = [
     emoji: "✂️",
     tools: [
       { name: "CapCut PC", url: "https://capcut.com/pt-br", note: "grátis, rápido" },
-      { name: "DaVinci Resolve", url: "https://www.blackmagicdesign.com/pt/products/davinciresolve", note: "grátis, profissional" },
+      {
+        name: "DaVinci Resolve",
+        url: "https://www.blackmagicdesign.com/pt/products/davinciresolve",
+        note: "grátis, profissional",
+      },
       { name: "Kdenlive", url: "https://kdenlive.org", note: "grátis, open source" },
       { name: "Shotcut", url: "https://shotcut.org", note: "grátis, open source" },
-      { name: "Premiere Pro", url: "https://www.adobe.com/br/products/premiere.html", note: "pago, padrão" },
-      { name: "Vegas Pro", url: "https://www.vegascreativesoftware.com/br/vegas-pro", note: "pago" },
+      {
+        name: "Premiere Pro",
+        url: "https://www.adobe.com/br/products/premiere.html",
+        note: "pago, padrão",
+      },
+      {
+        name: "Vegas Pro",
+        url: "https://www.vegascreativesoftware.com/br/vegas-pro",
+        note: "pago",
+      },
       { name: "Filmora", url: "https://filmora.wondershare.com", note: "pago, fácil" },
       { name: "OBS Studio", url: "https://obsproject.com/pt-br", note: "grátis, gravação/stream" },
     ],
@@ -26,8 +38,16 @@ const CATEGORIES: ToolCategory[] = [
     name: "IA & Áudio",
     emoji: "🎙️",
     tools: [
-      { name: "Adobe Podcast (Enhance)", url: "https://podcast.adobe.com/enhance", note: "voz de estúdio grátis" },
-      { name: "UVR5 (Ultimate Vocal Remover)", url: "https://ultimatevocalremover.com", note: "separa voz e música" },
+      {
+        name: "Adobe Podcast (Enhance)",
+        url: "https://podcast.adobe.com/enhance",
+        note: "voz de estúdio grátis",
+      },
+      {
+        name: "UVR5 (Ultimate Vocal Remover)",
+        url: "https://ultimatevocalremover.com",
+        note: "separa voz e música",
+      },
       { name: "Freesound", url: "https://freesound.org", note: "efeitos sonoros" },
       { name: "Mixkit Áudio", url: "https://mixkit.co/free-stock-music", note: "trilhas grátis" },
       { name: "Uppbeat", url: "https://uppbeat.io", note: "músicas p/ criadores" },
@@ -41,14 +61,22 @@ const CATEGORIES: ToolCategory[] = [
       { name: "sssInstagram", url: "https://sssinstagram.com", note: "baixar reels/post" },
       { name: "YTDown", url: "https://ytdown.to", note: "baixar YouTube" },
       { name: "X2Twitter", url: "https://x2twitter.com", note: "baixar do X/Twitter" },
-      { name: "PinterestDownloader", url: "https://pinterestdownloader.com.br", note: "baixar do Pinterest" },
+      {
+        name: "PinterestDownloader",
+        url: "https://pinterestdownloader.com.br",
+        note: "baixar do Pinterest",
+      },
     ],
   },
   {
     name: "Conversores & Utilitários",
     emoji: "🧰",
     tools: [
-      { name: "Shutter Encoder", url: "https://www.shutterencoder.com", note: "conversor grátis pro" },
+      {
+        name: "Shutter Encoder",
+        url: "https://www.shutterencoder.com",
+        note: "conversor grátis pro",
+      },
       { name: "Handbrake", url: "https://handbrake.fr", note: "compactar vídeos" },
       { name: "123apps", url: "https://123apps.com", note: "ferramentas rápidas" },
     ],
@@ -85,17 +113,37 @@ const CATEGORIES: ToolCategory[] = [
     name: "Extensões do Chrome",
     emoji: "🔌",
     tools: [
-      { name: "WhatFont", url: "https://chromewebstore.google.com/detail/whatfont/jabopgfdobjimomedpjipgjaooicahmo", note: "descobrir fonte na tela" },
-      { name: "Shazam Extension", url: "https://chromewebstore.google.com/detail/shazam-descubra-o-nome-da/mfehgcgbbipciphmccedklhhgflociim", note: "identificar música" },
-      { name: "Video Speed Controller", url: "https://chromewebstore.google.com/detail/video-speed-controller/nffaoalbilbmmfgbnbgppipjcbjngmee", note: "acelerar vídeos" },
-      { name: "Image Downloader", url: "https://chromewebstore.google.com/detail/image-downloader/cnpniohnfphhjihaiflmkgnhnkgflgda", note: "baixar imagens da página" },
+      {
+        name: "WhatFont",
+        url: "https://chromewebstore.google.com/detail/whatfont/jabopgfdobjimomedpjipgjaooicahmo",
+        note: "descobrir fonte na tela",
+      },
+      {
+        name: "Shazam Extension",
+        url: "https://chromewebstore.google.com/detail/shazam-descubra-o-nome-da/mfehgcgbbipciphmccedklhhgflociim",
+        note: "identificar música",
+      },
+      {
+        name: "Video Speed Controller",
+        url: "https://chromewebstore.google.com/detail/video-speed-controller/nffaoalbilbmmfgbnbgppipjcbjngmee",
+        note: "acelerar vídeos",
+      },
+      {
+        name: "Image Downloader",
+        url: "https://chromewebstore.google.com/detail/image-downloader/cnpniohnfphhjihaiflmkgnhnkgflgda",
+        note: "baixar imagens da página",
+      },
     ],
   },
   {
     name: "Pacotes Pessoais",
     emoji: "📦",
     tools: [
-      { name: "Pack de Edição Oficina", url: "https://drive.google.com/drive/folders/11_jSlkDsn9XQdvbaVCxi4dxpnFdiGNIO", note: "Drive da guilda" },
+      {
+        name: "Pack de Edição Oficina",
+        url: "https://drive.google.com/drive/folders/11_jSlkDsn9XQdvbaVCxi4dxpnFdiGNIO",
+        note: "Drive da guilda",
+      },
     ],
   },
 ];

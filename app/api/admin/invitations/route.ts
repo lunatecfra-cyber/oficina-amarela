@@ -8,9 +8,17 @@ import { getServerSession } from "@/lib/server-session";
 
 async function requireInspector() {
   const session = await getServerSession();
-  if (!session) return { error: NextResponse.json({ error: "Faça login.", erro: "Faça login." }, { status: 401 }) };
+  if (!session)
+    return {
+      error: NextResponse.json({ error: "Faça login.", erro: "Faça login." }, { status: 401 }),
+    };
   if (session.role !== "admin" && (session.role as string) !== "inspetor") {
-    return { error: NextResponse.json({ error: "Só o inspetor.", erro: "Só o inspetor." }, { status: 403 }) };
+    return {
+      error: NextResponse.json(
+        { error: "Só o inspetor.", erro: "Só o inspetor." },
+        { status: 403 },
+      ),
+    };
   }
   return { session };
 }
@@ -31,7 +39,10 @@ export async function POST(request: Request) {
   if (action === "revoke" || action === "revogar") {
     const id = Number(body?.id);
     if (!Number.isInteger(id)) {
-      return NextResponse.json({ error: "Convite inválido.", erro: "Convite inválido." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Convite inválido.", erro: "Convite inválido." },
+        { status: 400 },
+      );
     }
     const result = await revokeSpokespersonInvitation(id, access.session.id);
     return NextResponse.json(result, { status: result.ok ? 200 : 409 });

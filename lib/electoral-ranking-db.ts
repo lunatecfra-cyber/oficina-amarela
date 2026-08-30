@@ -6,7 +6,12 @@ export async function cancelElectoralApproval(
   inspectorId: number,
   reason: string,
 ) {
-  if (!reason.trim()) return { ok: false as const, error: "Informe o motivo da correção.", erro: "Informe o motivo da correção." };
+  if (!reason.trim())
+    return {
+      ok: false as const,
+      error: "Informe o motivo da correção.",
+      erro: "Informe o motivo da correção.",
+    };
   const [record] = await sql`
     WITH anulada AS (
       UPDATE ranking_aprovacoes
@@ -38,7 +43,12 @@ export async function cancelElectoralApproval(
     )
     SELECT editor_id FROM anulada
   `;
-  if (!record) return { ok: false as const, error: "Esta aprovação não está ativa no ranking.", erro: "Esta aprovação não está ativa no ranking." };
+  if (!record)
+    return {
+      ok: false as const,
+      error: "Esta aprovação não está ativa no ranking.",
+      erro: "Esta aprovação não está ativa no ranking.",
+    };
   await recalculateReferral(Number(record.editor_id), reason.trim());
   return { ok: true as const };
 }
@@ -162,14 +172,27 @@ export async function getElectoralRanking() {
 }
 export const obterRankingEleitoral = getElectoralRanking;
 
-export async function grantConsistencyShield(editorId: number, inspectorId: number, reason: string) {
-  if (!reason.trim()) return { ok: false as const, error: "Informe o motivo do bloqueio.", erro: "Informe o motivo do bloqueio." };
+export async function grantConsistencyShield(
+  editorId: number,
+  inspectorId: number,
+  reason: string,
+) {
+  if (!reason.trim())
+    return {
+      ok: false as const,
+      error: "Informe o motivo do bloqueio.",
+      erro: "Informe o motivo do bloqueio.",
+    };
   const [balance] = await sql`
     SELECT count(*)::int AS total FROM bloqueios_constancia
     WHERE editor_id = ${editorId} AND consumido_em IS NULL
   `;
   if (Number(balance?.total ?? 0) >= 2) {
-    return { ok: false as const, error: "Editor já possui o máximo de dois bloqueios.", erro: "Editor já possui o máximo de dois bloqueios." };
+    return {
+      ok: false as const,
+      error: "Editor já possui o máximo de dois bloqueios.",
+      erro: "Editor já possui o máximo de dois bloqueios.",
+    };
   }
   await sql`
     INSERT INTO bloqueios_constancia (editor_id, concedido_por, motivo)
@@ -211,8 +234,25 @@ export async function getEditorProgress(editorId: number) {
   `;
   if (!row) {
     return {
-      weeks: [] as Array<{ week?: string; semana: string; goal?: number; meta: number; count?: number; quantidade: number; completed?: boolean; cumpriu: boolean; saved?: boolean; salvo: boolean }>,
-      semanas: [] as Array<{ semana: string; meta: number; quantidade: number; cumpriu: boolean; salvo: boolean }>,
+      weeks: [] as Array<{
+        week?: string;
+        semana: string;
+        goal?: number;
+        meta: number;
+        count?: number;
+        quantidade: number;
+        completed?: boolean;
+        cumpriu: boolean;
+        saved?: boolean;
+        salvo: boolean;
+      }>,
+      semanas: [] as Array<{
+        semana: string;
+        meta: number;
+        quantidade: number;
+        cumpriu: boolean;
+        salvo: boolean;
+      }>,
       shields: 0,
       bloqueios: 0,
       referralCode: null as string | null,
@@ -226,7 +266,10 @@ export async function getEditorProgress(editorId: number) {
   const weeks = Array.isArray(row.semanas)
     ? (row.semanas as Array<{ cumpriu: boolean; salvo: boolean }>)
     : [];
-  const consistency = calculateConsistency(weeks.map((w) => w.cumpriu || w.salvo), 0);
+  const consistency = calculateConsistency(
+    weeks.map((w) => w.cumpriu || w.salvo),
+    0,
+  );
   return {
     weeks: row.semanas,
     semanas: row.semanas,

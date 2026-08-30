@@ -11,7 +11,11 @@ export const hashConvite = hashInvitation;
 export async function createSpokespersonInvitation(email: string, inspectorId: number) {
   const normalized = email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
-    return { ok: false as const, error: "Digite um e-mail válido.", erro: "Digite um e-mail válido." };
+    return {
+      ok: false as const,
+      error: "Digite um e-mail válido.",
+      erro: "Digite um e-mail válido.",
+    };
   }
 
   const token = randomBytes(32).toString("hex");
@@ -66,7 +70,12 @@ export async function revokeSpokespersonInvitation(id: number, inspectorId: numb
     WHERE id = ${id} AND usado_em IS NULL AND revogado_em IS NULL
     RETURNING id, email
   `;
-  if (!invitation) return { ok: false as const, error: "Convite não está disponível para revogação.", erro: "Convite não está disponível para revogação." };
+  if (!invitation)
+    return {
+      ok: false as const,
+      error: "Convite não está disponível para revogação.",
+      erro: "Convite não está disponível para revogação.",
+    };
   await sql`
     INSERT INTO auditoria_admin (ator_id, acao, entidade, entidade_id, detalhes)
     VALUES (${inspectorId}, 'convite_revogado', 'convite_porta_voz', ${String(id)},
@@ -77,17 +86,37 @@ export async function revokeSpokespersonInvitation(id: number, inspectorId: numb
 export const revogarConvitePortaVoz = revokeSpokespersonInvitation;
 
 export async function validateSpokespersonInvitation(token: string, email: string) {
-  if (!token) return { ok: false as const, error: "Convite especial obrigatório para porta-voz.", erro: "Convite especial obrigatório para porta-voz." };
+  if (!token)
+    return {
+      ok: false as const,
+      error: "Convite especial obrigatório para porta-voz.",
+      erro: "Convite especial obrigatório para porta-voz.",
+    };
   const [invitation] = await sql`
     SELECT email, expira_em, usado_em, revogado_em
     FROM convites_porta_voz WHERE token_hash = ${hashInvitation(token)}
   `;
-  if (!invitation) return { ok: false as const, error: "Convite inválido.", erro: "Convite inválido." };
+  if (!invitation)
+    return { ok: false as const, error: "Convite inválido.", erro: "Convite inválido." };
   if (String(invitation.email).toLowerCase() !== email.trim().toLowerCase()) {
-    return { ok: false as const, error: "Este convite pertence a outro e-mail.", erro: "Este convite pertence a outro e-mail." };
+    return {
+      ok: false as const,
+      error: "Este convite pertence a outro e-mail.",
+      erro: "Este convite pertence a outro e-mail.",
+    };
   }
-  if (invitation.revogado_em) return { ok: false as const, error: "Este convite foi revogado.", erro: "Este convite foi revogado." };
-  if (invitation.usado_em) return { ok: false as const, error: "Este convite já foi usado.", erro: "Este convite já foi usado." };
+  if (invitation.revogado_em)
+    return {
+      ok: false as const,
+      error: "Este convite foi revogado.",
+      erro: "Este convite foi revogado.",
+    };
+  if (invitation.usado_em)
+    return {
+      ok: false as const,
+      error: "Este convite já foi usado.",
+      erro: "Este convite já foi usado.",
+    };
   if (new Date(invitation.expira_em).getTime() <= Date.now()) {
     return { ok: false as const, error: "Este convite expirou.", erro: "Este convite expirou." };
   }

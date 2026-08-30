@@ -20,9 +20,7 @@ export function IncompleteProfileBanner({
         <div className="min-w-0">
           <p className="text-sm font-semibold text-gold">
             Perfil incompleto —{" "}
-            {isEditor
-              ? "complete seu cadastro de editor"
-              : "complete seu cadastro de candidato"}
+            {isEditor ? "complete seu cadastro de editor" : "complete seu cadastro de candidato"}
           </p>
           <p className="mt-1 text-sm text-muted">{description}</p>
         </div>
@@ -39,11 +37,7 @@ export function IncompleteProfileBanner({
             className="h-4 w-4"
             aria-hidden="true"
           >
-            <path
-              d="M5 3l5 5-5 5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M5 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </Link>
       </div>

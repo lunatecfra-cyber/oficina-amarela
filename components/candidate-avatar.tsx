@@ -1,4 +1,4 @@
-import { initials, type Candidate, type Candidato } from "@/lib/candidates";
+import { type Candidate, type Candidato, initials } from "@/lib/candidates";
 
 export function CandidateAvatar({
   candidate,
@@ -24,7 +24,8 @@ export function CandidateAvatar({
         alt={name}
         className={`flex-none rounded-2xl object-cover ${className}`}
         style={{
-          boxShadow: "0 0 0 4px var(--color-ink), 0 0 0 5px rgba(244,206,31,0.55), 0 12px 34px rgba(0,0,0,0.6)",
+          boxShadow:
+            "0 0 0 4px var(--color-ink), 0 0 0 5px rgba(244,206,31,0.55), 0 12px 34px rgba(0,0,0,0.6)",
         }}
       />
     );
@@ -35,7 +36,8 @@ export function CandidateAvatar({
       className={`grid flex-none place-items-center rounded-2xl font-[family-name:var(--font-display)] font-semibold text-black/80 ${className}`}
       style={{
         background: tint,
-        boxShadow: "0 0 0 4px var(--color-ink), 0 0 0 5px rgba(244,206,31,0.55), 0 12px 34px rgba(0,0,0,0.6)",
+        boxShadow:
+          "0 0 0 4px var(--color-ink), 0 0 0 5px rgba(244,206,31,0.55), 0 12px 34px rgba(0,0,0,0.6)",
       }}
     >
       {initials(name)}

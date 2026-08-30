@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Logo } from "@/components/logo";
 import { LoginForm } from "@/components/login-form";
+import { Logo } from "@/components/logo";
 
 export const metadata: Metadata = { title: "Entrar — Oficina Amarela" };
 
@@ -43,8 +43,8 @@ export default function LoginPage() {
             quem edita.
           </h2>
           <p className="mt-5 max-w-sm text-[15px] font-light leading-relaxed text-muted">
-            Onde o bruto vira arte. Editores entram provando valor, sobem de nível
-            e desbloqueiam os trabalhos — em ordem, com mérito.
+            Onde o bruto vira arte. Editores entram provando valor, sobem de nível e desbloqueiam os
+            trabalhos — em ordem, com mérito.
           </p>
         </div>
 

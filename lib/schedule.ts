@@ -1,4 +1,4 @@
-import type { VideoFormat, Mission } from "@/lib/missions";
+import type { Mission, VideoFormat } from "@/lib/missions";
 
 export type ActiveWork = {
   id: string;
@@ -88,7 +88,12 @@ export const taskFromMission = activeWorkFromMission;
 export const workFromMission = activeWorkFromMission;
 export const trabalhoDaPauta = activeWorkFromMission;
 
-export function currentGridBlock(d = new Date()): { period: number; day: number; periodo?: number; dia?: number } {
+export function currentGridBlock(d = new Date()): {
+  period: number;
+  day: number;
+  periodo?: number;
+  dia?: number;
+} {
   const day = (d.getDay() + 6) % 7;
   const h = d.getHours();
   const period = h >= 6 && h < 12 ? 0 : h >= 12 && h < 18 ? 1 : 2;

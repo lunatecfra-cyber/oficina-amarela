@@ -4,25 +4,81 @@ import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GuideDemo } from "@/components/guide-demo";
 import { ScreencastDrive } from "@/components/screencast-drive";
-import { embedUrl, VIDEOS, type TutorialType, type TipoTutorial } from "@/lib/tutorials";
+import { embedUrl, type TipoTutorial, type TutorialType, VIDEOS } from "@/lib/tutorials";
 
 const STEPS: Record<string, { n: number; text: React.ReactNode }[]> = {
   drive: [
     { n: 1, text: <>Suba o vídeo na sua pasta</> },
-    { n: 2, text: <>Toque em <b className="font-medium text-text">Compartilhar</b></> },
-    { n: 3, text: <>Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b></> },
+    {
+      n: 2,
+      text: (
+        <>
+          Toque em <b className="font-medium text-text">Compartilhar</b>
+        </>
+      ),
+    },
+    {
+      n: 3,
+      text: (
+        <>
+          Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b>
+        </>
+      ),
+    },
     { n: 4, text: <>Copie o link e cole na Oficina</> },
   ],
   delivery: [
-    { n: 1, text: <>Suba o vídeo pronto no <b className="font-medium text-text">seu</b> Drive</> },
-    { n: 2, text: <>Toque em <b className="font-medium text-text">Compartilhar</b></> },
-    { n: 3, text: <>Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b></> },
+    {
+      n: 1,
+      text: (
+        <>
+          Suba o vídeo pronto no <b className="font-medium text-text">seu</b> Drive
+        </>
+      ),
+    },
+    {
+      n: 2,
+      text: (
+        <>
+          Toque em <b className="font-medium text-text">Compartilhar</b>
+        </>
+      ),
+    },
+    {
+      n: 3,
+      text: (
+        <>
+          Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b>
+        </>
+      ),
+    },
     { n: 4, text: <>Copie o link e confirme a entrega</> },
   ],
   entrega: [
-    { n: 1, text: <>Suba o vídeo pronto no <b className="font-medium text-text">seu</b> Drive</> },
-    { n: 2, text: <>Toque em <b className="font-medium text-text">Compartilhar</b></> },
-    { n: 3, text: <>Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b></> },
+    {
+      n: 1,
+      text: (
+        <>
+          Suba o vídeo pronto no <b className="font-medium text-text">seu</b> Drive
+        </>
+      ),
+    },
+    {
+      n: 2,
+      text: (
+        <>
+          Toque em <b className="font-medium text-text">Compartilhar</b>
+        </>
+      ),
+    },
+    {
+      n: 3,
+      text: (
+        <>
+          Acesso: <b className="font-medium text-text">qualquer pessoa com o link</b>
+        </>
+      ),
+    },
     { n: 4, text: <>Copie o link e confirme a entrega</> },
   ],
 };
@@ -152,7 +208,7 @@ export function TutorialDrive({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 

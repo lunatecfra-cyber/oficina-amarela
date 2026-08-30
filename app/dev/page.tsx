@@ -11,22 +11,13 @@ export default function DevToolbarPage() {
       </p>
 
       <div className="mt-8 flex flex-col gap-3">
-        <a
-          href="/api/auth/dev-login?role=editor"
-          className="btn-gold text-center py-3"
-        >
+        <a href="/api/auth/dev-login?role=editor" className="btn-gold text-center py-3">
           Sign In as Video Editor
         </a>
-        <a
-          href="/api/auth/dev-login?role=spokesperson"
-          className="btn-ghost text-center py-3"
-        >
+        <a href="/api/auth/dev-login?role=spokesperson" className="btn-ghost text-center py-3">
           Sign In as Spokesperson
         </a>
-        <a
-          href="/api/auth/dev-login?role=admin"
-          className="btn-ghost text-center py-3"
-        >
+        <a href="/api/auth/dev-login?role=admin" className="btn-ghost text-center py-3">
           Sign In as Inspector
         </a>
       </div>

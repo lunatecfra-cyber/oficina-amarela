@@ -1,13 +1,16 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { createSessionToken, COOKIE_NAME, COOKIE_OPTS, type Role } from "@/lib/session";
+import { COOKIE_NAME, COOKIE_OPTS, createSessionToken, type Role } from "@/lib/session";
 
 function isDevEnvironment() {
   return process.env.NODE_ENV === "development" && !process.env.VERCEL;
 }
 
-const DEV_ACCOUNTS: Record<Role, { handle: string; name: string; email: string; destination: string }> = {
+const DEV_ACCOUNTS: Record<
+  Role,
+  { handle: string; name: string; email: string; destination: string }
+> = {
   editor: {
     handle: "dev.editor",
     name: "Dev Editor de Vídeo",
@@ -30,7 +33,10 @@ const DEV_ACCOUNTS: Record<Role, { handle: string; name: string; email: string; 
 
 export async function GET(request: Request) {
   if (!isDevEnvironment()) {
-    return NextResponse.json({ error: "Route available in development mode only.", erro: "Dev only." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Route available in development mode only.", erro: "Dev only." },
+      { status: 404 },
+    );
   }
 
   const url = new URL(request.url);

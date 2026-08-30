@@ -29,9 +29,10 @@ export default function TermsPage() {
             1. Quem pode usar
           </h2>
           <p>
-            A Oficina Amarela tem três papéis: <b className="text-text">porta-voz</b> (sobe o bruto e descreve
-            o que quer), <b className="text-text">editor</b> (pega a missão da fila, edita e entrega) e{" "}
-            <b className="text-text">controle de qualidade</b> (aprova a entrega ou pede reedição).
+            A Oficina Amarela tem três papéis: <b className="text-text">porta-voz</b> (sobe o bruto
+            e descreve o que quer), <b className="text-text">editor</b> (pega a missão da fila,
+            edita e entrega) e <b className="text-text">controle de qualidade</b> (aprova a entrega
+            ou pede reedição).
           </p>
         </section>
 
@@ -41,9 +42,14 @@ export default function TermsPage() {
           </h2>
           <ul className="list-disc pl-5">
             <li>Cada editor reserva apenas 1 missão por vez</li>
-            <li>Ao reservar, o acesso ao vídeo bruto é liberado automaticamente para o e-mail do editor</li>
+            <li>
+              Ao reservar, o acesso ao vídeo bruto é liberado automaticamente para o e-mail do
+              editor
+            </li>
             <li>Se o prazo vencer sem entrega, a missão volta pra fila e o acesso é revogado</li>
-            <li>Ao entregar, aprovar ou o editor cancelar, o acesso ao arquivo também é revogado</li>
+            <li>
+              Ao entregar, aprovar ou o editor cancelar, o acesso ao arquivo também é revogado
+            </li>
           </ul>
         </section>
 
@@ -63,7 +69,10 @@ export default function TermsPage() {
             4. Conduta esperada
           </h2>
           <ul className="list-disc pl-5">
-            <li>Não usar a plataforma para conteúdo ilegal, difamatório ou que viole direitos de terceiros</li>
+            <li>
+              Não usar a plataforma para conteúdo ilegal, difamatório ou que viole direitos de
+              terceiros
+            </li>
             <li>Respeitar os prazos de reserva assumidos</li>
             <li>Tratar os demais membros da guilda com respeito</li>
           </ul>
@@ -84,8 +93,9 @@ export default function TermsPage() {
             6. Isenção de responsabilidade
           </h2>
           <p>
-            A Oficina Amarela não é responsável pelo conteúdo enviado pelos porta-vozes nem pelo material
-            editado pelos editores — a responsabilidade sobre o que é publicado é de quem publica.
+            A Oficina Amarela não é responsável pelo conteúdo enviado pelos porta-vozes nem pelo
+            material editado pelos editores — a responsabilidade sobre o que é publicado é de quem
+            publica.
           </p>
         </section>
 
@@ -104,10 +114,7 @@ export default function TermsPage() {
           </h2>
           <p>
             Dúvidas:{" "}
-            <a
-              href="mailto:lunatecfra@gmail.com"
-              className="text-gold-hi hover:underline"
-            >
+            <a href="mailto:lunatecfra@gmail.com" className="text-gold-hi hover:underline">
               lunatecfra@gmail.com
             </a>
             . Veja também a{" "}

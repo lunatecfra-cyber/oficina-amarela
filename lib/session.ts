@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify } from "jose";
+import { jwtVerify, SignJWT } from "jose";
 
 export const COOKIE_NAME = "confraria_sessao";
 export const NOME_COOKIE = COOKIE_NAME; // compatibility alias
@@ -117,12 +117,16 @@ export const criarEstadoAssinado = createSignedState;
 
 export async function verifySignedState(
   token: string,
-  cookieNonce: string | undefined
+  cookieNonce: string | undefined,
 ): Promise<boolean> {
   if (!cookieNonce) return false;
   try {
     const { payload } = await jwtVerify(token, getKey());
-    const validUsage = payload.usage === "oauth-state" || payload.uso === "oauth-estado" || payload.usage === "oauth-estado" || payload.uso === "oauth-state";
+    const validUsage =
+      payload.usage === "oauth-state" ||
+      payload.uso === "oauth-estado" ||
+      payload.usage === "oauth-estado" ||
+      payload.uso === "oauth-state";
     return validUsage && payload.nonce === cookieNonce;
   } catch {
     return false;
@@ -165,9 +169,7 @@ export async function createPendingIdentity(data: PendingGoogleIdentity) {
 }
 export const criarIdentidadePendente = createPendingIdentity;
 
-export async function verifyPendingIdentity(
-  token: string
-): Promise<PendingGoogleIdentity | null> {
+export async function verifyPendingIdentity(token: string): Promise<PendingGoogleIdentity | null> {
   try {
     const { payload } = await jwtVerify(token, getKey());
     const name = (payload.name as string) || (payload.nome as string);
@@ -200,7 +202,7 @@ export async function createRecoveryToken(userId: number) {
 export const criarTokenRecuperacao = createRecoveryToken;
 
 export async function verifyRecoveryToken(
-  token: string
+  token: string,
 ): Promise<{ userId: number; issuedAtMs: number } | null> {
   try {
     const { payload } = await jwtVerify(token, getKey());

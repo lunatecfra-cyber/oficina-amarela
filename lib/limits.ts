@@ -31,10 +31,7 @@ export function limitStr(value: string | null | undefined, max: number): string 
 export const limitString = limitStr;
 export const limitarTexto = limitStr;
 
-export function limitOrNull(
-  value: string | null | undefined,
-  max: number
-): string | null {
+export function limitOrNull(value: string | null | undefined, max: number): string | null {
   const t = limitStr(value, max);
   return t === "" ? null : t;
 }

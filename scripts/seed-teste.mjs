@@ -44,7 +44,7 @@ for (const c of contas) {
   const placeholders = cols.map((_, i) => `$${i + 1}`);
   const [linha] = await sql.unsafe(
     `INSERT INTO users (${cols.join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING id, apelido, papel`,
-    vals
+    vals,
   );
   console.log(`✓ criado: @${linha.apelido} (${linha.papel}) — id ${linha.id}`);
 }

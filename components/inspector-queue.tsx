@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MISSIONS, FORMAT_LABELS, type Mission, type Pauta } from "@/lib/missions";
-import { initials, type Candidate, type Candidato } from "@/lib/candidates";
-import { ProximityLocation } from "@/components/proximity-location";
-import { Badge, Chip, candidateOfMission } from "@/components/mission-ui";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { MissionChat } from "@/components/mission-chat";
-import type { Message, Mensagem } from "@/lib/chat-db";
+import { Badge, Chip, candidateOfMission } from "@/components/mission-ui";
+import { ProximityLocation } from "@/components/proximity-location";
+import { type Candidate, type Candidato, initials } from "@/lib/candidates";
+import type { Mensagem, Message } from "@/lib/chat-db";
+import { FORMAT_LABELS, MISSIONS, type Mission, type Pauta } from "@/lib/missions";
 import { looksLikeLink } from "@/lib/validators";
 
 export function InspectorQueue({
@@ -37,7 +37,9 @@ export function InspectorQueue({
   const [missions, setMissions] = useState<Mission[]>([...realList, ...demo]);
   const [error, setError] = useState("");
 
-  const inReview = missions.filter((p) => p.status === "in_review" || (p as any).status === "em_revisao");
+  const inReview = missions.filter(
+    (p) => p.status === "in_review" || (p as any).status === "em_revisao",
+  );
 
   const isRealMission = (id: string) => id.startsWith("db-");
 
@@ -57,19 +59,27 @@ export function InspectorQueue({
   }
 
   async function approve(id: string, rating?: number) {
-    if (isRealMission(id) && !(await callApi(id, { action: "approve", rating, acao: "aprovar", nota: rating }))) return;
+    if (
+      isRealMission(id) &&
+      !(await callApi(id, { action: "approve", rating, acao: "aprovar", nota: rating }))
+    )
+      return;
 
     setMissions((list) =>
-      list.map((p) => (p.id === id ? { ...p, status: "approved", inspectorNotes: undefined } : p))
+      list.map((p) => (p.id === id ? { ...p, status: "approved", inspectorNotes: undefined } : p)),
     );
     router.refresh();
   }
 
   async function requestReedit(id: string, notes: string) {
-    if (isRealMission(id) && !(await callApi(id, { action: "reedit", notes, acao: "reedicao", notas: notes }))) return;
+    if (
+      isRealMission(id) &&
+      !(await callApi(id, { action: "reedit", notes, acao: "reedicao", notas: notes }))
+    )
+      return;
 
     setMissions((list) =>
-      list.map((p) => (p.id === id ? { ...p, status: "reedit", inspectorNotes: notes } : p))
+      list.map((p) => (p.id === id ? { ...p, status: "reedit", inspectorNotes: notes } : p)),
     );
     router.refresh();
   }
@@ -81,9 +91,7 @@ export function InspectorQueue({
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
             Controle de Qualidade
           </h1>
-          <p className="mt-1 text-sm text-muted">
-            Aprove ou peça reedição das missões entregues.
-          </p>
+          <p className="mt-1 text-sm text-muted">Aprove ou peça reedição das missões entregues.</p>
         </div>
         <p className="text-sm text-muted">{inReview.length} aguardando</p>
       </div>

@@ -3,14 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
-import { MISSIONS, FORMAT_LABELS, STATUS_LABELS, type Mission } from "@/lib/missions";
-import { getCandidateBySlug, type Candidate } from "@/lib/candidates";
-import { readPublicCandidate } from "@/lib/candidate-db";
-import { publicCandidateMissions } from "@/lib/missions-db";
-import { Stat } from "@/components/stat";
 import { CandidateAvatar } from "@/components/candidate-avatar";
 import { CandidateData } from "@/components/candidate-data";
 import { CandidateName } from "@/components/candidate-name";
+import { Stat } from "@/components/stat";
+import { readPublicCandidate } from "@/lib/candidate-db";
+import { type Candidate, getCandidateBySlug } from "@/lib/candidates";
+import { FORMAT_LABELS, MISSIONS, type Mission, STATUS_LABELS } from "@/lib/missions";
+import { publicCandidateMissions } from "@/lib/missions-db";
 import { readSession } from "@/lib/server-session";
 
 async function fetchCandidate(slug: string): Promise<Candidate | null> {
@@ -34,10 +34,7 @@ export default async function CandidateDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [cand, session] = await Promise.all([
-    fetchCandidate(slug),
-    readSession(),
-  ]);
+  const [cand, session] = await Promise.all([fetchCandidate(slug), readSession()]);
   if (!cand) notFound();
 
   const DEMO_MODE = process.env.NODE_ENV !== "production";
@@ -47,9 +44,20 @@ export default async function CandidateDetailPage({
     ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === name)
     : await publicCandidateMissions(slug);
 
-  const inQueue = missions.filter((p) => p.status === "available" || (p as any).status === "disponivel").length;
+  const inQueue = missions.filter(
+    (p) => p.status === "available" || (p as any).status === "disponivel",
+  ).length;
   const inProgress = missions.filter((p) =>
-    ["reserved", "reservada", "mine", "minha", "in_review", "em_revisao", "reedit", "reedicao"].includes(p.status)
+    [
+      "reserved",
+      "reservada",
+      "mine",
+      "minha",
+      "in_review",
+      "em_revisao",
+      "reedit",
+      "reedicao",
+    ].includes(p.status),
   ).length;
 
   return (
@@ -106,7 +114,10 @@ export default async function CandidateDetailPage({
             </div>
           </section>
 
-          <section className="reveal mt-6 rounded-2xl border border-line bg-surface/60 p-5 lg:p-6" style={{ animationDelay: "0.05s" }}>
+          <section
+            className="reveal mt-6 rounded-2xl border border-line bg-surface/60 p-5 lg:p-6"
+            style={{ animationDelay: "0.05s" }}
+          >
             <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-gold">
               Missões de {name}
             </h2>
@@ -132,7 +143,9 @@ export default async function CandidateDetailPage({
                         </p>
                       </div>
                       <span className="rounded-full border border-line bg-ink-2 px-3 py-1 text-xs text-muted">
-                        {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? (STATUS_LABELS as any)[status] ?? status}
+                        {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ??
+                          (STATUS_LABELS as any)[status] ??
+                          status}
                       </span>
                     </li>
                   );

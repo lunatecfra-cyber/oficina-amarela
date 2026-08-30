@@ -35,11 +35,15 @@ export type Denuncia = Report;
 export async function createReport(
   missionId: number,
   session: UserSession,
-  rawText: string
+  rawText: string,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const text = limitStr(rawText, LIMITS.report);
   if (!text) {
-    return { ok: false, error: "O relato não pode ficar em branco.", erro: "O relato não pode ficar em branco." };
+    return {
+      ok: false,
+      error: "O relato não pode ficar em branco.",
+      erro: "O relato não pode ficar em branco.",
+    };
   }
 
   const [mission] = await sql`
@@ -143,7 +147,7 @@ export const denunciasParaInspetor = reportsForInspector;
 
 export async function resolveReport(
   id: number,
-  status: "resolved" | "ignored" | "resolvida" | "ignorada"
+  status: "resolved" | "ignored" | "resolvida" | "ignorada",
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const normStatus = status === "resolved" || status === "resolvida" ? "resolvida" : "ignorada";
   const rows = await sql`

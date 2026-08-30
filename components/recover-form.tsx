@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 
 export function RecoverForm() {
   const [email, setEmail] = useState("");
@@ -36,10 +36,13 @@ export function RecoverForm() {
     return (
       <div className="w-full max-w-sm text-center">
         <p className="text-[15px] leading-relaxed text-muted">
-          Se esse e-mail tiver uma conta, mandamos um link de recuperação pra ele. Confere sua caixa de
-          entrada (e o spam, por garantia).
+          Se esse e-mail tiver uma conta, mandamos um link de recuperação pra ele. Confere sua caixa
+          de entrada (e o spam, por garantia).
         </p>
-        <Link href="/login" className="mt-6 inline-block text-sm font-medium text-gold-hi hover:underline">
+        <Link
+          href="/login"
+          className="mt-6 inline-block text-sm font-medium text-gold-hi hover:underline"
+        >
           Voltar pro login
         </Link>
       </div>
@@ -50,7 +53,10 @@ export function RecoverForm() {
     <div className="w-full max-w-sm">
       <form onSubmit={onSubmit} noValidate>
         <div className="mb-5">
-          <label htmlFor="email" className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+          <label
+            htmlFor="email"
+            className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+          >
             E-mail
           </label>
           <input

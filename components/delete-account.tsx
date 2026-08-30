@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function DeleteAccount({
   hasPassword,
@@ -44,15 +44,12 @@ export function DeleteAccount({
 
   return (
     <section className="mt-12 rounded-2xl border border-danger/30 bg-danger/[0.04] p-5">
-      <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-danger">
-        Zona de risco
-      </h2>
+      <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-danger">Zona de risco</h2>
 
       {!isOpen ? (
         <>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Apagar a conta remove seu perfil, suas missões e seu histórico. Não
-            tem como desfazer.
+            Apagar a conta remove seu perfil, suas missões e seu histórico. Não tem como desfazer.
           </p>
           <button
             className="btn-ghost mt-4 w-auto px-5 !border-danger/40 !text-danger hover:!bg-danger/10"
@@ -64,9 +61,8 @@ export function DeleteAccount({
       ) : (
         <>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Isso apaga <b className="text-text">tudo</b> e não dá pra voltar
-            atrás. {effectiveHasPassword ? "Digite sua senha" : "Digite seu apelido"} pra
-            confirmar.
+            Isso apaga <b className="text-text">tudo</b> e não dá pra voltar atrás.{" "}
+            {effectiveHasPassword ? "Digite sua senha" : "Digite seu apelido"} pra confirmar.
           </p>
 
           <input

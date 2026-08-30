@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sql } from "@/lib/db";
-import { COOKIE_NAME, verifySessionToken, type UserSession } from "@/lib/session";
+import { COOKIE_NAME, type UserSession, verifySessionToken } from "@/lib/session";
 
 export async function getSession(): Promise<UserSession | null> {
   const jar = await cookies();

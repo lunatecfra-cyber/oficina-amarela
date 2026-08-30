@@ -1,0 +1,88 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.11/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "app/**/*",
+      "components/**/*",
+      "lib/**/*",
+      "scripts/**/*",
+      "*.ts",
+      "*.tsx",
+      "*.js",
+      "*.mjs",
+      "*.json"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    },
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noArrayIndexKey": "off",
+        "noDocumentCookie": "off"
+      },
+      "performance": {
+        "noImgElement": "off"
+      },
+      "correctness": {
+        "noUnusedVariables": "warn",
+        "useExhaustiveDependencies": "warn",
+        "useHookAtTopLevel": "error"
+      },
+      "complexity": {
+        "noImportantStyles": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off",
+        "useImportType": "off",
+        "noParameterAssign": "off",
+        "noDescendingSpecificity": "off"
+      },
+      "a11y": {
+        "useButtonType": "off",
+        "noSvgWithoutTitle": "off",
+        "useKeyWithClickEvents": "off",
+        "useValidAnchor": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "useValidAriaRole": "off",
+        "noLabelWithoutControl": "off",
+        "noStaticElementInteractions": "off",
+        "useMediaCaption": "off",
+        "useSemanticElements": "off",
+        "noAutofocus": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      }
+    }
+  }
+}

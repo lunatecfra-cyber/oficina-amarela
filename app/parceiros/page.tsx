@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
 import { AppHeaderInspector } from "@/components/app-header-inspector";
 import { AppHeaderSpokesperson } from "@/components/app-header-spokesperson";
-import { readSession } from "@/lib/server-session";
 import { partnersHeaderRole } from "@/lib/navigation";
+import { readSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Parceiros — Oficina Amarela" };
 
@@ -45,9 +45,7 @@ export default async function PartnersPage() {
             <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
               Parceiros
             </h1>
-            <p className="mt-1 text-sm text-muted">
-              Comunidades parceiras pra você se conectar.
-            </p>
+            <p className="mt-1 text-sm text-muted">Comunidades parceiras pra você se conectar.</p>
           </div>
 
           <ul className="grid gap-4 sm:grid-cols-2">
@@ -108,9 +106,7 @@ export default async function PartnersPage() {
                           Comunidade
                         </span>
                       </div>
-                      <p className="mt-0.5 text-sm leading-relaxed text-muted">
-                        {c.description}
-                      </p>
+                      <p className="mt-0.5 text-sm leading-relaxed text-muted">{c.description}</p>
                     </div>
 
                     <span

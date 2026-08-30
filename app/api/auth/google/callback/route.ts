@@ -1,17 +1,17 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { exchangeCodeForProfile } from "@/lib/oauth-google";
+import { NextResponse } from "next/server";
 import { findGoogleAccount } from "@/lib/accounts";
+import { exchangeCodeForProfile } from "@/lib/oauth-google";
 import {
-  STATE_COOKIE_OPTS,
+  COOKIE_NAME,
   COOKIE_OPTS,
   createPendingIdentity,
   createSessionToken,
-  COOKIE_NAME,
-  STATE_COOKIE_NAME,
-  PENDING_COOKIE_NAME,
   INVITATION_COOKIE_NAME,
+  PENDING_COOKIE_NAME,
   REFERRAL_COOKIE_NAME,
+  STATE_COOKIE_NAME,
+  STATE_COOKIE_OPTS,
   verifySignedState,
 } from "@/lib/session";
 

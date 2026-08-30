@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { QueueItem, MissionInFlight, Summary, ItemFila, MissaoEmVoo, Resumo } from "@/lib/overview-db";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import type {
+  ItemFila,
+  MissaoEmVoo,
+  MissionInFlight,
+  QueueItem,
+  Resumo,
+  Summary,
+} from "@/lib/overview-db";
 
 function sinceWhen(iso: string | null) {
   if (!iso) return "—";
-  const midnight = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const days = Math.round((midnight(new Date()) - midnight(new Date(iso))) / 86_400_000);
   if (days <= 0) return "hoje";
   if (days === 1) return "ontem";
@@ -89,7 +95,14 @@ export function OverviewPanel({
     setMovingId(id);
     setWarning("");
 
-    const normMove = movement === "topo" ? "top" : movement === "subir" ? "up" : movement === "descer" ? "down" : movement;
+    const normMove =
+      movement === "topo"
+        ? "top"
+        : movement === "subir"
+          ? "up"
+          : movement === "descer"
+            ? "down"
+            : movement;
     const fromIdx = queueItems.findIndex((f) => f.id === id);
     const toIdx = normMove === "top" ? 0 : normMove === "up" ? fromIdx - 1 : fromIdx + 1;
     if (fromIdx >= 0 && toIdx >= 0 && toIdx < queueItems.length) {
@@ -170,9 +183,7 @@ export function OverviewPanel({
       </p>
 
       <section className="mt-6" data-guia="numeros-panorama">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
-          Missões
-        </h2>
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">Missões</h2>
         <button
           type="button"
           onClick={() => notify("editors")}
@@ -199,7 +210,11 @@ export function OverviewPanel({
           onClick={() => notify("candidates")}
           disabled={notifying !== null || freeEditorsCount === 0}
           className="mb-3 text-xs text-muted hover:text-gold disabled:opacity-40"
-          title={freeEditorsCount === 0 ? "Sem editores livres" : "Enviar e-mail pra todos os porta-vozes"}
+          title={
+            freeEditorsCount === 0
+              ? "Sem editores livres"
+              : "Enviar e-mail pra todos os porta-vozes"
+          }
         >
           ✉ Avisar porta-vozes que há editores livres
         </button>
@@ -216,11 +231,7 @@ export function OverviewPanel({
           {warning}
         </p>
       )}
-      {notifiedMsg && (
-        <p className="mt-4 text-sm text-gold-hi">
-          {notifiedMsg}
-        </p>
-      )}
+      {notifiedMsg && <p className="mt-4 text-sm text-gold-hi">{notifiedMsg}</p>}
 
       <section className="mt-10" data-guia="fila-edicao">
         <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
@@ -232,8 +243,7 @@ export function OverviewPanel({
           </span>
         </div>
         <p className="mb-3 text-xs text-muted">
-          Nesta ordem é que o sistema oferece pros editores. Suba o que for
-          urgente.
+          Nesta ordem é que o sistema oferece pros editores. Suba o que for urgente.
         </p>
 
         {queueItems.length === 0 ? (
@@ -269,8 +279,8 @@ export function OverviewPanel({
                         {title}
                       </h3>
                       <p className="mt-0.5 text-xs text-muted-2">
-                        {candidateName} · {format === "short" ? "Short" : "Longo"} ·
-                        criada {sinceWhen(createdAt)}
+                        {candidateName} · {format === "short" ? "Short" : "Longo"} · criada{" "}
+                        {sinceWhen(createdAt)}
                       </p>
                       {status === "offered" || status === "oferecida" ? (
                         <p className="mt-1 text-xs text-silver">
@@ -376,10 +386,8 @@ export function OverviewPanel({
                   </div>
                   <p className="mt-0.5 text-xs text-muted-2">
                     {candidateName} · editor{" "}
-                    <span className="text-muted">
-                      {editor ? `@${editor}` : "—"}
-                    </span>{" "}
-                    · começou {sinceWhen(since)}
+                    <span className="text-muted">{editor ? `@${editor}` : "—"}</span> · começou{" "}
+                    {sinceWhen(since)}
                   </p>
                   {idle >= 5 && (
                     <p className="mt-1 text-xs font-medium text-danger">
@@ -421,8 +429,8 @@ export function OverviewPanel({
               Apagar missão?
             </h3>
             <p className="mt-2 text-sm text-muted">
-              A missão e todo o histórico (chat, avaliações) vão sumir pra
-              sempre. Essa ação não tem volta.
+              A missão e todo o histórico (chat, avaliações) vão sumir pra sempre. Essa ação não tem
+              volta.
             </p>
             <div className="mt-5 flex gap-2">
               <button

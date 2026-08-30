@@ -1,4 +1,4 @@
-import type { GuideDemoType, Demo } from "@/lib/guide";
+import type { Demo, GuideDemoType } from "@/lib/guide";
 
 const CYCLE = { drive: 9.6, delivery: 7.2, entrega: 7.2 } as const;
 
@@ -14,10 +14,7 @@ function Scene({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className="guia-cena"
-      style={{ animationDelay: `${-(cycle - (cycle / total) * index)}s` }}
-    >
+    <div className="guia-cena" style={{ animationDelay: `${-(cycle - (cycle / total) * index)}s` }}>
       {children}
     </div>
   );
@@ -54,10 +51,7 @@ function FakeButton({ text, withFinger }: { text: string; withFinger?: boolean }
     <span className="relative inline-flex items-center rounded-lg bg-gradient-to-b from-gold-hi to-gold-lo px-3 py-1.5 text-[11px] font-semibold text-black/80">
       {text}
       {withFinger && (
-        <span
-          aria-hidden="true"
-          className="guia-toque absolute -bottom-3 -right-3 text-base"
-        >
+        <span aria-hidden="true" className="guia-toque absolute -bottom-3 -right-3 text-base">
           👆
         </span>
       )}

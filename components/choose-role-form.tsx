@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { initials } from "@/lib/candidates";
 
 const ROLE_OPTIONS = [
@@ -45,10 +45,11 @@ export function ChooseRoleForm({
 
   const effectiveName = name ?? nome ?? "";
   const effectivePicture = picture ?? foto;
-  const effectiveSlots = slots ?? vagas ?? {
-    editor: { total: 0, livres: 0 },
-    spokesperson: { total: 0, livres: 0 },
-  };
+  const effectiveSlots = slots ??
+    vagas ?? {
+      editor: { total: 0, livres: 0 },
+      spokesperson: { total: 0, livres: 0 },
+    };
 
   async function chooseRole(chosenRole: "editor" | "spokesperson") {
     setError("");

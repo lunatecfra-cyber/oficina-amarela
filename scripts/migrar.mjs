@@ -1,7 +1,7 @@
-import postgres from "postgres";
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import postgres from "postgres";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const schema = readFileSync(path.join(aqui, "..", "supabase", "schema.sql"), "utf8");

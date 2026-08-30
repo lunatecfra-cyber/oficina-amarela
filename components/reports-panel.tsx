@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { initials } from "@/lib/candidates";
-import type { Report, Denuncia } from "@/lib/reports-db";
+import type { Denuncia, Report } from "@/lib/reports-db";
 
 const STATUS_LABELS: Record<string, { txt: string; cls: string }> = {
   open: { txt: "aberta", cls: "border-danger/40 bg-danger/10 text-danger" },
@@ -53,13 +53,19 @@ export function ReportsPanel({
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
-  const openCount = list.filter((d) => d.status === "open" || (d as any).status === "aberta").length;
+  const openCount = list.filter(
+    (d) => d.status === "open" || (d as any).status === "aberta",
+  ).length;
 
-  async function handleAction(reportId: number, action: "resolve" | "ignore" | "resolver" | "ignorar") {
+  async function handleAction(
+    reportId: number,
+    action: "resolve" | "ignore" | "resolver" | "ignorar",
+  ) {
     setError("");
     setProcessingId(reportId);
     try {
-      const normAction = action === "resolver" ? "resolve" : action === "ignorar" ? "ignore" : action;
+      const normAction =
+        action === "resolver" ? "resolve" : action === "ignorar" ? "ignore" : action;
       const resp = await fetch("/api/admin/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,11 +91,11 @@ export function ReportsPanel({
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
             Denúncias
           </h1>
-          <p className="mt-1 text-sm text-muted">
-            Reclamações que chegaram de dentro das missões.
-          </p>
+          <p className="mt-1 text-sm text-muted">Reclamações que chegaram de dentro das missões.</p>
         </div>
-        <p className="text-sm text-muted">{openCount} aberta{openCount === 1 ? "" : "s"}</p>
+        <p className="text-sm text-muted">
+          {openCount} aberta{openCount === 1 ? "" : "s"}
+        </p>
       </div>
 
       {error && (
@@ -132,7 +138,9 @@ export function ReportsPanel({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-text">{reporterName}</p>
                       <p className="truncate text-xs text-muted-2">→</p>
-                      <p className={`truncate text-sm font-medium ${isOpen ? "text-danger" : "text-muted"}`}>
+                      <p
+                        className={`truncate text-sm font-medium ${isOpen ? "text-danger" : "text-muted"}`}
+                      >
                         {reportedName ?? "conta removida"}
                       </p>
                     </div>
@@ -155,7 +163,9 @@ export function ReportsPanel({
                         {STATUS_LABELS[status]?.txt ?? status}
                       </span>
                     </div>
-                    <p className="mt-2 whitespace-pre-line break-words text-sm text-text/90">{text}</p>
+                    <p className="mt-2 whitespace-pre-line break-words text-sm text-text/90">
+                      {text}
+                    </p>
                     <p className="mt-1 text-xs text-muted-2">{shortDate(createdAt)}</p>
                   </div>
 

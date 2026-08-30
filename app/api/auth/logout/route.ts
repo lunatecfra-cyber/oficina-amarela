@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { COOKIE_NAME } from "@/lib/session";
 
 export async function POST() {

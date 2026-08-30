@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { Logo } from "@/components/logo";
 import { ChooseRoleForm } from "@/components/choose-role-form";
-import { PENDING_COOKIE_NAME, verifyPendingIdentity } from "@/lib/session";
+import { Logo } from "@/components/logo";
 import { countEnrolledByRole } from "@/lib/accounts";
 import { ROLE_LIMITS } from "@/lib/limits";
+import { PENDING_COOKIE_NAME, verifyPendingIdentity } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Quase lá — Oficina Amarela" };
 
@@ -27,8 +27,14 @@ export default async function ChooseRolePage() {
 
   const slots = {
     editor: { total: ROLE_LIMITS.editor, livres: Math.max(0, ROLE_LIMITS.editor - totalEditors) },
-    spokesperson: { total: ROLE_LIMITS.spokesperson, livres: Math.max(0, ROLE_LIMITS.spokesperson - totalSpokespersons) },
-    voz: { total: ROLE_LIMITS.spokesperson, livres: Math.max(0, ROLE_LIMITS.spokesperson - totalSpokespersons) },
+    spokesperson: {
+      total: ROLE_LIMITS.spokesperson,
+      livres: Math.max(0, ROLE_LIMITS.spokesperson - totalSpokespersons),
+    },
+    voz: {
+      total: ROLE_LIMITS.spokesperson,
+      livres: Math.max(0, ROLE_LIMITS.spokesperson - totalSpokespersons),
+    },
   };
 
   return (
@@ -39,11 +45,7 @@ export default async function ChooseRolePage() {
           OFICINA AMARELA
         </p>
       </div>
-      <ChooseRoleForm
-        name={pending.name}
-        picture={pending.picture}
-        slots={slots}
-      />
+      <ChooseRoleForm name={pending.name} picture={pending.picture} slots={slots} />
     </main>
   );
 }

@@ -38,9 +38,8 @@ export default async function LessonsPage() {
                 Em breve
               </p>
               <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
-                Está sendo preparado: ritmo de corte, legenda que segura o
-                espectador, cor no vídeo político e os erros que mais derrubam
-                entrega na conferência.
+                Está sendo preparado: ritmo de corte, legenda que segura o espectador, cor no vídeo
+                político e os erros que mais derrubam entrega na conferência.
               </p>
               <p className="mt-6 text-xs text-muted-2">
                 Você vai ver por aqui assim que a primeira turma abrir.

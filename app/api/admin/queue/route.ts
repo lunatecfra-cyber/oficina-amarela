@@ -4,7 +4,8 @@ import { readSession } from "@/lib/server-session";
 
 export async function POST(request: Request) {
   const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Faça login.", erro: "Faça login." }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Faça login.", erro: "Faça login." }, { status: 401 });
   if (session.role !== "admin") {
     return NextResponse.json({ error: "Só o inspetor.", erro: "Só o inspetor." }, { status: 403 });
   }
@@ -22,11 +23,15 @@ export async function POST(request: Request) {
           : ("up" as QueueMovement);
 
   if (typeof id !== "number" || !Number.isFinite(id)) {
-    return NextResponse.json({ error: "Identificador de missão inválido.", erro: "Missão inválida." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Identificador de missão inválido.", erro: "Missão inválida." },
+      { status: 400 },
+    );
   }
 
   const result = await moveInQueue(id, movement);
-  if (!result.ok) return NextResponse.json({ error: result.error, erro: result.error }, { status: 400 });
+  if (!result.ok)
+    return NextResponse.json({ error: result.error, erro: result.error }, { status: 400 });
 
   return NextResponse.json({ ok: true });
 }

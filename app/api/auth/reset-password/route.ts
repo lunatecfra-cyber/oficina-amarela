@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateAccountPassword, isRecoveryTokenAlreadyUsed } from "@/lib/accounts";
+import { isRecoveryTokenAlreadyUsed, updateAccountPassword } from "@/lib/accounts";
 import { verifyRecoveryToken } from "@/lib/session";
 
 export async function POST(request: Request) {
@@ -8,16 +8,28 @@ export async function POST(request: Request) {
   const password = body?.password ?? body?.senha;
 
   if (typeof token !== "string" || typeof password !== "string") {
-    return NextResponse.json({ error: "Preencha a nova senha.", erro: "Preencha a nova senha." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Preencha a nova senha.", erro: "Preencha a nova senha." },
+      { status: 400 },
+    );
   }
 
   const data = await verifyRecoveryToken(token);
   if (!data) {
-    return NextResponse.json({ error: "Link inválido ou expirado. Peça outro.", erro: "Link inválido ou expirado." }, { status: 401 });
+    return NextResponse.json(
+      { error: "Link inválido ou expirado. Peça outro.", erro: "Link inválido ou expirado." },
+      { status: 401 },
+    );
   }
 
   if (await isRecoveryTokenAlreadyUsed(data.userId, data.issuedAtMs)) {
-    return NextResponse.json({ error: "Link expirado ou já utilizado. Peça outro.", erro: "Link expirado ou já utilizado." }, { status: 401 });
+    return NextResponse.json(
+      {
+        error: "Link expirado ou já utilizado. Peça outro.",
+        erro: "Link expirado ou já utilizado.",
+      },
+      { status: 401 },
+    );
   }
 
   const result = await updateAccountPassword(data.userId, password);

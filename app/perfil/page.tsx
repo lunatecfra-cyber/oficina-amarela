@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { AppHeader } from "@/components/app-header";
-import { FORMAT_LABELS } from "@/lib/missions";
-import { DEFAULT_EDITOR_PROFILE, levelProgress } from "@/lib/profile";
-import { DAYS, DEFAULT_AVAILABILITY, PERIODS, workFromMission } from "@/lib/schedule";
-import { reservedMissionBy } from "@/lib/missions-db";
-import { readEditorOnboarding, readEditorProfile } from "@/lib/profile-db";
-import { getEditorProgress } from "@/lib/electoral-ranking-db";
-import { ElectoralProgress } from "@/components/electoral-progress";
-import { EditorInvitation } from "@/components/editor-invitation";
 import { ActiveDesk } from "@/components/active-desk";
-import { Stat } from "@/components/stat";
-import { Card } from "@/components/card";
+import { AppHeader } from "@/components/app-header";
 import { AvailabilityCell } from "@/components/availability-cell";
+import { Card } from "@/components/card";
+import { EditorInvitation } from "@/components/editor-invitation";
+import { ElectoralProgress } from "@/components/electoral-progress";
+import { Stat } from "@/components/stat";
 import { initials } from "@/lib/candidates";
+import { getEditorProgress } from "@/lib/electoral-ranking-db";
+import { FORMAT_LABELS } from "@/lib/missions";
+import { reservedMissionBy } from "@/lib/missions-db";
+import { DEFAULT_EDITOR_PROFILE, levelProgress } from "@/lib/profile";
+import { readEditorOnboarding, readEditorProfile } from "@/lib/profile-db";
+import { DAYS, DEFAULT_AVAILABILITY, PERIODS, workFromMission } from "@/lib/schedule";
 import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Meu Perfil — Oficina Amarela" };
@@ -32,9 +32,7 @@ export default async function ProfilePage() {
   const p = dbProfile ?? DEFAULT_EDITOR_PROFILE;
   const level = levelProgress(p.deliveries ?? (p as any).entregues ?? 0);
 
-  const grid = onboarding?.availability?.length
-    ? onboarding.availability
-    : DEFAULT_AVAILABILITY;
+  const grid = onboarding?.availability?.length ? onboarding.availability : DEFAULT_AVAILABILITY;
   const freeSlots = grid.flat().filter(Boolean).length;
 
   const onDesk = workFromMission(reserved);
@@ -58,11 +56,7 @@ export default async function ProfilePage() {
   const achievements = p.achievements ?? (p as any).conquistas ?? [];
 
   const hasDesk =
-    softwares.length > 0 ||
-    styles.length > 0 ||
-    niche.length > 0 ||
-    !!editingLevel ||
-    !!pcSetup;
+    softwares.length > 0 || styles.length > 0 || niche.length > 0 || !!editingLevel || !!pcSetup;
 
   return (
     <>
@@ -100,11 +94,7 @@ export default async function ProfilePage() {
                 >
                   {photoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={photoUrl}
-                      alt={name}
-                      className="h-full w-full object-cover"
-                    />
+                    <img src={photoUrl} alt={name} className="h-full w-full object-cover" />
                   ) : (
                     initials(name)
                   )}
@@ -124,14 +114,17 @@ export default async function ProfilePage() {
               </div>
               <p className="mt-1 text-muted">{p.headline.join(" · ")}</p>
               <p className="mt-1 text-sm text-muted-2">
-                @{handle} {location && <>· {location} </>}· na guilda desde{" "}
-                {since}
+                @{handle} {location && <>· {location} </>}· na guilda desde {since}
               </p>
 
               <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-3">
                 <Stat valor={String(deliveries)} rotulo="entregues" />
                 <Stat
-                  valor={rating === null || rating === undefined ? "—" : Number(rating).toFixed(1).replace(".", ",")}
+                  valor={
+                    rating === null || rating === undefined
+                      ? "—"
+                      : Number(rating).toFixed(1).replace(".", ",")
+                  }
                   rotulo={rating === null || rating === undefined ? "sem nota ainda" : "nota"}
                   estrela
                 />
@@ -159,8 +152,7 @@ export default async function ProfilePage() {
               <Card title="Portfólio" delay={0.1} guide="cartao-portfolio">
                 {portfolio.length === 0 && (
                   <p className="text-sm text-muted-2">
-                    Seu portfólio se preenche sozinho: cada entrega aprovada
-                    entra aqui.
+                    Seu portfólio se preenche sozinho: cada entrega aprovada entra aqui.
                   </p>
                 )}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -180,11 +172,15 @@ export default async function ProfilePage() {
                           <path d="M8 5v14l11-7z" />
                         </svg>
                         <span className="absolute left-2 top-2 rounded bg-black/45 px-1.5 py-0.5 text-[10px] font-medium text-white/90">
-                          {FORMAT_LABELS[v.format as keyof typeof FORMAT_LABELS] ?? (FORMAT_LABELS as any)[v.formato] ?? v.format}
+                          {FORMAT_LABELS[v.format as keyof typeof FORMAT_LABELS] ??
+                            (FORMAT_LABELS as any)[v.formato] ??
+                            v.format}
                         </span>
                       </div>
                       <figcaption className="mt-2">
-                        <p className="truncate text-sm font-medium text-text">{v.title ?? v.titulo}</p>
+                        <p className="truncate text-sm font-medium text-text">
+                          {v.title ?? v.titulo}
+                        </p>
                         <p className="text-xs text-muted-2">{v.spokesperson ?? v.portaVoz}</p>
                       </figcaption>
                     </figure>
@@ -205,9 +201,7 @@ export default async function ProfilePage() {
                         )}
                         <span
                           className={`relative mt-1 h-3.5 w-3.5 flex-none rounded-full border-2 ${
-                            ok
-                              ? "border-ok bg-ok/30"
-                              : "border-gold bg-gold/30"
+                            ok ? "border-ok bg-ok/30" : "border-gold bg-gold/30"
                           }`}
                         />
                         <div className="min-w-0 flex-1">
@@ -240,7 +234,14 @@ export default async function ProfilePage() {
                   className="mt-4 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
                 >
                   Ver o ranking do ciclo
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3.5 w-3.5" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    className="h-3.5 w-3.5"
+                    aria-hidden="true"
+                  >
                     <path d="M5 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </Link>
@@ -280,15 +281,9 @@ export default async function ProfilePage() {
               <Card title="A Bancada" delay={0.15}>
                 {hasDesk ? (
                   <div className="flex flex-col gap-4">
-                    {softwares.length > 0 && (
-                      <ChipList title="Softwares" items={softwares} />
-                    )}
-                    {styles.length > 0 && (
-                      <ChipList title="Estilos" items={styles} />
-                    )}
-                    {niche.length > 0 && (
-                      <ChipList title="Formato" items={niche} />
-                    )}
+                    {softwares.length > 0 && <ChipList title="Softwares" items={softwares} />}
+                    {styles.length > 0 && <ChipList title="Estilos" items={styles} />}
+                    {niche.length > 0 && <ChipList title="Formato" items={niche} />}
                     {(editingLevel || pcSetup) && (
                       <div className="flex flex-wrap gap-x-6 gap-y-3 border-t border-line pt-3">
                         {editingLevel && (
@@ -313,10 +308,7 @@ export default async function ProfilePage() {
                 ) : (
                   <p className="text-sm text-muted-2">
                     Você ainda não montou sua bancada.{" "}
-                    <Link
-                      href="/editor/criar-perfil"
-                      className="text-gold-hi hover:underline"
-                    >
+                    <Link href="/editor/criar-perfil" className="text-gold-hi hover:underline">
                       Preencher agora
                     </Link>
                   </p>
@@ -347,7 +339,10 @@ export default async function ProfilePage() {
                   <span className="text-sm text-text">
                     <b className="text-gold-hi">{freeSlots}</b> blocos livres
                   </span>
-                  <Link href="/agenda" className="text-xs text-muted transition-colors hover:text-gold-hi">
+                  <Link
+                    href="/agenda"
+                    className="text-xs text-muted transition-colors hover:text-gold-hi"
+                  >
                     Editar →
                   </Link>
                 </div>
@@ -394,9 +389,7 @@ function MiniGrid({ grid }: { grid: boolean[][] }) {
       ))}
       {PERIODS.map((period, pi) => (
         <div key={period} className="contents">
-          <span className="flex items-center text-[10px] text-muted-2">
-            {period[0]}
-          </span>
+          <span className="flex items-center text-[10px] text-muted-2">{period[0]}</span>
           {DAYS.map((d, di) => (
             <AvailabilityCell
               key={d}

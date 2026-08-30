@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Logo } from "@/components/logo";
 import { InspectorNav } from "@/components/inspector-nav";
 import { LocalGuide } from "@/components/local-guide";
+import { Logo } from "@/components/logo";
 import { readSession } from "@/lib/server-session";
 
 export async function AppHeaderInspector() {
   const session = await readSession();
-  if (!session || session.role !== "admin") return null;
+  if (session?.role !== "admin") return null;
 
   return (
     <header className="border-b border-line-soft">

@@ -81,12 +81,17 @@ export async function createNews(
   authorId: number,
   title: string,
   text: string,
-  isPublished = true
+  isPublished = true,
 ): Promise<{ ok: true; id: number } | { ok: false; error: string; erro?: string }> {
   const t = limitStr(title, LIMITS.title);
   const c = limitStr(text, LIMITS.longText);
   if (!t) return { ok: false, error: "Escreva um título.", erro: "Escreva um título." };
-  if (!c) return { ok: false, error: "Escreva o texto da novidade.", erro: "Escreva o texto da novidade." };
+  if (!c)
+    return {
+      ok: false,
+      error: "Escreva o texto da novidade.",
+      erro: "Escreva o texto da novidade.",
+    };
 
   const [row] = await sql`
     INSERT INTO novidades (titulo, texto, autor_id, publicada)
@@ -99,21 +104,33 @@ export async function createNews(
 export const criarNovidade = createNews;
 
 export async function toggleNewsPublication(
-  id: number
-): Promise<{ ok: true; isPublished: boolean; published?: boolean; publicada?: boolean } | { ok: false; error: string; erro?: string }> {
+  id: number,
+): Promise<
+  | { ok: true; isPublished: boolean; published?: boolean; publicada?: boolean }
+  | { ok: false; error: string; erro?: string }
+> {
   const [row] = await sql`
     UPDATE novidades SET publicada = NOT publicada WHERE id = ${id}
     RETURNING publicada
   `;
-  if (!row) return { ok: false, error: "Novidade não encontrada.", erro: "Novidade não encontrada." };
-  return { ok: true, isPublished: row.publicada, published: row.publicada, publicada: row.publicada };
+  if (!row)
+    return { ok: false, error: "Novidade não encontrada.", erro: "Novidade não encontrada." };
+  return {
+    ok: true,
+    isPublished: row.publicada,
+    published: row.publicada,
+    publicada: row.publicada,
+  };
 }
 
 export const alternarPublicacao = toggleNewsPublication;
 
-export async function deleteNews(id: number): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
+export async function deleteNews(
+  id: number,
+): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const rows = await sql`DELETE FROM novidades WHERE id = ${id} RETURNING id`;
-  if (rows.length === 0) return { ok: false, error: "Novidade não encontrada.", erro: "Novidade não encontrada." };
+  if (rows.length === 0)
+    return { ok: false, error: "Novidade não encontrada.", erro: "Novidade não encontrada." };
   return { ok: true };
 }
 

@@ -1,11 +1,7 @@
 import { AppHeaderSpokesperson } from "@/components/app-header-spokesperson";
 import { requireSession } from "@/lib/server-session";
 
-export default async function SpokespersonLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function SpokespersonLayout({ children }: { children: React.ReactNode }) {
   await requireSession();
 
   return (

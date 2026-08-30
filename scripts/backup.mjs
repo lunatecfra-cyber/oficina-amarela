@@ -16,13 +16,15 @@
 //
 // Guarde o arquivo fora do repositório. Ele NÃO deve ser versionado.
 
-import postgres from "postgres";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import postgres from "postgres";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
-  console.error("Falta DATABASE_URL. Rode com:\n  DATABASE_URL=\"postgres://...\" node scripts/backup.mjs");
+  console.error(
+    'Falta DATABASE_URL. Rode com:\n  DATABASE_URL="postgres://..." node scripts/backup.mjs',
+  );
   process.exit(1);
 }
 

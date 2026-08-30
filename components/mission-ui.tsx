@@ -1,11 +1,11 @@
 "use client";
 
-import { STATUS_LABEL, type Mission, type Pauta } from "@/lib/missions";
-import { getCandidate, type Candidate } from "@/lib/candidates";
+import { type Candidate, getCandidate } from "@/lib/candidates";
+import { type Mission, type Pauta, STATUS_LABEL } from "@/lib/missions";
 
 export function candidateFromMission(
   p: Mission | Pauta,
-  map: Record<string, Candidate>
+  map: Record<string, Candidate>,
 ): Candidate {
   const handle = p.spokespersonHandle ?? (p as any).portaVozApelido;
   const name = p.spokesperson ?? (p as any).portaVoz;
@@ -13,8 +13,7 @@ export function candidateFromMission(
   return getCandidate(name);
 }
 
-export { candidateFromMission as candidateOfMission };
-export { candidateFromMission as candidatoDaPauta };
+export { candidateFromMission as candidateOfMission, candidateFromMission as candidatoDaPauta };
 
 export function StatusBadge({ status }: { status: Mission["status"] | Pauta["status"] | string }) {
   const s = String(status);
@@ -29,7 +28,12 @@ export function StatusBadge({ status }: { status: Mission["status"] | Pauta["sta
             ? "border-silver-hi/40 bg-silver-hi/5 text-silver-hi"
             : s === "in_review" || s === "em_revisao"
               ? "border-silver-lo/50 bg-surface-2 text-silver"
-              : s === "approved" || s === "completed" || s === "finished" || s === "finalized" || s === "aprovada" || s === "finalizada"
+              : s === "approved" ||
+                  s === "completed" ||
+                  s === "finished" ||
+                  s === "finalized" ||
+                  s === "aprovada" ||
+                  s === "finalizada"
                 ? "border-ok/50 bg-ok/10 text-ok"
                 : s === "revision_requested" || s === "reedit" || s === "reedicao"
                   ? "border-danger/50 bg-danger/10 text-danger"
@@ -42,8 +46,7 @@ export function StatusBadge({ status }: { status: Mission["status"] | Pauta["sta
   );
 }
 
-export { StatusBadge as Badge };
-export { StatusBadge as Selo };
+export { StatusBadge as Badge, StatusBadge as Selo };
 
 export function Chip({ k, v }: { k: string; v: string }) {
   return (

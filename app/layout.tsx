@@ -32,10 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${cinzel.variable} ${sora.variable} h-full antialiased`}
-    >
+    <html lang="pt-BR" className={`${cinzel.variable} ${sora.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <div className="texture" aria-hidden="true" />
         <div className="relative z-10 flex min-h-full flex-1 flex-col">

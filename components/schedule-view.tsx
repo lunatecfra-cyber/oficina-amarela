@@ -1,7 +1,7 @@
 "use client";
 
-import { type TaskOnDesk, type TrabalhoEmMaos } from "@/lib/schedule";
 import { ActiveDesk } from "@/components/active-desk";
+import { type TaskOnDesk, type TrabalhoEmMaos } from "@/lib/schedule";
 
 export function ScheduleView({
   onDesk = [],
@@ -18,9 +18,7 @@ export function ScheduleView({
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
           Sua agenda
         </h1>
-        <p className="mt-1 text-sm text-muted">
-          Acompanhe as missões que estão na sua mesa.
-        </p>
+        <p className="mt-1 text-sm text-muted">Acompanhe as missões que estão na sua mesa.</p>
       </div>
 
       <section className="mt-8" data-guia="mesa-agora">

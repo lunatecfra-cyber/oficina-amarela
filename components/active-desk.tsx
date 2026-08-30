@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { TaskOnDesk } from "@/lib/schedule";
+import { useEffect, useState } from "react";
 import { FORMAT_LABEL } from "@/lib/missions";
+import type { TaskOnDesk } from "@/lib/schedule";
 import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 
 function fmtRemaining(ms: number) {
@@ -69,11 +69,7 @@ export function ActiveDesk({
   };
 
   if (effectiveTasks.length === 0) {
-    return (
-      <p className="text-sm text-muted">
-        Nada na mesa agora. Pegue uma missão na fila.
-      </p>
-    );
+    return <p className="text-sm text-muted">Nada na mesa agora. Pegue uma missão na fila.</p>;
   }
 
   if (variant === "list" || variant === "lista") {
@@ -116,7 +112,14 @@ export function ActiveDesk({
       {effectiveTasks.map((t) => {
         const { pct, remainingMs } = calc(t);
         const tight = remainingMs !== null && remainingMs < 4 * 3_600_000;
-        const hasBrief = t.tone || t.color || t.font || t.refs || (t as any).tom || (t as any).cor || (t as any).fonte;
+        const hasBrief =
+          t.tone ||
+          t.color ||
+          t.font ||
+          t.refs ||
+          (t as any).tom ||
+          (t as any).cor ||
+          (t as any).fonte;
         const title = t.title ?? (t as any).titulo;
         const spokesperson = t.spokesperson ?? (t as any).portaVoz;
         const format = t.format ?? (t as any).formato ?? "short";
@@ -143,7 +146,9 @@ export function ActiveDesk({
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {(t.tone ?? (t as any).tom) && <Chip k="tom" v={(t.tone ?? (t as any).tom)!} />}
                 {(t.color ?? (t as any).cor) && <Chip k="cor" v={(t.color ?? (t as any).cor)!} />}
-                {(t.font ?? (t as any).fonte) && <Chip k="fonte" v={(t.font ?? (t as any).fonte)!} />}
+                {(t.font ?? (t as any).fonte) && (
+                  <Chip k="fonte" v={(t.font ?? (t as any).fonte)!} />
+                )}
                 {t.refs && <Chip k="ref" v={t.refs} />}
               </div>
             )}
@@ -152,7 +157,9 @@ export function ActiveDesk({
               <span className="text-muted">{stage}</span>
               <span className="text-muted-2">
                 {remainingMs === null
-                  ? now === null ? "—" : fmtSince(startIso)
+                  ? now === null
+                    ? "—"
+                    : fmtSince(startIso)
                   : `${pct}% do prazo`}
               </span>
             </div>
@@ -173,7 +180,9 @@ export function ActiveDesk({
               {remainingMs !== null && (
                 <span>
                   <span className="text-muted-2">Prazo: </span>
-                  <span className={urgencyColor(remainingMs)}>⏳ {fmtRemaining(remainingMs)} restantes</span>
+                  <span className={urgencyColor(remainingMs)}>
+                    ⏳ {fmtRemaining(remainingMs)} restantes
+                  </span>
                 </span>
               )}
               {desiredDeadline && (

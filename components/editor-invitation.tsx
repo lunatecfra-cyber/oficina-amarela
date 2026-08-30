@@ -6,13 +6,7 @@ import { useState } from "react";
  * Editor invitation: shareable link with native sheet or clipboard fallback.
  * Public interface text in Portuguese (PT-BR).
  */
-export function EditorInvitation({
-  code,
-  codigo,
-}: {
-  code?: string;
-  codigo?: string;
-}) {
+export function EditorInvitation({ code, codigo }: { code?: string; codigo?: string }) {
   const referralCode = code ?? codigo ?? "";
   const [notice, setNotice] = useState<"copied" | "error" | null>(null);
 
@@ -41,22 +35,43 @@ export function EditorInvitation({
   return (
     <div>
       <p className="text-xs leading-relaxed text-muted">
-        Cada editor que entrar pelo seu convite e tiver 2 vídeos aprovados
-        rende pontos pra você.
+        Cada editor que entrar pelo seu convite e tiver 2 vídeos aprovados rende pontos pra você.
       </p>
 
-      <button type="button" onClick={handleShare} className="btn-gold mt-3 flex items-center justify-center gap-2">
+      <button
+        type="button"
+        onClick={handleShare}
+        className="btn-gold mt-3 flex items-center justify-center gap-2"
+      >
         {notice === "copied" ? (
           <>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="h-4 w-4" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              className="h-4 w-4"
+              aria-hidden="true"
+            >
               <path d="m5 12.5 4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Link copiado
           </>
         ) : (
           <>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true">
-              <path d="M12 15V4m0 0L8.5 7.5M12 4l3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className="h-4 w-4"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 15V4m0 0L8.5 7.5M12 4l3.5 3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
               <path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" strokeLinecap="round" />
             </svg>
             Compartilhar convite

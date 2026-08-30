@@ -63,7 +63,10 @@ for (const [source, noteName] of noteBySource) {
 }
 
 const overviewLinks = [...noteBySource.entries()]
-  .filter(([source]) => source.startsWith("app/") || source.startsWith("components/") || source.startsWith("lib/"))
+  .filter(
+    ([source]) =>
+      source.startsWith("app/") || source.startsWith("components/") || source.startsWith("lib/"),
+  )
   .sort(([a], [b]) => a.localeCompare(b))
   .map(([, noteName]) => `- [[Nodes/${noteName}]]`);
 

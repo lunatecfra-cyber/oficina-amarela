@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { AppHeader } from "@/components/app-header";
-import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
-import { DailyChallenges } from "@/components/daily-challenges";
 import { ActiveMissionCard } from "@/components/active-mission-card";
+import { AppHeader } from "@/components/app-header";
+import { DailyChallenges } from "@/components/daily-challenges";
+import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 import { MissionOffer } from "@/components/mission-offer";
-import { reservedMissionBy } from "@/lib/missions-db";
 import { missionMessages } from "@/lib/chat-db";
+import { listDailyChallenges, recordDailyLogin } from "@/lib/gamification-db";
+import { reservedMissionBy } from "@/lib/missions-db";
 import { readEditorOnboarding } from "@/lib/profile-db";
 import { requireSession } from "@/lib/server-session";
-import { listDailyChallenges, recordDailyLogin } from "@/lib/gamification-db";
 
 export const metadata: Metadata = { title: "Fila — Oficina Amarela" };
 export const dynamic = "force-dynamic";

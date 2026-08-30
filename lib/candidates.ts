@@ -144,10 +144,7 @@ export function generateSuggestedBio(data: {
       ? `Candidato(a) em ${where}.`
       : "";
 
-  const themes =
-    flags && flags.length > 0
-      ? `Foco em ${flags.join(", ")}.`
-      : "";
+  const themes = flags && flags.length > 0 ? `Foco em ${flags.join(", ")}.` : "";
 
   const closing = selectedTone
     ? BIO_CLOSING_BY_TONE[selectedTone as (typeof COMMUNICATION_TONES)[number]]
@@ -157,7 +154,13 @@ export function generateSuggestedBio(data: {
 }
 export const gerarBioSugerida = generateSuggestedBio;
 
-export { BRAZIL_STATES, CITIES_BY_STATE, ESTADOS_BRASIL, CIDADES_POR_UF, BRAZILIAN_STATES } from "./cities";
+export {
+  BRAZIL_STATES,
+  BRAZILIAN_STATES,
+  CIDADES_POR_UF,
+  CITIES_BY_STATE,
+  ESTADOS_BRASIL,
+} from "./cities";
 
 export const DEMO_CANDIDATES: Record<string, Candidate> = {
   Busnelo: {

@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
 function LoginFormContent() {
   const router = useRouter();
@@ -11,7 +11,7 @@ function LoginFormContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(
-    searchParams.get("google_error") ?? searchParams.get("erro_google") ?? ""
+    searchParams.get("google_error") ?? searchParams.get("erro_google") ?? "",
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,7 +23,7 @@ function LoginFormContent() {
           ? "Preencha apelido e senha."
           : !handle.trim()
             ? "Digite seu apelido."
-            : "Digite sua senha."
+            : "Digite sua senha.",
       );
       return;
     }
@@ -90,10 +90,7 @@ function LoginFormContent() {
             fill="#34A853"
             d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3a7.2 7.2 0 0 1-10.7-3.8h-4v3.1A12 12 0 0 0 12 24Z"
           />
-          <path
-            fill="#FBBC05"
-            d="M5.3 14.3a7.1 7.1 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8l4-3.1Z"
-          />
+          <path fill="#FBBC05" d="M5.3 14.3a7.1 7.1 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8l4-3.1Z" />
           <path
             fill="#EA4335"
             d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.5-3.5A12 12 0 0 0 1.3 6.6l4 3.1A7.2 7.2 0 0 1 12 4.8Z"
@@ -241,18 +238,27 @@ function LoginFormContent() {
 
       <p className="mt-6 text-center text-sm text-muted">
         Ainda não é membro?{" "}
-        <Link href="/criar-conta" className="inline-block px-2 py-2 font-medium text-gold-hi hover:underline">
+        <Link
+          href="/criar-conta"
+          className="inline-block px-2 py-2 font-medium text-gold-hi hover:underline"
+        >
           Crie uma conta
         </Link>
       </p>
 
       <p className="mt-4 text-center text-xs text-muted-2">
         Ao entrar, você concorda com os{" "}
-        <Link href="/termos" className="inline-block py-1.5 text-muted hover:text-silver-hi hover:underline">
+        <Link
+          href="/termos"
+          className="inline-block py-1.5 text-muted hover:text-silver-hi hover:underline"
+        >
           Termos de Uso
         </Link>{" "}
         e a{" "}
-        <Link href="/privacidade" className="inline-block py-1.5 text-muted hover:text-silver-hi hover:underline">
+        <Link
+          href="/privacidade"
+          className="inline-block py-1.5 text-muted hover:text-silver-hi hover:underline"
+        >
           Política de Privacidade
         </Link>
         .

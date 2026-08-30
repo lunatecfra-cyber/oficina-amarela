@@ -39,7 +39,7 @@ export const remetenteEhDeTeste = isTestSender;
 export async function sendPasswordRecoveryEmail(
   to: string,
   name: string,
-  link: string
+  link: string,
 ): Promise<boolean> {
   const { error } = await getClient().emails.send({
     from: SENDER,
@@ -89,7 +89,12 @@ function moldura(titulo: string, miolo: string, link?: { url: string; texto: str
 async function sendNotification(destination: string, subject: string, html: string): Promise<void> {
   if (!isEmailConfigured() || isTestSender() || !destination) return;
   try {
-    const { error } = await getClient().emails.send({ from: SENDER, to: destination, subject, html });
+    const { error } = await getClient().emails.send({
+      from: SENDER,
+      to: destination,
+      subject,
+      html,
+    });
     if (error) console.error("[email] falha ao avisar:", subject, error);
   } catch (e) {
     console.error("[email] exceção ao avisar:", subject, e);
@@ -98,7 +103,13 @@ async function sendNotification(destination: string, subject: string, html: stri
 
 export const avisar = sendNotification;
 
-export function notifyMissionAccepted(destination: string, name: string, title: string, editor: string, url: string) {
+export function notifyMissionAccepted(
+  destination: string,
+  name: string,
+  title: string,
+  editor: string,
+  url: string,
+) {
   return sendNotification(
     destination,
     `Um editor pegou "${title}"`,
@@ -106,8 +117,8 @@ export function notifyMissionAccepted(destination: string, name: string, title: 
       `${escapeHtml(editor)} começou a editar seu vídeo`,
       `<p>Oi, ${escapeHtml(name)}. A missão <b>${escapeHtml(title)}</b> saiu da fila e está sendo trabalhada agora.</p>
        <p>Você recebe outro aviso quando o vídeo ficar pronto.</p>`,
-      { url, texto: "Acompanhar a missão" }
-    )
+      { url, texto: "Acompanhar a missão" },
+    ),
   );
 }
 export const avisarMissaoAceita = notifyMissionAccepted;
@@ -120,13 +131,19 @@ export function notifyDeliveryReady(destination: string, name: string, title: st
       "O editor entregou seu vídeo",
       `<p>Oi, ${escapeHtml(name)}. O vídeo da missão <b>${escapeHtml(title)}</b> ficou pronto.</p>
        <p>Assista e diga se pode ir pro ar — ou peça um ajuste, se algo não ficou como você queria.</p>`,
-      { url, texto: "Ver o vídeo" }
-    )
+      { url, texto: "Ver o vídeo" },
+    ),
   );
 }
 export const avisarEntregaPronta = notifyDeliveryReady;
 
-export function notifyApprovedDelivery(destination: string, name: string, title: string, rating: number | undefined, url: string) {
+export function notifyApprovedDelivery(
+  destination: string,
+  name: string,
+  title: string,
+  rating: number | undefined,
+  url: string,
+) {
   return sendNotification(
     destination,
     `Aprovaram sua entrega: "${title}"`,
@@ -135,13 +152,19 @@ export function notifyApprovedDelivery(destination: string, name: string, title:
       `<p>Oi, ${escapeHtml(name)}. A missão <b>${escapeHtml(title)}</b> foi aprovada.</p>
        ${rating !== undefined ? `<p>Nota recebida: <b>${rating} de 5</b>.</p>` : ""}
        <p>Sua fila está livre — a próxima missão já pode chegar.</p>`,
-      { url, texto: "Ver minha fila" }
-    )
+      { url, texto: "Ver minha fila" },
+    ),
   );
 }
 export const avisarEntregaAprovada = notifyApprovedDelivery;
 
-export function notifyReEditRequested(destination: string, name: string, title: string, notes: string, url: string) {
+export function notifyReEditRequested(
+  destination: string,
+  name: string,
+  title: string,
+  notes: string,
+  url: string,
+) {
   return sendNotification(
     destination,
     `Pediram um ajuste em "${title}"`,
@@ -150,13 +173,18 @@ export function notifyReEditRequested(destination: string, name: string, title: 
       `<p>Oi, ${escapeHtml(name)}. Pediram um ajuste em <b>${escapeHtml(title)}</b>.</p>
        ${notes.trim() ? `<p style="background:#f6f4ee; border-left:3px solid #f4ce1f; padding:12px 14px; margin:16px 0;">${escapeHtml(notes)}</p>` : ""}
        <p>A missão está de volta na sua mão — é só entregar de novo quando estiver pronta.</p>`,
-      { url, texto: "Abrir a missão" }
-    )
+      { url, texto: "Abrir a missão" },
+    ),
   );
 }
 export const avisarReedicaoPedida = notifyReEditRequested;
 
-export function notifyEditorsQueue(destination: string, name: string, inQueue: number, url: string) {
+export function notifyEditorsQueue(
+  destination: string,
+  name: string,
+  inQueue: number,
+  url: string,
+) {
   return sendNotification(
     destination,
     `Tem ${inQueue} miss${inQueue === 1 ? "ão" : "ões"} esperando editor`,
@@ -164,13 +192,18 @@ export function notifyEditorsQueue(destination: string, name: string, inQueue: n
       "Tem missões na fila de edição",
       `<p>Oi, ${escapeHtml(name)}. Tem <b>${inQueue} miss${inQueue === 1 ? "ão" : "ões"}</b> na fila esperando alguém pra pegar.</p>
        <p>Acesse o site e pegue a próxima.</p>`,
-      { url, texto: "Ver a fila" }
-    )
+      { url, texto: "Ver a fila" },
+    ),
   );
 }
 export const avisarEditoresFila = notifyEditorsQueue;
 
-export function notifySpokespersonsFreeEditors(destination: string, name: string, freeEditors: number, url: string) {
+export function notifySpokespersonsFreeEditors(
+  destination: string,
+  name: string,
+  freeEditors: number,
+  url: string,
+) {
   return sendNotification(
     destination,
     "Tem editores disponíveis pra sua missão",
@@ -178,8 +211,8 @@ export function notifySpokespersonsFreeEditors(destination: string, name: string
       "Editores livres esperando uma missão",
       `<p>Oi, ${escapeHtml(name)}. Tem <b>${freeEditors} editor${freeEditors === 1 ? "" : "es"}</b> disponíveis agora.</p>
        <p>Se você tem um vídeo pra editar, é só criar.</p>`,
-      { url, texto: "Criar missão" }
-    )
+      { url, texto: "Criar missão" },
+    ),
   );
 }
 export const avisarCandidatosEditoresLivres = notifySpokespersonsFreeEditors;

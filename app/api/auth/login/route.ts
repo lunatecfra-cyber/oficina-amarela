@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import {
   authenticateUser,
   clearLoginAttempts,
@@ -8,9 +8,9 @@ import {
   recordLoginFailure,
   recordLoginFailureByIp,
 } from "@/lib/accounts";
-import { requestIpAddress } from "@/lib/ip";
-import { createSessionToken, COOKIE_NAME, COOKIE_OPTS } from "@/lib/session";
 import { recordDailyLogin } from "@/lib/gamification-db";
+import { requestIpAddress } from "@/lib/ip";
+import { COOKIE_NAME, COOKIE_OPTS, createSessionToken } from "@/lib/session";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -18,7 +18,10 @@ export async function POST(request: Request) {
   const password = body?.password ?? body?.senha;
 
   if (typeof handle !== "string" || typeof password !== "string") {
-    return NextResponse.json({ error: "Digite seu apelido e senha.", erro: "Digite seu apelido e senha." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Digite seu apelido e senha.", erro: "Digite seu apelido e senha." },
+      { status: 400 },
+    );
   }
 
   const ip = requestIpAddress(request);
@@ -32,7 +35,7 @@ export async function POST(request: Request) {
         error: `Muitas tentativas. Tente novamente em ${minutes} min.`,
         erro: `Muitas tentativas. Tente novamente em ${minutes} min.`,
       },
-      { status: 429 }
+      { status: 429 },
     );
   }
 
@@ -49,7 +52,7 @@ export async function POST(request: Request) {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, COOKIE_OPTS);
   void recordDailyLogin(result.account.id).catch((e) =>
-    console.error("[gamification] failed to record login", e)
+    console.error("[gamification] failed to record login", e),
   );
 
   return NextResponse.json({ ok: true, ...result.account });

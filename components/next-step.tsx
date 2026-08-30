@@ -33,12 +33,18 @@ const STEPS = [
 
 export function NextStep() {
   return (
-    <section className="border-t border-line-soft px-6 py-16 lg:py-20" aria-labelledby="proximo-passo-titulo">
+    <section
+      className="border-t border-line-soft px-6 py-16 lg:py-20"
+      aria-labelledby="proximo-passo-titulo"
+    >
       <div className="mx-auto w-full max-w-5xl">
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div className="max-w-xl">
             <p className="text-[11px] uppercase tracking-[0.16em] text-gold-lo">Próximo passo</p>
-            <h2 id="proximo-passo-titulo" className="mt-2 font-[family-name:var(--font-display)] text-3xl font-semibold text-text lg:text-4xl">
+            <h2
+              id="proximo-passo-titulo"
+              className="mt-2 font-[family-name:var(--font-display)] text-3xl font-semibold text-text lg:text-4xl"
+            >
               O caminho é esse.
             </h2>
             <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted">
@@ -57,7 +63,10 @@ export function NextStep() {
               href={step.href}
               className="group flex min-h-48 flex-col border-l border-line px-5 transition-colors duration-300 hover:border-gold"
             >
-              <span className="font-[family-name:var(--font-display)] text-2xl font-semibold text-gold-hi" aria-hidden="true">
+              <span
+                className="font-[family-name:var(--font-display)] text-2xl font-semibold text-gold-hi"
+                aria-hidden="true"
+              >
                 {step.number}
               </span>
               <h3 className="mt-8 font-[family-name:var(--font-display)] text-xl font-semibold text-text">
@@ -65,7 +74,13 @@ export function NextStep() {
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{step.text}</p>
               <span className="mt-auto pt-5 text-sm font-medium text-gold-hi transition-colors group-hover:text-gold">
-                Ver caminho <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1 inline-block">→</span>
+                Ver caminho{" "}
+                <span
+                  aria-hidden="true"
+                  className="transition-transform duration-300 group-hover:translate-x-1 inline-block"
+                >
+                  →
+                </span>
               </span>
             </Link>
           ))}

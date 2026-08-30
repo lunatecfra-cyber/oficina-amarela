@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function MissionActions({
   id,
@@ -15,7 +15,9 @@ export function MissionActions({
   const router = useRouter();
   const effectiveInReview = inReview || emRevisao;
 
-  const [processingAction, setProcessingAction] = useState<"accept" | "revision" | "approve" | null>(null);
+  const [processingAction, setProcessingAction] = useState<
+    "accept" | "revision" | "approve" | null
+  >(null);
   const [isOpeningRevision, setIsOpeningRevision] = useState(false);
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState<number | undefined>(undefined);
@@ -57,9 +59,7 @@ export function MissionActions({
 
   return (
     <section className="mb-8 rounded-2xl border border-gold-lo/50 bg-gradient-to-b from-gold/[0.07] to-transparent p-5 lg:p-6">
-      <p className="text-xs uppercase tracking-[0.14em] text-gold-hi">
-        Sua vez de conferir
-      </p>
+      <p className="text-xs uppercase tracking-[0.14em] text-gold-hi">Sua vez de conferir</p>
       <p className="mt-2 text-sm text-muted">
         {effectiveInReview
           ? "O editor entregou. Assista e diga se pode ir pro ar — ou peça um ajuste antes."
@@ -80,9 +80,7 @@ export function MissionActions({
                 aria-pressed={rating === n}
                 onClick={() => setRating(rating === n ? undefined : n)}
                 className={`text-2xl leading-none transition-colors ${
-                  rating !== undefined && n <= rating
-                    ? "text-gold"
-                    : "text-line hover:text-gold-lo"
+                  rating !== undefined && n <= rating ? "text-gold" : "text-line hover:text-gold-lo"
                 }`}
               >
                 ★

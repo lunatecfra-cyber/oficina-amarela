@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  calculateWeeklyGoal,
-  calculateUnlockedAwards,
   calculateConsistency,
+  calculateUnlockedAwards,
+  calculateWeeklyGoal,
   canInvitationBeUsed,
   canReferralAward,
-  sortRanking,
   ELECTORAL_AWARDS,
+  sortRanking,
 } from "./electoral-ranking.ts";
 
 test("partial week of up to four days requires one video", () => {
@@ -51,7 +51,10 @@ test("tiebreak favors whoever reached count first", () => {
     { editorId: 1, count: 4, reachedCountAt: new Date("2026-09-02T12:00:00Z") },
     { editorId: 3, count: 5, reachedCountAt: new Date("2026-09-04T12:00:00Z") },
   ]);
-  assert.deepEqual(ranking.map((item) => item.editorId), [3, 1, 2]);
+  assert.deepEqual(
+    ranking.map((item) => item.editorId),
+    [3, 1, 2],
+  );
 });
 
 test("invitation requires email match, valid expiration and no prior usage", () => {

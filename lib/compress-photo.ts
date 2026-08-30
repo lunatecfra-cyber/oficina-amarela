@@ -3,7 +3,14 @@ const BYTE_CEILING = 1_400_000;
 const TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
 export type PhotoResult =
-  | { ok: true; dataUrl: string; bytesBefore: number; bytesAfter: number; bytesAntes?: number; bytesDepois?: number }
+  | {
+      ok: true;
+      dataUrl: string;
+      bytesBefore: number;
+      bytesAfter: number;
+      bytesAntes?: number;
+      bytesDepois?: number;
+    }
   | { ok: false; error: string; erro?: string };
 
 export type ResultadoFoto = PhotoResult;
@@ -26,14 +33,22 @@ function readAsImage(file: File): Promise<HTMLImageElement> {
 
 export async function compressPhoto(file: File): Promise<PhotoResult> {
   if (!TYPES.includes(file.type)) {
-    return { ok: false, error: "Escolha uma imagem PNG, JPG ou WebP.", erro: "Escolha uma imagem PNG, JPG ou WebP." };
+    return {
+      ok: false,
+      error: "Escolha uma imagem PNG, JPG ou WebP.",
+      erro: "Escolha uma imagem PNG, JPG ou WebP.",
+    };
   }
 
   let img: HTMLImageElement;
   try {
     img = await readAsImage(file);
   } catch {
-    return { ok: false, error: "Não deu pra abrir essa imagem. Tenta outra.", erro: "Não deu pra abrir essa imagem. Tenta outra." };
+    return {
+      ok: false,
+      error: "Não deu pra abrir essa imagem. Tenta outra.",
+      erro: "Não deu pra abrir essa imagem. Tenta outra.",
+    };
   }
 
   const max = Math.max(img.width, img.height);

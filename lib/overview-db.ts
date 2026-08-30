@@ -209,7 +209,7 @@ export type Movimento = QueueMove;
 
 export async function moveInQueue(
   missionId: number,
-  movement: QueueMove
+  movement: QueueMove,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const queue = await sql`
     SELECT id FROM pautas
@@ -219,7 +219,12 @@ export async function moveInQueue(
   const ids: number[] = queue.map((l) => l.id);
 
   const fromIdx = ids.indexOf(missionId);
-  if (fromIdx === -1) return { ok: false, error: "Essa missão não está mais na fila.", erro: "Essa missão não está mais na fila." };
+  if (fromIdx === -1)
+    return {
+      ok: false,
+      error: "Essa missão não está mais na fila.",
+      erro: "Essa missão não está mais na fila.",
+    };
 
   const toIdx =
     movement === "top" || movement === "topo"
@@ -229,7 +234,11 @@ export async function moveInQueue(
         : fromIdx + 1;
 
   if (toIdx < 0 || toIdx >= ids.length) {
-    return { ok: false, error: "Ela já está nessa ponta da fila.", erro: "Ela já está nessa ponta da fila." };
+    return {
+      ok: false,
+      error: "Ela já está nessa ponta da fila.",
+      erro: "Ela já está nessa ponta da fila.",
+    };
   }
 
   ids.splice(fromIdx, 1);
@@ -252,7 +261,9 @@ export async function moveInQueue(
 export const moveQueue = moveInQueue;
 export const moverNaFila = moveInQueue;
 
-export async function getActiveEditorEmails(): Promise<{ name: string; email: string; nome?: string }[]> {
+export async function getActiveEditorEmails(): Promise<
+  { name: string; email: string; nome?: string }[]
+> {
   const rows = await sql`
     SELECT nome, email FROM users
     WHERE papel = 'editor' AND banido = false
@@ -263,7 +274,9 @@ export async function getActiveEditorEmails(): Promise<{ name: string; email: st
 
 export const emailsDosEditores = getActiveEditorEmails;
 
-export async function getActiveSpokespersonEmails(): Promise<{ name: string; email: string; nome?: string }[]> {
+export async function getActiveSpokespersonEmails(): Promise<
+  { name: string; email: string; nome?: string }[]
+> {
   const rows = await sql`
     SELECT nome, email FROM users
     WHERE papel IN ('voz', 'spokesperson') AND banido = false

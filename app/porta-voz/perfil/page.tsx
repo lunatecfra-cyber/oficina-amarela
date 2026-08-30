@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { MISSIONS, STATUS_LABELS } from "@/lib/missions";
-import { spokespersonMissions } from "@/lib/missions-db";
-import { getCandidate } from "@/lib/candidates";
-import { readOwnCandidate } from "@/lib/candidate-db";
-import { requireSession } from "@/lib/server-session";
-import { Stat } from "@/components/stat";
-import { Card } from "@/components/card";
 import { CandidateAvatar } from "@/components/candidate-avatar";
 import { CandidateData } from "@/components/candidate-data";
 import { CandidateName } from "@/components/candidate-name";
+import { Card } from "@/components/card";
+import { Stat } from "@/components/stat";
+import { readOwnCandidate } from "@/lib/candidate-db";
+import { getCandidate } from "@/lib/candidates";
+import { MISSIONS, STATUS_LABELS } from "@/lib/missions";
+import { spokespersonMissions } from "@/lib/missions-db";
+import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Meu Perfil — Oficina Amarela" };
 export const dynamic = "force-dynamic";
@@ -31,17 +31,17 @@ export default async function SpokespersonProfilePage() {
   const myMissions = [...realMine, ...demo];
 
   const inQueue = myMissions.filter((p) =>
-    ["available", "disponivel", "offered", "oferecida"].includes(p.status)
+    ["available", "disponivel", "offered", "oferecida"].includes(p.status),
   ).length;
   const inProduction = myMissions.filter((p) =>
-    ["reserved", "reservada", "in_review", "em_revisao", "reedit", "reedicao"].includes(p.status)
+    ["reserved", "reservada", "in_review", "em_revisao", "reedit", "reedicao"].includes(p.status),
   ).length;
   const ready = myMissions.filter((p) =>
-    ["approved", "aprovada", "finished", "finalizada"].includes(p.status)
+    ["approved", "aprovada", "finished", "finalizada"].includes(p.status),
   ).length;
 
   const history = myMissions.filter((p) =>
-    ["approved", "aprovada", "finished", "finalizada", "reedit", "reedicao"].includes(p.status)
+    ["approved", "aprovada", "finished", "finalizada", "reedit", "reedicao"].includes(p.status),
   );
 
   return (
@@ -68,7 +68,10 @@ export default async function SpokespersonProfilePage() {
 
         <div className="px-5 pb-6 lg:px-8">
           <div className="relative z-10 -mt-12 flex items-end justify-between gap-4 lg:-mt-14">
-            <CandidateAvatar candidate={cand} className="h-24 w-24 text-3xl lg:h-28 lg:w-28 lg:text-4xl" />
+            <CandidateAvatar
+              candidate={cand}
+              className="h-24 w-24 text-3xl lg:h-28 lg:w-28 lg:text-4xl"
+            />
             <Link
               href="/porta-voz/perfil/editar"
               className="btn-ghost mb-1 w-auto px-4 text-sm"
@@ -83,9 +86,7 @@ export default async function SpokespersonProfilePage() {
             className="mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl"
           />
           <CandidateData candidate={cand} />
-          {cand.since && (
-            <p className="mt-1 text-sm text-muted-2">na guilda desde {cand.since}</p>
-          )}
+          {cand.since && <p className="mt-1 text-sm text-muted-2">na guilda desde {cand.since}</p>}
 
           <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-3">
             <Stat valor={String(myMissions.length)} rotulo="missões" />
@@ -120,7 +121,9 @@ export default async function SpokespersonProfilePage() {
                       )}
                     </div>
                     <span className="rounded-full border border-line bg-ink-2 px-3 py-1 text-xs text-muted">
-                      {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? (STATUS_LABELS as any)[status] ?? status}
+                      {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ??
+                        (STATUS_LABELS as any)[status] ??
+                        status}
                     </span>
                   </li>
                 );
@@ -135,16 +138,18 @@ export default async function SpokespersonProfilePage() {
           ) : (
             <ol className="relative ml-1">
               {history.map((h, i) => {
-                const ok = h.status === "approved" || (h.status as any) === "aprovada" || h.status === "finished" || (h.status as any) === "finalizada";
+                const ok =
+                  h.status === "approved" ||
+                  (h.status as any) === "aprovada" ||
+                  h.status === "finished" ||
+                  (h.status as any) === "finalizada";
                 const isLast = i === history.length - 1;
                 const title = h.title ?? (h as any).titulo;
                 const reservedBy = h.reservedBy ?? (h as any).reservadaPor;
 
                 return (
                   <li key={h.id} className="relative flex gap-4 pb-5 last:pb-0">
-                    {!isLast && (
-                      <span className="absolute left-[7px] top-4 h-full w-px bg-line" />
-                    )}
+                    {!isLast && <span className="absolute left-[7px] top-4 h-full w-px bg-line" />}
                     <span
                       className={`relative mt-1 h-3.5 w-3.5 flex-none rounded-full border-2 ${
                         ok ? "border-ok bg-ok/30" : "border-gold bg-gold/30"

@@ -142,9 +142,7 @@ export function MusicLibrary() {
       )}
 
       {isLoading ? (
-        <div className="py-12 text-center text-sm text-muted">
-          Carregando músicas…
-        </div>
+        <div className="py-12 text-center text-sm text-muted">Carregando músicas…</div>
       ) : musics.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-line p-12 text-center">
           <p className="text-muted">
@@ -165,7 +163,12 @@ export function MusicLibrary() {
               <li key={m.id}>
                 <div className="rounded-2xl border border-line bg-surface/70 p-4 transition-colors hover:border-gold/40">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                    <audio controls src={m.url} preload="none" className="w-full sm:w-auto sm:min-w-[200px] sm:flex-none" />
+                    <audio
+                      controls
+                      src={m.url}
+                      preload="none"
+                      className="w-full sm:w-auto sm:min-w-[200px] sm:flex-none"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-text">{name}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-2">
