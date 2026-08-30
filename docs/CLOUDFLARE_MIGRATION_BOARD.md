@@ -425,11 +425,11 @@ phases — see `P2-05`.
 | ID | Item | Status |
 |---|---|---|
 | `P0-09` | **The attempt limiter never locked anything.** Detail under `P1-05`. Fixed in `274142d`, but production has been running without brute-force, recovery-spam or signup-flood protection — worth checking `auditoria_admin` and access logs for abuse that went unthrottled. | **DONE** (code) · **BLOCKED** (log review needs production access) |
-| `P1-12` | Single-recipient notifications (`lib/email.ts` → `sendNotification`) are still fired with `void` from route handlers. Same serverless delivery loss as the broadcast had. Move them onto `fila_emails`. | READY |
+| `P1-12` | Single-recipient mission notifications moved onto `fila_emails` (`1f076a9`). Found on the way: the acceptance email linked to `/spokesperson/mission/db-N`, a route that does not exist, and `recordGamificationEvent` was also `void`-fired on delivery, so XP could vanish. Both fixed. Password recovery stays a direct awaited send — the user is waiting on it. | **DONE** |
 | `P2-11` | The `fila_emails` and `tarefas_periodicas` drains are triggered by request traffic, since there is no scheduler. On Cloudflare these become Cron Triggers or Queue consumers; until then, a quiet site does not retry failed email. | BACKLOG |
 | `P0-10` | `.gitignore` had `/node_modules` (root only), so the first workspace install staged `apps/api/node_modules` — ~394k lines. Caught before pushing; the pattern is now `node_modules/`. Check any clone or fork made from an intermediate state. | **DONE** (`e82ccf4`) |
 | `P2-13` | `apps/api` has no business routes yet and nothing calls it. Wiring `apps/web` to it over a Service Binding is Phase 6 and needs at least one migrated route to be worth doing. | BACKLOG |
-| `P2-12` | `supabase/migrations/*.sql` are not applied by any runner — `scripts/migrar.mjs` applies `supabase/schema.sql` only. The migration files are documentation unless run by hand. Decide on one mechanism before Phase 9. | BACKLOG |
+| `P2-12` | `supabase/migrations/*.sql` are applied by no runner — `scripts/migrar.mjs` reads `schema.sql` only. Documented in `supabase/README.md`: `schema.sql` is the operative, fully idempotent artifact; the migration files record `ALTER TABLE`-style changes that `schema.sql` cannot express and are run by hand. Revisit when Phase 9 needs D1 migration tooling. | **DONE** (documented) |
 
 ---
 
