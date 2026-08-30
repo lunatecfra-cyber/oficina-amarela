@@ -15,9 +15,9 @@ Priorities: `P0` data loss / security / production / irreversible · `P1` migrat
 
 | Check | Command | Result |
 |---|---|---|
-| Tests | `npm test` (turbo) | **39 passed** without a database, **70 passed** with `TEST_DATABASE_URL` |
-| Typecheck | `npm run typecheck` (turbo) | **clean** in both apps |
-| Lint | `./node_modules/.bin/biome check .` | **clean** — 212 files |
+| Tests | `npm test` (turbo, `--concurrency=1`) | **39 passed** without a database, **70 passed** with `TEST_DATABASE_URL` — 23 domain + 9 db + 5 api + 33 web |
+| Typecheck | `npm run typecheck` (turbo) | **clean** in all four packages |
+| Lint | `./node_modules/.bin/biome check .` | **clean** — 220 files |
 | Build | `npm run build` (turbo) | **succeeds** — `@oficina/web` 32 pages + 33 handlers + middleware; `@oficina/api` compiles under `wrangler deploy --dry-run` (62.9 KiB) |
 | Workers compat | `npx vinext check` | **97% compatible** — 0 issues, 1 partial (`@sentry/nextjs` server) |
 
@@ -40,9 +40,14 @@ TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test
 
 Without `TEST_DATABASE_URL` those suites skip and `npm test` still passes.
 
-The repository is now a Turborepo workspace: `apps/web` (Next.js) and
-`apps/api` (Hono Worker), with `scripts/`, `supabase/` and `docs/` at the root.
-All four root commands go through turbo.
+The repository is a Turborepo workspace with four packages: `apps/web` (Next.js),
+`apps/api` (Hono Worker), `packages/db` and `packages/domain`. `scripts/`,
+`supabase/` and `docs/` sit at the root. All four root commands go through turbo.
+
+Workspace packages publish **TypeScript source with no build step**, consumed via
+subpath exports and `transpilePackages` in `apps/web`. `npm test` runs with
+`--concurrency=1` because packages share one test database and the concurrency
+suite truncates.
 
 ---
 
@@ -55,7 +60,7 @@ All four root commands go through turbo.
 | 2 | Move existing app to `apps/web` | **DONE** (`ad2b60f`) — behaviour preserved, only paths moved |
 | 3 | Validate Next.js on Cloudflare Workers | READY — `vinext check` says 97%, 0 issues; deciding `ARCH-01` needs a real deploy (Cloudflare credentials) |
 | 4 | Create `apps/api` with Hono | **DONE** (`e82ccf4`) — health route, request id, structured logs, PT-BR errors; no business routes yet |
-| 5 | Introduce shared packages | BACKLOG |
+| 5 | Introduce shared packages | **IN PROGRESS** — `packages/db` (`dd24439`) and `packages/domain` (`558eb64`) exist. `auth`, `contracts`, `config`, `shared` not started. |
 | 6 | Extract APIs progressively | BACKLOG |
 | 7 | Introduce database abstractions | BACKLOG |
 | 8 | Audit PostgreSQL → D1 compatibility | BACKLOG (findings below already collected) |
@@ -430,16 +435,53 @@ phases — see `P2-05`.
 | `P2-11` | The `fila_emails` and `tarefas_periodicas` drains are triggered by request traffic, since there is no scheduler. On Cloudflare these become Cron Triggers or Queue consumers; until then, a quiet site does not retry failed email. | BACKLOG |
 | `P0-10` | `.gitignore` had `/node_modules` (root only), so the first workspace install staged `apps/api/node_modules` — ~394k lines. Caught before pushing; the pattern is now `node_modules/`. Check any clone or fork made from an intermediate state. | **DONE** (`e82ccf4`) |
 | `P2-13` | `apps/api` has no business routes yet and nothing calls it. Wiring `apps/web` to it over a Service Binding is Phase 6 and needs at least one migrated route to be worth doing. | BACKLOG |
+| `P3-05` | `apps/web/lib/db.ts` is a two-line re-export of `@oficina/db/client`, kept so the 21 `@/lib/db` importers change exactly once — when they move behind repositories. Delete the shim then. | BACKLOG |
+| `P3-06` | `packages/db` has a barrel (`index.ts`); `packages/domain` deliberately does not, because `cities.ts` is 111 KB. Pick one convention once the packages settle. | BACKLOG |
+
+---
+
+## Designing the mission/offer repositories
+
+`apps/web/lib/missions-db.ts` (20.8 KB) and `queue-db.ts` (10.1 KB) are the last
+large modules mixing SQL with rules. They are one domain — the mission lifecycle
+and the queue that feeds it — and `mission-concurrency.test.ts` spans both, so
+they move together.
+
+What the boundary must not lose:
+
+| Invariant | Enforced by |
+|---|---|
+| one active mission per editor | `idx_pautas_missao_ativa_por_editor` + the unique-violation branch in `reserveMission()` |
+| one offer per (mission, editor) | `idx_ofertas_missao_editor` |
+| one live offer per mission | `idx_ofertas_pendente_por_missao` |
+| one live offer per editor | `idx_ofertas_pendente_por_editor` |
+| `ok: true` means the editor holds the mission | the reserve-first ordering in `acceptOffer()` |
+| dispatch is all-or-nothing | the data-modifying CTE in `dispatchMissions()` |
+| reject never strands `oferecida` | the single-statement CTE in `rejectOffer()` |
+
+Two constraints on the interface shape:
+
+- **Do not flatten the atomic statements into repository primitives.** A
+  `reserve()` that becomes `findMission()` + `updateMission()` at the call site
+  reintroduces exactly the race `P0-01` closed. The repository method boundary
+  has to sit *around* each atomic statement, not inside it.
+- **Unique-violation handling is part of the contract.** `isUniqueViolation`
+  currently reads a PostgreSQL SQLSTATE. The interface should return a typed
+  domain outcome (`{ ok: false, reason: "already_holds_mission" }`) so the D1
+  implementation can map `SQLITE_CONSTRAINT_UNIQUE` to the same outcome without
+  every caller learning a second error dialect.
+
+Run `mission-concurrency.test.ts` after every step; it is the only thing that
+catches a refactor quietly dropping an invariant.
 | `P2-12` | `supabase/migrations/*.sql` are applied by no runner — `scripts/migrar.mjs` reads `schema.sql` only. Documented in `supabase/README.md`: `schema.sql` is the operative, fully idempotent artifact; the migration files record `ALTER TABLE`-style changes that `schema.sql` cannot express and are run by hand. Revisit when Phase 9 needs D1 migration tooling. | **DONE** (documented) |
 
 ---
 
 ## Immediate next actions
 
-1. **Phase 5** — extract `packages/domain`, `packages/db` and `packages/contracts`
-   from `apps/web/lib`. `lib/scheduler-db.ts`, `lib/email-queue-db.ts` and
-   `lib/session-revocation.ts` were written to be movable; the mission and offer
-   modules still mix SQL with rules and need the repository interface first.
+1. **Phase 5, next slice: mission and offer repository interfaces.** The
+   packages exist and the pure dependencies are out of the way. What remains is
+   the boundary itself — see "Designing the mission/offer repositories" below.
 2. **`P1-10` / Phase 3** — prototype vinext and OpenNext side by side and record
    the result under `ARCH-01`. `vinext check` reports 97% with no blocking
    issues, but choosing needs a real deploy — **Cloudflare credentials required**.

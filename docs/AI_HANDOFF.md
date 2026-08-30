@@ -7,9 +7,9 @@ date:                   2026-08-30
 current model:          Claude Opus 5
 recommended next model: GPT-5.6 Sol  (see "Next Actions" for why)
 repository:             github.com/lunatecfra-cyber/oficina-amarela
-branch:                 infra/cloudflare-scale  (19 commits ahead of master, pushed, tracking origin)
+branch:                 infra/cloudflare-scale  (23 commits ahead of master)
 base commit audited:    a37d94e  chore: migra linter e formatador de ESLint para Biome
-HEAD:                   2f16d47  docs(db): explica o que roda e o que é registro em supabase/
+HEAD:                   558eb64  refactor(domain): extrai packages/domain com as regras sem framework
 working tree:           clean (.omc/ is now gitignored)
 ```
 
@@ -46,9 +46,17 @@ Turborepo workspace with two applications:
 - **`apps/api`** (`@oficina/api`) — Hono on Cloudflare Workers. `/health` plus
   request id, structured JSON logs and PT-BR error/404 shape. **No business
   routes yet and nothing calls it.**
+- **`packages/db`** (`@oficina/db`) — the connection and `sql` tag, unique-index
+  constants, `isUniqueViolation`, plus the scheduler, email outbox and session
+  revocation modules.
+- **`packages/domain`** (`@oficina/domain`) — thirteen framework-free modules
+  (electoral ranking, mission transitions, limits, validators, mission types,
+  guide, tutorials, cities, news, candidates, schedule, profile, navigation)
+  plus `roles.ts`.
 
-`scripts/`, `supabase/` and `docs/` are at the root. `packages/` does not exist
-yet (Phase 5). TypeScript strict, Tailwind 4, Biome 2.5.11 from the root.
+Workspace packages publish TypeScript source with **no build step**, consumed by
+subpath export and `transpilePackages`. `scripts/`, `supabase/` and `docs/` are
+at the root. TypeScript strict, Tailwind 4, Biome 2.5.11 from the root.
 Sessions are `jose` HS256 JWTs in the `confraria_sessao` cookie. Data access is
 raw SQL through the `postgres` driver, inline in `apps/web/lib/*-db.ts` and
 called directly from Server Components. Object storage is Cloudflare R2 via
@@ -113,6 +121,9 @@ written.
 | `e82ccf4` | `apps/api` — minimal Hono Worker with `/health`, request id (reusing `cf-ray`), structured JSON logs and PT-BR error shape. Compiles under `wrangler deploy --dry-run` (62.9 KiB). |
 | `1f076a9` | All four mission notifications moved onto the outbox. Found on the way: the acceptance email linked to `/spokesperson/mission/db-N`, a route that does not exist, and `recordGamificationEvent` was `void`-fired on delivery, so XP could vanish in a serverless runtime. |
 | `2f16d47` | `supabase/README.md` — `schema.sql` is the operative idempotent artifact; `migrations/*.sql` record `ALTER TABLE`-style changes and are run by hand. Nothing applied those files, and this branch added three. |
+| `896bb64` | `docs/CLOUDFLARE_MASTER_PROMPT.md` — the canonical brief, versioned so the startup protocol's "read this master prompt" is satisfiable. |
+| `dd24439` | `packages/db` — client, scheduler, email outbox, session revocation. `apps/web/lib/db.ts` stays as a two-line re-export on purpose (see `P3-05`). |
+| `558eb64` | `packages/domain` — thirteen pure modules plus `roles.ts`, which took `Role` out of `lib/session.ts`. Subpath-only exports: `cities.ts` is 111 KB and a barrel would risk dragging it into bundles that do not need it. |
 
 ---
 
@@ -326,9 +337,9 @@ No previously unknown infrastructure service was discovered during the audit.
 
 ```
 branch:               infra/cloudflare-scale
-HEAD:                 2f16d47  docs(db): explica o que roda e o que é registro em supabase/
+HEAD:                 558eb64  refactor(domain): extrai packages/domain com as regras sem framework
 base:                 a37d94e (master, in sync with origin/master at audit time)
-commits ahead:        19
+commits ahead:        23
 uncommitted files:    none
 untracked files:      none (.omc/ is gitignored)
 remote:               origin/infra/cloudflare-scale, in sync
@@ -343,26 +354,23 @@ pushed, so no rewrite reached anyone.
 
 ### NEXT 1 — immediately executable
 
-**Phase 5, first slice: `packages/db`.** Define repository interfaces for the
-mission and offer domain and move `apps/web/lib/missions-db.ts` and
-`queue-db.ts` behind them. This is the change that unblocks everything after
-it — Phase 6 cannot extract routes, and Phase 10 cannot run PostgreSQL and D1
-implementations side by side, until the SQL stops being written inline.
+**Mission and offer repository interfaces.** `packages/db` and `packages/domain`
+exist and the pure dependencies are out of the way, so this is now unblocked.
 
-Start with the surface the tests already pin:
+`apps/web/lib/missions-db.ts` (20.8 KB) and `queue-db.ts` (10.1 KB) are the last
+large modules mixing SQL with rules. They are one domain and
+`mission-concurrency.test.ts` spans both, so move them together.
 
-```
-MissionRepository:  getById · listAvailable · reserve · abandon · submitDelivery
-OfferRepository:    dispatch · accept · reject · expireStale · pendingFor
-```
+**Read `docs/CLOUDFLARE_MIGRATION_BOARD.md` → "Designing the mission/offer
+repositories" first.** It lists the seven invariants the boundary must not lose
+and two constraints on the interface shape. The important one:
 
-`lib/scheduler-db.ts`, `lib/session-revocation.ts`, `lib/email-queue-db.ts` and
-`lib/email-dispatch.ts` were written to move with no changes — take them first
-as the easy half.
+> Do not flatten the atomic statements into repository primitives. A `reserve()`
+> that becomes `findMission()` + `updateMission()` at the call site reintroduces
+> exactly the race `P0-01` closed.
 
-Keep `apps/web/lib/mission-concurrency.test.ts` passing throughout; it is the
-regression net for the whole extraction, and it is the one suite that will
-catch a repository refactor quietly dropping an invariant.
+Derive the interface from what the code actually does — do not start from a
+generic CRUD template. Run `mission-concurrency.test.ts` after every step.
 
 ### NEXT 2
 
