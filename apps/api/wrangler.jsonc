@@ -59,26 +59,15 @@
       "name": "oficina-amarela-api-staging",
       "observability": { "enabled": true },
 
+      // A presença deste binding leva o conjunto inteiro de repositórios para o
+      // D1 (ver dependenciesFor), inclusive a revogação de sessão. Por isso o
+      // staging não precisa de Hyperdrive: não há PostgreSQL nesse caminho.
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "oficina-amarela-staging",
-          "database_id": "PROVISIONAR-d1-staging",
+          "database_id": "b667d137-ff01-41a5-bd57-bb3399e9cc5a",
           "migrations_dir": "../../packages/db/d1"
-        }
-      ],
-
-      "hyperdrive": [
-        {
-          "binding": "HYPERDRIVE",
-          "id": "PROVISIONAR-hyperdrive-staging"
-        }
-      ],
-
-      "r2_buckets": [
-        {
-          "binding": "MEDIA",
-          "bucket_name": "oficina-amarela-midia-staging"
         }
       ],
 
@@ -141,13 +130,6 @@
         {
           "binding": "HYPERDRIVE",
           "id": "PROVISIONAR-hyperdrive-producao"
-        }
-      ],
-
-      "r2_buckets": [
-        {
-          "binding": "MEDIA",
-          "bucket_name": "oficina-amarela-midia"
         }
       ],
 
