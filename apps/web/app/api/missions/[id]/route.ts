@@ -1,7 +1,12 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { messagesOfMission, messagesOfMissionAfter, sendMessage } from "@/lib/chat-db";
 import { sql } from "@/lib/db";
-import { notifyApprovedDelivery, notifyDeliveryReady, notifyReEditRequested } from "@/lib/email";
+import {
+  buildApprovedDeliveryEmail,
+  buildDeliveryReadyEmail,
+  buildReEditRequestedEmail,
+} from "@/lib/email";
+import { drainEmailQueueNow, queueMissionNotification } from "@/lib/email-dispatch";
 import { recordGamificationEvent } from "@/lib/gamification-db";
 import { canExecuteAction } from "@/lib/mission-transitions";
 import {
@@ -271,15 +276,20 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       { status: 409 },
     );
 
+  // Awaited de propósito: promessa solta em ambiente serverless morre junto com
+  // a resposta, e o XP some sem deixar rastro. É uma escrita indexada só.
   if (action === "deliver") {
-    void recordGamificationEvent(session.id, "mission_delivered", String(missionId)).catch((e) =>
+    await recordGamificationEvent(session.id, "mission_delivered", String(missionId)).catch((e) =>
       console.error("[gamification] failed to record delivery", e),
     );
   }
 
-  void dispatchNotifications(action, missionId, new URL(request.url).origin, body).catch((e) =>
+  // Enfileirar é rápido e precisa acontecer; entregar fica para depois da
+  // resposta (vira waitUntil nos Workers).
+  await dispatchNotifications(action, missionId, new URL(request.url).origin, body).catch((e) =>
     console.error("[notification] failed after action", action, e),
   );
+  after(drainEmailQueueNow);
 
   return NextResponse.json({ ok: true });
 }
@@ -297,7 +307,12 @@ async function dispatchNotifications(
   const editorUrl = `${origin}/editor`;
 
   if (action === "deliver" && c.spokesperson) {
-    await notifyDeliveryReady(c.spokesperson.email, c.spokesperson.name, c.title, spokespersonUrl);
+    await queueMissionNotification(
+      "entrega",
+      missionId,
+      c.spokesperson.email,
+      buildDeliveryReadyEmail(c.spokesperson.name, c.title, spokespersonUrl),
+    );
     return;
   }
 
@@ -308,12 +323,22 @@ async function dispatchNotifications(
         : typeof body?.nota === "number"
           ? body.nota
           : undefined;
-    await notifyApprovedDelivery(c.editor.email, c.editor.name, c.title, rating, editorUrl);
+    await queueMissionNotification(
+      "aprovacao",
+      missionId,
+      c.editor.email,
+      buildApprovedDeliveryEmail(c.editor.name, c.title, rating, editorUrl),
+    );
     return;
   }
 
   if ((action === "re_edit" || action === "adjust") && c.editor) {
     const notes = String(body?.notes ?? body?.notas ?? "");
-    await notifyReEditRequested(c.editor.email, c.editor.name, c.title, notes, editorUrl);
+    await queueMissionNotification(
+      "reedicao",
+      missionId,
+      c.editor.email,
+      buildReEditRequestedEmail(c.editor.name, c.title, notes, editorUrl),
+    );
   }
 }

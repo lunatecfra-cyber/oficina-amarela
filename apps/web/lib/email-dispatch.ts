@@ -1,5 +1,5 @@
-import { deliverEmail } from "@/lib/email";
-import { type DrainResult, drainEmailQueue } from "@/lib/email-queue-db";
+import { deliverEmail, type EmailContent } from "@/lib/email";
+import { type DrainResult, drainEmailQueue, enqueueEmails } from "@/lib/email-queue-db";
 
 /**
  * Liga a caixa de saída ao provedor de e-mail.
@@ -21,4 +21,27 @@ export async function drainEmailQueueNow(): Promise<DrainResult> {
     console.log(`[email] fila drenada: ${result.sent} enviados, ${result.failed} falharam`);
   }
   return result;
+}
+
+/**
+ * Enfileira um aviso de missão e agenda a drenagem para depois da resposta.
+ *
+ * A chave usa o minuto: repetir a mesma ação dentro do minuto não manda dois
+ * e-mails, e uma reentrega legítima mais tarde manda.
+ */
+export async function queueMissionNotification(
+  event: string,
+  missionId: number,
+  to: string,
+  content: EmailContent,
+): Promise<void> {
+  const minute = new Date().toISOString().slice(0, 16);
+  await enqueueEmails([
+    {
+      key: `mission:${missionId}:${event}:${to.toLowerCase()}:${minute}`,
+      to,
+      subject: content.subject,
+      html: content.html,
+    },
+  ]);
 }

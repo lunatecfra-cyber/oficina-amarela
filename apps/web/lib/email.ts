@@ -123,6 +123,23 @@ export async function deliverEmail(to: string, subject: string, html: string): P
   return true;
 }
 
+export function buildMissionAcceptedEmail(
+  name: string,
+  title: string,
+  editor: string,
+  url: string,
+): EmailContent {
+  return {
+    subject: `Um editor pegou "${title}"`,
+    html: moldura(
+      `${escapeHtml(editor)} começou a editar seu vídeo`,
+      `<p>Oi, ${escapeHtml(name)}. A missão <b>${escapeHtml(title)}</b> saiu da fila e está sendo trabalhada agora.</p>
+       <p>Você recebe outro aviso quando o vídeo ficar pronto.</p>`,
+      { url, texto: "Acompanhar a missão" },
+    ),
+  };
+}
+
 export function notifyMissionAccepted(
   destination: string,
   name: string,
@@ -130,32 +147,46 @@ export function notifyMissionAccepted(
   editor: string,
   url: string,
 ) {
-  return sendNotification(
-    destination,
-    `Um editor pegou "${title}"`,
-    moldura(
-      `${escapeHtml(editor)} começou a editar seu vídeo`,
-      `<p>Oi, ${escapeHtml(name)}. A missão <b>${escapeHtml(title)}</b> saiu da fila e está sendo trabalhada agora.</p>
-       <p>Você recebe outro aviso quando o vídeo ficar pronto.</p>`,
-      { url, texto: "Acompanhar a missão" },
-    ),
-  );
+  const { subject, html } = buildMissionAcceptedEmail(name, title, editor, url);
+  return sendNotification(destination, subject, html);
 }
 export const avisarMissaoAceita = notifyMissionAccepted;
 
-export function notifyDeliveryReady(destination: string, name: string, title: string, url: string) {
-  return sendNotification(
-    destination,
-    `Seu vídeo está pronto: "${title}"`,
-    moldura(
+export function buildDeliveryReadyEmail(name: string, title: string, url: string): EmailContent {
+  return {
+    subject: `Seu vídeo está pronto: "${title}"`,
+    html: moldura(
       "O editor entregou seu vídeo",
       `<p>Oi, ${escapeHtml(name)}. O vídeo da missão <b>${escapeHtml(title)}</b> ficou pronto.</p>
        <p>Assista e diga se pode ir pro ar — ou peça um ajuste, se algo não ficou como você queria.</p>`,
       { url, texto: "Ver o vídeo" },
     ),
-  );
+  };
+}
+
+export function notifyDeliveryReady(destination: string, name: string, title: string, url: string) {
+  const { subject, html } = buildDeliveryReadyEmail(name, title, url);
+  return sendNotification(destination, subject, html);
 }
 export const avisarEntregaPronta = notifyDeliveryReady;
+
+export function buildApprovedDeliveryEmail(
+  name: string,
+  title: string,
+  rating: number | undefined,
+  url: string,
+): EmailContent {
+  return {
+    subject: `Aprovaram sua entrega: "${title}"`,
+    html: moldura(
+      "Sua entrega foi aprovada",
+      `<p>Oi, ${escapeHtml(name)}. A missão <b>${escapeHtml(title)}</b> foi aprovada.</p>
+       ${rating !== undefined ? `<p>Nota recebida: <b>${rating} de 5</b>.</p>` : ""}
+       <p>Sua fila está livre — a próxima missão já pode chegar.</p>`,
+      { url, texto: "Ver minha fila" },
+    ),
+  };
+}
 
 export function notifyApprovedDelivery(
   destination: string,
@@ -164,19 +195,28 @@ export function notifyApprovedDelivery(
   rating: number | undefined,
   url: string,
 ) {
-  return sendNotification(
-    destination,
-    `Aprovaram sua entrega: "${title}"`,
-    moldura(
-      "Sua entrega foi aprovada",
-      `<p>Oi, ${escapeHtml(name)}. A missão <b>${escapeHtml(title)}</b> foi aprovada.</p>
-       ${rating !== undefined ? `<p>Nota recebida: <b>${rating} de 5</b>.</p>` : ""}
-       <p>Sua fila está livre — a próxima missão já pode chegar.</p>`,
-      { url, texto: "Ver minha fila" },
-    ),
-  );
+  const { subject, html } = buildApprovedDeliveryEmail(name, title, rating, url);
+  return sendNotification(destination, subject, html);
 }
 export const avisarEntregaAprovada = notifyApprovedDelivery;
+
+export function buildReEditRequestedEmail(
+  name: string,
+  title: string,
+  notes: string,
+  url: string,
+): EmailContent {
+  return {
+    subject: `Pediram um ajuste em "${title}"`,
+    html: moldura(
+      "A missão voltou pra você",
+      `<p>Oi, ${escapeHtml(name)}. Pediram um ajuste em <b>${escapeHtml(title)}</b>.</p>
+       ${notes.trim() ? `<p style="background:#f6f4ee; border-left:3px solid #f4ce1f; padding:12px 14px; margin:16px 0;">${escapeHtml(notes)}</p>` : ""}
+       <p>A missão está de volta na sua mão — é só entregar de novo quando estiver pronta.</p>`,
+      { url, texto: "Abrir a missão" },
+    ),
+  };
+}
 
 export function notifyReEditRequested(
   destination: string,
@@ -185,17 +225,8 @@ export function notifyReEditRequested(
   notes: string,
   url: string,
 ) {
-  return sendNotification(
-    destination,
-    `Pediram um ajuste em "${title}"`,
-    moldura(
-      "A missão voltou pra você",
-      `<p>Oi, ${escapeHtml(name)}. Pediram um ajuste em <b>${escapeHtml(title)}</b>.</p>
-       ${notes.trim() ? `<p style="background:#f6f4ee; border-left:3px solid #f4ce1f; padding:12px 14px; margin:16px 0;">${escapeHtml(notes)}</p>` : ""}
-       <p>A missão está de volta na sua mão — é só entregar de novo quando estiver pronta.</p>`,
-      { url, texto: "Abrir a missão" },
-    ),
-  );
+  const { subject, html } = buildReEditRequestedEmail(name, title, notes, url);
+  return sendNotification(destination, subject, html);
 }
 export const avisarReedicaoPedida = notifyReEditRequested;
 

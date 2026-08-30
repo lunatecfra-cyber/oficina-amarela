@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { notifyMissionAccepted } from "@/lib/email";
-import { drainEmailQueueNow } from "@/lib/email-dispatch";
+import { after, NextResponse } from "next/server";
+import { buildMissionAcceptedEmail } from "@/lib/email";
+import { drainEmailQueueNow, queueMissionNotification } from "@/lib/email-dispatch";
 import { missionContacts } from "@/lib/missions-db";
 import {
   acceptMissionOffer,
@@ -88,17 +88,25 @@ export async function POST(request: Request) {
   }
 
   if (rawAction === "accept" || rawAction === "aceitar") {
-    void (async () => {
+    // Antes isto era uma promessa solta: em ambiente serverless ela morre com a
+    // resposta e o porta-voz nunca era avisado. Enfileirar é rápido e acontece
+    // dentro da requisição; a entrega vai para depois dela.
+    await (async () => {
       const c = await missionContacts(missionId);
       if (!c?.spokesperson) return;
-      await notifyMissionAccepted(
+      await queueMissionNotification(
+        "aceite",
+        missionId,
         c.spokesperson.email,
-        c.spokesperson.name,
-        c.title,
-        auth.session.handle,
-        `${new URL(request.url).origin}/spokesperson/mission/db-${missionId}`,
+        buildMissionAcceptedEmail(
+          c.spokesperson.name,
+          c.title,
+          auth.session.handle,
+          `${new URL(request.url).origin}/porta-voz/missao/db-${missionId}`,
+        ),
       );
     })().catch((e) => console.error("[notification] failed to notify acceptance", e));
+    after(drainEmailQueueNow);
   }
 
   return NextResponse.json({ ok: true });
