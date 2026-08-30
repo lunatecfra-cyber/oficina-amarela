@@ -1,4 +1,7 @@
-// Testes de integração da concorrência da fila de missões.
+// Testes de integração da fila de missões — o contrato atômico do repositório.
+//
+// As invariantes moram em índice único, não em código: sem PostgreSQL de
+// verdade estes testes não provam nada.
 //
 // Precisam de um PostgreSQL de verdade — as invariantes que eles cobrem moram
 // em índices únicos, não em código. Sem TEST_DATABASE_URL eles são pulados,
@@ -20,11 +23,8 @@ const skip = TEST_DATABASE_URL
   : "TEST_DATABASE_URL não configurado — veja o cabeçalho do arquivo";
 
 describe("concorrência da fila de missões", { skip }, async () => {
-  const { sql } = await import("@/lib/db");
-  const { reserveMission } = await import("@/lib/missions-db");
-  const { acceptOffer, dispatchMissions, rejectOffer, markEditorActive } = await import(
-    "@/lib/queue-db"
-  );
+  const { sql } = await import("./client.ts");
+  const { postgresMissionQueue: queue } = await import("./mission-queue.ts");
 
   let spokespersonId: number;
   let editorIds: number[];
@@ -102,7 +102,7 @@ describe("concorrência da fila de missões", { skip }, async () => {
     const missions = [await createMission(), await createMission(), await createMission()];
     const [editorId] = editorIds;
 
-    const results = await Promise.all(missions.map((id) => reserveMission(id, editorId)));
+    const results = await Promise.all(missions.map((id) => queue.reserveMission(id, editorId)));
 
     // Sem idx_pautas_missao_ativa_por_editor este assert vira 3: as três
     // checagens prévias rodam antes de qualquer UPDATE confirmar.
@@ -115,14 +115,14 @@ describe("concorrência da fila de missões", { skip }, async () => {
     assert.equal(await activeMissionCount(editorId), 1);
 
     for (const result of results.filter((r) => !r.ok)) {
-      assert.equal((result as { error: string }).error, "Você já tem uma missão em mãos.");
+      assert.equal((result as { reason: string }).reason, "already_holds_mission");
     }
   });
 
   test("uma missão não vai para dois editores ao mesmo tempo", async () => {
     const missionId = await createMission();
 
-    const results = await Promise.all(editorIds.map((id) => reserveMission(missionId, id)));
+    const results = await Promise.all(editorIds.map((id) => queue.reserveMission(missionId, id)));
 
     assert.equal(results.filter((r) => r.ok).length, 1);
     const mission = await missionRow(missionId);
@@ -142,7 +142,7 @@ describe("concorrência da fila de missões", { skip }, async () => {
     // oferta e o clique do editor.
     await sql`UPDATE pautas SET status = 'disponivel' WHERE id = ${missionId}`;
 
-    const result = await acceptOffer(missionId, editorId);
+    const result = await queue.acceptOffer(missionId, editorId);
 
     assert.equal(result.ok, false, "não pode responder ok para missão que o editor não pegou");
     const mission = await missionRow(missionId);
@@ -158,7 +158,7 @@ describe("concorrência da fila de missões", { skip }, async () => {
       VALUES (${missionId}, ${editorId}, now() + interval '5 minutes')
     `;
 
-    const result = await acceptOffer(missionId, editorId);
+    const result = await queue.acceptOffer(missionId, editorId);
 
     assert.equal(result.ok, true);
     const mission = await missionRow(missionId);
@@ -174,7 +174,7 @@ describe("concorrência da fila de missões", { skip }, async () => {
   test("editor com missão em mãos não consegue aceitar outra oferta", async () => {
     const [editorId] = editorIds;
     const held = await createMission();
-    assert.equal((await reserveMission(held, editorId)).ok, true);
+    assert.equal((await queue.reserveMission(held, editorId)).ok, true);
 
     const offered = await createMission("oferecida");
     await sql`
@@ -182,7 +182,7 @@ describe("concorrência da fila de missões", { skip }, async () => {
       VALUES (${offered}, ${editorId}, now() + interval '5 minutes')
     `;
 
-    const result = await acceptOffer(offered, editorId);
+    const result = await queue.acceptOffer(offered, editorId);
 
     assert.equal(result.ok, false);
     assert.equal(await activeMissionCount(editorId), 1);
@@ -197,18 +197,18 @@ describe("concorrência da fila de missões", { skip }, async () => {
       VALUES (${missionId}, ${editorId}, now() + interval '5 minutes')
     `;
 
-    assert.equal((await rejectOffer(missionId, editorId)).ok, true);
+    assert.equal((await queue.rejectOffer(missionId, editorId)).ok, true);
     assert.equal((await missionRow(missionId)).status, "disponivel");
 
-    const repeated = await rejectOffer(missionId, editorId);
+    const repeated = await queue.rejectOffer(missionId, editorId);
     assert.equal(repeated.ok, false, "recusar duas vezes não pode dar ok");
   });
 
   test("despacho cria oferta e muda o status da missão juntos", async () => {
     const missionId = await createMission();
-    for (const id of editorIds) await markEditorActive(id);
+    for (const id of editorIds) await queue.markEditorActive(id);
 
-    const dispatched = await dispatchMissions();
+    const dispatched = await queue.dispatchOffers();
 
     assert.equal(dispatched, 1);
     assert.equal((await missionRow(missionId)).status, "oferecida");
@@ -222,7 +222,7 @@ describe("concorrência da fila de missões", { skip }, async () => {
     const missionId = await createMission();
     await sql`UPDATE users SET ultimo_visto_em = now() - interval '1 hour' WHERE papel = 'editor'`;
 
-    assert.equal(await dispatchMissions(), 0);
+    assert.equal(await queue.dispatchOffers(), 0);
     assert.equal((await missionRow(missionId)).status, "disponivel");
     const offers = await sql`SELECT id FROM ofertas WHERE pauta_id = ${missionId}`;
     assert.equal(offers.length, 0);
@@ -282,9 +282,9 @@ describe("concorrência da fila de missões", { skip }, async () => {
 
   test("nenhuma missão fica 'oferecida' sem oferta pendente após despachar", async () => {
     for (let i = 0; i < 5; i++) await createMission();
-    for (const id of editorIds) await markEditorActive(id);
+    for (const id of editorIds) await queue.markEditorActive(id);
 
-    await dispatchMissions();
+    await queue.dispatchOffers();
 
     const [row] = await sql`
       SELECT count(*)::int AS orfas FROM pautas p

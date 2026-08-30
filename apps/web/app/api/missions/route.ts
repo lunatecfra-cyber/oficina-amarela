@@ -1,6 +1,6 @@
+import { postgresMissionQueue } from "@oficina/db/mission-queue";
 import { NextResponse } from "next/server";
 import { createMission } from "@/lib/missions-db";
-import { dispatchMissions } from "@/lib/queue-db";
 import { readSession } from "@/lib/server-session";
 
 export async function POST(request: Request) {
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
   // Despacho dirigido por evento: a missão nova sai para um editor agora, sem
   // esperar a próxima varredura periódica.
-  await dispatchMissions();
+  await postgresMissionQueue.dispatchOffers();
 
   return NextResponse.json({ ok: true, id: result.id });
 }

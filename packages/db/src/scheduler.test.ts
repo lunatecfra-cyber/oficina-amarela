@@ -2,8 +2,7 @@
 // por poll de cada editor. Precisa de PostgreSQL real: a garantia está no
 // UPSERT condicional, não no código.
 //
-// A coarsening da presença mora em apps/web/lib/presence.test.ts: depende de
-// queue-db, que ainda não faz parte deste pacote.
+// A coarsening da presença mora em presence.test.ts.
 //
 //   TEST_DATABASE_URL="postgres://..." npm test
 

@@ -1,16 +1,10 @@
+import { postgresMissionQueue } from "@oficina/db/mission-queue";
 import { claimPeriodicTask, QUEUE_SWEEP_TASK } from "@oficina/db/scheduler";
 import { after, NextResponse } from "next/server";
 import { buildMissionAcceptedEmail } from "@/lib/email";
 import { drainEmailQueueNow, queueMissionNotification } from "@/lib/email-dispatch";
+import { queueMessage } from "@/lib/mission-queue-messages";
 import { missionContacts } from "@/lib/missions-db";
-import {
-  acceptMissionOffer,
-  declineMissionOffer,
-  dispatchMissions,
-  expireStaleOffers,
-  markEditorActive,
-  pendingOfferForEditor,
-} from "@/lib/queue-db";
 import { readSession } from "@/lib/server-session";
 
 // A varredura global (expirar ofertas + despachar) roda no máximo uma vez a
@@ -19,8 +13,8 @@ const QUEUE_SWEEP_SECONDS = 5;
 
 async function sweepQueueIfDue() {
   if (!(await claimPeriodicTask(QUEUE_SWEEP_TASK, QUEUE_SWEEP_SECONDS))) return;
-  await expireStaleOffers();
-  await dispatchMissions();
+  await postgresMissionQueue.expireOffers();
+  await postgresMissionQueue.dispatchOffers();
   // Retentativas da caixa de saída avançam junto: sem cron, é o tráfego que
   // move a fila. Na Cloudflare isso vira Cron Trigger ou consumidor de Queue.
   await drainEmailQueueNow();
@@ -40,10 +34,10 @@ export async function GET() {
   if ("error" in auth)
     return NextResponse.json({ error: auth.error, erro: auth.error }, { status: auth.status });
 
-  await markEditorActive(auth.session.id);
+  await postgresMissionQueue.markEditorActive(auth.session.id);
   await sweepQueueIfDue();
 
-  const offer = await pendingOfferForEditor(auth.session.id);
+  const offer = await postgresMissionQueue.pendingOfferFor(auth.session.id);
   if (!offer) return new NextResponse(null, { status: 204 });
 
   return NextResponse.json(offer);
@@ -63,14 +57,14 @@ export async function POST(request: Request) {
     );
   }
 
-  await markEditorActive(auth.session.id);
+  await postgresMissionQueue.markEditorActive(auth.session.id);
 
   const rawAction = body?.action ?? body?.acao;
   const result =
     rawAction === "accept" || rawAction === "aceitar"
-      ? await acceptMissionOffer(missionId, auth.session.id)
+      ? await postgresMissionQueue.acceptOffer(missionId, auth.session.id)
       : rawAction === "decline" || rawAction === "recusar"
-        ? await declineMissionOffer(missionId, auth.session.id)
+        ? await postgresMissionQueue.rejectOffer(missionId, auth.session.id)
         : null;
 
   if (!result) {
@@ -80,11 +74,12 @@ export async function POST(request: Request) {
     );
   }
   if (!result.ok) {
-    return NextResponse.json({ error: result.error, erro: result.error }, { status: 409 });
+    const message = queueMessage(result.reason);
+    return NextResponse.json({ error: message, erro: message }, { status: 409 });
   }
 
   if (rawAction === "decline" || rawAction === "recusar") {
-    await dispatchMissions();
+    await postgresMissionQueue.dispatchOffers();
   }
 
   if (rawAction === "accept" || rawAction === "aceitar") {

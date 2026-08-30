@@ -1,7 +1,7 @@
 import { LIMITS, limitOrNull, limitStr } from "@oficina/domain/limits";
 import type { Mission, MissionStatus, StatusPauta, VideoFormat } from "@oficina/domain/missions";
 import { isLikelyUrl } from "@oficina/domain/validators";
-import { ACTIVE_MISSION_PER_EDITOR_INDEX, isUniqueViolation, sql } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { awardReferralIfEligible } from "@/lib/electoral-ranking-db";
 
 type MissionRow = {
@@ -334,73 +334,6 @@ export async function getMissionById(id: number): Promise<Mission | null> {
 
 export const pautaPorId = getMissionById;
 export const missionById = getMissionById;
-
-function alreadyHoldsMission(): { ok: false; error: string; erro: string } {
-  return {
-    ok: false,
-    error: "Você já tem uma missão em mãos.",
-    erro: "Você já tem uma missão em mãos.",
-  };
-}
-
-export async function reserveMission(
-  missionId: number,
-  editorId: number,
-): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  // Checagem antecipada: só melhora a mensagem no caso comum. Quem garante a
-  // regra é idx_pautas_missao_ativa_por_editor — duas reservas simultâneas do
-  // mesmo editor passariam por aqui juntas.
-  const [active] = await sql`
-    SELECT id FROM pautas
-    WHERE reservada_por_id = ${editorId} AND status IN ('reservada', 'em_revisao', 'reedicao')
-  `;
-  if (active) return alreadyHoldsMission();
-
-  try {
-    const [row] = await sql`
-      UPDATE pautas
-      SET status = 'reservada', reservada_por_id = ${editorId}, reservada_em = now()
-      WHERE id = ${missionId} AND status = 'disponivel'
-      RETURNING id
-    `;
-    if (!row)
-      return {
-        ok: false,
-        error: "Essa missão não está mais disponível.",
-        erro: "Essa missão não está mais disponível.",
-      };
-    return { ok: true };
-  } catch (error) {
-    if (isUniqueViolation(error, ACTIVE_MISSION_PER_EDITOR_INDEX)) return alreadyHoldsMission();
-    throw error;
-  }
-}
-
-export const reservarPauta = reserveMission;
-
-export async function abandonMission(
-  missionId: number,
-  editorId: number,
-): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const rows = await sql`
-    UPDATE pautas
-    SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL, reservada_em = NULL
-    WHERE id = ${missionId} AND reservada_por_id = ${editorId}
-      AND status IN ('reservada', 'reedicao')
-    RETURNING id
-  `;
-  if (rows.length === 0)
-    return {
-      ok: false,
-      error: "Essa missão não está com você.",
-      erro: "Essa missão não está com você.",
-    };
-  return { ok: true };
-}
-
-export const desistirPauta = abandonMission;
-export const cancelarReserva = abandonMission;
-export const cancelMissionReservation = abandonMission;
 
 export async function submitMissionDelivery(
   missionId: number,

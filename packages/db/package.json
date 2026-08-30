@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@oficina/domain": "*",
     "postgres": "^3.4.9"
   },
   "devDependencies": {

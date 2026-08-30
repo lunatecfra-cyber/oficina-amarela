@@ -1,4 +1,4 @@
-// markEditorActive() só grava quando a presença passou da janela. Sem isso, cada
+// queue.markEditorActive() só grava quando a presença passou da janela. Sem isso, cada
 // poll de editor vira uma escrita — a mais frequente do caminho quente.
 //
 //   TEST_DATABASE_URL="postgres://..." npm test
@@ -12,8 +12,8 @@ if (TEST_DATABASE_URL) process.env.DATABASE_URL = TEST_DATABASE_URL;
 const skip = TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado";
 
 describe("presença do editor", { skip }, async () => {
-  const { sql } = await import("@/lib/db");
-  const { markEditorActive } = await import("@/lib/queue-db");
+  const { sql } = await import("./client.ts");
+  const { postgresMissionQueue: queue } = await import("./mission-queue.ts");
 
   before(async () => {
     await sql`SET client_min_messages TO warning`;
@@ -38,14 +38,14 @@ describe("presença do editor", { skip }, async () => {
     };
 
     const before = await seenAt();
-    await markEditorActive(editor.id);
+    await queue.markEditorActive(editor.id);
     assert.equal(await seenAt(), before, "poll dentro da janela não pode gerar escrita");
 
     await sql`
       UPDATE users SET ultimo_visto_em = now() - interval '61 seconds' WHERE id = ${editor.id}
     `;
     const stale = await seenAt();
-    await markEditorActive(editor.id);
+    await queue.markEditorActive(editor.id);
     assert.ok((await seenAt()) > stale, "passada a janela, o poll precisa renovar a presença");
 
     await sql`DELETE FROM users WHERE id = ${editor.id}`;

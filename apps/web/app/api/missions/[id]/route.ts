@@ -1,3 +1,4 @@
+import { postgresMissionQueue } from "@oficina/db/mission-queue";
 import { canExecuteAction } from "@oficina/domain/mission-transitions";
 import { after, NextResponse } from "next/server";
 import { messagesOfMission, messagesOfMissionAfter, sendMessage } from "@/lib/chat-db";
@@ -9,15 +10,14 @@ import {
 } from "@/lib/email";
 import { drainEmailQueueNow, queueMissionNotification } from "@/lib/email-dispatch";
 import { recordGamificationEvent } from "@/lib/gamification-db";
+import { toLegacyResult } from "@/lib/mission-queue-messages";
 import {
   acceptDeliveredMission,
   approveMission,
-  cancelMissionReservation,
   deliverMission,
   missionContacts,
   requestInspectorReEdit,
   requestSpokespersonAdjustment,
-  reserveMission,
 } from "@/lib/missions-db";
 import { createModerationReport } from "@/lib/reports-db";
 import { readSession } from "@/lib/server-session";
@@ -143,7 +143,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
           { error: "Only editors may claim missions.", erro: "Only editors." },
           { status: 403 },
         );
-      r = await reserveMission(missionId, session.id);
+      r = toLegacyResult(await postgresMissionQueue.reserveMission(missionId, session.id));
       break;
 
     case "cancel":
@@ -152,7 +152,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
           { error: "Only editors may release missions.", erro: "Only editors." },
           { status: 403 },
         );
-      r = await cancelMissionReservation(missionId, session.id);
+      r = toLegacyResult(await postgresMissionQueue.abandonMission(missionId, session.id));
       break;
 
     case "deliver": {
