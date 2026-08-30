@@ -14,10 +14,10 @@ Priorities: `P0` data loss / security / production / irreversible · `P1` migrat
 
 | Check | Command | Result |
 |---|---|---|
-| Tests | `npm test` | **18 passed** without a database, **47 passed** with `TEST_DATABASE_URL` |
-| Typecheck | `npx tsc --noEmit` | **clean** |
-| Lint | `./node_modules/.bin/biome check .` | **clean** — 194 files |
-| Build | `next build` | **succeeds** — 32 pages, 33 route handlers, middleware |
+| Tests | `npm test` (turbo) | **39 passed** without a database, **70 passed** with `TEST_DATABASE_URL` |
+| Typecheck | `npm run typecheck` (turbo) | **clean** in both apps |
+| Lint | `./node_modules/.bin/biome check .` | **clean** — 212 files |
+| Build | `npm run build` (turbo) | **succeeds** — `@oficina/web` 32 pages + 33 handlers + middleware; `@oficina/api` compiles under `wrangler deploy --dry-run` (62.9 KiB) |
 | Workers compat | `npx vinext check` | **97% compatible** — 0 issues, 1 partial (`@sentry/nextjs` server) |
 
 > `npm run lint` output is mangled by the local RTK shell hook, which parses Biome
@@ -39,6 +39,10 @@ TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test
 
 Without `TEST_DATABASE_URL` those suites skip and `npm test` still passes.
 
+The repository is now a Turborepo workspace: `apps/web` (Next.js) and
+`apps/api` (Hono Worker), with `scripts/`, `supabase/` and `docs/` at the root.
+All four root commands go through turbo.
+
 ---
 
 ## Phase board
@@ -46,10 +50,10 @@ Without `TEST_DATABASE_URL` those suites skip and `npm test` still passes.
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Repository audit and baseline | **DONE** |
-| 1 | Turborepo / workspace setup | IN PROGRESS |
-| 2 | Move existing app to `apps/web` | BACKLOG |
-| 3 | Validate Next.js on Cloudflare Workers | BACKLOG |
-| 4 | Create `apps/api` with Hono | BACKLOG |
+| 1 | Turborepo / workspace setup | **DONE** (`ad2b60f`) |
+| 2 | Move existing app to `apps/web` | **DONE** (`ad2b60f`) — behaviour preserved, only paths moved |
+| 3 | Validate Next.js on Cloudflare Workers | READY — `vinext check` says 97%, 0 issues; deciding `ARCH-01` needs a real deploy (Cloudflare credentials) |
+| 4 | Create `apps/api` with Hono | **DONE** (`e82ccf4`) — health route, request id, structured logs, PT-BR errors; no business routes yet |
 | 5 | Introduce shared packages | BACKLOG |
 | 6 | Extract APIs progressively | BACKLOG |
 | 7 | Introduce database abstractions | BACKLOG |
@@ -423,18 +427,21 @@ phases — see `P2-05`.
 | `P0-09` | **The attempt limiter never locked anything.** Detail under `P1-05`. Fixed in `274142d`, but production has been running without brute-force, recovery-spam or signup-flood protection — worth checking `auditoria_admin` and access logs for abuse that went unthrottled. | **DONE** (code) · **BLOCKED** (log review needs production access) |
 | `P1-12` | Single-recipient notifications (`lib/email.ts` → `sendNotification`) are still fired with `void` from route handlers. Same serverless delivery loss as the broadcast had. Move them onto `fila_emails`. | READY |
 | `P2-11` | The `fila_emails` and `tarefas_periodicas` drains are triggered by request traffic, since there is no scheduler. On Cloudflare these become Cron Triggers or Queue consumers; until then, a quiet site does not retry failed email. | BACKLOG |
+| `P0-10` | `.gitignore` had `/node_modules` (root only), so the first workspace install staged `apps/api/node_modules` — ~394k lines. Caught before pushing; the pattern is now `node_modules/`. Check any clone or fork made from an intermediate state. | **DONE** (`e82ccf4`) |
+| `P2-13` | `apps/api` has no business routes yet and nothing calls it. Wiring `apps/web` to it over a Service Binding is Phase 6 and needs at least one migrated route to be worth doing. | BACKLOG |
 | `P2-12` | `supabase/migrations/*.sql` are not applied by any runner — `scripts/migrar.mjs` applies `supabase/schema.sql` only. The migration files are documentation unless run by hand. Decide on one mechanism before Phase 9. | BACKLOG |
 
 ---
 
 ## Immediate next actions
 
-1. **Phase 1 / Phase 2** — Turborepo workspace, then move the application into
-   `apps/web` preserving behaviour. Structural migration lands before any
-   infrastructure rewrite.
+1. **Phase 5** — extract `packages/domain`, `packages/db` and `packages/contracts`
+   from `apps/web/lib`. `lib/scheduler-db.ts`, `lib/email-queue-db.ts` and
+   `lib/session-revocation.ts` were written to be movable; the mission and offer
+   modules still mix SQL with rules and need the repository interface first.
 2. **`P1-10` / Phase 3** — prototype vinext and OpenNext side by side and record
-   the result under `ARCH-01`. `vinext check` now reports 97% with no blocking
-   issues.
+   the result under `ARCH-01`. `vinext check` reports 97% with no blocking
+   issues, but choosing needs a real deploy — **Cloudflare credentials required**.
 3. **`P0-06`** — confirm the production database provider and take a verified
    backup. Blocks Phase 8 onward; needs human access.
 4. **`P0-09` follow-up** — review production logs for abuse that the dead

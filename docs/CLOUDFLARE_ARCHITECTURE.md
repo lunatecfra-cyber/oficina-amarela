@@ -14,22 +14,33 @@ Everything in section 2 onward is the approved target and is **not yet implement
 
 ### 1.1 Repository shape
 
-Single Next.js application at the repository root. There is no workspace, no
-`turbo.json`, no `apps/`, no `packages/`.
+Turborepo workspace since 2026-08-30 (Phases 1, 2 and 4). `packages/` does not
+exist yet — that is Phase 5.
 
 ```
 oficina-amarela/
-├── app/           App Router — 32 pages, 3 layouts, 33 route handlers
-├── components/    62 client/server components
-├── lib/           38 modules — domain logic AND raw SQL, mixed
-├── scripts/       17 .mjs operational scripts (migrations, seeds, smoke tests)
-├── supabase/      schema.sql (canonical) + 4 migrations
+├── apps/
+│   ├── web/            @oficina/web — Next.js 16
+│   │   ├── app/        App Router — 32 pages, 3 layouts, 33 route handlers
+│   │   ├── components/ 62 client/server components
+│   │   ├── lib/        domain logic AND raw SQL, still mixed
+│   │   ├── public/
+│   │   ├── scripts/    test-alias-hooks.mjs (resolves "@/" for node:test)
+│   │   ├── proxy.ts    Next.js 16 middleware (renamed from middleware.ts)
+│   │   └── next.config.ts  security headers + CSP (Report-Only)
+│   └── api/            @oficina/api — Hono on Cloudflare Workers
+│       ├── src/app.ts  request id, structured logs, PT-BR errors, /health
+│       └── wrangler.jsonc  nodejs_compat, observability; no bindings yet
+├── scripts/            11 .mjs operational scripts (migrations, seeds, backup)
+├── supabase/           schema.sql (canonical) + 5 migrations
 ├── docs/
-├── proxy.ts       Next.js 16 middleware (renamed from middleware.ts)
-├── next.config.ts security headers + CSP (Report-Only)
-├── biome.json
-└── package.json   name: yellow-workshop, version 0.1.1
+├── turbo.json
+├── biome.json          covers the whole repository from the root
+└── package.json        workspace root — oficina-amarela
 ```
+
+`apps/api` has no business routes yet and nothing calls it. Route extraction is
+Phase 6.
 
 ### 1.2 Runtime stack (from `package.json`)
 
