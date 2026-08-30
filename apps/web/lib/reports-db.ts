@@ -1,5 +1,5 @@
 import type { UserSession } from "@oficina/auth/session";
-import { LIMITS, limitStr } from "@oficina/domain/limits";
+import { postgresMissionCollaboration } from "@oficina/db/mission-collaboration";
 import { sql } from "@/lib/db";
 
 export type Report = {
@@ -37,35 +37,15 @@ export async function createReport(
   session: UserSession,
   rawText: string,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const text = limitStr(rawText, LIMITS.report);
-  if (!text) {
-    return {
-      ok: false,
-      error: "O relato não pode ficar em branco.",
-      erro: "O relato não pode ficar em branco.",
-    };
-  }
-
-  const [mission] = await sql`
-    SELECT id, porta_voz_id, reservada_por_id FROM pautas WHERE id = ${missionId}
-  `;
-  if (!mission) {
-    return { ok: false, error: "Missão não encontrada.", erro: "Missão não encontrada." };
-  }
-
-  let reportedId: number | null = null;
-  if (session.id === mission.porta_voz_id) {
-    reportedId = mission.reservada_por_id ?? null;
-  } else if (session.id === mission.reservada_por_id) {
-    reportedId = mission.porta_voz_id;
-  }
-
-  await sql`
-    INSERT INTO denuncias (pauta_id, denunciante_id, denunciado_id, texto)
-    VALUES (${missionId}, ${session.id}, ${reportedId}, ${text})
-  `;
-
-  return { ok: true };
+  const result = await postgresMissionCollaboration.reportMission(missionId, session, rawText);
+  if (result.ok) return result;
+  const error =
+    result.reason === "mission_not_found"
+      ? "Missão não encontrada."
+      : result.reason === "forbidden"
+        ? "Você não participa desta missão."
+        : "O relato não pode ficar em branco.";
+  return { ok: false, error, erro: error };
 }
 
 export const criarDenuncia = createReport;

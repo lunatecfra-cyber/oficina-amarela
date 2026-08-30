@@ -1,14 +1,15 @@
 import { createApp } from "@oficina/api/app";
-import { migratedMissionAction } from "@oficina/api/mission-actions";
+import {
+  migratedMissionAction,
+  migratedMissionCollaborationAction,
+} from "@oficina/api/mission-actions";
 import { missionContacts } from "@oficina/db/mission-contacts";
 import { canExecuteAction } from "@oficina/domain/mission-transitions";
 import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
 import { buildApprovedDeliveryEmail } from "@oficina/email/messages";
 import { after, NextResponse } from "next/server";
-import { messagesOfMission, messagesOfMissionAfter, sendMessage } from "@/lib/chat-db";
 import { sql } from "@/lib/db";
 import { approveMission } from "@/lib/missions-db";
-import { createModerationReport } from "@/lib/reports-db";
 import { readSession } from "@/lib/server-session";
 
 const api = createApp();
@@ -19,48 +20,8 @@ function toApiRequest(request: Request): Request {
   return new Request(url, request);
 }
 
-export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await readSession();
-  if (!session)
-    return NextResponse.json(
-      { error: "Please log in first.", erro: "Please log in first." },
-      { status: 401 },
-    );
-
-  const { id } = await ctx.params;
-  const missionId = Number(String(id).replace(/^db-/, ""));
-  if (!Number.isInteger(missionId)) {
-    return NextResponse.json(
-      { error: "Invalid mission identifier.", erro: "Invalid mission identifier." },
-      { status: 400 },
-    );
-  }
-
-  const [mission] = await sql`
-    SELECT porta_voz_id, reservada_por_id FROM pautas WHERE id = ${missionId}
-  `;
-  if (!mission)
-    return NextResponse.json(
-      { error: "Mission not found.", erro: "Mission not found." },
-      { status: 404 },
-    );
-
-  const isOwner = mission.porta_voz_id === session.id;
-  const isAssignedEditor = mission.reservada_por_id === session.id;
-  if (!isOwner && !isAssignedEditor && session.role !== "admin") {
-    return NextResponse.json(
-      { error: "Unauthorized access to this mission.", erro: "Unauthorized access." },
-      { status: 403 },
-    );
-  }
-
-  const url = new URL(request.url);
-  const after = url.searchParams.get("after") ?? url.searchParams.get("depois");
-  const messages = after
-    ? await messagesOfMissionAfter(missionId, after)
-    : await messagesOfMission(missionId);
-
-  return NextResponse.json({ messages, mensagens: messages });
+export async function GET(request: Request) {
+  return api.fetch(toApiRequest(request));
 }
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -68,7 +29,10 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     .clone()
     .json()
     .catch(() => null);
-  if (migratedMissionAction(body?.action ?? body?.acao)) {
+  if (
+    migratedMissionAction(body?.action ?? body?.acao) ||
+    migratedMissionCollaborationAction(body?.action ?? body?.acao)
+  ) {
     return api.fetch(toApiRequest(request));
   }
 
@@ -106,10 +70,6 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     aceitar: "accept",
     adjust: "adjust",
     ajuste: "adjust",
-    message: "message",
-    mensagem: "message",
-    report: "report",
-    denunciar: "report",
   };
   const action = actionMap[rawAction] ?? rawAction;
 
@@ -170,30 +130,6 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
         feedback,
         asOwner ? session.id : undefined,
       );
-      break;
-    }
-
-    case "message": {
-      const text = body?.text ?? body?.texto;
-      if (typeof text !== "string" || !text.trim()) {
-        return NextResponse.json(
-          { error: "Message content cannot be empty.", erro: "Message empty." },
-          { status: 400 },
-        );
-      }
-      r = await sendMessage(missionId, session, text.trim());
-      break;
-    }
-
-    case "report": {
-      const text = body?.text ?? body?.texto;
-      if (typeof text !== "string" || !text.trim()) {
-        return NextResponse.json(
-          { error: "Please describe the issue report.", erro: "Report empty." },
-          { status: 400 },
-        );
-      }
-      r = await createModerationReport(missionId, session, text.trim());
       break;
     }
 

@@ -1,4 +1,8 @@
 import { recordGamificationEvent } from "@oficina/db/gamification";
+import {
+  type MissionCollaborationRepository,
+  postgresMissionCollaboration,
+} from "@oficina/db/mission-collaboration";
 import { missionContacts } from "@oficina/db/mission-contacts";
 import {
   type MissionLifecycleRepository,
@@ -9,6 +13,7 @@ import { type MissionQueueRepository, postgresMissionQueue } from "@oficina/db/m
 export type ApiDependencies = {
   missionQueue: MissionQueueRepository;
   missionLifecycle: MissionLifecycleRepository;
+  missionCollaboration: MissionCollaborationRepository;
   missionContacts: typeof missionContacts;
   recordGamificationEvent: typeof recordGamificationEvent;
 };
@@ -16,6 +21,7 @@ export type ApiDependencies = {
 export const postgresApiDependencies: ApiDependencies = {
   missionQueue: postgresMissionQueue,
   missionLifecycle: postgresMissionLifecycle,
+  missionCollaboration: postgresMissionCollaboration,
   missionContacts,
   recordGamificationEvent,
 };
