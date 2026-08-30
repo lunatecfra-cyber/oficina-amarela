@@ -6,6 +6,11 @@ CREATE TABLE users (
   nome TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   papel TEXT NOT NULL CHECK (papel IN ('voz', 'editor', 'admin')),
+  -- Corte de revogação de sessão: banimento, troca de senha e "sair de todos os
+  -- aparelhos" movem esta data para frente, e todo JWT emitido antes dela morre.
+  -- Sem esta coluna o D1 não teria como revogar sessão nenhuma.
+  sessoes_validas_apos TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  banido INTEGER NOT NULL DEFAULT 0,
   senha_hash TEXT,
   google_id TEXT,
   foto_url TEXT,

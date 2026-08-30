@@ -26,6 +26,38 @@ type Entry = { cutoffSeconds: number | null; expiresAt: number };
 
 const cache = new Map<number, Entry>();
 
+/**
+ * De onde vem o corte.
+ *
+ * A revogação de sessão é o único acesso a dado que não passava pelo conjunto
+ * de repositórios: ela chamava o PostgreSQL direto, de dentro do middleware de
+ * sessão, onde não há dependência injetada. Num Worker servido por D1 isso
+ * significava autenticar contra um banco que não está lá — toda requisição
+ * autenticada respondia 401, e nenhum teste local pegava porque no Node o
+ * PostgreSQL sempre existe.
+ *
+ * A fonte passa a ser configurável junto com os bindings, como já acontece com
+ * a URL do banco. Trocar a fonte limpa o cache: um corte lido do outro banco
+ * não vale para este.
+ */
+export type SessionRevocationSource = (userId: number) => Promise<number | null>;
+
+const postgresSource: SessionRevocationSource = async (userId) => {
+  const [row] = await sql`
+    SELECT sessoes_validas_apos FROM users WHERE id = ${userId}
+  `;
+  return row ? Math.floor(new Date(row.sessoes_validas_apos).getTime() / 1000) : null;
+};
+
+let source: SessionRevocationSource = postgresSource;
+
+export function configureSessionRevocationSource(next: SessionRevocationSource | null): void {
+  const chosen = next ?? postgresSource;
+  if (chosen === source) return;
+  source = chosen;
+  cache.clear();
+}
+
 export function invalidateSessionRevocation(userId: number): void {
   cache.delete(userId);
 }
@@ -43,13 +75,7 @@ export async function getSessionRevocationCutoff(userId: number): Promise<number
   const cached = cache.get(userId);
   if (cached && cached.expiresAt > Date.now()) return cached.cutoffSeconds;
 
-  const [row] = await sql`
-    SELECT sessoes_validas_apos FROM users WHERE id = ${userId}
-  `;
-
-  const cutoffSeconds = row
-    ? Math.floor(new Date(row.sessoes_validas_apos).getTime() / 1000)
-    : null;
+  const cutoffSeconds = await source(userId);
 
   if (cache.size >= MAX_ENTRIES) cache.clear();
   cache.set(userId, { cutoffSeconds, expiresAt: Date.now() + REVOCATION_TTL_MS });

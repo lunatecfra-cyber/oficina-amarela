@@ -1,4 +1,6 @@
 import { configureDatabaseUrl, withRequestDatabase } from "@oficina/db/client";
+import { createD1SessionRevocationSource } from "@oficina/db/d1/session-revocation";
+import { configureSessionRevocationSource } from "@oficina/db/session-revocation";
 import { Hono } from "hono";
 import {
   type ApiDependencies,
@@ -46,6 +48,13 @@ export type Variables = {
 export function configureRuntimeBindings(bindings: Bindings | undefined): void {
   const hyperdriveUrl = bindings?.HYPERDRIVE?.connectionString;
   if (hyperdriveUrl) configureDatabaseUrl(hyperdriveUrl);
+
+  // A revogação de sessão acontece no middleware, longe do conjunto de
+  // repositórios injetado. Ela precisa seguir a mesma escolha de banco, senão
+  // um Worker servido por D1 autentica contra um PostgreSQL que não existe.
+  configureSessionRevocationSource(
+    bindings?.DB ? createD1SessionRevocationSource(bindings.DB as never) : null,
+  );
 }
 
 /**
