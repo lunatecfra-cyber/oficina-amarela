@@ -76,14 +76,43 @@ describe("escolha do conjunto de repositórios", async () => {
     assert.equal(dependenciesFor({}, postgresApiDependencies), postgresApiDependencies);
   });
 
-  test("com binding D1, o conjunto inteiro troca de uma vez", () => {
+  // Nem toda dependência fala com o banco: enviar e-mail de recuperação e
+  // invalidar o cache de revogação são as mesmas funções nos dois conjuntos.
+  // O que precisa trocar é tudo que lê ou escreve dado.
+  const STORE_BACKED = [
+    "accounts",
+    "invitationAdmin",
+    "invitationRedemption",
+    "missionQueue",
+    "missionLifecycle",
+    "missionCollaboration",
+    "missionApproval",
+    "missionContacts",
+    "rankingAdmin",
+    "recordGamificationEvent",
+  ] as const;
+
+  test("com binding D1, todo repositório troca de uma vez", () => {
     const chosen = dependenciesFor({ DB: { prepare: () => ({}) } }, postgresApiDependencies);
     assert.notEqual(chosen, postgresApiDependencies);
-    for (const [name, value] of Object.entries(chosen)) {
+    for (const name of STORE_BACKED) {
       assert.notEqual(
-        value,
-        postgresApiDependencies[name as keyof typeof postgresApiDependencies],
+        chosen[name],
+        postgresApiDependencies[name],
         `${name} continuou apontando para o PostgreSQL`,
+      );
+    }
+  });
+
+  test("a lista de repositórios cobre tudo que o conjunto expõe", () => {
+    // Se alguém adicionar um repositório novo e esquecer de listá-lo aqui, o
+    // teste acima passaria sem conferir nada — este caso é o que impede isso.
+    const notStoreBacked = new Set(["sendRecoveryEmail", "invalidateSessionRevocation"]);
+    const covered = new Set<string>(STORE_BACKED);
+    for (const name of Object.keys(postgresApiDependencies)) {
+      assert.ok(
+        covered.has(name) || notStoreBacked.has(name),
+        `${name} não está classificada: é repositório ou ajudante sem banco?`,
       );
     }
   });

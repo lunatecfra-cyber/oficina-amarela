@@ -137,6 +137,17 @@ CREATE TABLE indicacoes_recompensas (
   motivo_revogacao TEXT
 );
 
+-- Limite de tentativas. Vale para login, recuperação, cadastro por IP e emissão
+-- de URL de upload — a chave carrega o assunto. O estado mora no banco de
+-- propósito: contador em memória de processo não vale nada quando há vários
+-- isolates, que é exatamente o caso nos Workers.
+CREATE TABLE tentativas_login (
+  chave TEXT PRIMARY KEY,
+  tentativas INTEGER NOT NULL DEFAULT 0,
+  primeira_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  travado_ate TEXT
+);
+
 CREATE TABLE auditoria_admin (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ator_id INTEGER REFERENCES users(id) ON DELETE SET NULL,

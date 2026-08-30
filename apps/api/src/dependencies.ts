@@ -1,5 +1,8 @@
+import { type AccountsRepository, postgresAccounts } from "@oficina/db/accounts";
+import { createD1Accounts } from "@oficina/db/d1/accounts";
 import { createD1Gamification } from "@oficina/db/d1/gamification";
 import { createD1InvitationAdmin } from "@oficina/db/d1/invitation-admin";
+import { createD1InvitationRedemption } from "@oficina/db/d1/invitation-redemption";
 import { createD1MissionApproval } from "@oficina/db/d1/mission-approval";
 import { createD1MissionCollaboration } from "@oficina/db/d1/mission-collaboration";
 import { createD1MissionContacts } from "@oficina/db/d1/mission-contacts";
@@ -12,6 +15,10 @@ import {
   type InvitationAdminRepository,
   postgresInvitationAdmin,
 } from "@oficina/db/invitation-admin";
+import {
+  type InvitationRedemptionRepository,
+  postgresInvitationRedemption,
+} from "@oficina/db/invitation-redemption";
 import {
   type MissionApprovalRepository,
   postgresMissionApproval,
@@ -27,9 +34,15 @@ import {
 } from "@oficina/db/mission-lifecycle";
 import { type MissionQueueRepository, postgresMissionQueue } from "@oficina/db/mission-queue";
 import { postgresRankingAdmin, type RankingAdminRepository } from "@oficina/db/ranking-admin";
+import { invalidateSessionRevocation } from "@oficina/db/session-revocation";
 
 export type ApiDependencies = {
+  accounts: AccountsRepository;
   invitationAdmin: InvitationAdminRepository;
+  invitationRedemption: InvitationRedemptionRepository;
+  /** Envia o link de recuperação. Recebe o id porque o token é derivado dele. */
+  sendRecoveryEmail: (userId: number, email: string, name: string) => Promise<void>;
+  invalidateSessionRevocation: (userId: number) => void;
   missionQueue: MissionQueueRepository;
   missionLifecycle: MissionLifecycleRepository;
   missionCollaboration: MissionCollaborationRepository;
@@ -40,7 +53,11 @@ export type ApiDependencies = {
 };
 
 export const postgresApiDependencies: ApiDependencies = {
+  accounts: postgresAccounts,
   invitationAdmin: postgresInvitationAdmin,
+  invitationRedemption: postgresInvitationRedemption,
+  sendRecoveryEmail,
+  invalidateSessionRevocation,
   missionQueue: postgresMissionQueue,
   missionLifecycle: postgresMissionLifecycle,
   missionCollaboration: postgresMissionCollaboration,
@@ -60,7 +77,11 @@ export const postgresApiDependencies: ApiDependencies = {
  */
 export function d1ApiDependencies(db: D1DatabaseLike): ApiDependencies {
   return {
+    accounts: createD1Accounts(db),
     invitationAdmin: createD1InvitationAdmin(db),
+    invitationRedemption: createD1InvitationRedemption(db),
+    sendRecoveryEmail,
+    invalidateSessionRevocation,
     missionQueue: createD1MissionQueue(db),
     missionLifecycle: createD1MissionLifecycle(db),
     missionCollaboration: createD1MissionCollaboration(db),
@@ -69,4 +90,18 @@ export function d1ApiDependencies(db: D1DatabaseLike): ApiDependencies {
     rankingAdmin: createD1RankingAdmin(db),
     recordGamificationEvent: createD1Gamification(db),
   };
+}
+
+/**
+ * Link de recuperação de senha.
+ *
+ * O token é derivado do id e carimbado com o instante de emissão; trocar a
+ * senha move o corte de sessão para frente e invalida qualquer link anterior.
+ */
+async function sendRecoveryEmail(userId: number, email: string, name: string): Promise<void> {
+  const { createRecoveryToken } = await import("@oficina/auth/session");
+  const { sendPasswordRecoveryEmail } = await import("@oficina/email/messages");
+  const token = await createRecoveryToken(userId);
+  const origin = process.env.PUBLIC_ORIGIN ?? "https://oficinaamarela.com.br";
+  await sendPasswordRecoveryEmail(email, name, `${origin}/redefinir-senha?token=${token}`);
 }

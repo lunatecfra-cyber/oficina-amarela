@@ -1,9 +1,5 @@
-import { COOKIE_NAME } from "@oficina/auth/session";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { forwardToApi } from "@/lib/internal-api";
 
-export async function POST() {
-  const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
-  return NextResponse.json({ ok: true });
+export function POST(request: Request) {
+  return forwardToApi(request);
 }
