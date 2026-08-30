@@ -13,6 +13,7 @@ import { createAuthRoutes } from "./routes/auth.ts";
 import { createEditorQueue } from "./routes/editor-queue.ts";
 import { createMissionCollaborationRoutes } from "./routes/mission-collaboration.ts";
 import { createMissionLifecycleRoutes } from "./routes/mission-lifecycle.ts";
+import { createRankingRoutes } from "./routes/ranking.ts";
 
 /**
  * Fronteira HTTP da API.
@@ -103,6 +104,7 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
 
   app.route("/admin/invitations", createAdminInvitationRoutes(dependencies));
   app.route("/auth", createAuthRoutes(dependencies));
+  app.route("/", createRankingRoutes(dependencies));
   app.route("/admin/ranking", createAdminRankingRoutes(dependencies));
   app.route("/editor/queue", createEditorQueue(dependencies));
   app.route("/missions", createMissionCollaborationRoutes(dependencies));
