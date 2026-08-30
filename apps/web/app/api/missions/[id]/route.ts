@@ -1,26 +1,23 @@
+import { createApp } from "@oficina/api/app";
+import { migratedMissionAction } from "@oficina/api/mission-actions";
 import { missionContacts } from "@oficina/db/mission-contacts";
-import { postgresMissionQueue } from "@oficina/db/mission-queue";
 import { canExecuteAction } from "@oficina/domain/mission-transitions";
 import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
-import {
-  buildApprovedDeliveryEmail,
-  buildDeliveryReadyEmail,
-  buildReEditRequestedEmail,
-} from "@oficina/email/messages";
+import { buildApprovedDeliveryEmail } from "@oficina/email/messages";
 import { after, NextResponse } from "next/server";
 import { messagesOfMission, messagesOfMissionAfter, sendMessage } from "@/lib/chat-db";
 import { sql } from "@/lib/db";
-import { recordGamificationEvent } from "@/lib/gamification-db";
-import { toLegacyResult } from "@/lib/mission-queue-messages";
-import {
-  acceptDeliveredMission,
-  approveMission,
-  deliverMission,
-  requestInspectorReEdit,
-  requestSpokespersonAdjustment,
-} from "@/lib/missions-db";
+import { approveMission } from "@/lib/missions-db";
 import { createModerationReport } from "@/lib/reports-db";
 import { readSession } from "@/lib/server-session";
+
+const api = createApp();
+
+function toApiRequest(request: Request): Request {
+  const url = new URL(request.url);
+  url.pathname = url.pathname.replace(/^\/api/, "");
+  return new Request(url, request);
+}
 
 export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const session = await readSession();
@@ -67,6 +64,14 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
 }
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
+  const body = await request
+    .clone()
+    .json()
+    .catch(() => null);
+  if (migratedMissionAction(body?.action ?? body?.acao)) {
+    return api.fetch(toApiRequest(request));
+  }
+
   const session = await readSession();
   if (!session)
     return NextResponse.json(
@@ -83,7 +88,6 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     );
   }
 
-  const body = await request.json().catch(() => null);
   const rawAction = body?.action ?? body?.acao;
 
   // normalize action
@@ -127,7 +131,6 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     );
   }
 
-  const isEditor = session.role === "editor" || session.role === "admin";
   const isInspector = session.role === "admin";
   const isSpokesperson =
     String(session.role) === "spokesperson" ||
@@ -137,35 +140,6 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   let r: { ok: true } | { ok: false; error: string; erro?: string };
 
   switch (action) {
-    case "reserve":
-      if (!isEditor)
-        return NextResponse.json(
-          { error: "Only editors may claim missions.", erro: "Only editors." },
-          { status: 403 },
-        );
-      r = toLegacyResult(await postgresMissionQueue.reserveMission(missionId, session.id));
-      break;
-
-    case "cancel":
-      if (!isEditor)
-        return NextResponse.json(
-          { error: "Only editors may release missions.", erro: "Only editors." },
-          { status: 403 },
-        );
-      r = toLegacyResult(await postgresMissionQueue.abandonMission(missionId, session.id));
-      break;
-
-    case "deliver": {
-      if (!isEditor)
-        return NextResponse.json(
-          { error: "Only editors may deliver missions.", erro: "Only editors." },
-          { status: 403 },
-        );
-      const link = String(body?.link ?? body?.videoUrl ?? "");
-      r = await deliverMission(missionId, session.id, link);
-      break;
-    }
-
     case "approve": {
       if (!isInspector && !isSpokesperson) {
         return NextResponse.json(
@@ -198,46 +172,6 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       );
       break;
     }
-
-    case "re_edit":
-      if (!isInspector) {
-        return NextResponse.json(
-          {
-            error: "Only inspectors may request quality control re-edits.",
-            erro: "Only inspectors.",
-          },
-          { status: 403 },
-        );
-      }
-      r = await requestInspectorReEdit(missionId, String(body?.notes ?? body?.notas ?? ""));
-      break;
-
-    case "accept":
-      if (!isSpokesperson) {
-        return NextResponse.json(
-          {
-            error: "Only the spokesperson may accept the finished delivery.",
-            erro: "Only spokesperson.",
-          },
-          { status: 403 },
-        );
-      }
-      r = await acceptDeliveredMission(missionId, session.id);
-      break;
-
-    case "adjust":
-      if (!isSpokesperson) {
-        return NextResponse.json(
-          { error: "Only the spokesperson may request adjustments.", erro: "Only spokesperson." },
-          { status: 403 },
-        );
-      }
-      r = await requestSpokespersonAdjustment(
-        missionId,
-        session.id,
-        String(body?.notes ?? body?.notas ?? ""),
-      );
-      break;
 
     case "message": {
       const text = body?.text ?? body?.texto;
@@ -276,14 +210,6 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       { status: 409 },
     );
 
-  // Awaited de propósito: promessa solta em ambiente serverless morre junto com
-  // a resposta, e o XP some sem deixar rastro. É uma escrita indexada só.
-  if (action === "deliver") {
-    await recordGamificationEvent(session.id, "mission_delivered", String(missionId)).catch((e) =>
-      console.error("[gamification] failed to record delivery", e),
-    );
-  }
-
   // Enfileirar é rápido e precisa acontecer; entregar fica para depois da
   // resposta (vira waitUntil nos Workers).
   await dispatchNotifications(action, missionId, new URL(request.url).origin, body).catch((e) =>
@@ -303,18 +229,7 @@ async function dispatchNotifications(
   const c = await missionContacts(missionId);
   if (!c) return;
 
-  const spokespersonUrl = `${origin}/porta-voz/missao/db-${missionId}`;
   const editorUrl = `${origin}/editor`;
-
-  if (action === "deliver" && c.spokesperson) {
-    await queueMissionNotification(
-      "entrega",
-      missionId,
-      c.spokesperson.email,
-      buildDeliveryReadyEmail(c.spokesperson.name, c.title, spokespersonUrl),
-    );
-    return;
-  }
 
   if (action === "approve" && c.editor) {
     const rating =
@@ -328,17 +243,6 @@ async function dispatchNotifications(
       missionId,
       c.editor.email,
       buildApprovedDeliveryEmail(c.editor.name, c.title, rating, editorUrl),
-    );
-    return;
-  }
-
-  if ((action === "re_edit" || action === "adjust") && c.editor) {
-    const notes = String(body?.notes ?? body?.notas ?? "");
-    await queueMissionNotification(
-      "reedicao",
-      missionId,
-      c.editor.email,
-      buildReEditRequestedEmail(c.editor.name, c.title, notes, editorUrl),
     );
   }
 }

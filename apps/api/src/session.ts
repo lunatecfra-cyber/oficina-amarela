@@ -1,5 +1,6 @@
 import { COOKIE_NAME, type UserSession, verifySessionToken } from "@oficina/auth/session";
 import { getSessionRevocationCutoff } from "@oficina/db/session-revocation";
+import type { Role } from "@oficina/domain/roles";
 import type { Context, MiddlewareHandler } from "hono";
 import { getCookie } from "hono/cookie";
 
@@ -30,15 +31,23 @@ export async function readSession(c: Context): Promise<UserSession | null> {
   return session;
 }
 
-/** Exige sessão de editor (admin também passa, para inspeção). */
-export const requireEditor: MiddlewareHandler<{
+type SessionMiddleware = MiddlewareHandler<{
   Variables: { session: UserSession; requestId: string };
-}> = async (c, next) => {
-  const session = await readSession(c);
-  if (!session) return c.json({ error: "Faça login para continuar." }, 401);
-  if (session.role !== "editor" && session.role !== "admin") {
-    return c.json({ error: "Só editores recebem missões." }, 403);
-  }
-  c.set("session", session);
-  await next();
-};
+}>;
+
+function requireRoles(roles?: Role[], forbiddenMessage?: string): SessionMiddleware {
+  return async (c, next) => {
+    const session = await readSession(c);
+    if (!session) return c.json({ error: "Faça login para continuar." }, 401);
+    if (roles && !roles.includes(session.role)) {
+      return c.json({ error: forbiddenMessage ?? "Você não pode fazer isso." }, 403);
+    }
+    c.set("session", session);
+    await next();
+  };
+}
+
+export const requireSession = requireRoles();
+
+/** Exige sessão de editor (admin também passa, para inspeção). */
+export const requireEditor = requireRoles(["editor", "admin"], "Só editores recebem missões.");

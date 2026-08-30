@@ -1,6 +1,5 @@
 import { LIMITS, limitOrNull, limitStr } from "@oficina/domain/limits";
 import type { Mission, MissionStatus, StatusPauta, VideoFormat } from "@oficina/domain/missions";
-import { isLikelyUrl } from "@oficina/domain/validators";
 import { sql } from "@/lib/db";
 import { awardReferralIfEligible } from "@/lib/electoral-ranking-db";
 
@@ -335,46 +334,6 @@ export async function getMissionById(id: number): Promise<Mission | null> {
 export const pautaPorId = getMissionById;
 export const missionById = getMissionById;
 
-export async function submitMissionDelivery(
-  missionId: number,
-  editorId: number,
-  link: string,
-): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const isVideoEntregaUrl =
-    link.includes("r2.dev") ||
-    link.includes("amazonaws.com") ||
-    link.includes("storage.googleapis.com");
-
-  if (!isLikelyUrl(link) && !isVideoEntregaUrl) {
-    return {
-      ok: false,
-      error: "Cole o link do vídeo editado ou faça o upload.",
-      erro: "Cole o link do vídeo editado ou faça o upload.",
-    };
-  }
-
-  const rows = await sql`
-    UPDATE pautas
-    SET status = 'em_revisao',
-        entrega_link = ${!isVideoEntregaUrl ? link.trim() : null},
-        video_entrega_url = ${isVideoEntregaUrl ? link.trim() : null},
-        notas_inspetor = NULL
-    WHERE id = ${missionId} AND reservada_por_id = ${editorId}
-      AND status IN ('reservada', 'reedicao')
-    RETURNING id
-  `;
-  if (rows.length === 0)
-    return {
-      ok: false,
-      error: "Essa missão não está com você.",
-      erro: "Essa missão não está com você.",
-    };
-  return { ok: true };
-}
-
-export const entregarPauta = submitMissionDelivery;
-export const deliverMission = submitMissionDelivery;
-
 export async function approveMission(
   missionId: number,
   approvedById: number,
@@ -415,88 +374,6 @@ export async function approveMission(
 }
 
 export const aprovarPauta = approveMission;
-
-export async function requestMissionRevision(
-  missionId: number,
-  notes: string,
-): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  if (!notes.trim())
-    return {
-      ok: false,
-      error: "Escreva o que precisa mudar.",
-      erro: "Escreva o que precisa mudar.",
-    };
-
-  const rows = await sql`
-    UPDATE pautas SET status = 'reedicao', notas_inspetor = ${notes.trim()},
-                      reedicao_pedida_por = 'inspetor'
-    WHERE id = ${missionId} AND status = 'em_revisao'
-    RETURNING id
-  `;
-  if (rows.length === 0)
-    return {
-      ok: false,
-      error: "Essa missão não está em revisão.",
-      erro: "Essa missão não está em revisão.",
-    };
-  return { ok: true };
-}
-
-export const pedirReedicao = requestMissionRevision;
-export const requestInspectorReEdit = requestMissionRevision;
-
-export async function finishMission(
-  missionId: number,
-  spokespersonId: number,
-): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const rows = await sql`
-    UPDATE pautas SET status = 'finalizada'
-    WHERE id = ${missionId} AND porta_voz_id = ${spokespersonId} AND status = 'aprovada'
-    RETURNING id
-  `;
-  if (rows.length === 0) {
-    return {
-      ok: false,
-      error: "Essa missão não está aguardando sua conferência.",
-      erro: "Essa missão não está aguardando sua conferência.",
-    };
-  }
-  return { ok: true };
-}
-
-export const aceitarEntrega = finishMission;
-export const acceptDeliveredMission = finishMission;
-
-export async function requestSpokespersonRevision(
-  missionId: number,
-  spokespersonId: number,
-  notes: string,
-): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  if (!notes.trim())
-    return {
-      ok: false,
-      error: "Escreva o que precisa mudar.",
-      erro: "Escreva o que precisa mudar.",
-    };
-
-  const rows = await sql`
-    UPDATE pautas SET status = 'reedicao', notas_inspetor = ${notes.trim()},
-                      reedicao_pedida_por = 'porta_voz'
-    WHERE id = ${missionId} AND porta_voz_id = ${spokespersonId} AND status IN ('em_revisao', 'aprovada')
-    RETURNING id
-  `;
-  if (rows.length === 0) {
-    return {
-      ok: false,
-      error: "Essa missão não está aguardando sua conferência.",
-      erro: "Essa missão não está aguardando sua conferência.",
-    };
-  }
-  return { ok: true };
-}
-
-export const pedirAjuste = requestSpokespersonRevision;
-export const requestSpokespersonAdjustment = requestSpokespersonRevision;
 
 export async function deleteMission(
   missionId: number,

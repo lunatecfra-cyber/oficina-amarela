@@ -30,6 +30,9 @@ describe("fila do editor na API", { skip }, async () => {
   const call = (path: string, init: RequestInit = {}) =>
     app.request(`http://api.local${path}`, init);
 
+  const errorOf = async (response: Response) =>
+    ((await response.json()) as { error: string }).error;
+
   async function cookieFor(id: number, handle: string, role: "editor" | "spokesperson") {
     const token = await createSessionToken({ id, handle, name: handle, role });
     return `${COOKIE_NAME}=${token}`;
@@ -80,13 +83,13 @@ describe("fila do editor na API", { skip }, async () => {
   test("sem cookie devolve 401 em PT-BR", async () => {
     const res = await call("/editor/queue/next");
     assert.equal(res.status, 401);
-    assert.equal((await res.json()).error, "Faça login para continuar.");
+    assert.equal(await errorOf(res), "Faça login para continuar.");
   });
 
   test("porta-voz não recebe missão", async () => {
     const res = await call("/editor/queue/next", { headers: { cookie: spokespersonCookie } });
     assert.equal(res.status, 403);
-    assert.equal((await res.json()).error, "Só editores recebem missões.");
+    assert.equal(await errorOf(res), "Só editores recebem missões.");
   });
 
   test("sem oferta pendente responde 204", async () => {
@@ -131,7 +134,7 @@ describe("fila do editor na API", { skip }, async () => {
     });
 
     assert.equal(res.status, 409);
-    assert.equal((await res.json()).error, "Essa oferta não é mais válida.");
+    assert.equal(await errorOf(res), "Essa oferta não é mais válida.");
   });
 
   test("recusar devolve a missão para a fila", async () => {
@@ -156,7 +159,7 @@ describe("fila do editor na API", { skip }, async () => {
       body: JSON.stringify({ missionId: 1, action: "voar" }),
     });
     assert.equal(res.status, 400);
-    assert.equal((await res.json()).error, "Ação desconhecida para a fila.");
+    assert.equal(await errorOf(res), "Ação desconhecida para a fila.");
   });
 
   test("identificador de missão inválido responde 400", async () => {
@@ -166,6 +169,6 @@ describe("fila do editor na API", { skip }, async () => {
       body: JSON.stringify({ missionId: "abc", action: "accept" }),
     });
     assert.equal(res.status, 400);
-    assert.equal((await res.json()).error, "Missão inválida.");
+    assert.equal(await errorOf(res), "Missão inválida.");
   });
 });

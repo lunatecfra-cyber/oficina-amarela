@@ -1,5 +1,7 @@
 import { Hono } from "hono";
-import { editorQueue } from "./routes/editor-queue.ts";
+import { type ApiDependencies, postgresApiDependencies } from "./dependencies.ts";
+import { createEditorQueue } from "./routes/editor-queue.ts";
+import { createMissionLifecycleRoutes } from "./routes/mission-lifecycle.ts";
 
 /**
  * Fronteira HTTP da API.
@@ -18,7 +20,7 @@ export type Variables = {
   requestId: string;
 };
 
-export function createApp() {
+export function createApp(dependencies: ApiDependencies = postgresApiDependencies) {
   const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
   // Identificador de requisição: aproveita o do Cloudflare quando existe, para
@@ -44,7 +46,8 @@ export function createApp() {
 
   app.get("/health", (c) => c.json({ ok: true, service: "oficina-amarela-api" }));
 
-  app.route("/editor/queue", editorQueue);
+  app.route("/editor/queue", createEditorQueue(dependencies));
+  app.route("/missions", createMissionLifecycleRoutes(dependencies));
 
   app.notFound((c) =>
     c.json({ error: "Rota não encontrada.", requestId: c.get("requestId") }, 404),

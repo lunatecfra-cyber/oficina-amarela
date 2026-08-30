@@ -1,10 +1,7 @@
+import { type GamificationEventType, recordGamificationEvent } from "@oficina/db/gamification";
 import { sql } from "@/lib/db";
 
-export type GamificationEventType =
-  | "daily_login"
-  | "mission_delivered"
-  | "entrada_diaria"
-  | "missao_entregue";
+export { type GamificationEventType, recordGamificationEvent };
 
 export type TipoEventoGamificacao = "entrada_diaria" | "missao_entregue";
 
@@ -46,35 +43,6 @@ function brasiliaDate(date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
   }).format(date);
-}
-
-export async function recordGamificationEvent(
-  userId: number,
-  ruleId: GamificationEventType,
-  reference: string,
-): Promise<{ recorded: boolean; xp: number; registrado?: boolean }> {
-  const normRule: "entrada_diaria" | "missao_entregue" =
-    ruleId === "daily_login" || ruleId === "entrada_diaria" ? "entrada_diaria" : "missao_entregue";
-  const rule = RULES[normRule];
-  if (!rule) return { recorded: false, xp: 0, registrado: false };
-
-  const [event] = await sql`
-    WITH novo_evento AS (
-      INSERT INTO gamificacao_eventos (user_id, regra_id, referencia, xp)
-      VALUES (${userId}, ${normRule}, ${reference}, ${rule.xp})
-      ON CONFLICT (user_id, regra_id, referencia) DO NOTHING
-      RETURNING xp
-    )
-    UPDATE users
-    SET reputacao = users.reputacao + novo_evento.xp
-    FROM novo_evento
-    WHERE users.id = ${userId}
-    RETURNING novo_evento.xp
-  `;
-
-  return event
-    ? { recorded: true, xp: Number(event.xp), registrado: true }
-    : { recorded: false, xp: 0, registrado: false };
 }
 
 export const registrarEventoGamificacao = recordGamificationEvent;
