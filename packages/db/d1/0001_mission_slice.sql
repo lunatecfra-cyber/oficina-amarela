@@ -6,6 +6,10 @@ CREATE TABLE users (
   nome TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   papel TEXT NOT NULL CHECK (papel IN ('voz', 'editor', 'admin')),
+  senha_hash TEXT,
+  google_id TEXT,
+  foto_url TEXT,
+  codigo_indicacao TEXT,
   ultimo_visto_em TEXT,
   travado_reservas_ate TEXT,
   disponibilidade TEXT,
@@ -15,6 +19,12 @@ CREATE TABLE users (
   nota REAL,
   indicado_por_id INTEGER REFERENCES users(id)
 );
+
+CREATE UNIQUE INDEX idx_users_apelido ON users (lower(apelido));
+CREATE UNIQUE INDEX idx_users_email ON users (lower(email));
+CREATE UNIQUE INDEX idx_users_google_id ON users (google_id) WHERE google_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_users_codigo_indicacao
+  ON users (codigo_indicacao) WHERE codigo_indicacao IS NOT NULL;
 
 CREATE TABLE pautas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,6 +141,58 @@ CREATE TABLE auditoria_admin (
   detalhes TEXT NOT NULL DEFAULT '{}',
   criado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
+
+CREATE TABLE convites_porta_voz (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  criado_por INTEGER NOT NULL REFERENCES users(id),
+  criado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  expira_em TEXT NOT NULL,
+  usado_em TEXT,
+  usado_por INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  revogado_em TEXT,
+  revogado_por INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE UNIQUE INDEX idx_convites_porta_voz_email_aberto
+  ON convites_porta_voz (lower(email))
+  WHERE usado_em IS NULL AND revogado_em IS NULL;
+
+-- The redemption row is the single-use invariant. Creating it inserts the
+-- official spokesperson account, claims the invitation and writes the audit
+-- record inside the same D1 statement.
+CREATE TABLE invitation_redemptions (
+  token_hash TEXT PRIMARY KEY REFERENCES convites_porta_voz(token_hash),
+  email TEXT NOT NULL,
+  apelido TEXT NOT NULL,
+  nome TEXT NOT NULL,
+  senha_hash TEXT,
+  google_id TEXT,
+  foto_url TEXT,
+  codigo_indicacao TEXT,
+  resgatado_em TEXT NOT NULL
+);
+
+CREATE TRIGGER apply_invitation_redemption
+AFTER INSERT ON invitation_redemptions
+BEGIN
+  INSERT INTO users (
+    apelido, nome, email, senha_hash, google_id, papel, foto_url, indicado_por_id
+  ) VALUES (
+    NEW.apelido, NEW.nome, NEW.email, NEW.senha_hash, NEW.google_id, 'voz', NEW.foto_url,
+    (SELECT id FROM users WHERE codigo_indicacao = NEW.codigo_indicacao)
+  );
+  UPDATE convites_porta_voz
+  SET usado_em = NEW.resgatado_em,
+      usado_por = (SELECT id FROM users WHERE lower(email) = lower(NEW.email))
+  WHERE token_hash = NEW.token_hash AND usado_em IS NULL AND revogado_em IS NULL;
+  SELECT CASE WHEN changes() = 0 THEN RAISE(ABORT, 'invitation_unavailable') END;
+  INSERT INTO auditoria_admin (ator_id, acao, entidade, entidade_id, detalhes, criado_em)
+  SELECT criado_por, 'convite_consumido', 'convite_porta_voz', CAST(id AS TEXT),
+         json_object('email', NEW.email, 'user_id', usado_por), NEW.resgatado_em
+  FROM convites_porta_voz WHERE token_hash = NEW.token_hash;
+END;
 
 -- One durable approval event per mission. The trigger keeps every scoring side
 -- effect in the same D1 statement, so retries and concurrent requests cannot

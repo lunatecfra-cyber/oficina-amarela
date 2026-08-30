@@ -1,9 +1,13 @@
 import type { Role } from "@oficina/auth/session";
+import {
+  type InvitationRedemptionFailure,
+  postgresInvitationRedemption,
+} from "@oficina/db/invitation-redemption";
 import { invalidateSessionRevocation } from "@oficina/db/session-revocation";
 import { LIMITS, limitStr, SLOTS } from "@oficina/domain/limits";
 import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
-import { validateSpokespersonInvitation } from "@/lib/invitations-db";
+import { hashInvitation } from "@/lib/invitations-db";
 
 export type UserAccount = {
   id: number;
@@ -38,6 +42,15 @@ function normalizeRoleFromDb(papel: string): Role {
 }
 
 const DUMMY_HASH = "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+
+function invitationFailureMessage(reason: InvitationRedemptionFailure): string {
+  if (reason === "email_mismatch") return "Este convite pertence a outro e-mail.";
+  if (reason === "invitation_revoked") return "Este convite foi revogado.";
+  if (reason === "invitation_used") return "Este convite já foi usado.";
+  if (reason === "invitation_expired") return "Este convite expirou.";
+  if (reason === "account_conflict") return "Apelido ou e-mail já cadastrado.";
+  return "Convite inválido.";
+}
 
 export function isValidHandle(handle: string) {
   return RE_HANDLE.test(handle.trim());
@@ -149,26 +162,28 @@ export async function createAccount(data: {
   const password_hash = await bcrypt.hash(data.password, 10);
 
   if (data.role === "spokesperson" || (data.role as string) === "voz") {
-    const validInvite = await validateSpokespersonInvitation(invitation ?? "", email);
-    if (!validInvite.ok) {
+    if (!invitation) {
+      const error = "Convite especial obrigatório para porta-voz.";
       return {
         ok: false,
-        error: validInvite.error,
+        error,
         isConflict: false,
         conflict: false,
-        erro: validInvite.error,
+        erro: error,
         conflito: false,
       };
     }
-    try {
-      const [row] = await sql`
-        SELECT id FROM oficina_private.criar_porta_voz_com_convite(
-          ${validInvite.tokenHash}, ${email}, ${handle}, ${name}, ${password_hash},
-          ${null}, ${null}, ${referralCode}::uuid
-        )
-      `;
+    const redeemed = await postgresInvitationRedemption.redeemInvitation({
+      tokenHash: hashInvitation(invitation),
+      email,
+      handle,
+      name,
+      passwordHash: password_hash,
+      referralCode,
+    });
+    if (redeemed.ok) {
       const account: UserAccount = {
-        id: row.id,
+        id: redeemed.userId,
         handle,
         name,
         email,
@@ -178,16 +193,10 @@ export async function createAccount(data: {
         papel: data.role,
       };
       return { ok: true, account, conta: account };
-    } catch {
-      return {
-        ok: false,
-        error: "Convite inválido, expirado ou já utilizado.",
-        isConflict: false,
-        conflict: false,
-        erro: "Convite inválido, expirado ou já utilizado.",
-        conflito: false,
-      };
     }
+    const error = invitationFailureMessage(redeemed.reason);
+    const conflict = redeemed.reason === "account_conflict";
+    return { ok: false, error, isConflict: conflict, conflict, erro: error, conflito: conflict };
   }
 
   const [row] = await sql`
@@ -362,17 +371,22 @@ export async function createGoogleAccount(data: {
   const dbPapel = normalizeRoleToDb(data.role);
 
   if (data.role === "spokesperson" || (data.role as string) === "voz") {
-    const validInvite = await validateSpokespersonInvitation(invitation ?? "", data.email);
-    if (!validInvite.ok) return validInvite;
-    try {
-      const [row] = await sql`
-        SELECT id FROM oficina_private.criar_porta_voz_com_convite(
-          ${validInvite.tokenHash}, ${data.email}, ${handle}, ${data.name}, ${null},
-          ${data.googleId}, ${avatar}, ${referralCode}::uuid
-        )
-      `;
+    if (!invitation) {
+      const error = "Convite especial obrigatório para porta-voz.";
+      return { ok: false, error, erro: error };
+    }
+    const redeemed = await postgresInvitationRedemption.redeemInvitation({
+      tokenHash: hashInvitation(invitation),
+      email: data.email,
+      handle,
+      name: data.name,
+      googleId: data.googleId,
+      avatarUrl: avatar,
+      referralCode,
+    });
+    if (redeemed.ok) {
       const account: UserAccount = {
-        id: row.id,
+        id: redeemed.userId,
         handle,
         name: data.name,
         email: data.email,
@@ -382,13 +396,9 @@ export async function createGoogleAccount(data: {
         papel: data.role,
       };
       return { ok: true, account, conta: account };
-    } catch {
-      return {
-        ok: false,
-        error: "Convite inválido, expirado ou já utilizado.",
-        erro: "Convite inválido, expirado ou já utilizado.",
-      };
     }
+    const error = invitationFailureMessage(redeemed.reason);
+    return { ok: false, error, erro: error };
   }
 
   const [row] = await sql`
