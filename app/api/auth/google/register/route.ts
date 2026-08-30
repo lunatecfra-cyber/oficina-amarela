@@ -20,14 +20,14 @@ export async function POST(request: Request) {
   const role: Role = rawRole === "spokesperson" || rawRole === "voz" ? "spokesperson" : rawRole === "editor" ? "editor" : "editor";
 
   if (rawRole !== "editor" && rawRole !== "spokesperson" && rawRole !== "voz") {
-    return NextResponse.json({ error: "Choose whether you are an editor or spokesperson.", erro: "Choose whether you are an editor or spokesperson." }, { status: 400 });
+    return NextResponse.json({ error: "Escolha se você é candidato ou editor.", erro: "Escolha se você é candidato ou editor." }, { status: 400 });
   }
 
   const cookieStore = await cookies();
   const token = cookieStore.get(PENDING_COOKIE_NAME)?.value;
   const pending = token ? await verifyPendingIdentity(token) : null;
   if (!pending) {
-    return NextResponse.json({ error: "Session expired, please try again.", erro: "Session expired, please try again." }, { status: 400 });
+    return NextResponse.json({ error: "Sessão expirada, tente novamente.", erro: "Sessão expirada, tente novamente." }, { status: 400 });
   }
 
   const slotCheck = await checkRoleSlots(role);

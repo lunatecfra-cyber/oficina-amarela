@@ -15,7 +15,7 @@ export async function GET() {
 
   const audit = await sql`
     SELECT a.id, a.acao, a.entidade, a.entidade_id, a.detalhes, a.criado_em,
-           u.name AS ator_nome
+           u.nome AS ator_nome
     FROM auditoria_admin a LEFT JOIN users u ON u.id = a.ator_id
     ORDER BY a.criado_em DESC LIMIT 100
   `;

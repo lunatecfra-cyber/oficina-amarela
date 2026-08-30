@@ -6,8 +6,8 @@ import { isEmailConfigured, sendPasswordRecoveryEmail, isTestSender } from "@/li
 
 const DEFAULT_RESPONSE = {
   ok: true,
-  message: "If an account is associated with this email, a password recovery link has been dispatched.",
-  mensagem: "If an account is associated with this email, a password recovery link has been dispatched.",
+  message: "Se houver uma conta com esse e-mail, enviamos o link pra redefinir a senha.",
+  mensagem: "Se houver uma conta com esse e-mail, enviamos o link pra redefinir a senha.",
 };
 
 export async function POST(request: Request) {
@@ -15,14 +15,14 @@ export async function POST(request: Request) {
   const email = body?.email;
 
   if (typeof email !== "string" || !email.trim()) {
-    return NextResponse.json({ error: "Please enter your email address.", erro: "Please enter your email address." }, { status: 400 });
+    return NextResponse.json({ error: "Digite seu e-mail.", erro: "Digite seu e-mail." }, { status: 400 });
   }
 
   if (!isEmailConfigured() || isTestSender()) {
     return NextResponse.json(
       {
-        error: "Email dispatch service is currently unconfigured. If your account is connected with Google, please sign in via Google OAuth.",
-        erro: "Email dispatch service is currently unconfigured.",
+        error: "Envio de e-mail não configurado. Se você criou a conta com o Google, pode entrar por lá.",
+        erro: "Envio de e-mail não configurado.",
       },
       { status: 503 }
     );
@@ -48,12 +48,12 @@ export async function POST(request: Request) {
   if (account) {
     const token = await createRecoveryToken(account.id);
     const origin = new URL(request.url).origin;
-    const link = `${origin}/reset-password?token=${token}`;
+    const link = `${origin}/redefinir-senha?token=${token}`;
     const sent = await sendPasswordRecoveryEmail(account.email, account.name, link);
 
     if (!sent) {
       return NextResponse.json(
-        { error: "Could not send email right now. Please try again in a few minutes.", erro: "Could not send email right now." },
+        { error: "Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.", erro: "Não foi possível enviar o e-mail agora." },
         { status: 503 }
       );
     }

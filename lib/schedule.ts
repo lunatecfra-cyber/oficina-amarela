@@ -32,14 +32,14 @@ export type TaskOnDesk = ActiveWork;
 export type TrabalhoEmMaos = ActiveWork;
 
 const STAGE_BY_STATUS: Record<string, string> = {
-  reserved: "With you",
-  reservada: "With you",
-  mine: "With you",
-  minha: "With you",
-  in_review: "In review",
-  em_revisao: "In review",
-  revision_requested: "Revision requested",
-  reedicao: "Revision requested",
+  reserved: "Na sua mesa",
+  reservada: "Na sua mesa",
+  mine: "Na sua mesa",
+  minha: "Na sua mesa",
+  in_review: "Em revisão",
+  em_revisao: "Em revisão",
+  revision_requested: "Ajuste pedido",
+  reedicao: "Ajuste pedido",
 };
 
 export function activeWorkFromMission(m: Mission | null): ActiveWork[] {

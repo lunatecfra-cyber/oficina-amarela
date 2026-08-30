@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const password = body?.password ?? body?.senha;
 
   if (typeof handle !== "string" || typeof password !== "string") {
-    return NextResponse.json({ error: "Please provide both handle and password.", erro: "Please provide both handle and password." }, { status: 400 });
+    return NextResponse.json({ error: "Digite seu apelido e senha.", erro: "Digite seu apelido e senha." }, { status: 400 });
   }
 
   const ip = requestIpAddress(request);
@@ -29,8 +29,8 @@ export async function POST(request: Request) {
     const minutes = Math.max(lockHandle.minutes, lockIp.minutes);
     return NextResponse.json(
       {
-        error: `Too many attempts. Please try again in ${minutes} min.`,
-        erro: `Too many attempts. Please try again in ${minutes} min.`,
+        error: `Muitas tentativas. Tente novamente em ${minutes} min.`,
+        erro: `Muitas tentativas. Tente novamente em ${minutes} min.`,
       },
       { status: 429 }
     );

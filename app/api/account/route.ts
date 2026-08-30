@@ -6,14 +6,14 @@ import { readSession } from "@/lib/server-session";
 
 export async function DELETE(request: Request) {
   const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Please log in first.", erro: "Please log in first." }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Faça login primeiro.", erro: "Faça login primeiro." }, { status: 401 });
 
   const body = await request.json().catch(() => null);
   const confirmation = body?.confirmation ?? body?.confirmacao;
 
   if (typeof confirmation !== "string" || !confirmation) {
     return NextResponse.json(
-      { error: "Please confirm account handle before deletion.", erro: "Please confirm." },
+      { error: "Confirme o apelido da conta antes de apagar.", erro: "Confirme o apelido." },
       { status: 400 }
     );
   }

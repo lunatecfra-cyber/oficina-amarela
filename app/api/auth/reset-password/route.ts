@@ -8,16 +8,16 @@ export async function POST(request: Request) {
   const password = body?.password ?? body?.senha;
 
   if (typeof token !== "string" || typeof password !== "string") {
-    return NextResponse.json({ error: "Please fill in new password.", erro: "Please fill in new password." }, { status: 400 });
+    return NextResponse.json({ error: "Preencha a nova senha.", erro: "Preencha a nova senha." }, { status: 400 });
   }
 
   const data = await verifyRecoveryToken(token);
   if (!data) {
-    return NextResponse.json({ error: "Link expired or invalid. Please request a new link.", erro: "Link expired or invalid." }, { status: 401 });
+    return NextResponse.json({ error: "Link inválido ou expirado. Peça outro.", erro: "Link inválido ou expirado." }, { status: 401 });
   }
 
   if (await isRecoveryTokenAlreadyUsed(data.userId, data.issuedAtMs)) {
-    return NextResponse.json({ error: "Link expired or already used. Please request a new link.", erro: "Link expired or already used." }, { status: 401 });
+    return NextResponse.json({ error: "Link expirado ou já utilizado. Peça outro.", erro: "Link expirado ou já utilizado." }, { status: 401 });
   }
 
   const result = await updateAccountPassword(data.userId, password);

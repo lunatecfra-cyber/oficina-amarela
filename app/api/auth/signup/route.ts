@@ -14,8 +14,8 @@ export async function POST(request: Request) {
   if (lock.locked) {
     return NextResponse.json(
       {
-        error: `Too many accounts created from this IP. Try again in ${lock.minutes} min.`,
-        erro: `Too many accounts created from this IP. Try again in ${lock.minutes} min.`,
+        error: `Muitas contas criadas deste IP. Tente novamente em ${lock.minutes} min.`,
+        erro: `Muitas contas criadas deste IP. Tente novamente em ${lock.minutes} min.`,
       },
       { status: 429 }
     );
@@ -38,11 +38,11 @@ export async function POST(request: Request) {
     typeof email !== "string" ||
     typeof password !== "string"
   ) {
-    return NextResponse.json({ error: "Please fill in all required fields.", erro: "Please fill in all required fields." }, { status: 400 });
+    return NextResponse.json({ error: "Preencha todos os campos obrigatórios.", erro: "Preencha todos os campos obrigatórios." }, { status: 400 });
   }
 
   if (rawRole !== "spokesperson" && rawRole !== "voz" && rawRole !== "editor") {
-    return NextResponse.json({ error: "Choose whether you are a spokesperson or editor.", erro: "Choose whether you are a spokesperson or editor." }, { status: 400 });
+    return NextResponse.json({ error: "Escolha se você é candidato ou editor.", erro: "Escolha se você é candidato ou editor." }, { status: 400 });
   }
 
   const slotCheck = await checkRoleSlots(role);

@@ -7,15 +7,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Please log in.", erro: "Please log in." }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Faça login.", erro: "Faça login." }, { status: 401 });
   if (session.role !== "admin") {
-    return NextResponse.json({ error: "Inspector access required.", erro: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: "Só o inspetor.", erro: "Só o inspetor." }, { status: 403 });
   }
 
   const { id: raw } = await params;
   const id = Number(raw);
   if (!Number.isFinite(id) || id < 1) {
-    return NextResponse.json({ error: "Invalid mission identifier.", erro: "Invalid mission." }, { status: 400 });
+    return NextResponse.json({ error: "Identificador de missão inválido.", erro: "Missão inválida." }, { status: 400 });
   }
 
   const result = await deleteMissionPermanently(id);

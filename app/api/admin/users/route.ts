@@ -9,9 +9,9 @@ import {
 
 async function requireAdmin() {
   const session = await readSession();
-  if (!session) return { ok: false as const, resp: NextResponse.json({ error: "Please log in.", erro: "Please log in." }, { status: 401 }) };
+  if (!session) return { ok: false as const, resp: NextResponse.json({ error: "Faça login.", erro: "Faça login." }, { status: 401 }) };
   if (session.role !== "admin") {
-    return { ok: false as const, resp: NextResponse.json({ error: "Inspector access required.", erro: "Admin only." }, { status: 403 }) };
+    return { ok: false as const, resp: NextResponse.json({ error: "Só o inspetor.", erro: "Só o inspetor." }, { status: 403 }) };
   }
   return { ok: true as const, session };
 }
@@ -45,15 +45,15 @@ export async function POST(request: Request) {
           : null;
 
   if (typeof userId !== "number" || !Number.isFinite(userId)) {
-    return NextResponse.json({ error: "Invalid user identifier.", erro: "Invalid user." }, { status: 400 });
+    return NextResponse.json({ error: "Identificador de usuário inválido.", erro: "Usuário inválido." }, { status: 400 });
   }
   if (!action) {
-    return NextResponse.json({ error: "Invalid action handler.", erro: "Invalid action." }, { status: 400 });
+    return NextResponse.json({ error: "Ação inválida.", erro: "Ação inválida." }, { status: 400 });
   }
 
   if (action === "delete" && userId === auth.session.id) {
     return NextResponse.json(
-      { error: "To delete your own account, use the profile settings page.", erro: "Self delete." },
+      { error: "Para apagar a sua própria conta, use a tela de perfil.", erro: "Auto exclusão." },
       { status: 400 }
     );
   }
