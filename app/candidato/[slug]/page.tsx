@@ -9,6 +9,7 @@ import { CandidateName } from "@/components/candidate-name";
 import { Stat } from "@/components/stat";
 import { readPublicCandidate } from "@/lib/candidate-db";
 import { type Candidate, getCandidateBySlug } from "@/lib/candidates";
+import { isDemoContentEnabled } from "@/lib/dev-mode";
 import { FORMAT_LABELS, MISSIONS, type Mission, STATUS_LABELS } from "@/lib/missions";
 import { publicCandidateMissions } from "@/lib/missions-db";
 import { readSession } from "@/lib/server-session";
@@ -37,7 +38,7 @@ export default async function CandidateDetailPage({
   const [cand, session] = await Promise.all([fetchCandidate(slug), readSession()]);
   if (!cand) notFound();
 
-  const DEMO_MODE = process.env.NODE_ENV !== "production";
+  const DEMO_MODE = isDemoContentEnabled();
   const name = cand.name ?? (cand as any).nome;
 
   const missions: Mission[] = DEMO_MODE

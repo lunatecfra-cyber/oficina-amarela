@@ -1,12 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
 import { COOKIE_NAME, type UserSession, verifySessionToken } from "@/lib/session";
 
 export async function getSession(): Promise<UserSession | null> {
   const jar = await cookies();
 
-  if (process.env.NODE_ENV === "development" && jar.get("dev_god_mode")?.value === "true") {
+  if (isDevAuthBypassEnabled() && jar.get("dev_god_mode")?.value === "true") {
     return {
       id: 9999,
       name: "God Mode",
@@ -22,7 +23,7 @@ export async function getSession(): Promise<UserSession | null> {
 
   const token = jar.get(COOKIE_NAME)?.value;
   if (!token) {
-    if (process.env.NODE_ENV === "development" && !process.env.VERCEL) {
+    if (isDevAuthBypassEnabled()) {
       return {
         id: 1,
         name: "Dev Admin",
@@ -49,11 +50,7 @@ export async function getSession(): Promise<UserSession | null> {
     `;
 
     if (!row) {
-      if (
-        process.env.NODE_ENV === "development" &&
-        !process.env.VERCEL &&
-        jar.get("workshop_demo_role")?.value === session.role
-      ) {
+      if (isDevAuthBypassEnabled() && jar.get("workshop_demo_role")?.value === session.role) {
         return session;
       }
       return null;

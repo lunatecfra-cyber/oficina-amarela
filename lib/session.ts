@@ -1,4 +1,5 @@
 import { jwtVerify, SignJWT } from "jose";
+import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
 
 export const COOKIE_NAME = "confraria_sessao";
 export const NOME_COOKIE = COOKIE_NAME; // compatibility alias
@@ -15,9 +16,7 @@ export const COOKIE_OPTS = {
 function getKey() {
   const secret =
     process.env.AUTH_SECRET ??
-    (process.env.NODE_ENV === "development" && !process.env.VERCEL
-      ? "yellow-workshop-local-dev-secret"
-      : undefined);
+    (isDevAuthBypassEnabled() ? "yellow-workshop-local-dev-secret" : undefined);
   if (!secret) throw new Error("AUTH_SECRET not configured (.env.local)");
   return new TextEncoder().encode(secret);
 }

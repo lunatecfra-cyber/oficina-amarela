@@ -33,6 +33,8 @@ export function InspectorQueue({
   const candidatesMap = (candidatosPorApelido ?? candidatesByHandle) as Record<string, Candidate>;
   const messagesMap = (mensagensPorPauta ?? messagesByMission) as Record<number, Message[]>;
 
+  // Componente cliente: só NODE_ENV chega aqui, e o build de produção o fixa
+  // em "production". Ver lib/dev-mode.ts para as telas servidas pelo servidor.
   const demo = process.env.NODE_ENV !== "production" ? MISSIONS : [];
   const [missions, setMissions] = useState<Mission[]>([...realList, ...demo]);
   const [error, setError] = useState("");

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 import { readCandidateOnboarding } from "@/lib/candidate-db";
+import { isDemoContentEnabled } from "@/lib/dev-mode";
 import {
   FORMAT_LABELS,
   MISSIONS,
@@ -118,7 +119,7 @@ function MissionCardContainer({
 
 export default async function SpokespersonHome() {
   const session = await readSession();
-  const DEMO_MODE = process.env.NODE_ENV !== "production";
+  const DEMO_MODE = isDemoContentEnabled();
 
   const [realMine, realAvailable, onboarding] = await Promise.all([
     session ? spokespersonMissions(session.id) : Promise.resolve([]),

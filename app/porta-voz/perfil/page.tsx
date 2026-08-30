@@ -8,6 +8,7 @@ import { Card } from "@/components/card";
 import { Stat } from "@/components/stat";
 import { readOwnCandidate } from "@/lib/candidate-db";
 import { getCandidate } from "@/lib/candidates";
+import { isDemoContentEnabled } from "@/lib/dev-mode";
 import { MISSIONS, STATUS_LABELS } from "@/lib/missions";
 import { spokespersonMissions } from "@/lib/missions-db";
 import { requireSession } from "@/lib/server-session";
@@ -24,10 +25,9 @@ export default async function SpokespersonProfilePage() {
   ]);
   const cand = candOpt ?? getCandidate(session.name);
 
-  const demo =
-    process.env.NODE_ENV !== "production"
-      ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === session.name)
-      : [];
+  const demo = isDemoContentEnabled()
+    ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === session.name)
+    : [];
   const myMissions = [...realMine, ...demo];
 
   const inQueue = myMissions.filter((p) =>

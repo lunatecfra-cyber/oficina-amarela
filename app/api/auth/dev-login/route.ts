@@ -1,11 +1,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
 import { COOKIE_NAME, COOKIE_OPTS, createSessionToken, type Role } from "@/lib/session";
-
-function isDevEnvironment() {
-  return process.env.NODE_ENV === "development" && !process.env.VERCEL;
-}
 
 const DEV_ACCOUNTS: Record<
   Role,
@@ -32,7 +29,7 @@ const DEV_ACCOUNTS: Record<
 };
 
 export async function GET(request: Request) {
-  if (!isDevEnvironment()) {
+  if (!isDevAuthBypassEnabled()) {
     return NextResponse.json(
       { error: "Route available in development mode only.", erro: "Dev only." },
       { status: 404 },

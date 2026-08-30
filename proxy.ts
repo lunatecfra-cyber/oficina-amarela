@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/session";
 
 export default async function proxy(request: NextRequest) {
-  if (
-    process.env.NODE_ENV === "development" &&
-    request.cookies.get("dev_god_mode")?.value === "true"
-  ) {
+  if (isDevAuthBypassEnabled() && request.cookies.get("dev_god_mode")?.value === "true") {
     return NextResponse.next();
   }
 
@@ -13,7 +11,7 @@ export default async function proxy(request: NextRequest) {
   const session = token ? await verifySessionToken(token) : null;
 
   if (!session) {
-    if (process.env.NODE_ENV === "development" && !process.env.VERCEL) {
+    if (isDevAuthBypassEnabled()) {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL("/login", request.url));

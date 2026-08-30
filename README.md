@@ -97,7 +97,18 @@ R2_ACCESS_KEY_ID=seu-access-key-id
 R2_SECRET_ACCESS_KEY=seu-secret-access-key
 R2_BUCKET_NAME=oficina-amarela
 R2_PUBLIC_URL=https://midia.seudominio.com.br
+
+# Atalhos de desenvolvimento — desligados por padrão, recusados em produção
+# ALLOW_DEV_AUTH_BYPASS=1   # login instantâneo em /dev, god mode, sessão fake
+# ALLOW_DEMO_CONTENT=1      # missões e perfis de exemplo nas telas
+# DATABASE_STUB=1           # roda sem banco: toda query devolve lista vazia
 ```
+
+> As três variáveis acima só valem quando `NODE_ENV` é diferente de
+> `production`, e mesmo assim precisam do valor exato `1`. Sem elas o
+> aplicativo exige login de verdade, não mostra conteúdo de exemplo e falha
+> alto se `DATABASE_URL` não estiver configurado — que é o comportamento
+> esperado em qualquer ambiente publicado.
 
 ### 4. Executar o schema / migrações do banco
 ```bash

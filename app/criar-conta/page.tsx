@@ -3,11 +3,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Logo } from "@/components/logo";
 import { SignupForm } from "@/components/signup-form";
+import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
 
 export const metadata: Metadata = { title: "Criar conta — Oficina Amarela" };
 
 export default function SignupPage() {
-  const isDev = process.env.NODE_ENV === "development" && !process.env.VERCEL;
+  const isDev = isDevAuthBypassEnabled();
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
