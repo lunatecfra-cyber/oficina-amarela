@@ -1,78 +1,6 @@
 import { calculateConsistency, calculateUnlockedAwards } from "@oficina/domain/electoral-ranking";
 import { sql } from "@/lib/db";
 
-export async function cancelElectoralApproval(
-  missionId: number,
-  inspectorId: number,
-  reason: string,
-) {
-  if (!reason.trim())
-    return {
-      ok: false as const,
-      error: "Informe o motivo da correção.",
-      erro: "Informe o motivo da correção.",
-    };
-  const [record] = await sql`
-    WITH anulada AS (
-      UPDATE ranking_aprovacoes
-      SET anulado_em = now(), anulado_por = ${inspectorId}, motivo_anulacao = ${reason.trim()}
-      WHERE pauta_id = ${missionId} AND anulado_em IS NULL
-      RETURNING editor_id
-    ), pauta_corrigida AS (
-      UPDATE pautas SET pontuada = false
-      WHERE id = ${missionId} AND EXISTS (SELECT 1 FROM anulada)
-      RETURNING id
-    ), avaliacao_removida AS (
-      DELETE FROM avaliacoes
-      WHERE pauta_id = ${missionId} AND EXISTS (SELECT 1 FROM anulada)
-      RETURNING editor_id
-    ), usuario_corrigido AS (
-      UPDATE users u
-      SET entregues = GREATEST(u.entregues - 1, 0),
-          reputacao = GREATEST(u.reputacao - 25, 0),
-          streak = GREATEST(u.streak - 1, 0),
-          nota = (SELECT round(avg(a.nota)::numeric, 2)
-                  FROM avaliacoes a WHERE a.editor_id = u.id AND a.pauta_id <> ${missionId})
-      FROM anulada WHERE u.id = anulada.editor_id
-      RETURNING u.id
-    ), auditada AS (
-      INSERT INTO auditoria_admin (ator_id, acao, entidade, entidade_id, detalhes)
-      SELECT ${inspectorId}, 'aprovacao_anulada', 'pauta', ${String(missionId)},
-             ${sql.json({ motivo: reason.trim() })}
-      FROM anulada RETURNING id
-    )
-    SELECT editor_id FROM anulada
-  `;
-  if (!record)
-    return {
-      ok: false as const,
-      error: "Esta aprovação não está ativa no ranking.",
-      erro: "Esta aprovação não está ativa no ranking.",
-    };
-  await recalculateReferral(Number(record.editor_id), reason.trim());
-  return { ok: true as const };
-}
-export const anularAprovacaoEleitoral = cancelElectoralApproval;
-
-async function recalculateReferral(editorId: number, reason: string) {
-  const [count] = await sql`
-    SELECT count(*)::int AS total FROM ranking_aprovacoes
-    WHERE editor_id = ${editorId} AND anulado_em IS NULL
-  `;
-  if (Number(count?.total ?? 0) >= 2) return;
-  await sql`
-    WITH revogada AS (
-      UPDATE indicacoes_recompensas
-      SET revogado_em = now(), motivo_revogacao = ${`Aprovação anulada: ${reason}`}
-      WHERE convidado_id = ${editorId} AND revogado_em IS NULL
-      RETURNING convidador_id, pontos
-    )
-    UPDATE users u
-    SET reputacao = GREATEST(u.reputacao - revogada.pontos, 0)
-    FROM revogada WHERE u.id = revogada.convidador_id
-  `;
-}
-
 export async function awardReferralIfEligible(inviteeId: number) {
   const [reward] = await sql`
     WITH dados AS (
@@ -171,41 +99,6 @@ export async function getElectoralRanking() {
   };
 }
 export const obterRankingEleitoral = getElectoralRanking;
-
-export async function grantConsistencyShield(
-  editorId: number,
-  inspectorId: number,
-  reason: string,
-) {
-  if (!reason.trim())
-    return {
-      ok: false as const,
-      error: "Informe o motivo do bloqueio.",
-      erro: "Informe o motivo do bloqueio.",
-    };
-  const [balance] = await sql`
-    SELECT count(*)::int AS total FROM bloqueios_constancia
-    WHERE editor_id = ${editorId} AND consumido_em IS NULL
-  `;
-  if (Number(balance?.total ?? 0) >= 2) {
-    return {
-      ok: false as const,
-      error: "Editor já possui o máximo de dois bloqueios.",
-      erro: "Editor já possui o máximo de dois bloqueios.",
-    };
-  }
-  await sql`
-    INSERT INTO bloqueios_constancia (editor_id, concedido_por, motivo)
-    VALUES (${editorId}, ${inspectorId}, ${reason.trim()})
-  `;
-  await sql`
-    INSERT INTO auditoria_admin (ator_id, acao, entidade, entidade_id, detalhes)
-    VALUES (${inspectorId}, 'bloqueio_concedido', 'editor', ${String(editorId)},
-            ${sql.json({ motivo: reason.trim() })})
-  `;
-  return { ok: true as const };
-}
-export const concederBloqueio = grantConsistencyShield;
 
 export async function getEditorProgress(editorId: number) {
   await processShields(editorId);

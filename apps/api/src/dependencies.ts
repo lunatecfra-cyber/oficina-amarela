@@ -17,6 +17,7 @@ import {
   postgresMissionLifecycle,
 } from "@oficina/db/mission-lifecycle";
 import { type MissionQueueRepository, postgresMissionQueue } from "@oficina/db/mission-queue";
+import { postgresRankingAdmin, type RankingAdminRepository } from "@oficina/db/ranking-admin";
 
 export type ApiDependencies = {
   invitationAdmin: InvitationAdminRepository;
@@ -25,6 +26,7 @@ export type ApiDependencies = {
   missionCollaboration: MissionCollaborationRepository;
   missionApproval: MissionApprovalRepository;
   missionContacts: typeof missionContacts;
+  rankingAdmin: RankingAdminRepository;
   recordGamificationEvent: typeof recordGamificationEvent;
 };
 
@@ -35,5 +37,6 @@ export const postgresApiDependencies: ApiDependencies = {
   missionCollaboration: postgresMissionCollaboration,
   missionApproval: postgresMissionApproval,
   missionContacts,
+  rankingAdmin: postgresRankingAdmin,
   recordGamificationEvent,
 };
