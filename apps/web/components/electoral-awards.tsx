@@ -2,7 +2,7 @@ import {
   ELECTORAL_AWARDS,
   type ElectoralAward,
   type PremioEleitoral,
-} from "@/lib/electoral-ranking";
+} from "@oficina/domain/electoral-ranking";
 
 function TicketIcon({ className }: { className?: string }) {
   return (

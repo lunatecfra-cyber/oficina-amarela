@@ -1,6 +1,6 @@
-import { type Candidate, DEFAULT_TINT, type SocialLinks } from "@/lib/candidates";
+import { type Candidate, DEFAULT_TINT, type SocialLinks } from "@oficina/domain/candidates";
+import { isValidPhoto, LIMITS, limitList, limitOrNull, limitStr } from "@oficina/domain/limits";
 import { sql } from "@/lib/db";
-import { isValidPhoto, LIMITS, limitList, limitOrNull, limitStr } from "@/lib/limits";
 
 export type CandidateOnboarding = {
   name: string;

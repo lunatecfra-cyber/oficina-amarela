@@ -1,10 +1,10 @@
 "use client";
 
+import { embedUrl, type TipoTutorial, type TutorialType, VIDEOS } from "@oficina/domain/tutorials";
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GuideDemo } from "@/components/guide-demo";
 import { ScreencastDrive } from "@/components/screencast-drive";
-import { embedUrl, type TipoTutorial, type TutorialType, VIDEOS } from "@/lib/tutorials";
 
 const STEPS: Record<string, { n: number; text: React.ReactNode }[]> = {
   drive: [

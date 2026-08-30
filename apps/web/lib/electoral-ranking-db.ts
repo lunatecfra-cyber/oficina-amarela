@@ -1,5 +1,5 @@
+import { calculateConsistency, calculateUnlockedAwards } from "@oficina/domain/electoral-ranking";
 import { sql } from "@/lib/db";
-import { calculateConsistency, calculateUnlockedAwards } from "@/lib/electoral-ranking";
 
 export async function cancelElectoralApproval(
   missionId: number,

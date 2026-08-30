@@ -1,7 +1,7 @@
 "use client";
 
+import { initials } from "@oficina/domain/candidates";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { initials } from "@/lib/candidates";
 import type { Papel, Role } from "@/lib/session";
 
 type UserListItem = {

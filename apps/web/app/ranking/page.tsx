@@ -1,8 +1,8 @@
+import { ELECTORAL_CYCLE_END } from "@oficina/domain/electoral-ranking";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { ElectoralAwards } from "@/components/electoral-awards";
-import { ELECTORAL_CYCLE_END } from "@/lib/electoral-ranking";
 import { getElectoralRanking } from "@/lib/electoral-ranking-db";
 import { requireSession } from "@/lib/server-session";
 

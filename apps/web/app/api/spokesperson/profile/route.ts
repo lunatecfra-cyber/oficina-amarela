@@ -1,6 +1,6 @@
+import type { SocialLinks } from "@oficina/domain/candidates";
 import { NextResponse } from "next/server";
 import { saveCandidateOnboarding } from "@/lib/candidate-db";
-import type { SocialLinks } from "@/lib/candidates";
 import { readSession } from "@/lib/server-session";
 
 const toStringOpt = (v: unknown) => (typeof v === "string" ? v : undefined);

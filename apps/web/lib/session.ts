@@ -21,8 +21,10 @@ function getKey() {
   return new TextEncoder().encode(secret);
 }
 
-export type Role = "spokesperson" | "editor" | "admin";
-export type Papel = Role; // compatibility alias
+// O papel é conceito de domínio; a sessão só o transporta.
+import type { Role } from "@oficina/domain/roles";
+
+export type { Papel, Role } from "@oficina/domain/roles";
 
 export type UserSession = {
   id: number;

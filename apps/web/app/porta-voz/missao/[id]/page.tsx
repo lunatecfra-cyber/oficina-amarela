@@ -1,3 +1,15 @@
+import {
+  currentStage,
+  FORMAT_LABELS,
+  MISSION_STAGES,
+  STATUS_LABELS,
+  spokespersonStatusMessage,
+} from "@oficina/domain/missions";
+import {
+  looksLikeDriveLink,
+  looksLikeLink,
+  looksLikeYoutubeLink,
+} from "@oficina/domain/validators";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,16 +19,8 @@ import { MissionChat } from "@/components/mission-chat";
 import { ReportButton } from "@/components/report-button";
 import { readOwnCandidate } from "@/lib/candidate-db";
 import { missionMessages } from "@/lib/chat-db";
-import {
-  currentStage,
-  FORMAT_LABELS,
-  MISSION_STAGES,
-  STATUS_LABELS,
-  spokespersonStatusMessage,
-} from "@/lib/missions";
 import { missionByIdOfSpokesperson, queuePosition, totalInQueue } from "@/lib/missions-db";
 import { requireSession } from "@/lib/server-session";
-import { looksLikeDriveLink, looksLikeLink, looksLikeYoutubeLink } from "@/lib/validators";
 
 export const metadata: Metadata = { title: "Missão — Oficina Amarela" };
 export const dynamic = "force-dynamic";

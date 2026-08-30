@@ -3,7 +3,7 @@
 
 import assert from "node:assert/strict";
 import test, { describe } from "node:test";
-import { canPerformAction } from "@/lib/mission-transitions";
+import { canPerformAction } from "./mission-transitions.ts";
 
 describe("transições de missão", () => {
   const cases: Array<[string, string, string, boolean]> = [

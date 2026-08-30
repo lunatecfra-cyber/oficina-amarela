@@ -1,12 +1,16 @@
 "use client";
 
+import type { Format, Formato } from "@oficina/domain/missions";
+import {
+  looksLikeDriveLink,
+  looksLikeLink,
+  looksLikeYoutubeLink,
+} from "@oficina/domain/validators";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { LegalNotice } from "@/components/legal-notice";
 import { TutorialButton, TutorialDrive } from "@/components/tutorial-drive";
 import { UploadDropzone } from "@/components/upload-dropzone";
-import type { Format, Formato } from "@/lib/missions";
-import { looksLikeDriveLink, looksLikeLink, looksLikeYoutubeLink } from "@/lib/validators";
 
 type FormData = {
   title: string;

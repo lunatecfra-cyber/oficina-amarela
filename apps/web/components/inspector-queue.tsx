@@ -1,15 +1,15 @@
 "use client";
 
+import { type Candidate, type Candidato, initials } from "@oficina/domain/candidates";
+import { FORMAT_LABELS, MISSIONS, type Mission, type Pauta } from "@oficina/domain/missions";
+import { looksLikeLink } from "@oficina/domain/validators";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MissionChat } from "@/components/mission-chat";
 import { Badge, Chip, candidateOfMission } from "@/components/mission-ui";
 import { ProximityLocation } from "@/components/proximity-location";
-import { type Candidate, type Candidato, initials } from "@/lib/candidates";
 import type { Mensagem, Message } from "@/lib/chat-db";
-import { FORMAT_LABELS, MISSIONS, type Mission, type Pauta } from "@/lib/missions";
-import { looksLikeLink } from "@/lib/validators";
 
 export function InspectorQueue({
   realMissions = [],

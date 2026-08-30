@@ -1,6 +1,6 @@
+import { ROLE_LIMITS } from "@oficina/domain/limits";
 import { NextResponse } from "next/server";
 import { countEnrolledByRole } from "@/lib/accounts";
-import { ROLE_LIMITS } from "@/lib/limits";
 
 export async function GET() {
   const [totalEditors, totalSpokespersons] = await Promise.all([

@@ -1,9 +1,9 @@
 "use client";
 
+import { HEADLINES, MAX_HEADLINES } from "@oficina/domain/profile";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { HEADLINES, MAX_HEADLINES } from "@/lib/profile";
 import type { EditableProfile } from "@/lib/profile-db";
 
 function chip(active: boolean, blocked = false) {

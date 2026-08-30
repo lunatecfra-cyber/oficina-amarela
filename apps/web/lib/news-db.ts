@@ -1,5 +1,5 @@
+import { LIMITS, limitStr } from "@oficina/domain/limits";
 import { sql } from "@/lib/db";
-import { LIMITS, limitStr } from "@/lib/limits";
 
 export type DbNews = {
   id: number;

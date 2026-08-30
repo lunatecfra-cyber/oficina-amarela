@@ -1,12 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
-import { LegalNotice } from "@/components/legal-notice";
-import { SelectLocation } from "@/components/select-location";
-import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
-import type { CandidateOnboarding } from "@/lib/candidate-db";
 import {
   BRAZILIAN_STATES,
   COMMUNICATION_TONES,
@@ -19,7 +12,14 @@ import {
   SUGGESTED_KEYWORDS,
   THEME_FLAGS,
   TONE_EXAMPLES,
-} from "@/lib/candidates";
+} from "@oficina/domain/candidates";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { LegalNotice } from "@/components/legal-notice";
+import { SelectLocation } from "@/components/select-location";
+import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
+import type { CandidateOnboarding } from "@/lib/candidate-db";
 import { compressPhoto } from "@/lib/compress-photo";
 
 function parseLocation(value: string): { state: string; city: string } {

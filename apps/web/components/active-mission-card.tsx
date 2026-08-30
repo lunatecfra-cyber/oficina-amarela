@@ -1,5 +1,7 @@
 "use client";
 
+import { FORMAT_LABEL, type Mission } from "@oficina/domain/missions";
+import { looksLikeDriveLink, looksLikeYoutubeLink } from "@oficina/domain/validators";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MissionChat } from "@/components/mission-chat";
@@ -7,8 +9,6 @@ import { ReportButton } from "@/components/report-button";
 import { TutorialButton, TutorialDrive } from "@/components/tutorial-drive";
 import { UploadDropzone } from "@/components/upload-dropzone";
 import type { ChatMessage } from "@/lib/chat-db";
-import { FORMAT_LABEL, type Mission } from "@/lib/missions";
-import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 
 function Chip({ k, v }: { k: string; v: string }) {
   return (

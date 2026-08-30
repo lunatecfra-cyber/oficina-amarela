@@ -1,3 +1,5 @@
+import { getCandidate } from "@oficina/domain/candidates";
+import { MISSIONS, STATUS_LABELS } from "@oficina/domain/missions";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,9 +9,7 @@ import { CandidateName } from "@/components/candidate-name";
 import { Card } from "@/components/card";
 import { Stat } from "@/components/stat";
 import { readOwnCandidate } from "@/lib/candidate-db";
-import { getCandidate } from "@/lib/candidates";
 import { isDemoContentEnabled } from "@/lib/dev-mode";
-import { MISSIONS, STATUS_LABELS } from "@/lib/missions";
 import { spokespersonMissions } from "@/lib/missions-db";
 import { requireSession } from "@/lib/server-session";
 

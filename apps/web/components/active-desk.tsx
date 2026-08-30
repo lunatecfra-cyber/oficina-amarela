@@ -1,10 +1,10 @@
 "use client";
 
+import { FORMAT_LABEL } from "@oficina/domain/missions";
+import type { TaskOnDesk } from "@oficina/domain/schedule";
+import { looksLikeDriveLink, looksLikeYoutubeLink } from "@oficina/domain/validators";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { FORMAT_LABEL } from "@/lib/missions";
-import type { TaskOnDesk } from "@/lib/schedule";
-import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 
 function fmtRemaining(ms: number) {
   if (ms <= 0) return "prazo vencido";

@@ -1,10 +1,10 @@
+import { NOVIDADES, shortDate } from "@oficina/domain/news";
 import Image from "next/image";
 import Link from "next/link";
 import { FestivalAwards } from "@/components/festival-awards";
 import { MouseGlow } from "@/components/mouse-glow";
 import { NextStep } from "@/components/next-step";
 import { OnAppear } from "@/components/on-appear";
-import { NOVIDADES, shortDate } from "@/lib/news";
 import { publishedNews } from "@/lib/news-db";
 
 export const revalidate = 300;

@@ -1,8 +1,8 @@
+import { partnersHeaderRole } from "@oficina/domain/navigation";
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
 import { AppHeaderInspector } from "@/components/app-header-inspector";
 import { AppHeaderSpokesperson } from "@/components/app-header-spokesperson";
-import { partnersHeaderRole } from "@/lib/navigation";
 import { readSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Parceiros — Oficina Amarela" };

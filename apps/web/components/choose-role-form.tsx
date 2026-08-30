@@ -1,8 +1,8 @@
 "use client";
 
+import { initials } from "@oficina/domain/candidates";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { initials } from "@/lib/candidates";
 
 const ROLE_OPTIONS = [
   {

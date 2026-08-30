@@ -1,4 +1,4 @@
-import type { Formato, VideoFormat } from "@/lib/missions";
+import type { Formato, VideoFormat } from "./missions.ts";
 
 export type Tier = "Aprendiz" | "Oficial" | "Artífice" | "Mestre-Artesão";
 export type Nivel = Tier;

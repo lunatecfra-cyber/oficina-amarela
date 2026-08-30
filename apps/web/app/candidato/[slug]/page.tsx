@@ -1,3 +1,5 @@
+import { type Candidate, getCandidateBySlug } from "@oficina/domain/candidates";
+import { FORMAT_LABELS, MISSIONS, type Mission, STATUS_LABELS } from "@oficina/domain/missions";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,9 +10,7 @@ import { CandidateData } from "@/components/candidate-data";
 import { CandidateName } from "@/components/candidate-name";
 import { Stat } from "@/components/stat";
 import { readPublicCandidate } from "@/lib/candidate-db";
-import { type Candidate, getCandidateBySlug } from "@/lib/candidates";
 import { isDemoContentEnabled } from "@/lib/dev-mode";
-import { FORMAT_LABELS, MISSIONS, type Mission, STATUS_LABELS } from "@/lib/missions";
 import { publicCandidateMissions } from "@/lib/missions-db";
 import { readSession } from "@/lib/server-session";
 

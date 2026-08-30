@@ -1,10 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
-import { SelectLocation } from "@/components/select-location";
-import { DEFAULT_TINT, initials } from "@/lib/candidates";
-import { compressPhoto } from "@/lib/compress-photo";
+import { DEFAULT_TINT, initials } from "@oficina/domain/candidates";
 import {
   EDITING_LEVELS,
   HEADLINES,
@@ -15,7 +11,11 @@ import {
   PC_SETUPS,
   SOFTWARES,
   STYLES,
-} from "@/lib/profile";
+} from "@oficina/domain/profile";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { SelectLocation } from "@/components/select-location";
+import { compressPhoto } from "@/lib/compress-photo";
 import type { EditorOnboarding } from "@/lib/profile-db";
 
 function parseLocation(value: string): { state: string; city: string } {

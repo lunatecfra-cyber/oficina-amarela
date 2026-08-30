@@ -1,4 +1,4 @@
-import type { Role } from "@/lib/session";
+import type { Role } from "./roles.ts";
 
 export type HeaderType = "spokesperson" | "editor" | "inspector";
 export type Cabecalho = HeaderType;

@@ -1,8 +1,8 @@
 "use client";
 
+import { LIMITS } from "@oficina/domain/limits";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatMessage, Mensagem } from "@/lib/chat-db";
-import { LIMITS } from "@/lib/limits";
 
 const ROLE_LABEL: Record<string, string> = {
   spokesperson: "Candidato",

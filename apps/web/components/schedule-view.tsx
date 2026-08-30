@@ -1,7 +1,7 @@
 "use client";
 
+import { type TaskOnDesk, type TrabalhoEmMaos } from "@oficina/domain/schedule";
 import { ActiveDesk } from "@/components/active-desk";
-import { type TaskOnDesk, type TrabalhoEmMaos } from "@/lib/schedule";
 
 export function ScheduleView({
   onDesk = [],

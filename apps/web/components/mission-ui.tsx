@@ -1,7 +1,7 @@
 "use client";
 
-import { type Candidate, getCandidate } from "@/lib/candidates";
-import { type Mission, type Pauta, STATUS_LABEL } from "@/lib/missions";
+import { type Candidate, getCandidate } from "@oficina/domain/candidates";
+import { type Mission, type Pauta, STATUS_LABEL } from "@oficina/domain/missions";
 
 export function candidateFromMission(
   p: Mission | Pauta,

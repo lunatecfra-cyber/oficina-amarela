@@ -1,3 +1,4 @@
+import { canExecuteAction } from "@oficina/domain/mission-transitions";
 import { after, NextResponse } from "next/server";
 import { messagesOfMission, messagesOfMissionAfter, sendMessage } from "@/lib/chat-db";
 import { sql } from "@/lib/db";
@@ -8,7 +9,6 @@ import {
 } from "@/lib/email";
 import { drainEmailQueueNow, queueMissionNotification } from "@/lib/email-dispatch";
 import { recordGamificationEvent } from "@/lib/gamification-db";
-import { canExecuteAction } from "@/lib/mission-transitions";
 import {
   acceptDeliveredMission,
   approveMission,

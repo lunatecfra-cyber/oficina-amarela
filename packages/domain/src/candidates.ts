@@ -160,7 +160,7 @@ export {
   CIDADES_POR_UF,
   CITIES_BY_STATE,
   ESTADOS_BRASIL,
-} from "./cities";
+} from "./cities.ts";
 
 export const DEMO_CANDIDATES: Record<string, Candidate> = {
   Busnelo: {

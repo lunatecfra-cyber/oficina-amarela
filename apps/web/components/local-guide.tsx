@@ -1,10 +1,10 @@
 "use client";
 
+import { type GuideStep, getRouteGuide, type RouteScript, seenKey } from "@oficina/domain/guide";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { GuideDemo } from "@/components/guide-demo";
-import { type GuideStep, getRouteGuide, type RouteScript, seenKey } from "@/lib/guide";
 
 type Box = { top: number; left: number; width: number; height: number };
 

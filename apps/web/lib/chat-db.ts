@@ -1,5 +1,5 @@
+import { LIMITS, limitStr } from "@oficina/domain/limits";
 import { sql } from "@/lib/db";
-import { LIMITS, limitStr } from "@/lib/limits";
 import type { Role, UserSession } from "@/lib/session";
 
 export type Message = {

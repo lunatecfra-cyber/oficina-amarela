@@ -5,7 +5,7 @@
 
 import assert from "node:assert/strict";
 import test, { describe } from "node:test";
-import { partnersHeader } from "@/lib/navigation";
+import { partnersHeader } from "./navigation.ts";
 
 describe("cabeçalho da página de parceiros", () => {
   test("porta-voz mantém o cabeçalho de porta-voz", () => {

@@ -1,10 +1,10 @@
+import type { Mission } from "@oficina/domain/missions";
 import {
   ACTIVE_MISSION_PER_EDITOR_INDEX,
   isUniqueViolation,
   OFFER_UNIQUE_INDEXES,
   sql,
 } from "@/lib/db";
-import type { Mission } from "@/lib/missions";
 
 export const OFFER_MINUTES = 5;
 export const MINUTOS_OFERTA = OFFER_MINUTES;

@@ -1,4 +1,4 @@
-import type { Candidate, Candidato } from "@/lib/candidates";
+import type { Candidate, Candidato } from "@oficina/domain/candidates";
 
 export function CandidateName({
   candidate,

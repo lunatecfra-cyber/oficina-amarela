@@ -1,3 +1,7 @@
+import { initials } from "@oficina/domain/candidates";
+import { FORMAT_LABELS } from "@oficina/domain/missions";
+import { DEFAULT_EDITOR_PROFILE, levelProgress } from "@oficina/domain/profile";
+import { DAYS, DEFAULT_AVAILABILITY, PERIODS, workFromMission } from "@oficina/domain/schedule";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,13 +12,9 @@ import { Card } from "@/components/card";
 import { EditorInvitation } from "@/components/editor-invitation";
 import { ElectoralProgress } from "@/components/electoral-progress";
 import { Stat } from "@/components/stat";
-import { initials } from "@/lib/candidates";
 import { getEditorProgress } from "@/lib/electoral-ranking-db";
-import { FORMAT_LABELS } from "@/lib/missions";
 import { reservedMissionBy } from "@/lib/missions-db";
-import { DEFAULT_EDITOR_PROFILE, levelProgress } from "@/lib/profile";
 import { readEditorOnboarding, readEditorProfile } from "@/lib/profile-db";
-import { DAYS, DEFAULT_AVAILABILITY, PERIODS, workFromMission } from "@/lib/schedule";
 import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Meu Perfil — Oficina Amarela" };

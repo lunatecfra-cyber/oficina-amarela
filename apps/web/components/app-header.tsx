@@ -1,9 +1,9 @@
+import type { Editor } from "@oficina/domain/missions";
 import Link from "next/link";
 import { EditorNav } from "@/components/editor-nav";
 import { LocalGuide } from "@/components/local-guide";
 import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
-import type { Editor } from "@/lib/missions";
 import { readEditorProfile } from "@/lib/profile-db";
 import { readSession } from "@/lib/server-session";
 

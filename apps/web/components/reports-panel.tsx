@@ -1,9 +1,9 @@
 "use client";
 
+import { initials } from "@oficina/domain/candidates";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { initials } from "@/lib/candidates";
 import type { Denuncia, Report } from "@/lib/reports-db";
 
 const STATUS_LABELS: Record<string, { txt: string; cls: string }> = {

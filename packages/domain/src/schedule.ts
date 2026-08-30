@@ -1,4 +1,4 @@
-import type { Mission, VideoFormat } from "@/lib/missions";
+import type { Mission, VideoFormat } from "./missions.ts";
 
 export type ActiveWork = {
   id: string;

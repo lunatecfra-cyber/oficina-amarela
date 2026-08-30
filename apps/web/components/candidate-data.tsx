@@ -1,6 +1,6 @@
+import type { Candidate, Candidato } from "@oficina/domain/candidates";
 import { ProximityLocation } from "@/components/proximity-location";
 import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
-import type { Candidate, Candidato } from "@/lib/candidates";
 
 export function CandidateData({
   candidate,

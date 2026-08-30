@@ -1,4 +1,4 @@
-import type { Demo, GuideDemoType } from "@/lib/guide";
+import type { Demo, GuideDemoType } from "@oficina/domain/guide";
 
 const CYCLE = { drive: 9.6, delivery: 7.2, entrega: 7.2 } as const;
 

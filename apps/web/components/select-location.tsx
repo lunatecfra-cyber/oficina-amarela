@@ -47,7 +47,7 @@ export function SelectLocation({
       return;
     }
     let cancel = false;
-    import("@/lib/cities").then((mod) => {
+    import("@oficina/domain/cities").then((mod) => {
       if (cancel) return;
       const map = mod.CITIES_BY_STATE ?? (mod as any).CIDADES_POR_UF ?? {};
       setCities(map[currentUf] ?? []);

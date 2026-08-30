@@ -1,8 +1,8 @@
 "use client";
 
+import { LIMITS } from "@oficina/domain/limits";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LIMITS } from "@/lib/limits";
 
 export function ReportButton({ missionId, pautaId }: { missionId?: string; pautaId?: string }) {
   const effectiveId = missionId ?? pautaId ?? "";

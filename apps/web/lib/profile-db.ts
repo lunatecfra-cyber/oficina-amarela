@@ -1,6 +1,11 @@
+import { isValidPhoto, LIMITS, limitList, limitOrNull, limitStr } from "@oficina/domain/limits";
+import type {
+  EditorProfile,
+  EditorRanking,
+  HistoryItem,
+  PortfolioItem,
+} from "@oficina/domain/profile";
 import { sql } from "@/lib/db";
-import { isValidPhoto, LIMITS, limitList, limitOrNull, limitStr } from "@/lib/limits";
-import type { EditorProfile, EditorRanking, HistoryItem, PortfolioItem } from "@/lib/profile";
 
 export type EditableProfile = {
   headline: string[];

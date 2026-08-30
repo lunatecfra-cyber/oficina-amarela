@@ -1,9 +1,9 @@
 "use client";
 
+import { FORMAT_LABEL, type Mission } from "@oficina/domain/missions";
+import { looksLikeDriveLink, looksLikeYoutubeLink } from "@oficina/domain/validators";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FORMAT_LABEL, type Mission } from "@/lib/missions";
-import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 
 type Offer = {
   mission?: Mission;
