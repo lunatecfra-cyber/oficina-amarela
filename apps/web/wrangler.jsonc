@@ -1,0 +1,59 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "oficina-amarela-web",
+  "compatibility_date": "2026-08-30",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Entrada gerada pelo vinext (ARCH-01 resolvido por build real).
+  "main": "vinext/server/fetch-handler",
+  "assets": {
+    "directory": "dist/client",
+    "not_found_handling": "none",
+    "binding": "ASSETS"
+  },
+  "cache": {
+    "enabled": true
+  },
+  "observability": {
+    "enabled": true
+  },
+
+  // ---------------------------------------------------------------------
+  // Ambiente padrão: desenvolvimento local.
+  //
+  // Sem Service Binding de propósito. `registerApiBindingFromWorkerEnv()` não
+  // encontra `env.API` e a aplicação segue chamando a API em processo, que é o
+  // que dev e teste usam.
+  // ---------------------------------------------------------------------
+
+  "env": {
+    // -------------------------------------------------------------------
+    // STAGING
+    //
+    // `API` aponta para o Worker da API pelo nome. A chamada vai de Worker
+    // para Worker, sem sair para a internet — nenhum id precisa ser
+    // provisionado para isto, só o Worker da API já implantado.
+    // -------------------------------------------------------------------
+    "staging": {
+      "name": "oficina-amarela-web-staging",
+      "observability": { "enabled": true },
+      "services": [
+        {
+          "binding": "API",
+          "service": "oficina-amarela-api-staging"
+        }
+      ]
+    },
+
+    "production": {
+      "name": "oficina-amarela-web",
+      "observability": { "enabled": true },
+      "services": [
+        {
+          "binding": "API",
+          "service": "oficina-amarela-api"
+        }
+      ]
+    }
+  }
+}

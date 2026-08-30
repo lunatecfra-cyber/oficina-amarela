@@ -8,7 +8,15 @@
     "build": "next build",
     "start": "next start",
     "test": "node --import ./scripts/test-alias-hooks.mjs --test --test-concurrency=1 lib/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev:vinext": "vinext dev --port 3001",
+    "build:vinext": "vinext build",
+    "start:vinext": "wrangler dev --config dist/server/wrangler.json",
+    "deploy:vinext": "vinext-cloudflare deploy --config dist/server/wrangler.json",
+    "build:vinext:staging": "CLOUDFLARE_ENV=staging vinext build",
+    "build:vinext:production": "CLOUDFLARE_ENV=production vinext build",
+    "deploy:staging": "npm run build:vinext:staging && vinext-cloudflare deploy --config dist/server/wrangler.json",
+    "deploy:production": "npm run build:vinext:production && vinext-cloudflare deploy --config dist/server/wrangler.json"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1121.0",
@@ -20,6 +28,7 @@
     "@oficina/domain": "*",
     "@oficina/email": "*",
     "@sentry/nextjs": "^10.72.0",
+    "@vinext/cloudflare": "^1.0.0-beta.6",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.10",
     "next": "16.3.3",
@@ -28,12 +37,19 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.54.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitejs/plugin-rsc": "^0.5.34",
+    "react-server-dom-webpack": "^19.2.8",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vinext": "^1.0.0-beta.8",
+    "vite": "^8.2.2",
+    "wrangler": "^4.127.1"
   }
 }

@@ -32,6 +32,30 @@ export function apiTransport(): "service-binding" | "in-process" {
   return apiBinding ? "service-binding" : "in-process";
 }
 
+/**
+ * Registra o binding a partir do env do Worker, se houver um.
+ *
+ * O especificador vai numa variável de propósito: `cloudflare:workers` só
+ * existe dentro do workerd, e um import estático faria o build do Next tentar
+ * resolvê-lo. Fora do Worker a falha é esperada e silenciosa — o padrão em
+ * processo continua atendendo, que é o que dev e teste usam.
+ */
+export async function registerApiBindingFromWorkerEnv(): Promise<"service-binding" | "in-process"> {
+  try {
+    const specifier = "cloudflare:workers";
+    const { env } = (await import(/* webpackIgnore: true */ /* @vite-ignore */ specifier)) as {
+      env: Record<string, unknown>;
+    };
+    const binding = env?.API;
+    if (binding && typeof (binding as ApiServiceBinding).fetch === "function") {
+      setApiBinding(binding as ApiServiceBinding);
+    }
+  } catch {
+    // Fora do workerd não há `cloudflare:workers`: segue em processo.
+  }
+  return apiTransport();
+}
+
 export function forwardToApi(
   request: Request,
   binding: ApiServiceBinding = apiBinding ?? localApi,
