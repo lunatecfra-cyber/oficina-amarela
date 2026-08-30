@@ -262,7 +262,8 @@ Decided:
 
 ```
 tests run:      npm test · npm run typecheck · biome check . · npm run build
-tests passed:   120 with TEST_DATABASE_URL
+tests passed:   184 with TEST_DATABASE_URL
+                (domain 23, config 6, db 69, api 61, web 25)
 tests failed:   0
 ```
 
@@ -282,7 +283,7 @@ Database-backed suites need a throwaway PostgreSQL and are **skipped** without
 docker run -d --rm --name oficina-pg -e POSTGRES_PASSWORD=test \
   -e POSTGRES_DB=oficina -p 5439:5432 postgres:16-alpine
 DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" node scripts/migrar.mjs
-TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test   # 120 passed
+TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test   # 184 passed
 ```
 
 Two things about this setup are worth knowing before adding tests:
@@ -301,9 +302,19 @@ Two things about this setup are worth knowing before adding tests:
 
 Coverage now includes mission claim/offer concurrency, mission lifecycle role
 authorization and transitions, PT-BR API failures, gamification on delivery,
-Hyperdrive-compatible configuration, native D1 queue/lifecycle parity, the
-Durable Object claim coordinator and scheduled maintenance consumers. Approval,
-invitation redemption and candidate approval still need concurrency coverage.
+Hyperdrive-compatible configuration, native D1 parity for every migrated slice,
+the Durable Object claim coordinator and scheduled maintenance consumers.
+
+The three gaps this section used to list are closed. Mission approval, invitation
+redemption and invitation issuance all have real concurrency tests on PostgreSQL,
+and the D1 side is covered by parity tests. Candidate legitimacy is covered from
+the other direction — the invitation *is* the approval, so the tests prove no
+registration path creates an official account without one.
+
+Two more suites exist now: the PostgreSQL → D1 migration rehearsal (load,
+resume, validation, and the refusal to backfill with triggers live) and the
+maintenance/repository switches that decide between request-driven and
+Cron+Queue, and between PostgreSQL and D1.
 
 ## Known issues
 
@@ -320,9 +331,10 @@ Open:
   brute force, recovery spam and per-IP signup flooding went unthrottled for as
   long as that code has been live. The code is fixed; **nobody has reviewed the
   production logs for abuse that got through**. Needs human access.
-- **`P2-11` staging remainder** — the Worker cron and typed consumer exist
-  locally. The request fallback stays until the Worker is deployed; a real Queue
-  binding still needs Cloudflare credentials.
+- **`P2-11` staging remainder** — the Worker cron and typed consumer exist, and
+  the switch between them and the request fallback is implemented and tested
+  (`maintenanceIsScheduled`). Deploying it needs Cloudflare credentials for the
+  account that owns the staging resources.
 - **`P2-12`** — documented rather than fixed: `schema.sql` is the operative
   idempotent artifact and `migrations/*.sql` are run by hand. See
   `supabase/README.md`. Revisit when Phase 9 needs D1 tooling.
@@ -377,12 +389,12 @@ rows and refuses rather than deleting anything.
 
 | Service | State |
 |---|---|
-| Workers | **LOCAL** — dry-run succeeds at 396 KiB / 95 KiB gzip; never deployed |
+| Workers | **LOCAL** — `--dry-run` clean for default, staging and production (422 KiB / 100 KiB gzip); never deployed |
 | Hyperdrive | **LOCAL CONFIG ONLY** — binding contract and PostgreSQL test pass; staging resource needs credentials |
-| D1 | **LOCAL PROTOTYPE** — mission schema and queue/lifecycle adapters tested; no database created remotely |
+| D1 | **LOCAL, COMPLETE FOR THE STAGING SLICE** — schema plus adapters for queue, lifecycle, collaboration, approval, invitation redemption, invitation administration, ranking corrections, gamification and mission contacts, all with native parity tests. `dependenciesFor` selects the whole set on the `DB` binding. No remote database created. |
 | R2 | **PRODUCTION** — already the object store for video uploads (`apps/web/lib/r2.ts`, presigned PUT, browser→R2 direct) |
 | Durable Objects | **LOCAL PROTOTYPE** — `mission:{missionId}` coordinates claims; Worker binding/migration dry-run clean |
-| Queues | **LOCAL CONTRACT** — typed consumer tested; no remote Queue or binding created |
+| Queues | **LOCAL CONTRACT** — typed consumer tested; the `BACKGROUND_QUEUE` binding switches maintenance off the request path (`maintenanceIsScheduled`). No remote Queue created. |
 | Workflows | NOT STARTED |
 | KV | NOT STARTED |
 | Stream | NOT STARTED |
@@ -393,7 +405,14 @@ rows and refuses rather than deleting anything.
 | Turnstile | NOT STARTED |
 | WAF | NOT STARTED |
 
-No Cloudflare credentials have been used and nothing has been deployed.
+Nothing has been deployed. Provisioning is blocked on account access, not on
+code: `wrangler whoami` authenticates `thivieiratav@gmail.com` against
+`FoxDev Studio, LLC.` (`e9749d74…`) and `Thivieira` (`e807ef39…`). The staging
+account named for this migration, `53878b12fbc280f03fc30b5875f3522f`, is not
+among them — a read-only `d1 list` against it returns
+`Authentication error [code: 10000]`. Resolve the account before provisioning;
+do not create the staging resources in one of the two reachable accounts by
+accident.
 
 ## External providers
 
@@ -416,9 +435,9 @@ No previously unknown infrastructure service was discovered during the audit.
 
 ```
 branch:               infra/cloudflare-scale
-last implementation:  58a9916  feat(api): adiciona consumidores de manutenção agendada
+last implementation:  4c9de87
 base:                 a37d94e (master, in sync with origin/master at audit time)
-commits ahead:        38 after this handoff commit
+commits ahead:        52 of origin/master
 uncommitted files:    none
 untracked files:      none (.omc/ is gitignored)
 remote:               origin/infra/cloudflare-scale, pushed after validation
