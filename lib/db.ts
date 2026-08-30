@@ -4,28 +4,67 @@ declare global {
   var __workshopSql: ReturnType<typeof postgres> | undefined;
 }
 
+const NEXT_BUILD_PHASE = "phase-production-build";
+
+/**
+ * Why an empty-result stub is acceptable right now, or null when it is not.
+ *
+ * `next build` statically generates pages that query the database, so the build
+ * has to survive without one. Anywhere else, a missing DATABASE_URL used to look
+ * like a healthy but empty database — empty rankings, no missions, "user not
+ * found" logins — which is the exact failure a misconfigured deploy produces.
+ */
+function stubReason(): string | null {
+  if (process.env.NEXT_PHASE === NEXT_BUILD_PHASE) return "next build (static generation)";
+  if (process.env.NODE_ENV !== "production" && process.env.DATABASE_STUB === "1") {
+    return "DATABASE_STUB=1 (development only)";
+  }
+  return null;
+}
+
+let stubWarned = false;
+
+function createStubClient(reason: string) {
+  if (!stubWarned) {
+    stubWarned = true;
+    console.warn(
+      `[db] DATABASE_URL not set — every query resolves to an empty result. Allowed here: ${reason}.`,
+    );
+  }
+
+  const stubClient = Object.assign(
+    (...args: unknown[]) => {
+      void args;
+      return Promise.resolve([] as unknown[]);
+    },
+    {} as Record<PropertyKey, unknown>,
+  );
+  return new Proxy(stubClient, {
+    get(target, prop) {
+      if (prop in target) return target[prop];
+      return () => Promise.resolve([]);
+    },
+  }) as unknown as ReturnType<typeof postgres>;
+}
+
 function getClient() {
   if (globalThis.__workshopSql) return globalThis.__workshopSql;
 
   const url = process.env.DATABASE_URL;
   if (!url) {
-    // Next.js build evaluates modules at top-level; return stub proxy if no DB
-    const stubClient = Object.assign(
-      (...args: unknown[]) => {
-        void args;
-        return Promise.resolve([] as unknown[]);
-      },
-      {} as Record<PropertyKey, unknown>,
-    );
-    return new Proxy(stubClient, {
-      get(target, prop) {
-        if (prop in target) return target[prop];
-        return () => Promise.resolve([]);
-      },
-    }) as unknown as ReturnType<typeof postgres>;
+    const reason = stubReason();
+    if (!reason) {
+      throw new Error(
+        "DATABASE_URL not configured. Set it in the environment (.env.local locally, " +
+          "Wrangler secrets / hosting env in production). For a database-less local run, " +
+          "set DATABASE_STUB=1 — it is refused when NODE_ENV=production.",
+      );
+    }
+    // Not cached on globalThis: the stub must never outlive the phase that allowed it.
+    return createStubClient(reason);
   }
 
-  // prepare: false is required for Supabase transaction pooler
+  // prepare: false is required for the transaction pooler
   const client = postgres(url, { prepare: false });
   globalThis.__workshopSql = client;
   return client;
