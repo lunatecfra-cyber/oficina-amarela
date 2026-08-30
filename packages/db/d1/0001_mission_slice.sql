@@ -110,7 +110,11 @@ CREATE TABLE ranking_ciclos (
   nome TEXT NOT NULL,
   inicia_em TEXT NOT NULL,
   termina_em TEXT NOT NULL,
-  congelado_em TEXT
+  congelado_em TEXT,
+  -- Maior número de editores ativos já visto no ciclo. Ele só sobe: os prêmios
+  -- destravados por marco não podem sumir porque a semana seguinte esvaziou.
+  max_editores_ativos INTEGER NOT NULL DEFAULT 0,
+  criado_por INTEGER REFERENCES users(id)
 );
 
 CREATE TABLE ranking_aprovacoes (
