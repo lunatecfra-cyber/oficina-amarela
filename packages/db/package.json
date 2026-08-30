@@ -8,7 +8,7 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "test": "node --test --test-concurrency=1 src/*.test.ts",
+    "test": "node --test --test-concurrency=1 \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^26",
+    "miniflare": "5.20260828.0-alpha",
     "typescript": "^5"
   }
 }
