@@ -976,3 +976,189 @@ review.
 > through READY work while meaningful model capacity remains.**
 
 Do not stop early simply because a clean checkpoint exists.
+
+---
+
+# Speed-First Execution Override
+
+> **This section overrides the more conservative sections above wherever they
+> conflict.** Added 2026-08-30, after the branch became isolated, tested,
+> versioned and pushed.
+
+This project is now in **implementation mode**, not architecture-planning mode.
+Git history is the primary rollback mechanism for ordinary development work.
+
+Optimize for **speed + correctness + continuous validation**. Do not optimize for
+process ceremony.
+
+## Core Rule
+
+If a change is reversible through Git, isolated to `infra/cloudflare-scale`,
+covered by existing or reasonable tests, not destructive to production, and not
+dependent on unavailable credentials — **implement it.**
+
+Do not wait for approval. Do not create a separate planning phase. Do not write a
+design document first unless the design is genuinely hard to infer from the code.
+
+```text
+inspect -> implement -> test -> commit -> continue
+```
+
+## No approval needed
+
+Creating packages · moving code between workspace packages · introducing
+repository interfaces · extracting domain logic · migrating Next route logic into
+Hono · adding tests · fixing bugs · adding indexes or local/test migrations ·
+introducing D1 adapters locally · Durable Object prototypes · Queue consumers ·
+caching · rate limiting · refactoring auth internals without changing
+user-visible session semantics · internal architecture on the migration branch ·
+local migrations against disposable databases · load tests against
+local/staging · Cloudflare configuration files · staging deployment
+configuration · provider abstractions · removing dead code the tests prove
+unused.
+
+**Proceed automatically.**
+
+## Hard gates only
+
+Stop for explicit human input only for:
+
+- **Production data destruction** — dropping production tables or databases,
+  irreversible migrations, deleting production R2 objects.
+- **Production infrastructure cutover** — production DNS, moving the live
+  domain, disabling the current deployment, replacing the live database,
+  changing production MX/SPF/DKIM.
+- **Production secrets or identity** — rotating `AUTH_SECRET`, replacing
+  production OAuth credentials, changing production signing secrets.
+- **Unavailable credentials** — mark that specific task blocked and continue
+  elsewhere.
+
+## `P0-06` blocks cutover, not implementation
+
+Uncertainty about whether production PostgreSQL is Neon or Supabase must not
+block repository extraction, schema design, local D1 implementation,
+compatibility adapters, migration scripts, validation tooling, test migrations,
+or local parity tests.
+
+## Branch architecture needs no approval
+
+"Should I create `packages/db`? Move this module? Create a repository? Add this
+test? Use a transaction? Add this index? Extract this Hono route?" — answer
+through engineering judgment and repository evidence, implement the best
+solution, and change it later if evidence says otherwise. Git makes it
+reversible.
+
+## Design boundaries are not stop points
+
+Reaching an architectural decision does not mean the session should stop:
+
+```text
+inspect callers -> identify invariants -> design contract -> implement contract
+-> migrate one caller -> test concurrency -> continue
+```
+
+Stop only if the ambiguity is genuinely dangerous and cannot be resolved from
+code, tests, documentation, or experimentation.
+
+## Working code over speculative documentation
+
+Update the board when task status materially changes, a blocker appears, an
+architectural decision changes, or a major milestone completes. Update
+`AI_HANDOFF.md` when the session is actually ending, depletion approaches, or
+state would otherwise be hard to recover. **Do not continually rewrite the
+handoff while actively implementing.**
+
+## Repository interfaces
+
+Design around **business atomicity, not database tables**. Use current
+PostgreSQL behavior and existing tests as the specification. Implement a good
+contract, migrate callers, refine under real pressure.
+
+```ts
+interface MissionQueueRepository {
+  acceptOffer(...): Promise<...>;
+  rejectOffer(...): Promise<...>;
+  dispatchOffers(...): Promise<...>;
+  expireOffers(...): Promise<...>;
+}
+```
+
+Avoid decomposing atomic business transitions into generic CRUD. Once the
+invariants are understood, implement them immediately.
+
+## D1 and Durable Objects can start earlier
+
+Once repository contracts exist, begin D1 schema translation, local D1
+databases, D1 repository implementations, compatibility and parity tests,
+migration and validation scripts, and local rehearsals. Prototype
+`mission:{missionId}` Durable Objects as soon as the contract is clear. Prefer
+empirical results over speculative architecture.
+
+## Hono extraction runs in parallel
+
+```text
+extract repository -> extract domain operation -> move HTTP route to Hono
+-> test -> next domain
+```
+
+Do not require the entire database layer to be migrated first.
+
+## Parallelizable work
+
+Independent tasks may proceed in the same session provided each stays reviewable
+and tests stay green. Do not artificially serialize work with no dependency.
+
+## Commit frequently, not slowly
+
+Commits are lightweight checkpoints. **Do not stop after each one.**
+
+## Fix adjacent bugs immediately
+
+If implementation uncovers a real bug close to the current task: fix it, add a
+regression test, commit, continue. The previous session found broken throttling,
+lost serverless notifications and invalid mission email links this way.
+
+## Testing philosophy
+
+Targeted tests during active development; the full set at meaningful milestones
+and before ending the session. **Always run the database-backed regression tests
+for concurrency-sensitive changes.**
+
+## Cross-model review is advisory
+
+Not a blocking gate for normal implementation. Reserve it for production
+cutover, complex D1 transaction semantics, PL/pgSQL replacement, critical Durable
+Object concurrency, auth/security architecture, and final scale validation — and
+even there, implement first, review before production integration.
+
+## Cloudflare deployment
+
+When credentials arrive, deploy staging immediately. Do not create another long
+compatibility phase. **Real runtime evidence outranks compatibility
+speculation.**
+
+## Session utilization
+
+A session ending with one tiny config change, one doc update and a handoff while
+significant quota remains is underutilized. A healthy session looks like:
+repository boundary implemented, several callers migrated, a Hono route
+extracted, tests added, a D1 adapter started, several validated commits.
+
+## Depletion policy
+
+```text
+0–70%    implementation mode
+70–85%   finish the active chain, avoid huge unrelated tasks
+85%+     final validation and handoff
+```
+
+A platform warning about remaining usage overrides these percentages. **Do not
+prepare a handoff early.**
+
+## Final principle
+
+> **If it is reversible, testable, isolated to the migration branch, and does not
+> alter production irreversibly, implement it without waiting.**
+>
+> **Production risk requires gates. Ordinary software development requires tests,
+> commits, and judgment, not bureaucracy.**
