@@ -1,5 +1,5 @@
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -50,3 +50,7 @@ backups/
 
 # omc (estado local de ferramenta)
 .omc/
+
+# wrangler
+dist/
+.wrangler/

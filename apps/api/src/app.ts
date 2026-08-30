@@ -1,0 +1,58 @@
+import { Hono } from "hono";
+
+/**
+ * Fronteira HTTP da API.
+ *
+ * Ainda sem rotas de negócio: elas migram de apps/web progressivamente (fase 6).
+ * O que já está fixado aqui é o formato — identificador de requisição, log
+ * estruturado, erro e 404 em PT-BR — para as rotas migrarem para um contrato
+ * pronto em vez de cada uma inventar o seu.
+ */
+
+/** Bindings do Worker. Vazio por enquanto: D1, R2, Queues e Durable Objects
+ *  entram nas fases seguintes. */
+export type Bindings = Record<string, never>;
+
+export type Variables = {
+  requestId: string;
+};
+
+export function createApp() {
+  const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+  // Identificador de requisição: aproveita o do Cloudflare quando existe, para
+  // o log do Worker e o do aplicativo apontarem para a mesma requisição.
+  app.use("*", async (c, next) => {
+    const requestId = c.req.header("cf-ray") ?? crypto.randomUUID();
+    c.set("requestId", requestId);
+    c.header("x-request-id", requestId);
+
+    const startedAt = Date.now();
+    await next();
+
+    console.log(
+      JSON.stringify({
+        requestId,
+        method: c.req.method,
+        path: c.req.path,
+        status: c.res.status,
+        durationMs: Date.now() - startedAt,
+      }),
+    );
+  });
+
+  app.get("/health", (c) => c.json({ ok: true, service: "oficina-amarela-api" }));
+
+  app.notFound((c) =>
+    c.json({ error: "Rota não encontrada.", requestId: c.get("requestId") }, 404),
+  );
+
+  app.onError((error, c) => {
+    const requestId = c.get("requestId");
+    console.error(JSON.stringify({ requestId, error: String(error) }));
+    // Mensagem pública em PT-BR e sem detalhe interno; o rastro fica no log.
+    return c.json({ error: "Algo deu errado por aqui. Tente de novo.", requestId }, 500);
+  });
+
+  return app;
+}

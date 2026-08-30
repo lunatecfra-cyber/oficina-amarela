@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "oficina-amarela-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-30",
+  // node:crypto é usado pelo domínio (hash de convite); nodejs_compat cobre isso
+  // e o que mais vier de lib/ quando as rotas migrarem.
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  }
+  // Bindings (D1, R2, Queues, Durable Objects, KV) entram nas fases seguintes.
+  // O Worker web vai alcançar este por Service Binding, não pela internet.
+}
