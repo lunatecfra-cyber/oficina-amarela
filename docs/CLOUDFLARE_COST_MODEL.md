@@ -1,6 +1,6 @@
 # Cloudflare Cost Model — Oficina Amarela
 
-> Branch: `infra/cloudflare-scale` · Written 2026-08-30
+> Branch: `infra/cloudflare-scale` · Written 2026-08-30 · Recalculated after `840e6a5`
 > **Everything here is modelled, not measured.** No Cloudflare service is deployed
 > yet. Replace each projection with real usage data as soon as Phase 19 produces it;
 > the method matters more than these numbers.
@@ -77,39 +77,83 @@ is what the two scenarios below are built to contrast.
 
 ---
 
-## 3. Scenario A — naive port (current query patterns, unchanged, on D1)
+## 3. Scenario A — current code projected onto D1
 
-This is what happens if the code moves to Workers + D1 without addressing
-`P1-01` and `P1-02` on the migration board.
+This section was recalculated after `840e6a5`. The old estimate of 870 billion
+rows read is invalid: the global sweep left the per-editor path in `9de7246`.
+No production D1 exists yet, so row counts below are code-derived bounds, not D1
+`meta.rows_read` measurements.
 
-Per offer poll, today's `GET /api/editor/queue/next` runs:
+### Current hot paths
 
-| Step | Cost per poll |
+At the configured 15-second interval, the traffic model produces **43.2 M editor
+polls/month**. A normal `GET /editor/queue/next` now executes:
+
+| Step | Current cost |
 |---|---|
-| `markEditorActive()` | 1 row written |
-| `expireStaleOffers()` | ~200 rows read (join across pending offers × users) |
-| `dispatchMissions()` | up to 20 missions × `getNextEditor()`, each an unindexed correlated scan of the editor population — **≈ 20,000 rows read** |
-| `getPendingOffer()` | ~5 rows read (3-table join) |
+| Session revocation | 0 queries on a cache hit; 1 indexed user lookup after the 30-second per-isolate TTL. With stable routing, ≈ 1 lookup per 2 polls. |
+| `markEditorActive()` | 1 conditional indexed `UPDATE` per poll; a row is written at most once per editor per 60 seconds. |
+| `claimPeriodicTask()` | 1 keyed conditional upsert per poll; only one caller globally writes in each 5-second window. |
+| `pendingOfferFor()` | 1 indexed query; at most one offer plus its mission and spokesperson rows. |
 
-At ≈ 43 M polls/month that is **≈ 870 billion rows read per month**.
+That is **3 business SQL statements per poll**, plus an authentication lookup on
+cache miss. At peak, stable-isolate routing implies roughly **234 statements/s**
+before the amortised sweep: 67 polls/s × 3.5 statements.
+
+The sweep runs at most once every 5 seconds while traffic exists — **12/minute,
+17,280/day, 518,400/month**, not once per poll. A winning sweep runs one expiry
+statement (plus one release statement only when something expired), then one
+mission-list query and up to 20 pairs of eligibility/offer statements. The worst
+case is therefore about 43 statements per sweep, amortised to under 9 statements/s.
+New mission creation also dispatches once immediately.
+
+### Code-derived D1 row budget
+
+Using the deliberately conservative Phase 0 bounds — 1,000 eligible editors,
+20 missions per sweep, 200 live offers — yields:
+
+| Source | Monthly rows read / examined |
+|---|---|
+| Poll auth + presence gate + scheduler key + pending-offer join | **≤ 0.25 G** |
+| Queue sweeps: 518,400 × (≈20,000 editor-scan rows + ≈200 offer rows) | **≤ 10.5 G** |
+| Mission/offer writes and keyed lookups | **< 0.1 G** at the 500-mission/month content assumption |
+| **Conservative total** | **≤ 10.9 G rows read/month** |
+
+This fits inside the 25 G included D1 rows-read allowance, but it is not a
+throughput guarantee. `nextEligibleEditor()` remains a correlated eligibility
+query; Phase 19 must measure its D1 duration and `meta.rows_read` before 5,000-user
+readiness can be claimed.
+
+Rows written are dominated by coarsened presence: about **10.8 M/month** under
+the peak/off-peak mix, plus at most 0.52 M periodic-task claims and low-volume
+mission, offer and email writes. That remains below the 50 M included allowance.
+
+### Other current query surfaces
+
+- Of the database-backed public reads, only `/` declares caching
+  (`revalidate = 300`). Ranking is explicitly dynamic and the public candidate
+  mission query has no page limit, so the old model's assumed 85% cache hit
+  ratio is a target, not current behaviour.
+- Mission lists use one SQL statement each, but spokesperson, public candidate,
+  approved-delivery, review and admin lists are unpaginated. Their row cost grows
+  linearly with matching missions. `getReservedMission()` and mission-by-id are
+  bounded to one row.
+- The temporary Worker path is Hyperdrive → PostgreSQL. It cannot be priced from
+  repository evidence because neither the real database provider nor a staging
+  Hyperdrive resource is confirmed.
 
 | Line | Monthly |
 |---|---|
 | Workers requests (138 M) | $5 base + 128 M × $0.30/M = **$43** |
-| Workers CPU (≈ 1.47 G CPU-ms) | (1,468 − 30) M × $0.02/M = **$29** |
-| D1 rows read (≈ 870 G) | (870,000 − 25,000) M × $0.001/M = **$845** |
-| D1 rows written (≈ 45 M) | just inside the 50 M allowance — **$0** |
-| D1 storage (< 1 GB) | included — **$0** |
-| **Total** | **≈ $917 / month** |
+| Workers CPU | **unknown until staging**; apply $0.02/M CPU-ms above the included 30 M |
+| D1 rows read (≤ 10.9 G projection) | within the 25 G allowance — **$0** |
+| D1 rows written (≈ 12 M projection) | within the 50 M allowance — **$0** |
+| Mission-claim Durable Object | negligible at 500 missions/month; within included requests |
+| R2 year-one average | **≈ $32** (see §6) |
+| **Known subtotal** | **≈ $75/month + Worker CPU** |
 
-The cost is not the real problem. **D1 processes queries single-threaded.** At peak
-this design asks for roughly **1,400 queries per second** against one database —
-66.7 polls/s × ~21 queries each. Section 2.4 of `CLOUDFLARE_ARCHITECTURE.md` puts
-practical D1 throughput at roughly `1 / query_duration`: about 1,000 q/s for 1 ms
-queries, 10 q/s for 100 ms ones. `getNextEditor()` is not a 1 ms query.
-
-**Scenario A does not reach 5,000 concurrent users at any price.** It is included
-to size the gap, not as an option.
+The remaining scale risk is latency and single-database serialization, not the
+old $845 rows-read bill. Polling also keeps 138 M Worker requests/month alive.
 
 ---
 
@@ -117,8 +161,8 @@ to size the gap, not as an option.
 
 Changes assumed, each tracked on the board:
 
-- Dispatch leaves the request path (`P1-01`): it runs on a schedule or on a Queue
-  trigger, not once per editor poll. Estimated 50 k dispatch runs/month.
+- Dispatch leaves the request path (`P1-01`): it runs once per minute on a
+  schedule (43,200 runs/month) plus an event-driven run for each new mission.
 - `getNextEditor()` is indexed and denormalised (candidate-editor eligibility flags
   maintained on write) down to ~50 rows read per run.
 - Presence moves to a Durable Object or a coarse KV write with TTL instead of an
@@ -144,8 +188,10 @@ Changes assumed, each tracked on the board:
 | R2 (see §6) | **≈ $32** |
 | **Total** | **≈ $71 / month** |
 
-Roughly a **13× cost reduction against Scenario A**, and — more importantly — a
-design that fits inside D1's single-threaded execution model.
+The target is only modestly cheaper than the recalculated current-code projection;
+the large previous multiplier came from the obsolete per-poll sweep. Its real
+advantages are 79 M fewer Worker requests/month, bounded database work and no
+dependence on request traffic for dispatch or email retries.
 
 ---
 
@@ -163,9 +209,9 @@ concurrency.
 | 5,000 | ≈ 59 M | $28 | $0 | $10 | $1 | **≈ $39** |
 
 D1 stays at zero marginal cost across the whole curve **only if** the row-read
-work stays inside the 25 G/month allowance. That allowance is the single number to
-watch: Scenario A consumes about 35× it. Instrument
-`rows_read` from the D1 `meta` object on every hot query from day one.
+work stays inside the 25 G/month allowance. The current code-derived projection
+uses up to 10.9 G, leaving margin but no latency proof. Instrument `rows_read`
+from the D1 `meta` object on every hot query from day one.
 
 ---
 

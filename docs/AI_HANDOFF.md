@@ -4,13 +4,12 @@
 
 ```
 date:                   2026-08-30
-current model:          Claude Opus 5
-recommended next model: GPT-5.6 Sol  (see "Next Actions" for why)
+current model:          GPT-5.6 Sol
 repository:             github.com/lunatecfra-cyber/oficina-amarela
-branch:                 infra/cloudflare-scale  (30 commits ahead of master)
+branch:                 infra/cloudflare-scale  (35 commits ahead of master after this handoff)
 base commit audited:    a37d94e  chore: migra linter e formatador de ESLint para Biome
-HEAD:                   36014d7  feat(api): migra a fila do editor para o hono
-working tree:           clean (.omc/ is now gitignored)
+last implementation:    840e6a5  feat(api): prototipa coordenação de reserva por missão
+working tree:           clean after the handoff commit
 ```
 
 ---
@@ -30,8 +29,9 @@ supports **5,000 simultaneous users** at low, predictable cost — without rewri
 working product behaviour.
 
 Done so far: **Phase 0** (audit and baseline), **Phase 1** (Turborepo workspace),
-**Phase 2** (application moved to `apps/web`), **Phase 4** (minimal Hono Worker),
-plus every P0 that could be resolved from the repository and four P1 items.
+**Phase 2** (application moved to `apps/web`), **Phase 4** (Hono Worker),
+**Phase 5** (shared packages), the editor queue and six mission lifecycle actions
+in Hono. Local work has also started for Hyperdrive, D1 and Durable Objects.
 Nothing has been deployed and no provider has been removed.
 
 ---
@@ -40,19 +40,22 @@ Nothing has been deployed and no provider has been removed.
 
 Turborepo workspace with two applications:
 
-- **`apps/web`** (`@oficina/web`) — Next.js 16.3.3 / React 19.2.8, App Router,
-  32 pages, 3 layouts, 33 route handlers, 62 components, 44 `lib/` modules.
-  Still the whole product.
-- **`apps/api`** (`@oficina/api`) — Hono on Cloudflare Workers. `/health` plus
-  request id, structured JSON logs and PT-BR error/404 shape. **No business
-  routes yet and nothing calls it.**
-- **`packages/db`** (`@oficina/db`) — the connection and `sql` tag, unique-index
-  constants, `isUniqueViolation`, plus the scheduler, email outbox and session
-  revocation modules.
+- **`apps/web`** (`@oficina/web`) — Next.js 16.3.3 / React 19.2.8, App Router.
+  The editor queue route is a thin Hono adapter; the mission route delegates six
+  migrated actions and keeps approval, chat and report on Next/PostgreSQL.
+- **`apps/api`** (`@oficina/api`) — Hono on Cloudflare Workers. It serves
+  `/editor/queue/next` and mission reserve/cancel/deliver/re-edit/accept/adjust,
+  with shared session/role checks, PT-BR HTTP errors and injected repositories.
+  Its Worker config includes a local `mission:{id}` Durable Object prototype.
+- **`packages/db`** (`@oficina/db`) — PostgreSQL client with Hyperdrive binding
+  configuration, atomic queue/lifecycle repositories, scheduler, email outbox,
+  session revocation, and the first D1 schema/lifecycle adapter with parity tests.
 - **`packages/domain`** (`@oficina/domain`) — thirteen framework-free modules
   (electoral ranking, mission transitions, limits, validators, mission types,
   guide, tutorials, cities, news, candidates, schedule, profile, navigation)
   plus `roles.ts`.
+- **`packages/auth`, `packages/config`, `packages/email`** — shared JWT/session,
+  fail-closed dev gates, and provider/outbox dispatch boundaries.
 
 Workspace packages publish TypeScript source with **no build step**, consumed by
 subpath export and `transpilePackages`. `scripts/`, `supabase/` and `docs/` are
@@ -124,17 +127,26 @@ written.
 | `896bb64` | `docs/CLOUDFLARE_MASTER_PROMPT.md` — the canonical brief, versioned so the startup protocol's "read this master prompt" is satisfiable. |
 | `dd24439` | `packages/db` — client, scheduler, email outbox, session revocation. `apps/web/lib/db.ts` stays as a two-line re-export on purpose (see `P3-05`). |
 | `558eb64` | `packages/domain` — thirteen pure modules plus `roles.ts`, which took `Role` out of `lib/session.ts`. Subpath-only exports: `cities.ts` is 111 KB and a barrel would risk dragging it into bundles that do not need it. |
+| `913b299` + `f1185fd` | Extracted `packages/auth`, `packages/config` and `packages/email` without changing the public contracts. |
+| `f8b6ac6` + `36014d7` | Extracted the atomic `MissionQueueRepository`, moved the editor queue to Hono and reduced the Next route to an adapter. |
+| `c19df92` | Moved six mission lifecycle actions to Hono with typed repository failures, shared auth and PostgreSQL-backed route/concurrency tests. |
+| `48d9b95` | Made PostgreSQL initialization accept a Hyperdrive connection string; no credential or production URL is committed. |
+| `cca8e89` | Added the first local D1 schema/lifecycle adapter and native parity tests, including all five uniqueness invariants. |
+| `840e6a5` | Added the narrow `mission:{missionId}` Durable Object claim coordinator with stale/duplicate/conflict coverage. |
 
 ---
 
 ## Current task
 
-Phase 5 has not started. The last completed unit is the Hono Worker (`e82ccf4`).
+Phase 6 is in progress. The latest coherent slice moved mission lifecycle
+transitions into Hono and removed direct PostgreSQL implementation imports from
+route handlers. The next local slice is the D1 implementation of the existing
+`MissionQueueRepository`; production approval remains deliberately untouched.
 
 ## Task state
 
 ```
-COMPLETE
+SESSION CHECKPOINT COMPLETE
 ```
 
 Every commit on the branch is validated and self-contained. There is no
@@ -146,14 +158,15 @@ half-finished edit in the working tree.
 
 Too many to list individually — see `git log master..HEAD`. The shape:
 
-- **new modules** in `apps/web/lib`: `dev-mode.ts`, `scheduler-db.ts`,
-  `session-revocation.ts`, `email-queue-db.ts`, `email-dispatch.ts`
-- **new tests** in `apps/web/lib`: `mission-concurrency`, `scheduler`,
-  `session-revocation`, `rate-limit`, `email-queue`, `db-config`, `dev-mode`,
-  `mission-transitions`, `navigation`
-- **new app**: `apps/api` (5 files)
-- **schema**: `supabase/schema.sql` plus three migrations dated `20260830`
-- **removed**: six broken `scripts/*.mjs`
+- **Hono routes**: editor queue and mission lifecycle under `apps/api/src/routes`
+- **repository boundaries**: `packages/db/src/mission-queue.ts` and
+  `mission-lifecycle.ts`, injected through `apps/api/src/dependencies.ts`
+- **temporary database path**: `HYPERDRIVE.connectionString` configures the
+  existing PostgreSQL client without committing a connection string
+- **local D1**: `packages/db/d1/0001_mission_slice.sql` and the lifecycle adapter
+- **local Durable Object**: `MissionCoordinator`, keyed as `mission:{missionId}`
+- **schema**: PostgreSQL invariants remain in `supabase/schema.sql`; no production
+  migration was run
 
 ## Architecture decisions
 
@@ -175,7 +188,7 @@ Decided:
 | ID | Question | Resolve in |
 |---|---|---|
 | `ARCH-01` | vinext (Cloudflare's recommended default, beta) vs OpenNext (documented path for existing apps) | Phase 3, on prototype evidence |
-| `ARCH-02` | Is the live database Neon or Supabase? `docs/INFRA.md` says Neon; the directory says `supabase/`; no Supabase SDK is installed | before Phase 8 — needs production access |
+| `ARCH-02` | Is the live database Neon or Supabase? `docs/INFRA.md` says Neon; the directory says `supabase/`; no Supabase SDK is installed | before production data migration — needs production access |
 | `ARCH-03` | Keep PT-BR table/column names in D1, or rename to English with a mapping layer | Phase 9 — cheapest at the D1 cut |
 | `ARCH-04` | Split the 45-column `users` table into `users` + `editor_profiles` + `candidate_profiles`? | Phase 9 |
 | `ARCH-05` | Does offer polling stay HTTP or become a Durable Object push? | Phase 12 |
@@ -186,18 +199,18 @@ Decided:
 ## Tests
 
 ```
-tests run:      npm test · npm run typecheck · biome check . · npm run build   (all via turbo)
-tests passed:   39 without a database, 70 with TEST_DATABASE_URL
+tests run:      npm test · npm run typecheck · biome check . · npm run build
+tests passed:   102 with TEST_DATABASE_URL
 tests failed:   0
 ```
 
 Exact commands, from the repository root:
 
 ```bash
-npm test                              # 34 web + 5 api
-npm run typecheck                     # both apps, clean
-./node_modules/.bin/biome check .     # 212 files, clean
-npm run build                         # web: 32 pages; api: wrangler dry-run 62.9 KiB
+TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test
+npm run typecheck                     # all seven packages, clean
+./node_modules/.bin/biome check .     # clean; use the binary directly
+npm run build                         # Next production build + Worker dry-run
 ```
 
 Database-backed suites need a throwaway PostgreSQL and are **skipped** without
@@ -207,7 +220,7 @@ Database-backed suites need a throwaway PostgreSQL and are **skipped** without
 docker run -d --rm --name oficina-pg -e POSTGRES_PASSWORD=test \
   -e POSTGRES_DB=oficina -p 5439:5432 postgres:16-alpine
 DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" node scripts/migrar.mjs
-TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test   # 70 passed
+TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test   # 102 passed
 ```
 
 Two things about this setup are worth knowing before adding tests:
@@ -224,12 +237,11 @@ Two things about this setup are worth knowing before adding tests:
 > **Do not trust `npm run lint`.** The local RTK shell hook parses Biome output
 > as ESLint and reports phantom errors. Run the binary directly.
 
-Coverage now includes mission claim/offer concurrency, the periodicity lock,
-the session-revocation cache, the attempt limiter, the email outbox, database
-configuration, dev-mode gates, mission transitions and navigation.
-**Still uncovered:** authorization by role, mission abandon/submit/approve/
-revise, ranking mutation, gamification, invitation redemption, candidate
-approval.
+Coverage now includes mission claim/offer concurrency, mission lifecycle role
+authorization and transitions, PT-BR API failures, gamification on delivery,
+Hyperdrive-compatible configuration, native D1 parity and the Durable Object
+claim coordinator. Approval, invitation redemption and candidate approval still
+need their own concurrency-sensitive migration coverage.
 
 ## Known issues
 
@@ -240,7 +252,8 @@ Open:
 
 - **`P0-06`** — whether production runs on Neon or Supabase is still
   unconfirmed. `docs/INFRA.md` says Neon; the directory says `supabase/`; no
-  Supabase SDK is installed. Blocks Phase 8 onward. Needs human access.
+  Supabase SDK is installed. Blocks production data migration, not local D1
+  engineering. Needs human access.
 - **`P0-09` follow-up** — the attempt limiter was dead in production, so login
   brute force, recovery spam and per-IP signup flooding went unthrottled for as
   long as that code has been live. The code is fixed; **nobody has reviewed the
@@ -274,8 +287,10 @@ target database:    Cloudflare D1
 schema status:      supabase/schema.sql — 21 tables, PT-BR names, 7 migrations
                     added 2026-08-30: tarefas_periodicas, fila_emails, and five
                     unique indexes carrying business invariants
-migration status:   NOT STARTED — no D1 schema, no migration tooling
-validation status:  NOT STARTED — checklist drafted in CLOUDFLARE_CUTOVER_PLAN.md §3
+migration status:   LOCAL ONLY — packages/db/d1/0001_mission_slice.sql covers
+                    the relevant users/pautas/ofertas/fila_emails slice
+validation status:  LOCAL ONLY — lifecycle adapter parity and all five D1
+                    uniqueness invariants run against native Miniflare D1
 rollback status:    documented in CLOUDFLARE_CUTOVER_PLAN.md §8, not rehearsed
 ```
 
@@ -299,10 +314,11 @@ rows and refuses rather than deleting anything.
 
 | Service | State |
 |---|---|
-| Workers | **LOCAL** — `apps/api` compiles under `wrangler deploy --dry-run`; never deployed |
-| D1 | NOT STARTED |
+| Workers | **LOCAL** — dry-run succeeds at 394 KiB / 94 KiB gzip; never deployed |
+| Hyperdrive | **LOCAL CONFIG ONLY** — binding contract and PostgreSQL test pass; staging resource needs credentials |
+| D1 | **LOCAL PROTOTYPE** — mission schema/lifecycle adapter tested; no database created remotely |
 | R2 | **PRODUCTION** — already the object store for video uploads (`apps/web/lib/r2.ts`, presigned PUT, browser→R2 direct) |
-| Durable Objects | NOT STARTED |
+| Durable Objects | **LOCAL PROTOTYPE** — `mission:{missionId}` coordinates claims; Worker binding/migration dry-run clean |
 | Queues | NOT STARTED — the outbox in `fila_emails` is the PostgreSQL stand-in, written to be swapped |
 | Workflows | NOT STARTED |
 | KV | NOT STARTED |
@@ -337,12 +353,12 @@ No previously unknown infrastructure service was discovered during the audit.
 
 ```
 branch:               infra/cloudflare-scale
-HEAD:                 36014d7  feat(api): migra a fila do editor para o hono
+last implementation:  840e6a5  feat(api): prototipa coordenação de reserva por missão
 base:                 a37d94e (master, in sync with origin/master at audit time)
-commits ahead:        30
+commits ahead:        35 after this handoff commit
 uncommitted files:    none
 untracked files:      none (.omc/ is gitignored)
-remote:               origin/infra/cloudflare-scale, in sync
+remote:               origin/infra/cloudflare-scale, pushed after validation
 ```
 
 One thing to know about this history: `e82ccf4` was amended to drop
@@ -354,62 +370,25 @@ pushed, so no rewrite reached anyone.
 
 ### NEXT 1 — immediately executable
 
-**Migrate the next domain to Hono, following `/editor/queue/next`.** The full
-pattern now exists end to end: atomic repository in `packages/db`, route in
-`apps/api`, the Next route reduced to a fifteen-line `api.fetch` adapter, and
-route tests through `app.request()` against a real database.
-
-Mission actions (`apps/web/app/api/missions/[id]/route.ts`) are the natural
-next domain — `reserveMission` and `abandonMission` are already behind the
-repository, so what remains is `deliverMission`, `approveMission`,
-`requestInspectorReEdit`, `requestSpokespersonAdjustment` and
-`acceptDeliveredMission`.
-
-`approveMission` is the one that needs care: it calls the PL/pgSQL function
-`oficina_private.aprovar_edicao`, which is on the D1 blocker list (`P0-08`,
-§39). Extracting it behind the repository is fine; reimplementing it is a
-separate, reviewed piece of work.
-
----
-
-### Previously NEXT 1 — done
-
-**Mission and offer repository interfaces.** `packages/db` and `packages/domain`
-exist and the pure dependencies are out of the way, so this is now unblocked.
-
-`apps/web/lib/missions-db.ts` (20.8 KB) and `queue-db.ts` (10.1 KB) are the last
-large modules mixing SQL with rules. They are one domain and
-`mission-concurrency.test.ts` spans both, so move them together.
-
-**Read `docs/CLOUDFLARE_MIGRATION_BOARD.md` → "Designing the mission/offer
-repositories" first.** It lists the seven invariants the boundary must not lose
-and two constraints on the interface shape. The important one:
-
-> Do not flatten the atomic statements into repository primitives. A `reserve()`
-> that becomes `findMission()` + `updateMission()` at the call site reintroduces
-> exactly the race `P0-01` closed.
-
-Derive the interface from what the code actually does — do not start from a
-generic CRUD template. Run `mission-concurrency.test.ts` after every step.
+**Complete the local D1 implementation of `MissionQueueRepository`.** Preserve
+the existing atomic transition methods and translate dispatch, offer expiry,
+acceptance and rejection without turning them into CRUD. Run PostgreSQL and
+native D1 behaviour tests for the same typed outcomes, especially the five
+uniqueness invariants.
 
 ### NEXT 2
 
-**`P1-11`** — `@sentry/nextjs` server integration on Workers, and `P2-05` —
-turn the production Sentry DSN on. Both are small, both are prerequisites for
-Phase 19 producing usable evidence, and neither depends on the Phase 5
-extraction. Good second task in the same session.
+**Keep shrinking `apps/web/app/api/missions/[id]/route.ts`.** The migrated
+actions are reserve, cancel, deliver, re-edit, accept and adjust. Approval stays
+on `oficina_private.aprovar_edicao` until its PostgreSQL/D1 concurrency design
+is reviewed. Chat/report may move as independent vertical slices.
 
 ### NEXT 3
 
-**Phase 3 / `ARCH-01`** — prototype vinext and OpenNext side by side and decide.
-`vinext check` reports 97% with no blocking issues, but deciding honestly needs
-a real deploy, which needs **Cloudflare credentials**. If those are unavailable,
-skip to Phase 7 (database abstractions) instead of blocking.
-
-**Recommended next model: GPT-5.6 Sol** — NEXT 1 and NEXT 2 are mechanical
-extraction with edge cases and a test suite to keep green. Route back to Claude
-Opus 5 for the D1 schema design, the Durable Object concurrency model and the
-cutover. Gemini 3.7 Flash suits the repetitive import rewrites inside Phase 5.
+**Extract request-driven background drains into Queue/Cron-invocable consumer
+logic with local tests.** Do not create remote bindings without credentials.
+The same credential boundary applies to the real Hyperdrive resource and the
+vinext/OpenNext staging comparison; none blocks local implementation.
 
 ## Do not redo
 
@@ -423,10 +402,12 @@ cutover. Gemini 3.7 Flash suits the repetitive import rewrites inside Phase 5.
 - The Turborepo move. `apps/web` and `apps/api` build, typecheck, lint and test
   from the root through turbo.
 - The unit-price table in `CLOUDFLARE_COST_MODEL.md` — verified 2026-08-30.
+- The first mission D1 schema/lifecycle adapter and `mission:{id}` coordinator.
+  Extend them; do not replace them with table CRUD or move mission state into DO.
 
-The cost model's Scenario A is now **out of date in the good direction**: it
-modelled ~870 billion D1 rows read per month from the per-poll sweep, which
-`9de7246` removed. Re-derive it from the current code before quoting it.
+The cost model was recalculated after `840e6a5`: current code projects at most
+10.9 G D1 rows read/month under its explicit bounds. Replace that projection
+with D1 `meta.rows_read` only after the queue adapter runs locally.
 
 ## Warnings
 
