@@ -142,6 +142,36 @@ CREATE TABLE auditoria_admin (
   criado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+-- Eventos de gamificação. A unicidade por (usuário, regra, referência) é o que
+-- torna o registro idempotente: o mesmo evento não pontua duas vezes, mesmo
+-- que a chamada se repita.
+CREATE TABLE gamificacao_eventos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  regra_id TEXT NOT NULL CHECK (regra_id IN ('entrada_diaria', 'missao_entregue')),
+  referencia TEXT NOT NULL,
+  xp INTEGER NOT NULL,
+  criado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE (user_id, regra_id, referencia)
+);
+
+-- Bloqueios de constância concedidos pelo inspetor. O máximo de dois por editor
+-- é regra de aplicação, não de esquema: o PostgreSQL também não tem índice que
+-- a segure, e quem garante é a trava na linha do editor.
+CREATE TABLE bloqueios_constancia (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  editor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  concedido_por INTEGER NOT NULL REFERENCES users(id),
+  motivo TEXT NOT NULL CHECK (length(trim(motivo)) > 0),
+  concedido_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  consumido_semana TEXT,
+  consumido_em TEXT
+);
+
+CREATE INDEX idx_bloqueios_constancia_disponiveis
+  ON bloqueios_constancia (editor_id, concedido_em)
+  WHERE consumido_em IS NULL;
+
 CREATE TABLE convites_porta_voz (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT NOT NULL,

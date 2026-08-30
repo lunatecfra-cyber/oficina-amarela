@@ -1,6 +1,10 @@
 import { configureDatabaseUrl } from "@oficina/db/client";
 import { Hono } from "hono";
-import { type ApiDependencies, postgresApiDependencies } from "./dependencies.ts";
+import {
+  type ApiDependencies,
+  d1ApiDependencies,
+  postgresApiDependencies,
+} from "./dependencies.ts";
 import { createAdminInvitationRoutes } from "./routes/admin-invitations.ts";
 import { createAdminRankingRoutes } from "./routes/admin-ranking.ts";
 import { createEditorQueue } from "./routes/editor-queue.ts";
@@ -24,6 +28,11 @@ export type Bindings = {
    * cena. Sem binding — local e teste — a requisição continua sendo o gatilho.
    */
   BACKGROUND_QUEUE?: { send(message: unknown): Promise<void> };
+  /**
+   * Banco D1. Quando existe, é ele quem atende: o conjunto de repositórios é
+   * escolhido inteiro (ver d1ApiDependencies), nunca fatia a fatia.
+   */
+  DB?: unknown;
   MISSION_COORDINATOR?: {
     idFromName(name: string): unknown;
     get(id: unknown): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
@@ -37,6 +46,19 @@ export type Variables = {
 export function configureRuntimeBindings(bindings: Bindings | undefined): void {
   const hyperdriveUrl = bindings?.HYPERDRIVE?.connectionString;
   if (hyperdriveUrl) configureDatabaseUrl(hyperdriveUrl);
+}
+
+/**
+ * Qual banco atende esta requisição.
+ *
+ * Com o binding D1 no ar, o conjunto inteiro vem do D1. Sem ele, PostgreSQL —
+ * direto por DATABASE_URL no local, ou pelo Hyperdrive no Worker.
+ */
+export function dependenciesFor(
+  env: Bindings | undefined,
+  fallback: ApiDependencies,
+): ApiDependencies {
+  return env?.DB ? d1ApiDependencies(env.DB as never) : fallback;
 }
 
 export function createApp(dependencies: ApiDependencies = postgresApiDependencies) {

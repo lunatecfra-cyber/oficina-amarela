@@ -61,3 +61,30 @@ describe("interruptor da manutenção", () => {
     await assert.rejects(() => runBackgroundTask(dependencies, null));
   });
 });
+
+/**
+ * A escolha do banco.
+ *
+ * Ou tudo vem do D1, ou tudo vem do PostgreSQL: users.reputacao tem um dono só.
+ */
+describe("escolha do conjunto de repositórios", async () => {
+  const { dependenciesFor } = await import("./app.ts");
+  const { postgresApiDependencies } = await import("./dependencies.ts");
+
+  test("sem binding D1, fica o PostgreSQL", () => {
+    assert.equal(dependenciesFor(undefined, postgresApiDependencies), postgresApiDependencies);
+    assert.equal(dependenciesFor({}, postgresApiDependencies), postgresApiDependencies);
+  });
+
+  test("com binding D1, o conjunto inteiro troca de uma vez", () => {
+    const chosen = dependenciesFor({ DB: { prepare: () => ({}) } }, postgresApiDependencies);
+    assert.notEqual(chosen, postgresApiDependencies);
+    for (const [name, value] of Object.entries(chosen)) {
+      assert.notEqual(
+        value,
+        postgresApiDependencies[name as keyof typeof postgresApiDependencies],
+        `${name} continuou apontando para o PostgreSQL`,
+      );
+    }
+  });
+});

@@ -1,3 +1,12 @@
+import { createD1Gamification } from "@oficina/db/d1/gamification";
+import { createD1InvitationAdmin } from "@oficina/db/d1/invitation-admin";
+import { createD1MissionApproval } from "@oficina/db/d1/mission-approval";
+import { createD1MissionCollaboration } from "@oficina/db/d1/mission-collaboration";
+import { createD1MissionContacts } from "@oficina/db/d1/mission-contacts";
+import { createD1MissionLifecycle } from "@oficina/db/d1/mission-lifecycle";
+import { createD1MissionQueue } from "@oficina/db/d1/mission-queue";
+import { createD1RankingAdmin } from "@oficina/db/d1/ranking-admin";
+import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import { recordGamificationEvent } from "@oficina/db/gamification";
 import {
   type InvitationAdminRepository,
@@ -40,3 +49,24 @@ export const postgresApiDependencies: ApiDependencies = {
   rankingAdmin: postgresRankingAdmin,
   recordGamificationEvent,
 };
+
+/**
+ * Conjunto D1.
+ *
+ * Ou tudo vem do D1, ou tudo vem do PostgreSQL. Misturar as duas pontas
+ * partiria users.reputacao entre dois donos — a aprovação de missão soma no
+ * D1, a gamificação somaria no PostgreSQL — e nenhum dos dois estaria certo.
+ * Por isso a escolha é do conjunto inteiro, não de uma fatia por vez.
+ */
+export function d1ApiDependencies(db: D1DatabaseLike): ApiDependencies {
+  return {
+    invitationAdmin: createD1InvitationAdmin(db),
+    missionQueue: createD1MissionQueue(db),
+    missionLifecycle: createD1MissionLifecycle(db),
+    missionCollaboration: createD1MissionCollaboration(db),
+    missionApproval: createD1MissionApproval(db),
+    missionContacts: createD1MissionContacts(db),
+    rankingAdmin: createD1RankingAdmin(db),
+    recordGamificationEvent: createD1Gamification(db),
+  };
+}
