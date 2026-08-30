@@ -15,9 +15,9 @@ Priorities: `P0` data loss / security / production / irreversible · `P1` migrat
 
 | Check | Command | Result |
 |---|---|---|
-| Tests | `npm test` (turbo, `--concurrency=1`) | **39 passed** without a database, **70 passed** with `TEST_DATABASE_URL` — 23 domain + 9 db + 5 api + 33 web |
-| Typecheck | `npm run typecheck` (turbo) | **clean** in all four packages |
-| Lint | `./node_modules/.bin/biome check .` | **clean** — 220 files |
+| Tests | `npm test` (turbo, `--concurrency=1`) | **79 passed** with `TEST_DATABASE_URL` — 23 domain + 22 db + 14 api + 14 web + 6 config |
+| Typecheck | `npm run typecheck` (turbo) | **clean** in all seven packages |
+| Lint | `./node_modules/.bin/biome check .` | **clean** — 232 files |
 | Build | `npm run build` (turbo) | **succeeds** — `@oficina/web` 32 pages + 33 handlers + middleware; `@oficina/api` compiles under `wrangler deploy --dry-run` (62.9 KiB) |
 | Workers compat | `npx vinext check` | **97% compatible** — 0 issues, 1 partial (`@sentry/nextjs` server) |
 
@@ -60,8 +60,8 @@ suite truncates.
 | 2 | Move existing app to `apps/web` | **DONE** (`ad2b60f`) — behaviour preserved, only paths moved |
 | 3 | Validate Next.js on Cloudflare Workers | READY — `vinext check` says 97%, 0 issues; deciding `ARCH-01` needs a real deploy (Cloudflare credentials) |
 | 4 | Create `apps/api` with Hono | **DONE** (`e82ccf4`) — health route, request id, structured logs, PT-BR errors; no business routes yet |
-| 5 | Introduce shared packages | **IN PROGRESS** — `packages/db` (`dd24439`) and `packages/domain` (`558eb64`) exist. `auth`, `contracts`, `config`, `shared` not started. |
-| 6 | Extract APIs progressively | BACKLOG |
+| 5 | Introduce shared packages | **DONE** — `db`, `domain`, `auth`, `config`, `email`. `contracts` and `shared` deferred: nothing needs them yet. |
+| 6 | Extract APIs progressively | **IN PROGRESS** — `/editor/queue/next` runs in Hono (`36014d7`); the Next route is a fifteen-line adapter. 32 route handlers remain. |
 | 7 | Introduce database abstractions | BACKLOG |
 | 8 | Audit PostgreSQL → D1 compatibility | BACKLOG (findings below already collected) |
 | 9 | Create D1 schema and migration tooling | BACKLOG |
@@ -434,7 +434,9 @@ phases — see `P2-05`.
 | `P1-12` | Single-recipient mission notifications moved onto `fila_emails` (`1f076a9`). Found on the way: the acceptance email linked to `/spokesperson/mission/db-N`, a route that does not exist, and `recordGamificationEvent` was also `void`-fired on delivery, so XP could vanish. Both fixed. Password recovery stays a direct awaited send — the user is waiting on it. | **DONE** |
 | `P2-11` | The `fila_emails` and `tarefas_periodicas` drains are triggered by request traffic, since there is no scheduler. On Cloudflare these become Cron Triggers or Queue consumers; until then, a quiet site does not retry failed email. | BACKLOG |
 | `P0-10` | `.gitignore` had `/node_modules` (root only), so the first workspace install staged `apps/api/node_modules` — ~394k lines. Caught before pushing; the pattern is now `node_modules/`. Check any clone or fork made from an intermediate state. | **DONE** (`e82ccf4`) |
-| `P2-13` | `apps/api` has no business routes yet and nothing calls it. Wiring `apps/web` to it over a Service Binding is Phase 6 and needs at least one migrated route to be worth doing. | BACKLOG |
+| `P2-13` | `apps/api` now serves the editor queue and `apps/web` delegates to it in-process. Swapping `api.fetch` for a real Service Binding needs both Workers deployed. | **DONE** (in-process) · BLOCKED (binding needs credentials) |
+| `P1-13` | The Worker bundle now includes the `postgres` driver (379 KiB, 90 KiB gzipped). Whether it actually opens a TCP connection from a Worker is unproven — Hyperdrive is the usual answer, and D1 removes the question. Test on the first staging deploy. | READY |
+| `P3-07` | `mission-queue-messages.ts` exists in both `apps/api` and `apps/web`, deliberately, while two HTTP boundaries serve the same operation. Delete the `apps/web` copy when the Next adapter goes away. | BACKLOG |
 | `P3-05` | `apps/web/lib/db.ts` is a two-line re-export of `@oficina/db/client`, kept so the 21 `@/lib/db` importers change exactly once — when they move behind repositories. Delete the shim then. | BACKLOG |
 | `P3-06` | `packages/db` has a barrel (`index.ts`); `packages/domain` deliberately does not, because `cities.ts` is 111 KB. Pick one convention once the packages settle. | BACKLOG |
 
@@ -479,9 +481,12 @@ catches a refactor quietly dropping an invariant.
 
 ## Immediate next actions
 
-1. **Phase 5, next slice: mission and offer repository interfaces.** The
-   packages exist and the pure dependencies are out of the way. What remains is
-   the boundary itself — see "Designing the mission/offer repositories" below.
+1. **Phase 6 — migrate the next domain to Hono.** The pattern is established by
+   `/editor/queue/next`: repository in `packages/db`, route in `apps/api`, Next
+   route reduced to an adapter, tests through `app.request()` against a real
+   database. Mission actions (`/api/missions/[id]`) are the natural next domain,
+   and their repository work is partly done — `reserveMission` and
+   `abandonMission` already moved.
 2. **`P1-10` / Phase 3** — prototype vinext and OpenNext side by side and record
    the result under `ARCH-01`. `vinext check` reports 97% with no blocking
    issues, but choosing needs a real deploy — **Cloudflare credentials required**.

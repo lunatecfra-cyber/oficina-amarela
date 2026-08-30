@@ -7,9 +7,9 @@ date:                   2026-08-30
 current model:          Claude Opus 5
 recommended next model: GPT-5.6 Sol  (see "Next Actions" for why)
 repository:             github.com/lunatecfra-cyber/oficina-amarela
-branch:                 infra/cloudflare-scale  (23 commits ahead of master)
+branch:                 infra/cloudflare-scale  (30 commits ahead of master)
 base commit audited:    a37d94e  chore: migra linter e formatador de ESLint para Biome
-HEAD:                   558eb64  refactor(domain): extrai packages/domain com as regras sem framework
+HEAD:                   36014d7  feat(api): migra a fila do editor para o hono
 working tree:           clean (.omc/ is now gitignored)
 ```
 
@@ -337,9 +337,9 @@ No previously unknown infrastructure service was discovered during the audit.
 
 ```
 branch:               infra/cloudflare-scale
-HEAD:                 558eb64  refactor(domain): extrai packages/domain com as regras sem framework
+HEAD:                 36014d7  feat(api): migra a fila do editor para o hono
 base:                 a37d94e (master, in sync with origin/master at audit time)
-commits ahead:        23
+commits ahead:        30
 uncommitted files:    none
 untracked files:      none (.omc/ is gitignored)
 remote:               origin/infra/cloudflare-scale, in sync
@@ -353,6 +353,26 @@ pushed, so no rewrite reached anyone.
 ## Next actions
 
 ### NEXT 1 — immediately executable
+
+**Migrate the next domain to Hono, following `/editor/queue/next`.** The full
+pattern now exists end to end: atomic repository in `packages/db`, route in
+`apps/api`, the Next route reduced to a fifteen-line `api.fetch` adapter, and
+route tests through `app.request()` against a real database.
+
+Mission actions (`apps/web/app/api/missions/[id]/route.ts`) are the natural
+next domain — `reserveMission` and `abandonMission` are already behind the
+repository, so what remains is `deliverMission`, `approveMission`,
+`requestInspectorReEdit`, `requestSpokespersonAdjustment` and
+`acceptDeliveredMission`.
+
+`approveMission` is the one that needs care: it calls the PL/pgSQL function
+`oficina_private.aprovar_edicao`, which is on the D1 blocker list (`P0-08`,
+§39). Extracting it behind the repository is fine; reimplementing it is a
+separate, reviewed piece of work.
+
+---
+
+### Previously NEXT 1 — done
 
 **Mission and offer repository interfaces.** `packages/db` and `packages/domain`
 exist and the pure dependencies are out of the way, so this is now unblocked.
