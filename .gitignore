@@ -12,8 +12,9 @@
 /coverage
 
 # next.js
-/.next/
-/out/
+.next/
+out/
+.turbo/
 
 # production
 /build
@@ -46,3 +47,6 @@ next-env.d.ts
 backups/
 *.tmp.txt
 *.tmp.mjs
+
+# omc (estado local de ferramenta)
+.omc/

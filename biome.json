@@ -8,9 +8,8 @@
   "files": {
     "ignoreUnknown": false,
     "includes": [
-      "app/**/*",
-      "components/**/*",
-      "lib/**/*",
+      "apps/**/*",
+      "packages/**/*",
       "scripts/**/*",
       "*.ts",
       "*.tsx",

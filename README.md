@@ -110,15 +110,48 @@ R2_PUBLIC_URL=https://midia.seudominio.com.br
 > alto se `DATABASE_URL` não estiver configurado — que é o comportamento
 > esperado em qualquer ambiente publicado.
 
+O `.env.local` fica em `apps/web/`.
+
 ### 4. Executar o schema / migrações do banco
 ```bash
-node --env-file=.env.local scripts/migrar.mjs
-node --env-file=.env.local scripts/migrar-dados-anteriores.mjs
+node --env-file=apps/web/.env.local scripts/migrar.mjs
+node --env-file=apps/web/.env.local scripts/migrar-dados-anteriores.mjs
 ```
 
 ### 5. Iniciar o servidor de desenvolvimento
 ```bash
 npm run dev
+```
+
+## 🗂️ Estrutura do repositório
+
+O projeto é um monorepo Turborepo:
+
+```
+oficina-amarela/
+├── apps/web/       aplicação Next.js (app/, components/, lib/, public/)
+├── scripts/        scripts operacionais (migração, backup, seed)
+├── supabase/       schema canônico e migrações
+├── docs/           documentação de arquitetura e migração
+├── turbo.json
+└── package.json    raiz do workspace
+```
+
+Os comandos da raiz (`npm run dev`, `build`, `test`, `typecheck`) passam pelo
+Turborepo e alcançam todos os pacotes. `npm run lint` roda o Biome na raiz,
+cobrindo o repositório inteiro.
+
+### Testes que usam banco
+
+Parte da suíte cobre invariantes que moram em índice do PostgreSQL —
+concorrência de reserva de missão, fila de ofertas, caixa de saída de e-mail.
+Sem `TEST_DATABASE_URL` esses testes são pulados.
+
+```bash
+docker run -d --rm --name oficina-pg -e POSTGRES_PASSWORD=test \
+  -e POSTGRES_DB=oficina -p 5439:5432 postgres:16-alpine
+DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" node scripts/migrar.mjs
+TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test
 ```
 
 Acesse [http://localhost:3000](http://localhost:3000) no seu navegador.
