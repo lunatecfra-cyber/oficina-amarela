@@ -4,11 +4,7 @@ import type {
   EditorRanking,
   HistoryItem,
   PortfolioItem,
-  Tier,
   EditorProfile,
-  ItemHistorico,
-  ItemPortfolio,
-  PerfilEditor,
 } from "@/lib/profile";
 
 export type EditableProfile = {

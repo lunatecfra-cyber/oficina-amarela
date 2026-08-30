@@ -1,7 +1,7 @@
 import { sql } from "@/lib/db";
 import { awardReferralIfEligible } from "@/lib/electoral-ranking-db";
 import { LIMITS, limitStr, limitOrNull } from "@/lib/limits";
-import type { VideoFormat, Mission, MissionStatus, Formato, Pauta, StatusPauta } from "@/lib/missions";
+import type { VideoFormat, Mission, MissionStatus, StatusPauta } from "@/lib/missions";
 import { isLikelyUrl } from "@/lib/validators";
 
 type MissionRow = {

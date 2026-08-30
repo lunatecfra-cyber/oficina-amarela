@@ -10,26 +10,26 @@
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/*.test.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1112.0",
-    "@aws-sdk/s3-request-presigner": "^3.1112.0",
-    "@sentry/nextjs": "^10.70.0",
+    "@aws-sdk/client-s3": "^3.1121.0",
+    "@aws-sdk/s3-request-presigner": "^3.1121.0",
+    "@sentry/nextjs": "^10.72.0",
     "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
-    "jose": "^6.2.7",
-    "next": "16.3.0",
+    "jose": "^6.2.10",
+    "next": "16.3.3",
     "postgres": "^3.4.9",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "resend": "^6.18.1"
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "resend": "^6.25.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

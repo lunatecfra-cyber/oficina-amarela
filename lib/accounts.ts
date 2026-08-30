@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { LIMITS, SLOTS, limitStr } from "@/lib/limits";
 import { sql } from "@/lib/db";
-import type { Role, Papel } from "@/lib/session";
+import type { Role } from "@/lib/session";
 import { validateSpokespersonInvitation } from "@/lib/invitations-db";
 
 export type UserAccount = {

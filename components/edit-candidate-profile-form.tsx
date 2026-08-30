@@ -15,9 +15,8 @@ import {
   generateSuggestedBio,
   initials,
   type SocialLinks,
-  type RedesSociais,
 } from "@/lib/candidates";
-import type { CandidateOnboarding, OnboardingCandidato } from "@/lib/candidate-db";
+import type { CandidateOnboarding } from "@/lib/candidate-db";
 import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
 import { SelectLocation } from "@/components/select-location";
 import { compressPhoto } from "@/lib/compress-photo";

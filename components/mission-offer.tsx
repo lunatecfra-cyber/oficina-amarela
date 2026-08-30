@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FORMAT_LABEL, type Mission, type Pauta } from "@/lib/missions";
+import { FORMAT_LABEL, type Mission } from "@/lib/missions";
 import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 
 type Offer = { mission?: Mission; pauta?: Mission; expiresAt?: string; expiraEm?: string; order?: number; ordem?: number };

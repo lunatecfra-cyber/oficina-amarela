@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { HEADLINES, MAX_HEADLINES } from "@/lib/profile";
-import type { EditableProfile, PerfilEditavel } from "@/lib/profile-db";
+import type { EditableProfile } from "@/lib/profile-db";
 
 function chip(active: boolean, blocked = false) {
   return `rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${

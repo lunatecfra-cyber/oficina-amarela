@@ -1,4 +1,4 @@
-import { proximityColor, corProximidade } from "@/lib/candidates";
+import { proximityColor } from "@/lib/candidates";
 
 export function ProximityLocation({
   location,

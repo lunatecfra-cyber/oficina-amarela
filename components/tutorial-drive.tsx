@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GuideDemo } from "@/components/guide-demo";
 import { ScreencastDrive } from "@/components/screencast-drive";
@@ -50,14 +50,19 @@ export function TutorialDrive({
 }) {
   const effectiveType = type ?? tipo ?? "drive";
   const effectiveOpen = isOpen ?? aberto ?? false;
-  const effectiveClose = onClose ?? aoFechar ?? (() => {});
+  const handleClose = useCallback(() => {
+    if (onClose) onClose();
+    else if (aoFechar) aoFechar();
+  }, [onClose, aoFechar]);
 
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!effectiveOpen) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") effectiveClose();
+      if (e.key === "Escape") {
+        handleClose();
+      }
     };
     window.addEventListener("keydown", handleKey);
 
@@ -69,7 +74,7 @@ export function TutorialDrive({
       window.removeEventListener("keydown", handleKey);
       document.body.style.overflow = prev;
     };
-  }, [effectiveOpen, effectiveClose]);
+  }, [effectiveOpen, handleClose]);
 
   if (!effectiveOpen) return null;
 
@@ -87,7 +92,7 @@ export function TutorialDrive({
       <button
         type="button"
         className="absolute inset-0 cursor-default bg-black/80 backdrop-blur-sm"
-        onClick={effectiveClose}
+        onClick={handleClose}
         aria-label="Fechar tutorial"
       />
 
@@ -104,7 +109,7 @@ export function TutorialDrive({
             type="button"
             aria-label="Fechar"
             className="grid h-11 w-11 flex-none place-items-center rounded-lg text-muted transition-colors hover:text-text"
-            onClick={effectiveClose}
+            onClick={handleClose}
           >
             ✕
           </button>

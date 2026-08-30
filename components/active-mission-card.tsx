@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FORMAT_LABEL, type Mission, type Pauta } from "@/lib/missions";
+import { FORMAT_LABEL, type Mission } from "@/lib/missions";
 import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 import { MissionChat } from "@/components/mission-chat";
 import { TutorialButton, TutorialDrive } from "@/components/tutorial-drive";

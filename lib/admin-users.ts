@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import type { Role, Papel } from "@/lib/session";
+import type { Role } from "@/lib/session";
 
 export type UserListItem = {
   id: number;

@@ -1,6 +1,3 @@
-import type { Role, Papel } from "@/lib/session";
-import type { MissionStatus, StatusPauta } from "@/lib/missions";
-
 export type MissionAction =
   | "reserve"
   | "cancel"
