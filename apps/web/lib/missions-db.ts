@@ -1,7 +1,7 @@
+import { postgresMissionApproval } from "@oficina/db/mission-approval";
 import { LIMITS, limitOrNull, limitStr } from "@oficina/domain/limits";
-import type { Mission, MissionStatus, StatusPauta, VideoFormat } from "@oficina/domain/missions";
+import type { Mission, MissionStatus, VideoFormat } from "@oficina/domain/missions";
 import { sql } from "@/lib/db";
-import { awardReferralIfEligible } from "@/lib/electoral-ranking-db";
 
 type MissionRow = {
   id: number;
@@ -341,36 +341,22 @@ export async function approveMission(
   comment?: string,
   spokespersonId?: number,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const [mission] = spokespersonId
-    ? await sql`
-        SELECT reservada_por_id FROM pautas
-        WHERE id = ${missionId} AND status = 'em_revisao' AND porta_voz_id = ${spokespersonId}
-      `
-    : await sql`
-        SELECT reservada_por_id FROM pautas WHERE id = ${missionId} AND status = 'em_revisao'
-      `;
-  if (!mission?.reservada_por_id)
-    return {
-      ok: false,
-      error: "Essa missão não está em revisão.",
-      erro: "Essa missão não está em revisão.",
-    };
-  const editorId = mission.reservada_por_id as number;
-
-  if (rating !== undefined && (rating < 1 || rating > 5)) {
-    return { ok: false, error: "A nota vai de 1 a 5.", erro: "A nota vai de 1 a 5." };
-  }
-
-  const finalStatus: StatusPauta = spokespersonId ? "finalizada" : "aprovada";
-
-  const [result] = await sql`
-    SELECT * FROM oficina_private.aprovar_edicao(
-      ${missionId}, ${approvedById}, ${finalStatus}, ${rating ?? null}, ${comment?.trim() ?? ""}
-    )
-  `;
-  if (result?.pontuou) await awardReferralIfEligible(editorId);
-
-  return { ok: true };
+  const result = await postgresMissionApproval.approveMission({
+    missionId,
+    actor: { id: approvedById, role: spokespersonId ? "spokesperson" : "admin" },
+    rating,
+    comment,
+  });
+  if (result.ok) return { ok: true };
+  const error =
+    result.reason === "invalid_rating"
+      ? "A nota vai de 1 a 5."
+      : result.reason === "forbidden"
+        ? "Você não pode aprovar esta missão."
+        : result.reason === "mission_not_found"
+          ? "Missão não encontrada."
+          : "Essa missão não está em revisão.";
+  return { ok: false, error, erro: error };
 }
 
 export const aprovarPauta = approveMission;

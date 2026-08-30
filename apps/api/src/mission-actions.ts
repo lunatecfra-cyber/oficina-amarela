@@ -4,7 +4,8 @@ export type MigratedMissionAction =
   | "deliver"
   | "re_edit"
   | "accept"
-  | "adjust";
+  | "adjust"
+  | "approve";
 
 const MIGRATED_ACTIONS: Record<string, MigratedMissionAction> = {
   reserve: "reserve",
@@ -19,6 +20,8 @@ const MIGRATED_ACTIONS: Record<string, MigratedMissionAction> = {
   aceitar: "accept",
   adjust: "adjust",
   ajuste: "adjust",
+  approve: "approve",
+  aprovar: "approve",
 };
 
 export function migratedMissionAction(rawAction: unknown): MigratedMissionAction | null {

@@ -235,4 +235,46 @@ describe("ciclo de vida da missão na API", { skip }, async () => {
     `;
     assert.deepEqual(mission, { status: "reedicao", reedicao_pedida_por: "porta_voz" });
   });
+
+  test("aprovação exige inspetor ou porta-voz proprietária", async () => {
+    const missionId = await createMission("em_revisao", editorId);
+    const editor = await call(missionId, { action: "approve", rating: 5 }, editorCookie);
+    assert.equal(editor.status, 403);
+
+    const wrongOwner = await call(
+      missionId,
+      { action: "approve", rating: 5 },
+      otherSpokespersonCookie,
+    );
+    assert.equal(wrongOwner.status, 403);
+    assert.equal(await errorOf(wrongOwner), "Você não pode aprovar esta missão.");
+  });
+
+  test("aprovação via Hono é idempotente e responde em PT-BR", async () => {
+    const missionId = await createMission("em_revisao", editorId);
+    assert.equal(
+      (await call(missionId, { acao: "aprovar", nota: 5, comentario: "Ótimo" }, adminCookie))
+        .status,
+      200,
+    );
+    assert.equal(
+      (await call(missionId, { action: "approve", rating: 5 }, adminCookie)).status,
+      200,
+    );
+    const [state] = await sql`
+      SELECT
+        (SELECT status FROM pautas WHERE id = ${missionId}) AS status,
+        (SELECT count(*)::int FROM avaliacoes WHERE pauta_id = ${missionId}) AS avaliacoes,
+        (SELECT entregues FROM users WHERE id = ${editorId}) AS entregues
+    `;
+    assert.deepEqual(state, { status: "aprovada", avaliacoes: 1, entregues: 1 });
+
+    const invalid = await call(
+      await createMission("em_revisao", otherEditorId),
+      { action: "approve", rating: 5.5 },
+      adminCookie,
+    );
+    assert.equal(invalid.status, 400);
+    assert.equal(await errorOf(invalid), "A nota deve ser um número inteiro de 1 a 5.");
+  });
 });

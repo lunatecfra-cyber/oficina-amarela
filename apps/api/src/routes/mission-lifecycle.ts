@@ -2,7 +2,11 @@ import type { UserSession } from "@oficina/auth/session";
 import type { MissionActionFailure, MissionActionResult } from "@oficina/db/mission-lifecycle";
 import { isLikelyUrl } from "@oficina/domain/validators";
 import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
-import { buildDeliveryReadyEmail, buildReEditRequestedEmail } from "@oficina/email/messages";
+import {
+  buildApprovedDeliveryEmail,
+  buildDeliveryReadyEmail,
+  buildReEditRequestedEmail,
+} from "@oficina/email/messages";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
@@ -103,6 +107,28 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
       );
     } else if (action === "accept") {
       result = await dependencies.missionLifecycle.finishMission(missionId, session.id);
+    } else if (action === "approve") {
+      const rating = body?.rating ?? body?.nota;
+      const approval = await dependencies.missionApproval.approveMission({
+        missionId,
+        actor: session,
+        rating: typeof rating === "number" ? rating : undefined,
+        comment:
+          typeof (body?.feedback ?? body?.comentario) === "string"
+            ? String(body?.feedback ?? body?.comentario)
+            : undefined,
+      });
+      if (!approval.ok) {
+        const response =
+          approval.reason === "mission_not_found"
+            ? { status: 404 as const, error: "Missão não encontrada." }
+            : approval.reason === "forbidden"
+              ? { status: 403 as const, error: "Você não pode aprovar esta missão." }
+              : approval.reason === "invalid_rating"
+                ? { status: 400 as const, error: "A nota deve ser um número inteiro de 1 a 5." }
+                : { status: 409 as const, error: "Essa missão não está em revisão." };
+        return c.json({ error: response.error }, response.status);
+      }
     } else {
       result = await dependencies.missionLifecycle.requestSpokespersonRevision(
         missionId,
@@ -197,6 +223,19 @@ async function dispatchNotifications(
         contacts.editor.name,
         contacts.title,
         String(body?.notes ?? body?.notas ?? ""),
+        `${origin}/editor`,
+      ),
+    );
+  } else if (action === "approve" && contacts.editor) {
+    const rating = body?.rating ?? body?.nota;
+    await queueMissionNotification(
+      "aprovacao",
+      missionId,
+      contacts.editor.email,
+      buildApprovedDeliveryEmail(
+        contacts.editor.name,
+        contacts.title,
+        typeof rating === "number" ? rating : undefined,
         `${origin}/editor`,
       ),
     );

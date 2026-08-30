@@ -98,6 +98,14 @@ export function sql(strings: TemplateStringsArray, ...values: unknown[]) {
   return client(strings, ...values);
 }
 
+export type TransactionSql = typeof sql;
+
+export function withTransaction<T>(callback: (transaction: TransactionSql) => Promise<T>) {
+  return getClient().begin((transaction) =>
+    callback(transaction as unknown as TransactionSql),
+  ) as Promise<T>;
+}
+
 sql.json = (value: unknown) => getClient().json(value as never);
 
 /** Fecha o pool. Usado por testes e scripts pontuais; o app não chama. */
