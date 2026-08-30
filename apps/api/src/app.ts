@@ -1,4 +1,4 @@
-import { configureDatabaseUrl } from "@oficina/db/client";
+import { configureDatabaseUrl, withRequestDatabase } from "@oficina/db/client";
 import { Hono } from "hono";
 import {
   type ApiDependencies,
@@ -74,7 +74,9 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
     configureRuntimeBindings(c.env);
 
     const startedAt = Date.now();
-    await next();
+    // Cada requisição roda com o seu próprio cliente PostgreSQL: no workerd um
+    // socket não atravessa requisições. Ver withRequestDatabase.
+    await withRequestDatabase(() => next());
 
     console.log(
       JSON.stringify({

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import postgres from "postgres";
 
 declare global {
@@ -61,7 +62,49 @@ function createStubClient(reason: string) {
   }) as unknown as ReturnType<typeof postgres>;
 }
 
+/**
+ * Cliente com escopo de requisição, para os Workers.
+ *
+ * No workerd um socket aberto durante uma requisição não pode ser usado na
+ * seguinte: o runtime responde "Cannot perform I/O on behalf of a different
+ * request". Guardar o cliente numa global — que é o certo no Node — faz a
+ * primeira requisição do isolate funcionar e todas as outras falharem.
+ *
+ * A recomendação da Cloudflare é criar um cliente por requisição e deixar o
+ * Hyperdrive cuidar do pool, que é onde o custo de TCP/TLS realmente mora.
+ * Aqui isso vira um escopo: dentro dele `sql` usa o cliente da requisição;
+ * fora dele — Node, testes, `next build` — nada muda.
+ */
+const requestScopedClient = new AsyncLocalStorage<ReturnType<typeof postgres>>();
+
+function newClient(url: string) {
+  // prepare: false is required for the transaction pooler
+  return postgres(url, { prepare: false });
+}
+
+/**
+ * Roda a requisição com um cliente próprio e o encerra ao final.
+ *
+ * Sem URL configurada segue o caminho normal, que já sabe decidir entre stub e
+ * erro alto. O encerramento não é aguardado: a resposta desta API é sempre JSON
+ * já materializado, e esperar o fechamento só somaria latência.
+ */
+export async function withRequestDatabase<T>(run: () => Promise<T>): Promise<T> {
+  const url = boundDatabaseUrl ?? process.env.DATABASE_URL;
+  if (!url) return run();
+
+  const client = newClient(url);
+  try {
+    return await requestScopedClient.run(client, run);
+  } finally {
+    void Promise.resolve(client.end({ timeout: 5 })).catch(() => {});
+  }
+}
+
 function getClient() {
+  const scoped = requestScopedClient.getStore();
+  if (scoped) return scoped;
+
   const url = boundDatabaseUrl ?? process.env.DATABASE_URL;
   if (globalThis.__workshopSql) {
     if (url && globalThis.__workshopSqlUrl && globalThis.__workshopSqlUrl !== url) {
@@ -83,8 +126,7 @@ function getClient() {
     return createStubClient(reason);
   }
 
-  // prepare: false is required for the transaction pooler
-  const client = postgres(url, { prepare: false });
+  const client = newClient(url);
   globalThis.__workshopSql = client;
   globalThis.__workshopSqlUrl = url;
   return client;

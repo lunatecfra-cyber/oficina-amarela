@@ -54,3 +54,7 @@ backups/
 # wrangler
 dist/
 .wrangler/
+
+# Segredos locais do Worker (wrangler dev). Nunca versionar.
+.dev.vars
+.dev.vars.*

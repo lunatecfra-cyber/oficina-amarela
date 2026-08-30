@@ -1,3 +1,4 @@
+import { withRequestDatabase } from "@oficina/db/client";
 import { drainEmailQueueNow } from "@oficina/email/dispatch";
 import { type Bindings, configureRuntimeBindings, createApp, dependenciesFor } from "./app.ts";
 import {
@@ -36,12 +37,14 @@ export default {
   },
   async scheduled(_controller, env) {
     configureRuntimeBindings(env);
-    await runScheduledMaintenance(backgroundDependencies);
+    await withRequestDatabase(() => runScheduledMaintenance(backgroundDependencies));
   },
   async queue(batch, env) {
     configureRuntimeBindings(env);
-    for (const message of batch.messages) {
-      await runBackgroundTask(backgroundDependencies, message.body);
-    }
+    await withRequestDatabase(async () => {
+      for (const message of batch.messages) {
+        await runBackgroundTask(backgroundDependencies, message.body);
+      }
+    });
   },
 } satisfies ExportedHandler<Bindings, BackgroundTaskMessage>;

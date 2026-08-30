@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { configureDatabaseUrl } from "@oficina/db/client";
+import { configureDatabaseUrl, withRequestDatabase } from "@oficina/db/client";
 import { postgresMissionQueue } from "@oficina/db/mission-queue";
 import { coordinateMissionClaim, type MissionClaimRequest } from "../mission-claim-coordination.ts";
 
@@ -22,9 +22,13 @@ export class MissionCoordinator extends DurableObject<CoordinatorEnv> {
       return Response.json({ error: "Invalid mission claim." }, { status: 400 });
     }
 
+    // Também aqui o cliente é da requisição: o Durable Object atende várias, e
+    // um socket aberto numa delas não vale para a seguinte.
     return Response.json(
-      await this.ctx.blockConcurrencyWhile(() =>
-        coordinateMissionClaim(this.ctx.storage, postgresMissionQueue, claim),
+      await withRequestDatabase(() =>
+        this.ctx.blockConcurrencyWhile(() =>
+          coordinateMissionClaim(this.ctx.storage, postgresMissionQueue, claim),
+        ),
       ),
     );
   }
