@@ -1,108 +1,24 @@
-import { postgresMissionQueue } from "@oficina/db/mission-queue";
-import { claimPeriodicTask, QUEUE_SWEEP_TASK } from "@oficina/db/scheduler";
-import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
-import { buildMissionAcceptedEmail } from "@oficina/email/messages";
-import { after, NextResponse } from "next/server";
-import { queueMessage } from "@/lib/mission-queue-messages";
-import { missionContacts } from "@/lib/missions-db";
-import { readSession } from "@/lib/server-session";
+import { createApp } from "@oficina/api/app";
 
-// A varredura global (expirar ofertas + despachar) roda no máximo uma vez a
-// cada QUEUE_SWEEP_SECONDS, não uma vez por poll de cada editor.
-const QUEUE_SWEEP_SECONDS = 5;
+/**
+ * Adaptador: a rota da fila do editor passou para o Hono, em apps/api.
+ *
+ * O Next só encaminha. Quando os dois Workers estiverem no ar, este arquivo
+ * troca `api.fetch` por um Service Binding e some — a assinatura é a mesma,
+ * que é justamente o motivo de o Hono expor `fetch(Request)`.
+ */
+const api = createApp();
 
-async function sweepQueueIfDue() {
-  if (!(await claimPeriodicTask(QUEUE_SWEEP_TASK, QUEUE_SWEEP_SECONDS))) return;
-  await postgresMissionQueue.expireOffers();
-  await postgresMissionQueue.dispatchOffers();
-  // Retentativas da caixa de saída avançam junto: sem cron, é o tráfego que
-  // move a fila. Na Cloudflare isso vira Cron Trigger ou consumidor de Queue.
-  await drainEmailQueueNow();
+function toApiRequest(request: Request): Request {
+  const url = new URL(request.url);
+  url.pathname = url.pathname.replace(/^\/api/, "");
+  return new Request(url, request);
 }
 
-async function authenticateEditor() {
-  const session = await readSession();
-  if (!session) return { error: "Please log in first.", status: 401 as const };
-  if (session.role !== "editor" && session.role !== "admin") {
-    return { error: "Only editors may receive missions.", status: 403 as const };
-  }
-  return { session };
+export function GET(request: Request) {
+  return api.fetch(toApiRequest(request));
 }
 
-export async function GET() {
-  const auth = await authenticateEditor();
-  if ("error" in auth)
-    return NextResponse.json({ error: auth.error, erro: auth.error }, { status: auth.status });
-
-  await postgresMissionQueue.markEditorActive(auth.session.id);
-  await sweepQueueIfDue();
-
-  const offer = await postgresMissionQueue.pendingOfferFor(auth.session.id);
-  if (!offer) return new NextResponse(null, { status: 204 });
-
-  return NextResponse.json(offer);
-}
-
-export async function POST(request: Request) {
-  const auth = await authenticateEditor();
-  if ("error" in auth)
-    return NextResponse.json({ error: auth.error, erro: auth.error }, { status: auth.status });
-
-  const body = await request.json().catch(() => null);
-  const missionId = Number(String(body?.missionId ?? body?.pautaId ?? "").replace(/^db-/, ""));
-  if (!Number.isInteger(missionId)) {
-    return NextResponse.json(
-      { error: "Invalid mission identifier.", erro: "Invalid mission." },
-      { status: 400 },
-    );
-  }
-
-  await postgresMissionQueue.markEditorActive(auth.session.id);
-
-  const rawAction = body?.action ?? body?.acao;
-  const result =
-    rawAction === "accept" || rawAction === "aceitar"
-      ? await postgresMissionQueue.acceptOffer(missionId, auth.session.id)
-      : rawAction === "decline" || rawAction === "recusar"
-        ? await postgresMissionQueue.rejectOffer(missionId, auth.session.id)
-        : null;
-
-  if (!result) {
-    return NextResponse.json(
-      { error: "Unknown queue action.", erro: "Unknown action." },
-      { status: 400 },
-    );
-  }
-  if (!result.ok) {
-    const message = queueMessage(result.reason);
-    return NextResponse.json({ error: message, erro: message }, { status: 409 });
-  }
-
-  if (rawAction === "decline" || rawAction === "recusar") {
-    await postgresMissionQueue.dispatchOffers();
-  }
-
-  if (rawAction === "accept" || rawAction === "aceitar") {
-    // Antes isto era uma promessa solta: em ambiente serverless ela morre com a
-    // resposta e o porta-voz nunca era avisado. Enfileirar é rápido e acontece
-    // dentro da requisição; a entrega vai para depois dela.
-    await (async () => {
-      const c = await missionContacts(missionId);
-      if (!c?.spokesperson) return;
-      await queueMissionNotification(
-        "aceite",
-        missionId,
-        c.spokesperson.email,
-        buildMissionAcceptedEmail(
-          c.spokesperson.name,
-          c.title,
-          auth.session.handle,
-          `${new URL(request.url).origin}/porta-voz/missao/db-${missionId}`,
-        ),
-      );
-    })().catch((e) => console.error("[notification] failed to notify acceptance", e));
-    after(drainEmailQueueNow);
-  }
-
-  return NextResponse.json({ ok: true });
+export function POST(request: Request) {
+  return api.fetch(toApiRequest(request));
 }

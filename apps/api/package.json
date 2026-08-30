@@ -7,10 +7,14 @@
     "dev": "wrangler dev",
     "build": "wrangler deploy --dry-run --outdir dist",
     "deploy": "wrangler deploy",
-    "test": "node --test src/*.test.ts",
+    "test": "node --test --test-concurrency=1 \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@oficina/auth": "*",
+    "@oficina/db": "*",
+    "@oficina/domain": "*",
+    "@oficina/email": "*",
     "hono": "^4.11.7"
   },
   "devDependencies": {
@@ -18,5 +22,8 @@
     "@types/node": "^26",
     "typescript": "^5",
     "wrangler": "^4.48.4"
+  },
+  "exports": {
+    "./*": "./src/*.ts"
   }
 }

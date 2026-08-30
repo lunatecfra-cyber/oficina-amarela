@@ -1,3 +1,4 @@
+import { missionContacts } from "@oficina/db/mission-contacts";
 import { postgresMissionQueue } from "@oficina/db/mission-queue";
 import { canExecuteAction } from "@oficina/domain/mission-transitions";
 import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
@@ -15,7 +16,6 @@ import {
   acceptDeliveredMission,
   approveMission,
   deliverMission,
-  missionContacts,
   requestInspectorReEdit,
   requestSpokespersonAdjustment,
 } from "@/lib/missions-db";

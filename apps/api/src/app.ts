@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { editorQueue } from "./routes/editor-queue.ts";
 
 /**
  * Fronteira HTTP da API.
@@ -42,6 +43,8 @@ export function createApp() {
   });
 
   app.get("/health", (c) => c.json({ ok: true, service: "oficina-amarela-api" }));
+
+  app.route("/editor/queue", editorQueue);
 
   app.notFound((c) =>
     c.json({ error: "Rota não encontrada.", requestId: c.get("requestId") }, 404),

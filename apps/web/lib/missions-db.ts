@@ -524,35 +524,5 @@ export async function listAllMissions(): Promise<Mission[]> {
 
 export const listarTodasPautas = listAllMissions;
 
-export async function getMissionContacts(missionId: number): Promise<{
-  title: string;
-  spokesperson: { name: string; email: string } | null;
-  editor: { name: string; email: string } | null;
-  titulo?: string;
-  portaVoz?: { nome: string; email: string } | null;
-} | null> {
-  const [row] = await sql`
-    SELECT p.titulo,
-           v.nome AS voz_nome, v.email AS voz_email,
-           e.nome AS ed_nome, e.email AS ed_email
-    FROM pautas p
-    JOIN users v ON v.id = p.porta_voz_id
-    LEFT JOIN users e ON e.id = p.reservada_por_id
-    WHERE p.id = ${missionId}
-  `;
-  if (!row) return null;
-  const sp = row.voz_email ? { name: String(row.voz_nome), email: String(row.voz_email) } : null;
-  const ed = row.ed_email ? { name: String(row.ed_nome), email: String(row.ed_email) } : null;
-  return {
-    title: String(row.titulo),
-    spokesperson: sp,
-    editor: ed,
-    titulo: String(row.titulo),
-    portaVoz: sp ? { nome: sp.name, email: sp.email } : null,
-  };
-}
-
-export const contatosDaPauta = getMissionContacts;
-export const missionContacts = getMissionContacts;
 export const missionReservedBy = getReservedMission;
 export const deleteMissionPermanently = deleteMission;
