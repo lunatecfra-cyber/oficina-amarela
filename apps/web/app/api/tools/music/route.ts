@@ -1,10 +1,9 @@
 import { limitList, limitString } from "@oficina/domain/limits";
-import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { addMusicTrack, allMusicTags, listMusicTracks } from "@/lib/music-db";
+import { generatePresignedUploadUrl } from "@/lib/r2";
 import { readSession } from "@/lib/server-session";
 
-const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 const MAX_BYTES = 4 * 1024 * 1024; // 4MB
 const PERMITTED_AUDIO_TYPES = new Set([
   "audio/mpeg",
@@ -44,13 +43,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Only video editors may upload audio tracks.", erro: "Unauthorized." },
       { status: 403 },
-    );
-  }
-
-  if (!BLOB_TOKEN) {
-    return NextResponse.json(
-      { error: "Blob storage upload currently unconfigured.", erro: "Upload unavailable." },
-      { status: 503 },
     );
   }
 
@@ -103,13 +95,37 @@ export async function POST(request: Request) {
       )
     : [];
 
-  const blob = await put(`music/${file.name}`, file, {
-    access: "public",
-    contentType: file.type || "audio/mpeg",
-    token: BLOB_TOKEN,
+  const contentType = file.type || "audio/mpeg";
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+  let uploadUrl: string;
+  let readUrl: string | null;
+  try {
+    ({ uploadUrl, readUrl } = await generatePresignedUploadUrl(
+      `music/${crypto.randomUUID()}-${safeName}`,
+      contentType,
+      file.size,
+    ));
+  } catch (error) {
+    console.error("[music] R2 configuration failed", error);
+    return NextResponse.json(
+      { error: "Upload de áudio indisponível no momento." },
+      { status: 503 },
+    );
+  }
+  if (!readUrl) {
+    return NextResponse.json({ error: "URL pública do áudio não configurada." }, { status: 503 });
+  }
+  const uploaded = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "content-type": contentType },
+    body: file,
   });
+  if (!uploaded.ok) {
+    console.error("[music] R2 upload failed", uploaded.status);
+    return NextResponse.json({ error: "Não foi possível enviar o áudio." }, { status: 502 });
+  }
 
-  await addMusicTrack(title, tags, blob.url, file.size, session.id);
+  await addMusicTrack(title, tags, readUrl, file.size, session.id);
 
   return NextResponse.json({ ok: true });
 }
