@@ -3,6 +3,7 @@ import { claimPeriodicTask, QUEUE_SWEEP_TASK } from "@oficina/db/scheduler";
 import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
 import { buildMissionAcceptedEmail } from "@oficina/email/messages";
 import { Hono } from "hono";
+import { runScheduledMaintenance } from "../background.ts";
 import type { ApiDependencies } from "../dependencies.ts";
 import { queueMessage } from "../mission-queue-messages.ts";
 import { requireEditor } from "../session.ts";
@@ -13,11 +14,9 @@ const QUEUE_SWEEP_SECONDS = 5;
 
 async function sweepQueueIfDue(queue: ApiDependencies["missionQueue"]) {
   if (!(await claimPeriodicTask(QUEUE_SWEEP_TASK, QUEUE_SWEEP_SECONDS))) return;
-  await queue.expireOffers();
-  await queue.dispatchOffers();
-  // Retentativas da caixa de saída avançam junto: sem cron, é o tráfego que
-  // move a fila. Vira Cron Trigger ou consumidor de Queue.
-  await drainEmailQueueNow();
+  // Fallback enquanto o Worker ainda não está implantado com o Cron. Usa o
+  // mesmo consumidor, então a ativação do agendamento não muda a semântica.
+  await runScheduledMaintenance({ missionQueue: queue, drainEmailQueue: drainEmailQueueNow });
 }
 
 type QueueEnv = { Variables: { session: UserSession; requestId: string } };

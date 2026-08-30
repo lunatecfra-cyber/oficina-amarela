@@ -25,6 +25,11 @@ export type Variables = {
   requestId: string;
 };
 
+export function configureRuntimeBindings(bindings: Bindings | undefined): void {
+  const hyperdriveUrl = bindings?.HYPERDRIVE?.connectionString;
+  if (hyperdriveUrl) configureDatabaseUrl(hyperdriveUrl);
+}
+
 export function createApp(dependencies: ApiDependencies = postgresApiDependencies) {
   const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -35,8 +40,7 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
     c.set("requestId", requestId);
     c.header("x-request-id", requestId);
 
-    const hyperdriveUrl = c.env?.HYPERDRIVE?.connectionString;
-    if (hyperdriveUrl) configureDatabaseUrl(hyperdriveUrl);
+    configureRuntimeBindings(c.env);
 
     const startedAt = Date.now();
     await next();
