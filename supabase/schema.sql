@@ -157,6 +157,25 @@ CREATE INDEX IF NOT EXISTS idx_ofertas_pendentes ON ofertas (oferecida_em) WHERE
 -- Invariante: um editor recebe no máximo uma oferta por missão.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_missao_editor ON ofertas (pauta_id, editor_id);
 
+-- Caixa de saída de e-mail: enfileirar na requisição, enviar depois, com chave
+-- de idempotência e retentativa. Ver lib/email-queue-db.ts.
+CREATE TABLE IF NOT EXISTS fila_emails (
+  id BIGSERIAL PRIMARY KEY,
+  chave TEXT NOT NULL UNIQUE,
+  destinatario TEXT NOT NULL,
+  assunto TEXT NOT NULL,
+  html TEXT NOT NULL,
+  tentativas INT NOT NULL DEFAULT 0,
+  processar_apos TIMESTAMPTZ NOT NULL DEFAULT now(),
+  enviado_em TIMESTAMPTZ,
+  erro TEXT,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_fila_emails_pendentes
+  ON fila_emails (processar_apos)
+  WHERE enviado_em IS NULL;
+
 -- Trava de periodicidade: só uma requisição por janela roda o trabalho global
 -- (expiração de ofertas, despacho). Ver lib/scheduler-db.ts.
 CREATE TABLE IF NOT EXISTS tarefas_periodicas (

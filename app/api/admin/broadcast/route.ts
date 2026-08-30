@@ -1,15 +1,23 @@
-import { NextResponse } from "next/server";
-import {
-  isEmailConfigured,
-  notifyEditorsOfQueueMissions,
-  notifySpokespersonsOfAvailableEditors,
-} from "@/lib/email";
+import { after, NextResponse } from "next/server";
+import { buildEditorsQueueEmail, buildFreeEditorsEmail, isEmailConfigured } from "@/lib/email";
+import { drainEmailQueueNow } from "@/lib/email-dispatch";
+import { type EmailToQueue, enqueueEmails } from "@/lib/email-queue-db";
 import {
   candidateNotificationEmails,
   editorNotificationEmails,
   systemOverviewSummary,
 } from "@/lib/overview-db";
 import { readSession } from "@/lib/server-session";
+
+/**
+ * Janela de idempotência do broadcast. A mesma pessoa não recebe o mesmo aviso
+ * duas vezes dentro da hora, nem se o inspetor clicar de novo ou a requisição
+ * for repetida.
+ */
+function broadcastKey(group: string, userEmail: string): string {
+  const hour = new Date().toISOString().slice(0, 13);
+  return `broadcast:${group}:${userEmail.toLowerCase()}:${hour}`;
+}
 
 export async function POST(request: Request) {
   const session = await readSession();
@@ -56,10 +64,15 @@ export async function POST(request: Request) {
       );
     }
     const recipients = await editorNotificationEmails();
-    for (const p of recipients) {
-      void notifyEditorsOfQueueMissions(p.email, p.name, summary.inQueue, `${origin}/editor`);
-    }
-    return NextResponse.json({ ok: true, sent: recipients.length, enviados: recipients.length });
+    const messages: EmailToQueue[] = recipients.map((p) => {
+      const { subject, html } = buildEditorsQueueEmail(p.name, summary.inQueue, `${origin}/editor`);
+      return { key: broadcastKey("editors", p.email), to: p.email, subject, html };
+    });
+
+    const queued = await enqueueEmails(messages);
+    after(drainEmailQueueNow);
+
+    return NextResponse.json({ ok: true, sent: queued, enviados: queued });
   }
 
   if (summary.freeEditors === 0) {
@@ -69,13 +82,17 @@ export async function POST(request: Request) {
     );
   }
   const recipients = await candidateNotificationEmails();
-  for (const p of recipients) {
-    void notifySpokespersonsOfAvailableEditors(
-      p.email,
+  const messages: EmailToQueue[] = recipients.map((p) => {
+    const { subject, html } = buildFreeEditorsEmail(
       p.name,
       summary.freeEditors,
       `${origin}/porta-voz/nova-pauta`,
     );
-  }
-  return NextResponse.json({ ok: true, sent: recipients.length, enviados: recipients.length });
+    return { key: broadcastKey("candidates", p.email), to: p.email, subject, html };
+  });
+
+  const queued = await enqueueEmails(messages);
+  after(drainEmailQueueNow);
+
+  return NextResponse.json({ ok: true, sent: queued, enviados: queued });
 }

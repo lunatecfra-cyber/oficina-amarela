@@ -103,6 +103,26 @@ async function sendNotification(destination: string, subject: string, html: stri
 
 export const avisar = sendNotification;
 
+/**
+ * Entrega uma mensagem já pronta. Devolve true quando o provedor aceitou.
+ *
+ * Sem provedor configurado (ou com remetente de teste) devolve true: a
+ * mensagem sai da fila em vez de ficar girando em retentativa por uma
+ * configuração ausente. O aviso vai para o log.
+ */
+export async function deliverEmail(to: string, subject: string, html: string): Promise<boolean> {
+  if (!isEmailConfigured() || isTestSender() || !to) {
+    console.warn("[email] provedor não configurado; descartando:", subject);
+    return true;
+  }
+  const { error } = await getClient().emails.send({ from: SENDER, to, subject, html });
+  if (error) {
+    console.error("[email] provedor recusou:", subject, error);
+    return false;
+  }
+  return true;
+}
+
 export function notifyMissionAccepted(
   destination: string,
   name: string,
@@ -179,24 +199,46 @@ export function notifyReEditRequested(
 }
 export const avisarReedicaoPedida = notifyReEditRequested;
 
+export type EmailContent = { subject: string; html: string };
+
+export function buildEditorsQueueEmail(name: string, inQueue: number, url: string): EmailContent {
+  return {
+    subject: `Tem ${inQueue} miss${inQueue === 1 ? "ão" : "ões"} esperando editor`,
+    html: moldura(
+      "Tem missões na fila de edição",
+      `<p>Oi, ${escapeHtml(name)}. Tem <b>${inQueue} miss${inQueue === 1 ? "ão" : "ões"}</b> na fila esperando alguém pra pegar.</p>
+       <p>Acesse o site e pegue a próxima.</p>`,
+      { url, texto: "Ver a fila" },
+    ),
+  };
+}
+
 export function notifyEditorsQueue(
   destination: string,
   name: string,
   inQueue: number,
   url: string,
 ) {
-  return sendNotification(
-    destination,
-    `Tem ${inQueue} miss${inQueue === 1 ? "ão" : "ões"} esperando editor`,
-    moldura(
-      "Tem missões na fila de edição",
-      `<p>Oi, ${escapeHtml(name)}. Tem <b>${inQueue} miss${inQueue === 1 ? "ão" : "ões"}</b> na fila esperando alguém pra pegar.</p>
-       <p>Acesse o site e pegue a próxima.</p>`,
-      { url, texto: "Ver a fila" },
-    ),
-  );
+  const { subject, html } = buildEditorsQueueEmail(name, inQueue, url);
+  return sendNotification(destination, subject, html);
 }
 export const avisarEditoresFila = notifyEditorsQueue;
+
+export function buildFreeEditorsEmail(
+  name: string,
+  freeEditors: number,
+  url: string,
+): EmailContent {
+  return {
+    subject: "Tem editores disponíveis pra sua missão",
+    html: moldura(
+      "Editores livres esperando uma missão",
+      `<p>Oi, ${escapeHtml(name)}. Tem <b>${freeEditors} editor${freeEditors === 1 ? "" : "es"}</b> disponíveis agora.</p>
+       <p>Se você tem um vídeo pra editar, é só criar.</p>`,
+      { url, texto: "Criar missão" },
+    ),
+  };
+}
 
 export function notifySpokespersonsFreeEditors(
   destination: string,
@@ -204,16 +246,8 @@ export function notifySpokespersonsFreeEditors(
   freeEditors: number,
   url: string,
 ) {
-  return sendNotification(
-    destination,
-    "Tem editores disponíveis pra sua missão",
-    moldura(
-      "Editores livres esperando uma missão",
-      `<p>Oi, ${escapeHtml(name)}. Tem <b>${freeEditors} editor${freeEditors === 1 ? "" : "es"}</b> disponíveis agora.</p>
-       <p>Se você tem um vídeo pra editar, é só criar.</p>`,
-      { url, texto: "Criar missão" },
-    ),
-  );
+  const { subject, html } = buildFreeEditorsEmail(name, freeEditors, url);
+  return sendNotification(destination, subject, html);
 }
 export const avisarCandidatosEditoresLivres = notifySpokespersonsFreeEditors;
 

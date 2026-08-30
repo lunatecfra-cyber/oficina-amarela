@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { notifyMissionAccepted } from "@/lib/email";
+import { drainEmailQueueNow } from "@/lib/email-dispatch";
 import { missionContacts } from "@/lib/missions-db";
 import {
   acceptMissionOffer,
@@ -20,6 +21,9 @@ async function sweepQueueIfDue() {
   if (!(await claimPeriodicTask(QUEUE_SWEEP_TASK, QUEUE_SWEEP_SECONDS))) return;
   await expireStaleOffers();
   await dispatchMissions();
+  // Retentativas da caixa de saída avançam junto: sem cron, é o tráfego que
+  // move a fila. Na Cloudflare isso vira Cron Trigger ou consumidor de Queue.
+  await drainEmailQueueNow();
 }
 
 async function authenticateEditor() {
