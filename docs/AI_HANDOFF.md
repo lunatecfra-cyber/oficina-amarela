@@ -13,9 +13,38 @@ working tree:           clean; branch pushed
 tests:                  184 passing (domain 23, config 6, db 69, api 61, web 25)
 ```
 
-**Status: LOCAL STAGING READY.** Everything that does not need Cloudflare
-credentials is implemented and tested. The next step is provisioning, not
-coding — see *Staging checklist* below.
+**Status: LOCAL STAGING READY, and now validated on the real runtime.** Both
+Workers were run in workerd (`wrangler dev --local`) and exercised end to end.
+That surfaced four defects no dry-run or in-process test could have caught —
+see *What running it for real proved* below. The next step is provisioning,
+which is blocked on Cloudflare account access, not on code.
+
+### What running it for real proved
+
+| Checked in workerd | Result |
+|---|---|
+| `apps/api` boots, `/health`, PT-BR 401 boundary | pass |
+| `postgres.js` over TCP with `nodejs_compat` | pass |
+| Repeated requests on one isolate | **failed, fixed** — the cached client cannot cross requests |
+| D1-backed API (auth, issue, list) | pass, after fixing session revocation |
+| Session revocation enforced on D1 | pass |
+| `apps/web` builds and boots with vinext | pass |
+| Service Binding `env.API` connected | pass |
+| Authenticated POST + GET across the binding | **failed twice, fixed** — immutable headers both ways |
+
+The four defects, in the order they would have hit production:
+
+1. **The API would have died under any real traffic.** The PostgreSQL client
+   was cached in a global — correct in Node, fatal in workerd, where a socket
+   cannot cross requests. Request 1 succeeded; request 2 onward returned 500.
+2. **A D1 deployment would have rejected every logged-in user.** Session
+   revocation ran outside the injected repository set, so it kept querying
+   PostgreSQL even with the `DB` binding present. `sessoes_validas_apos` did
+   not exist in the D1 schema at all, so ban and "log out everywhere" had no
+   way to work there.
+3 and 4. **Every call across the Service Binding returned 500.** Request
+   headers arrive immutable and were passed straight through; the response
+   coming back is immutable too, and Next adjusts headers before delivering.
 
 ---
 
@@ -189,10 +218,18 @@ Everything below needs an account, not code.
    the `BACKGROUND_QUEUE` binding switches maintenance from request-driven to
    Cron + Queue (`maintenanceIsScheduled`). Both are all-or-nothing on purpose.
 
-4. **Decide `ARCH-01`.** vinext and OpenNext side by side, with a real deploy.
-   This is the last thing blocking a `wrangler.jsonc` for `apps/web`. Whichever
-   wins, its Worker entry calls `setApiBinding(env.API)` once — nothing else in
-   `apps/web` needs to know which one it was.
+4. **`ARCH-01` is decided: vinext.** It builds this app for Workers — Next
+   16.3.3, React 19, App Router, 32 pages, 33 route handlers, RSC, `proxy.ts` —
+   and the built Worker serves traffic in workerd with the Service Binding
+   connected. `apps/web/wrangler.jsonc` and the build/deploy scripts exist.
+   OpenNext was not tried, and does not need to be.
+
+   One trap is worth remembering: `@cloudflare/vite-plugin` resolves
+   `wrangler.jsonc` at **build** time and freezes the result into
+   `dist/server/wrangler.json`. Building without `CLOUDFLARE_ENV` and deploying
+   with `--env staging` publishes the default config — no Service Binding —
+   without complaining. `npm run deploy:staging` pins the environment in the
+   build for exactly that reason.
 
 5. **Run the migration rehearsal against a copy.**
 
@@ -389,7 +426,7 @@ rows and refuses rather than deleting anything.
 
 | Service | State |
 |---|---|
-| Workers | **LOCAL** — `--dry-run` clean for default, staging and production (422 KiB / 100 KiB gzip); never deployed |
+| Workers | **RUN LOCALLY IN WORKERD** — both Workers boot and serve under `wrangler dev --local`; `--dry-run` clean for every environment. Never deployed remotely. |
 | Hyperdrive | **LOCAL CONFIG ONLY** — binding contract and PostgreSQL test pass; staging resource needs credentials |
 | D1 | **LOCAL, COMPLETE FOR THE STAGING SLICE** — schema plus adapters for queue, lifecycle, collaboration, approval, invitation redemption, invitation administration, ranking corrections, gamification and mission contacts, all with native parity tests. `dependenciesFor` selects the whole set on the `DB` binding. No remote database created. |
 | R2 | **PRODUCTION** — already the object store for video uploads (`apps/web/lib/r2.ts`, presigned PUT, browser→R2 direct) |
