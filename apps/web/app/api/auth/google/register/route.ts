@@ -1,7 +1,3 @@
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { checkRoleSlots, createGoogleAccount } from "@/lib/accounts";
-import { recordDailyLogin } from "@/lib/gamification-db";
 import {
   COOKIE_NAME,
   COOKIE_OPTS,
@@ -11,7 +7,11 @@ import {
   REFERRAL_COOKIE_NAME,
   type Role,
   verifyPendingIdentity,
-} from "@/lib/session";
+} from "@oficina/auth/session";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import { checkRoleSlots, createGoogleAccount } from "@/lib/accounts";
+import { recordDailyLogin } from "@/lib/gamification-db";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);

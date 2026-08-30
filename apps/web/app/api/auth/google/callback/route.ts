@@ -1,7 +1,3 @@
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { findGoogleAccount } from "@/lib/accounts";
-import { exchangeCodeForProfile } from "@/lib/oauth-google";
 import {
   COOKIE_NAME,
   COOKIE_OPTS,
@@ -13,7 +9,11 @@ import {
   STATE_COOKIE_NAME,
   STATE_COOKIE_OPTS,
   verifySignedState,
-} from "@/lib/session";
+} from "@oficina/auth/session";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import { findGoogleAccount } from "@/lib/accounts";
+import { exchangeCodeForProfile } from "@/lib/oauth-google";
 
 function errorRedirect(origin: string, reason: string) {
   return NextResponse.redirect(`${origin}/login?google_error=${encodeURIComponent(reason)}`);

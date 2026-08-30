@@ -1,8 +1,8 @@
+import { COOKIE_NAME, COOKIE_OPTS, createSessionToken } from "@oficina/auth/session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { updateAccountPassword } from "@/lib/accounts";
 import { readSession } from "@/lib/server-session";
-import { COOKIE_NAME, COOKIE_OPTS, createSessionToken } from "@/lib/session";
 
 export async function POST(request: Request) {
   const session = await readSession();

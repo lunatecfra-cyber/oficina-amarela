@@ -1,8 +1,8 @@
+import { COOKIE_NAME } from "@oficina/auth/session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { deleteAccount } from "@/lib/accounts";
 import { readSession } from "@/lib/server-session";
-import { COOKIE_NAME } from "@/lib/session";
 
 export async function DELETE(request: Request) {
   const session = await readSession();

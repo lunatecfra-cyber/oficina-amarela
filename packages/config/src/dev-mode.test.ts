@@ -8,7 +8,7 @@ import {
   DEV_AUTH_BYPASS_ENV,
   isDemoContentEnabled,
   isDevAuthBypassEnabled,
-} from "@/lib/dev-mode";
+} from "./dev-mode.ts";
 
 // process.env.NODE_ENV é readonly nos tipos do Next; aqui precisamos escrever.
 const env = process.env as Record<string, string | undefined>;

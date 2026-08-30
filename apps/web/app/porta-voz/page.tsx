@@ -1,3 +1,4 @@
+import { isDemoContentEnabled } from "@oficina/config/dev-mode";
 import {
   FORMAT_LABELS,
   MISSIONS,
@@ -10,7 +11,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 import { readCandidateOnboarding } from "@/lib/candidate-db";
-import { isDemoContentEnabled } from "@/lib/dev-mode";
 import { availableMissions, spokespersonMissions } from "@/lib/missions-db";
 import { readSession } from "@/lib/server-session";
 

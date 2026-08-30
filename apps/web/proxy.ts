@@ -1,6 +1,6 @@
+import { COOKIE_NAME, verifySessionToken } from "@oficina/auth/session";
+import { isDevAuthBypassEnabled } from "@oficina/config/dev-mode";
 import { NextRequest, NextResponse } from "next/server";
-import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
-import { COOKIE_NAME, verifySessionToken } from "@/lib/session";
 
 export default async function proxy(request: NextRequest) {
   if (isDevAuthBypassEnabled() && request.cookies.get("dev_god_mode")?.value === "true") {

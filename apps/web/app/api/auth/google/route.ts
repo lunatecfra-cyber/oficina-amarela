@@ -1,13 +1,13 @@
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-import { buildGoogleAuthUrl, isGoogleOAuthConfigured } from "@/lib/oauth-google";
 import {
   createSignedState,
   INVITATION_COOKIE_NAME,
   REFERRAL_COOKIE_NAME,
   STATE_COOKIE_NAME,
   STATE_COOKIE_OPTS,
-} from "@/lib/session";
+} from "@oficina/auth/session";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import { buildGoogleAuthUrl, isGoogleOAuthConfigured } from "@/lib/oauth-google";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);

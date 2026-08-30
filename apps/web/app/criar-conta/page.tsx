@@ -1,9 +1,9 @@
+import { isDevAuthBypassEnabled } from "@oficina/config/dev-mode";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Logo } from "@/components/logo";
 import { SignupForm } from "@/components/signup-form";
-import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
 
 export const metadata: Metadata = { title: "Criar conta — Oficina Amarela" };
 

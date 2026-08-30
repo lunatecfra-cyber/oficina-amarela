@@ -1,6 +1,6 @@
+import { COOKIE_NAME } from "@oficina/auth/session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { COOKIE_NAME } from "@/lib/session";
 
 export async function POST() {
   const cookieStore = await cookies();

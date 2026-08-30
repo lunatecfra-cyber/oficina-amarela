@@ -1,8 +1,8 @@
+import { COOKIE_NAME, COOKIE_OPTS, createSessionToken, type Role } from "@oficina/auth/session";
+import { isDevAuthBypassEnabled } from "@oficina/config/dev-mode";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
-import { COOKIE_NAME, COOKIE_OPTS, createSessionToken, type Role } from "@/lib/session";
 
 const DEV_ACCOUNTS: Record<
   Role,

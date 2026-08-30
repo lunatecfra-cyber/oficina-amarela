@@ -1,6 +1,6 @@
+import { verifyRecoveryToken } from "@oficina/auth/session";
 import { NextResponse } from "next/server";
 import { isRecoveryTokenAlreadyUsed, updateAccountPassword } from "@/lib/accounts";
-import { verifyRecoveryToken } from "@/lib/session";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);

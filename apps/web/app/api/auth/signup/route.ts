@@ -1,9 +1,9 @@
+import { COOKIE_NAME, COOKIE_OPTS, createSessionToken, type Role } from "@oficina/auth/session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { checkRoleSlots, createAccount, isRateLimited, recordAttempt } from "@/lib/accounts";
 import { recordDailyLogin } from "@/lib/gamification-db";
 import { requestIpAddress } from "@/lib/ip";
-import { COOKIE_NAME, COOKIE_OPTS, createSessionToken, type Role } from "@/lib/session";
 
 const MAX_SIGNUPS_PER_IP = 10;
 

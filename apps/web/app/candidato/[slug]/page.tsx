@@ -1,3 +1,4 @@
+import { isDemoContentEnabled } from "@oficina/config/dev-mode";
 import { type Candidate, getCandidateBySlug } from "@oficina/domain/candidates";
 import { FORMAT_LABELS, MISSIONS, type Mission, STATUS_LABELS } from "@oficina/domain/missions";
 import type { Metadata } from "next";
@@ -10,7 +11,6 @@ import { CandidateData } from "@/components/candidate-data";
 import { CandidateName } from "@/components/candidate-name";
 import { Stat } from "@/components/stat";
 import { readPublicCandidate } from "@/lib/candidate-db";
-import { isDemoContentEnabled } from "@/lib/dev-mode";
 import { publicCandidateMissions } from "@/lib/missions-db";
 import { readSession } from "@/lib/server-session";
 

@@ -1,8 +1,8 @@
+import { COOKIE_NAME, type UserSession, verifySessionToken } from "@oficina/auth/session";
+import { isDevAuthBypassEnabled } from "@oficina/config/dev-mode";
 import { getSessionRevocationCutoff } from "@oficina/db/session-revocation";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
-import { COOKIE_NAME, type UserSession, verifySessionToken } from "@/lib/session";
 
 export async function getSession(): Promise<UserSession | null> {
   const jar = await cookies();

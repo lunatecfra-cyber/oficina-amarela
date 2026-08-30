@@ -1,6 +1,6 @@
+import { isDevAuthBypassEnabled } from "@oficina/config/dev-mode";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
 
 export default function DevToolbarPage() {
   // Página estática com links de "entrar como inspetor". A rota de dev-login já

@@ -1,3 +1,4 @@
+import { PENDING_COOKIE_NAME, verifyPendingIdentity } from "@oficina/auth/session";
 import { ROLE_LIMITS } from "@oficina/domain/limits";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
@@ -5,7 +6,6 @@ import { redirect } from "next/navigation";
 import { ChooseRoleForm } from "@/components/choose-role-form";
 import { Logo } from "@/components/logo";
 import { countEnrolledByRole } from "@/lib/accounts";
-import { PENDING_COOKIE_NAME, verifyPendingIdentity } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Quase lá — Oficina Amarela" };
 

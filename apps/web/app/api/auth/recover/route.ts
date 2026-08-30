@@ -1,8 +1,8 @@
+import { createRecoveryToken } from "@oficina/auth/session";
 import { NextResponse } from "next/server";
 import { findAccountByEmail, isRateLimited, recordAttempt } from "@/lib/accounts";
 import { isEmailConfigured, isTestSender, sendPasswordRecoveryEmail } from "@/lib/email";
 import { requestIpAddress } from "@/lib/ip";
-import { createRecoveryToken } from "@/lib/session";
 
 const DEFAULT_RESPONSE = {
   ok: true,

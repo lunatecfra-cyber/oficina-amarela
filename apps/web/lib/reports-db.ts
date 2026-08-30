@@ -1,6 +1,6 @@
+import type { UserSession } from "@oficina/auth/session";
 import { LIMITS, limitStr } from "@oficina/domain/limits";
 import { sql } from "@/lib/db";
-import type { UserSession } from "@/lib/session";
 
 export type Report = {
   id: number;

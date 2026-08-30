@@ -1,6 +1,6 @@
+import type { Role } from "@oficina/auth/session";
 import { invalidateSessionRevocation } from "@oficina/db/session-revocation";
 import { sql } from "@/lib/db";
-import type { Role } from "@/lib/session";
 
 export type UserListItem = {
   id: number;

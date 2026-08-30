@@ -1,0 +1,21 @@
+{
+  "name": "@oficina/auth",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@oficina/config": "*",
+    "@oficina/domain": "*",
+    "jose": "^6.2.10"
+  },
+  "devDependencies": {
+    "@types/node": "^26",
+    "typescript": "^5"
+  }
+}

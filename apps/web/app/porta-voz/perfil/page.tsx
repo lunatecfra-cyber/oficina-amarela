@@ -1,3 +1,4 @@
+import { isDemoContentEnabled } from "@oficina/config/dev-mode";
 import { getCandidate } from "@oficina/domain/candidates";
 import { MISSIONS, STATUS_LABELS } from "@oficina/domain/missions";
 import type { Metadata } from "next";
@@ -9,7 +10,6 @@ import { CandidateName } from "@/components/candidate-name";
 import { Card } from "@/components/card";
 import { Stat } from "@/components/stat";
 import { readOwnCandidate } from "@/lib/candidate-db";
-import { isDemoContentEnabled } from "@/lib/dev-mode";
 import { spokespersonMissions } from "@/lib/missions-db";
 import { requireSession } from "@/lib/server-session";
 

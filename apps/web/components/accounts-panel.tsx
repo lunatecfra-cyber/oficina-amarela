@@ -1,8 +1,8 @@
 "use client";
 
+import type { Papel, Role } from "@oficina/auth/session";
 import { initials } from "@oficina/domain/candidates";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Papel, Role } from "@/lib/session";
 
 type UserListItem = {
   id: number;

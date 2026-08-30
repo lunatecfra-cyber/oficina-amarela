@@ -1,5 +1,5 @@
+import { isDevAuthBypassEnabled } from "@oficina/config/dev-mode";
 import { jwtVerify, SignJWT } from "jose";
-import { isDevAuthBypassEnabled } from "@/lib/dev-mode";
 
 export const COOKIE_NAME = "confraria_sessao";
 export const NOME_COOKIE = COOKIE_NAME; // compatibility alias

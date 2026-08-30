@@ -1,9 +1,9 @@
+import type { Role } from "@oficina/auth/session";
 import { invalidateSessionRevocation } from "@oficina/db/session-revocation";
 import { LIMITS, limitStr, SLOTS } from "@oficina/domain/limits";
 import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
 import { validateSpokespersonInvitation } from "@/lib/invitations-db";
-import type { Role } from "@/lib/session";
 
 export type UserAccount = {
   id: number;
