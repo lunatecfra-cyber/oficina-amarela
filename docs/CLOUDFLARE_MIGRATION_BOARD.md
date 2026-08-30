@@ -293,9 +293,16 @@ realtime workload after offer polling.
 **Fix:** Durable Object `chat:{missionId}` with WebSockets (Phase 12).
 
 ### `P1-09` · Add `"type": "module"` to `package.json`
-**Status:** READY · The only blocking issue reported by `npx vinext check`.
-`vinext init` does it automatically; doing it deliberately in Phase 1 keeps the
-change reviewable.
+**Status:** **DONE** (2026-08-30)
+
+`"type": "module"` added; the now-redundant
+`--disable-warning=MODULE_TYPELESS_PACKAGE_JSON` flag removed from the `test`
+script. No `.js` files and no CommonJS (`require`, `module.exports`, `__dirname`)
+exist anywhere in `app/`, `lib/`, `components/`, `scripts/` or the config files,
+so nothing else needed changing. All 17 `scripts/*.mjs` still parse.
+
+Validation: `npm test` 7/7 · `tsc --noEmit` clean · Biome clean · `next build` ok ·
+`npx vinext check` **92% → 97% compatible, 0 issues remaining**.
 
 ### `P1-10` · Decide vinext vs OpenNext (`ARCH-01`)
 **Status:** READY · Cloudflare recommends vinext (beta) for new work and OpenNext
