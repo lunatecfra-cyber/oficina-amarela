@@ -4,12 +4,17 @@ import { isLikelyUrl } from "@oficina/domain/validators";
 import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
 import { buildDeliveryReadyEmail, buildReEditRequestedEmail } from "@oficina/email/messages";
 import { Hono } from "hono";
+import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
 import { migratedMissionAction } from "../mission-actions.ts";
+import type { MissionClaimResult } from "../mission-claim-coordination.ts";
 import { queueMessage } from "../mission-queue-messages.ts";
 import { requireSession } from "../session.ts";
 
-type MissionEnv = { Variables: { session: UserSession; requestId: string } };
+type MissionEnv = {
+  Bindings: Bindings;
+  Variables: { session: UserSession; requestId: string };
+};
 
 const UPLOADED_VIDEO_HOSTS = ["r2.dev", "amazonaws.com", "storage.googleapis.com"];
 
@@ -68,7 +73,15 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
 
     let result: MissionActionResult = { ok: true };
     if (action === "reserve") {
-      const queueResult = await dependencies.missionQueue.reserveMission(missionId, session.id);
+      const queueResult = await reserveMission(c.env, dependencies, {
+        requestId: c.req.header("idempotency-key") ?? c.get("requestId"),
+        missionId,
+        editorId: session.id,
+        requestedAt: Date.now(),
+      });
+      if (!queueResult.ok && queueResult.reason === "stale_request") {
+        return c.json({ error: "Essa solicitação de reserva expirou." }, 409);
+      }
       if (!queueResult.ok) return c.json({ error: queueMessage(queueResult.reason) }, 409);
     } else if (action === "cancel") {
       const queueResult = await dependencies.missionQueue.abandonMission(missionId, session.id);
@@ -127,6 +140,31 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
   });
 
   return routes;
+}
+
+async function reserveMission(
+  env: Bindings,
+  dependencies: ApiDependencies,
+  claim: {
+    requestId: string;
+    missionId: number;
+    editorId: number;
+    requestedAt: number;
+  },
+): Promise<MissionClaimResult> {
+  if (!env?.MISSION_COORDINATOR) {
+    return dependencies.missionQueue.reserveMission(claim.missionId, claim.editorId);
+  }
+
+  const namespace = env.MISSION_COORDINATOR;
+  const stub = namespace.get(namespace.idFromName(`mission:${claim.missionId}`));
+  const response = await stub.fetch("https://mission.internal/reserve", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(claim),
+  });
+  if (!response.ok) throw new Error(`Mission coordinator failed with ${response.status}`);
+  return (await response.json()) as MissionClaimResult;
 }
 
 async function dispatchNotifications(

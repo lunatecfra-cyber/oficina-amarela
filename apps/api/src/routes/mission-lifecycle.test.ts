@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test, { after, before, beforeEach, describe } from "node:test";
+import type { Bindings } from "../app.ts";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 if (TEST_DATABASE_URL) {
@@ -26,12 +27,21 @@ describe("ciclo de vida da missão na API", { skip }, async () => {
   let otherEditorCookie: string;
   let adminCookie: string;
 
-  const call = (missionId: number, body: Record<string, unknown>, cookie?: string) =>
-    app.request(`http://api.local/missions/db-${missionId}`, {
-      method: "POST",
-      headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) },
-      body: JSON.stringify(body),
-    });
+  const call = (
+    missionId: number,
+    body: Record<string, unknown>,
+    cookie?: string,
+    bindings: Bindings = {},
+  ) =>
+    app.request(
+      `http://api.local/missions/db-${missionId}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) },
+        body: JSON.stringify(body),
+      },
+      bindings,
+    );
 
   const errorOf = async (response: Response) =>
     ((await response.json()) as { error: string }).error;
@@ -107,6 +117,36 @@ describe("ciclo de vida da missão na API", { skip }, async () => {
       await sql`SELECT status, reservada_por_id FROM pautas WHERE id = ${missionId}`;
     assert.equal(mission.status, "disponivel");
     assert.equal(mission.reservada_por_id, null);
+  });
+
+  test("reserva usa o coordenador nomeado pela missão quando o binding existe", async () => {
+    const { postgresMissionQueue } = await import("@oficina/db/mission-queue");
+    const missionId = await createMission("disponivel");
+    let coordinatorName = "";
+    const response = await call(missionId, { action: "reserve" }, editorCookie, {
+      MISSION_COORDINATOR: {
+        idFromName(name) {
+          coordinatorName = name;
+          return name;
+        },
+        get() {
+          return {
+            async fetch(_input, init) {
+              const claim = JSON.parse(String(init?.body)) as {
+                missionId: number;
+                editorId: number;
+              };
+              return Response.json(
+                await postgresMissionQueue.reserveMission(claim.missionId, claim.editorId),
+              );
+            },
+          };
+        },
+      },
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(coordinatorName, `mission:${missionId}`);
   });
 
   test("entrega válida muda o estado e registra XP uma vez", async () => {

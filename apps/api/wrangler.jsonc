@@ -8,7 +8,21 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
-  }
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "MISSION_COORDINATOR",
+        "class_name": "MissionCoordinator"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["MissionCoordinator"]
+    }
+  ]
   // Hyperdrive is intentionally absent until a staging config exists. Create it
   // with `wrangler hyperdrive create ... --binding HYPERDRIVE --update-config
   // --env staging`; never commit the origin connection string here.

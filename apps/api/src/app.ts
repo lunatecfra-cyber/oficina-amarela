@@ -15,6 +15,10 @@ import { createMissionLifecycleRoutes } from "./routes/mission-lifecycle.ts";
 
 export type Bindings = {
   HYPERDRIVE?: { readonly connectionString: string };
+  MISSION_COORDINATOR?: {
+    idFromName(name: string): unknown;
+    get(id: unknown): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
+  };
 };
 
 export type Variables = {
