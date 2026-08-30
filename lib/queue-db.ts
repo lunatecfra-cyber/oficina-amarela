@@ -11,6 +11,11 @@ export const MINUTOS_OFERTA = OFFER_MINUTES;
 
 const PRESENCE_MINUTES = 3;
 
+// A janela de presença é de 3 minutos; gravar a cada poll (15s) é 4x mais
+// escrita do que a decisão precisa. 60s mantém a granularidade útil e corta as
+// escritas mais caras do caminho quente.
+const PRESENCE_WRITE_SECONDS = 60;
+
 export type Offer = {
   mission: Mission;
   expiresAt: string;
@@ -32,7 +37,14 @@ function invalidOffer(): { ok: false; error: string; erro: string } {
 }
 
 export async function markEditorActive(editorId: number): Promise<void> {
-  await sql`UPDATE users SET ultimo_visto_em = now() WHERE id = ${editorId}`;
+  await sql`
+    UPDATE users SET ultimo_visto_em = now()
+    WHERE id = ${editorId}
+      AND (
+        ultimo_visto_em IS NULL
+        OR ultimo_visto_em < now() - make_interval(secs => ${PRESENCE_WRITE_SECONDS})
+      )
+  `;
 }
 
 export const marcarEditorAtivo = markEditorActive;

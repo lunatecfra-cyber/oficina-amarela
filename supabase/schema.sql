@@ -98,6 +98,11 @@ CREATE TABLE IF NOT EXISTS pautas (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pautas_status ON pautas (status);
+
+-- Ordem da fila de despacho: evita sort em dispatchMissions().
+CREATE INDEX IF NOT EXISTS idx_pautas_fila
+  ON pautas (prioridade DESC, criada_em ASC)
+  WHERE status IN ('disponivel', 'oferecida');
 CREATE INDEX IF NOT EXISTS idx_pautas_porta_voz ON pautas (porta_voz_id);
 CREATE INDEX IF NOT EXISTS idx_pautas_reservada_por ON pautas (reservada_por_id);
 
@@ -146,8 +151,18 @@ CREATE TABLE IF NOT EXISTS ofertas (
 CREATE INDEX IF NOT EXISTS idx_ofertas_editor_status ON ofertas (editor_id, status);
 CREATE INDEX IF NOT EXISTS idx_ofertas_pauta ON ofertas (pauta_id);
 
+-- Varredura de expiração de ofertas.
+CREATE INDEX IF NOT EXISTS idx_ofertas_pendentes ON ofertas (oferecida_em) WHERE status = 'pendente';
+
 -- Invariante: um editor recebe no máximo uma oferta por missão.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_missao_editor ON ofertas (pauta_id, editor_id);
+
+-- Trava de periodicidade: só uma requisição por janela roda o trabalho global
+-- (expiração de ofertas, despacho). Ver lib/scheduler-db.ts.
+CREATE TABLE IF NOT EXISTS tarefas_periodicas (
+  nome TEXT PRIMARY KEY,
+  executada_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 CREATE TABLE IF NOT EXISTS mensagens (
   id SERIAL PRIMARY KEY,

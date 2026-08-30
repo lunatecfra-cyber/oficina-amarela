@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createMission } from "@/lib/missions-db";
+import { dispatchMissions } from "@/lib/queue-db";
 import { readSession } from "@/lib/server-session";
 
 export async function POST(request: Request) {
@@ -70,6 +71,10 @@ export async function POST(request: Request) {
   if (!result.ok) {
     return NextResponse.json({ error: result.error, erro: result.error }, { status: 400 });
   }
+
+  // Despacho dirigido por evento: a missão nova sai para um editor agora, sem
+  // esperar a próxima varredura periódica.
+  await dispatchMissions();
 
   return NextResponse.json({ ok: true, id: result.id });
 }

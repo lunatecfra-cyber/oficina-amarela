@@ -9,7 +9,18 @@ import {
   markEditorActive,
   pendingOfferForEditor,
 } from "@/lib/queue-db";
+import { claimPeriodicTask, QUEUE_SWEEP_TASK } from "@/lib/scheduler-db";
 import { readSession } from "@/lib/server-session";
+
+// A varredura global (expirar ofertas + despachar) roda no máximo uma vez a
+// cada QUEUE_SWEEP_SECONDS, não uma vez por poll de cada editor.
+const QUEUE_SWEEP_SECONDS = 5;
+
+async function sweepQueueIfDue() {
+  if (!(await claimPeriodicTask(QUEUE_SWEEP_TASK, QUEUE_SWEEP_SECONDS))) return;
+  await expireStaleOffers();
+  await dispatchMissions();
+}
 
 async function authenticateEditor() {
   const session = await readSession();
@@ -26,8 +37,7 @@ export async function GET() {
     return NextResponse.json({ error: auth.error, erro: auth.error }, { status: auth.status });
 
   await markEditorActive(auth.session.id);
-  await expireStaleOffers();
-  await dispatchMissions();
+  await sweepQueueIfDue();
 
   const offer = await pendingOfferForEditor(auth.session.id);
   if (!offer) return new NextResponse(null, { status: 204 });
