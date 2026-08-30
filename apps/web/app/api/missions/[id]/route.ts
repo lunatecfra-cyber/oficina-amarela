@@ -1,17 +1,9 @@
-import { createApp } from "@oficina/api/app";
-
-const api = createApp();
-
-function toApiRequest(request: Request): Request {
-  const url = new URL(request.url);
-  url.pathname = url.pathname.replace(/^\/api/, "");
-  return new Request(url, request);
-}
+import { forwardToApi } from "@/lib/internal-api";
 
 export function GET(request: Request) {
-  return api.fetch(toApiRequest(request));
+  return forwardToApi(request);
 }
 
 export function POST(request: Request) {
-  return api.fetch(toApiRequest(request));
+  return forwardToApi(request);
 }
