@@ -48,4 +48,51 @@ describe("adaptador do Service Binding", () => {
     setApiBinding(undefined);
     assert.equal(apiTransport(), "in-process");
   });
+
+  // Os dois erros abaixo só apareceram com os dois Workers rodando de verdade:
+  // no dry-run e no teste em processo nada é imutável, e ambos passavam.
+  test("cabeçalhos da requisição vão mutáveis para o binding", async () => {
+    // Uma requisição que chegou a um Worker tem cabeçalhos imutáveis.
+    const incoming = new Request("https://web.local/api/health", {
+      headers: { cookie: "sessao=valor" },
+    });
+    Object.defineProperty(incoming.headers, "set", {
+      value: () => {
+        throw new TypeError("Can't modify immutable headers.");
+      },
+    });
+
+    let received: Request | undefined;
+    await forwardToApi(incoming, {
+      fetch(request) {
+        received = request;
+        return new Response("ok");
+      },
+    });
+
+    assert.doesNotThrow(
+      () => received?.headers.set("x-teste", "1"),
+      "o binding precisa receber cabeçalhos que ele possa ajustar",
+    );
+    assert.equal(received?.headers.get("cookie"), "sessao=valor");
+  });
+
+  test("cabeçalhos da resposta voltam mutáveis para o Next", async () => {
+    const immutable = new Response("ok", { headers: { "content-type": "text/plain" } });
+    Object.defineProperty(immutable.headers, "set", {
+      value: () => {
+        throw new TypeError("Can't modify immutable headers.");
+      },
+    });
+
+    const response = await forwardToApi(new Request("https://web.local/api/health"), {
+      fetch: () => immutable,
+    });
+
+    assert.doesNotThrow(
+      () => response.headers.set("x-teste", "1"),
+      "o Next ajusta cabeçalhos antes de entregar; a resposta precisa aceitar",
+    );
+    assert.equal(response.headers.get("content-type"), "text/plain");
+  });
 });

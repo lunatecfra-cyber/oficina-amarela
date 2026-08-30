@@ -31,5 +31,11 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // .next/types/validator.ts é gerado pelo `next build` e importa de
+  // .next/types/routes.js. O build do vinext regrava esse mesmo routes.d.ts com
+  // a versão dele, que não exporta os mesmos tipos — então quem construir por
+  // último decide se o typecheck passa. O validador não cobre código nosso: ele
+  // confere as rotas, e o próprio `next build` já faz essa conferência. Fora do
+  // typecheck avulso, some a intermitência sem perder verificação.
+  "exclude": ["node_modules", ".next/types/validator.ts"]
 }

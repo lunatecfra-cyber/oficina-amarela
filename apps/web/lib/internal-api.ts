@@ -62,5 +62,36 @@ export function forwardToApi(
 ) {
   const url = new URL(request.url);
   url.pathname = url.pathname.replace(/^\/api/, "");
-  return binding.fetch(new Request(url, request));
+
+  // Os cabeçalhos de uma requisição que chega ao Worker são imutáveis, e
+  // `new Request(url, request)` leva essa imutabilidade adiante: do outro lado
+  // do Service Binding o runtime tenta ajustá-los e estoura com "Can't modify
+  // immutable headers". Copiar para um Headers novo devolve uma requisição que
+  // o binding pode tratar como sua.
+  const init: RequestInit = {
+    method: request.method,
+    headers: new Headers(request.headers),
+    redirect: "manual",
+  };
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    init.body = request.body;
+    // Corpo em streaming exige duplex; sem isso o runtime recusa o Request.
+    (init as { duplex?: string }).duplex = "half";
+  }
+
+  return respondMutable(binding.fetch(new Request(url, init)));
+}
+
+/**
+ * A resposta que volta do Service Binding também tem cabeçalhos imutáveis, e o
+ * Next tenta ajustá-los antes de entregar — mesmo "Can't modify immutable
+ * headers", agora na volta. Recopiar é o que torna a resposta desta aplicação.
+ */
+async function respondMutable(pending: Promise<Response> | Response): Promise<Response> {
+  const response = await pending;
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: new Headers(response.headers),
+  });
 }
