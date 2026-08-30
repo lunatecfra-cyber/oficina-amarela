@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ChooseRoleForm } from "@/components/choose-role-form";
 import { Logo } from "@/components/logo";
-import { countEnrolledByRole } from "@/lib/accounts";
+import { fetchApiJson } from "@/lib/internal-api";
 
 export const metadata: Metadata = { title: "Quase lá — Oficina Amarela" };
 
@@ -20,20 +20,24 @@ export default async function ChooseRolePage() {
     redirect(`/login?google_error=${encodeURIComponent("Sessão expirou, tenta de novo.")}`);
   }
 
-  const [totalEditors, totalSpokespersons] = await Promise.all([
-    countEnrolledByRole("editor"),
-    countEnrolledByRole("spokesperson"),
-  ]);
+  const slotData = await fetchApiJson<{
+    editor: { total: number; free: number; livres: number; enrolled: number };
+    spokesperson: { total: number; free: number; livres: number; enrolled: number };
+    voz: { total: number; free: number; livres: number; enrolled: number };
+  }>("/slots");
 
   const slots = {
-    editor: { total: ROLE_LIMITS.editor, livres: Math.max(0, ROLE_LIMITS.editor - totalEditors) },
-    spokesperson: {
-      total: ROLE_LIMITS.spokesperson,
-      livres: Math.max(0, ROLE_LIMITS.spokesperson - totalSpokespersons),
+    editor: slotData?.editor ?? {
+      total: ROLE_LIMITS.editor,
+      livres: ROLE_LIMITS.editor,
     },
-    voz: {
+    spokesperson: slotData?.spokesperson ?? {
       total: ROLE_LIMITS.spokesperson,
-      livres: Math.max(0, ROLE_LIMITS.spokesperson - totalSpokespersons),
+      livres: ROLE_LIMITS.spokesperson,
+    },
+    voz: slotData?.voz ?? {
+      total: ROLE_LIMITS.spokesperson,
+      livres: ROLE_LIMITS.spokesperson,
     },
   };
 

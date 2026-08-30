@@ -52,6 +52,12 @@ export const requireSession = requireRoles();
 /** Exige sessão de editor (admin também passa, para inspeção). */
 export const requireEditor = requireRoles(["editor", "admin"], "Só editores recebem missões.");
 
+/** Exige sessão de porta-voz (admin também passa, para inspeção). */
+export const requireSpokesperson = requireRoles(
+  ["spokesperson", "admin"],
+  "Só porta-vozes têm acesso a esta área.",
+);
+
 /**
  * Exige sessão de inspetor. Único portão da administração de convites: o papel
  * no banco só aceita 'voz', 'editor' e 'admin', então não há um "inspetor"

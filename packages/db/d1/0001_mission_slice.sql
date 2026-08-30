@@ -6,11 +6,14 @@ CREATE TABLE users (
   nome TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   papel TEXT NOT NULL CHECK (papel IN ('voz', 'editor', 'admin')),
+  criado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   -- Corte de revogação de sessão: banimento, troca de senha e "sair de todos os
   -- aparelhos" movem esta data para frente, e todo JWT emitido antes dela morre.
   -- Sem esta coluna o D1 não teria como revogar sessão nenhuma.
   sessoes_validas_apos TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   banido INTEGER NOT NULL DEFAULT 0,
+  banido_em TEXT,
+  motivo_banimento TEXT,
   senha_hash TEXT,
   google_id TEXT,
   foto_url TEXT,
@@ -22,6 +25,27 @@ CREATE TABLE users (
   reputacao INTEGER NOT NULL DEFAULT 0,
   streak INTEGER NOT NULL DEFAULT 0,
   nota REAL,
+  nivel TEXT,
+  headline TEXT,
+  bio TEXT,
+  localizacao TEXT,
+  softwares TEXT,
+  estilos TEXT,
+  link_portfolio TEXT,
+  perfil_completo INTEGER NOT NULL DEFAULT 0,
+  nivel_edicao TEXT,
+  setup_pc TEXT,
+  nicho TEXT,
+  cargo TEXT,
+  disputa_por TEXT,
+  ano_eleicao TEXT,
+  bandeiras TEXT,
+  tom_comunicacao TEXT,
+  palavras_chave TEXT,
+  redes_sociais TEXT,
+  marca_dagua TEXT,
+  cnpj_campanha TEXT,
+  titulo_eleitor TEXT,
   indicado_por_id INTEGER REFERENCES users(id)
 );
 
@@ -373,3 +397,55 @@ CREATE TABLE fila_emails (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   chave TEXT NOT NULL UNIQUE
 );
+
+CREATE TABLE portfolio (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  titulo TEXT NOT NULL,
+  formato TEXT NOT NULL CHECK (formato IN ('short', 'longo')),
+  porta_voz TEXT NOT NULL,
+  tint TEXT,
+  link_video TEXT,
+  criado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE INDEX idx_portfolio_user ON portfolio (user_id);
+
+CREATE TABLE conquistas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  nome TEXT NOT NULL,
+  icone TEXT NOT NULL,
+  conquistada_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE INDEX idx_conquistas_user ON conquistas (user_id);
+
+CREATE TABLE novidades (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  titulo TEXT NOT NULL,
+  texto TEXT NOT NULL,
+  publicada INTEGER NOT NULL DEFAULT 1,
+  autor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  criada_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE TABLE musicas (
+  id TEXT PRIMARY KEY,
+  nome TEXT NOT NULL,
+  tags TEXT DEFAULT '[]',
+  url TEXT NOT NULL,
+  tamanho INTEGER,
+  adicionado_por INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  criado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE TABLE gamificacao_regras (
+  id TEXT PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  descricao TEXT NOT NULL,
+  xp INTEGER NOT NULL,
+  ciclo TEXT NOT NULL CHECK (ciclo IN ('daily', 'one_time')),
+  ativa INTEGER NOT NULL DEFAULT 1
+);
+

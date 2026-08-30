@@ -8,6 +8,7 @@ import { createD1MissionCollaboration } from "@oficina/db/d1/mission-collaborati
 import { createD1MissionContacts } from "@oficina/db/d1/mission-contacts";
 import { createD1MissionLifecycle } from "@oficina/db/d1/mission-lifecycle";
 import { createD1MissionQueue } from "@oficina/db/d1/mission-queue";
+import { createD1Profiles } from "@oficina/db/d1/profiles";
 import { createD1Ranking } from "@oficina/db/d1/ranking";
 import { createD1RankingAdmin } from "@oficina/db/d1/ranking-admin";
 import type { D1DatabaseLike } from "@oficina/db/d1/types";
@@ -34,6 +35,7 @@ import {
   postgresMissionLifecycle,
 } from "@oficina/db/mission-lifecycle";
 import { type MissionQueueRepository, postgresMissionQueue } from "@oficina/db/mission-queue";
+import { postgresProfiles, type ProfilesRepository } from "@oficina/db/profiles";
 import { postgresRanking, type RankingRepository } from "@oficina/db/ranking";
 import { postgresRankingAdmin, type RankingAdminRepository } from "@oficina/db/ranking-admin";
 import { invalidateSessionRevocation } from "@oficina/db/session-revocation";
@@ -50,6 +52,7 @@ export type ApiDependencies = {
   missionCollaboration: MissionCollaborationRepository;
   missionApproval: MissionApprovalRepository;
   missionContacts: typeof missionContacts;
+  profiles: ProfilesRepository;
   ranking: RankingRepository;
   rankingAdmin: RankingAdminRepository;
   recordGamificationEvent: typeof recordGamificationEvent;
@@ -66,6 +69,7 @@ export const postgresApiDependencies: ApiDependencies = {
   missionCollaboration: postgresMissionCollaboration,
   missionApproval: postgresMissionApproval,
   missionContacts,
+  profiles: postgresProfiles,
   ranking: postgresRanking,
   rankingAdmin: postgresRankingAdmin,
   recordGamificationEvent,
@@ -91,6 +95,7 @@ export function d1ApiDependencies(db: D1DatabaseLike): ApiDependencies {
     missionCollaboration: createD1MissionCollaboration(db),
     missionApproval: createD1MissionApproval(db),
     missionContacts: createD1MissionContacts(db),
+    profiles: createD1Profiles(db),
     ranking: createD1Ranking(db),
     rankingAdmin: createD1RankingAdmin(db),
     recordGamificationEvent: createD1Gamification(db),

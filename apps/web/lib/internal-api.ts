@@ -83,6 +83,49 @@ export function forwardToApi(
 }
 
 /**
+ * Chamada server-side para a API pelo Service Binding (ou em processo).
+ *
+ * Repassa cookies da requisição atual quando existirem para preservar a sessão
+ * do usuário automaticamente.
+ */
+export async function fetchApi(
+  path: string,
+  init?: RequestInit,
+  binding: ApiServiceBinding = apiBinding ?? localApi,
+): Promise<Response> {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const url = `http://api.local${normalizedPath}`;
+  const headers = new Headers(init?.headers);
+
+  try {
+    const { cookies } = await import("next/headers");
+    const jar = await cookies();
+    const cookieHeader = jar.toString();
+    if (cookieHeader && !headers.has("cookie")) {
+      headers.set("cookie", cookieHeader);
+    }
+  } catch {
+    // Fora do contexto de requisição do Next (build time / testes sem headers)
+  }
+
+  const requestInit: RequestInit = {
+    ...init,
+    headers,
+  };
+  return respondMutable(binding.fetch(new Request(url, requestInit)));
+}
+
+export async function fetchApiJson<T>(path: string, init?: RequestInit): Promise<T | null> {
+  try {
+    const res = await fetchApi(path, init);
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * A resposta que volta do Service Binding também tem cabeçalhos imutáveis, e o
  * Next tenta ajustá-los antes de entregar — mesmo "Can't modify immutable
  * headers", agora na volta. Recopiar é o que torna a resposta desta aplicação.
@@ -95,3 +138,4 @@ async function respondMutable(pending: Promise<Response> | Response): Promise<Re
     headers: new Headers(response.headers),
   });
 }
+

@@ -88,6 +88,7 @@ describe("escolha do conjunto de repositórios", async () => {
     "missionCollaboration",
     "missionApproval",
     "missionContacts",
+    "profiles",
     "ranking",
     "rankingAdmin",
     "recordGamificationEvent",
