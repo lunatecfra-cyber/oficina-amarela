@@ -1,7 +1,11 @@
 import { type EmailToQueue, enqueueEmails } from "@oficina/db/email-queue";
+import { drainEmailQueueNow } from "@oficina/email/dispatch";
+import {
+  buildEditorsQueueEmail,
+  buildFreeEditorsEmail,
+  isEmailConfigured,
+} from "@oficina/email/messages";
 import { after, NextResponse } from "next/server";
-import { buildEditorsQueueEmail, buildFreeEditorsEmail, isEmailConfigured } from "@/lib/email";
-import { drainEmailQueueNow } from "@/lib/email-dispatch";
 import {
   candidateNotificationEmails,
   editorNotificationEmails,

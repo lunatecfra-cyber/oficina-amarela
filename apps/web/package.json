@@ -17,6 +17,7 @@
     "@oficina/config": "*",
     "@oficina/db": "*",
     "@oficina/domain": "*",
+    "@oficina/email": "*",
     "@sentry/nextjs": "^10.72.0",
     "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
@@ -24,8 +25,7 @@
     "next": "16.3.3",
     "postgres": "^3.4.9",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "resend": "^6.25.0"
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

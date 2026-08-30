@@ -16,7 +16,13 @@ const CSP = [
 
 const nextConfig: NextConfig = {
   // Pacotes do workspace são publicados como TypeScript, sem passo de build.
-  transpilePackages: ["@oficina/auth", "@oficina/config", "@oficina/db", "@oficina/domain"],
+  transpilePackages: [
+    "@oficina/auth",
+    "@oficina/config",
+    "@oficina/db",
+    "@oficina/domain",
+    "@oficina/email",
+  ],
   async headers() {
     return [
       {

@@ -1,8 +1,8 @@
 import { postgresMissionQueue } from "@oficina/db/mission-queue";
 import { claimPeriodicTask, QUEUE_SWEEP_TASK } from "@oficina/db/scheduler";
+import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
+import { buildMissionAcceptedEmail } from "@oficina/email/messages";
 import { after, NextResponse } from "next/server";
-import { buildMissionAcceptedEmail } from "@/lib/email";
-import { drainEmailQueueNow, queueMissionNotification } from "@/lib/email-dispatch";
 import { queueMessage } from "@/lib/mission-queue-messages";
 import { missionContacts } from "@/lib/missions-db";
 import { readSession } from "@/lib/server-session";

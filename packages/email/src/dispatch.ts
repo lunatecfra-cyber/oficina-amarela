@@ -1,5 +1,5 @@
 import { type DrainResult, drainEmailQueue, enqueueEmails } from "@oficina/db/email-queue";
-import { deliverEmail, type EmailContent } from "@/lib/email";
+import { deliverEmail, type EmailContent } from "./messages.ts";
 
 /**
  * Liga a caixa de saída ao provedor de e-mail.

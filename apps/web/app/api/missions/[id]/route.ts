@@ -1,14 +1,14 @@
 import { postgresMissionQueue } from "@oficina/db/mission-queue";
 import { canExecuteAction } from "@oficina/domain/mission-transitions";
-import { after, NextResponse } from "next/server";
-import { messagesOfMission, messagesOfMissionAfter, sendMessage } from "@/lib/chat-db";
-import { sql } from "@/lib/db";
+import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
 import {
   buildApprovedDeliveryEmail,
   buildDeliveryReadyEmail,
   buildReEditRequestedEmail,
-} from "@/lib/email";
-import { drainEmailQueueNow, queueMissionNotification } from "@/lib/email-dispatch";
+} from "@oficina/email/messages";
+import { after, NextResponse } from "next/server";
+import { messagesOfMission, messagesOfMissionAfter, sendMessage } from "@/lib/chat-db";
+import { sql } from "@/lib/db";
 import { recordGamificationEvent } from "@/lib/gamification-db";
 import { toLegacyResult } from "@/lib/mission-queue-messages";
 import {

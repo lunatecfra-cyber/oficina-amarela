@@ -1,7 +1,11 @@
 import { createRecoveryToken } from "@oficina/auth/session";
+import {
+  isEmailConfigured,
+  isTestSender,
+  sendPasswordRecoveryEmail,
+} from "@oficina/email/messages";
 import { NextResponse } from "next/server";
 import { findAccountByEmail, isRateLimited, recordAttempt } from "@/lib/accounts";
-import { isEmailConfigured, isTestSender, sendPasswordRecoveryEmail } from "@/lib/email";
 import { requestIpAddress } from "@/lib/ip";
 
 const DEFAULT_RESPONSE = {
