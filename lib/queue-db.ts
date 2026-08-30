@@ -1,4 +1,9 @@
-import { sql } from "@/lib/db";
+import {
+  ACTIVE_MISSION_PER_EDITOR_INDEX,
+  isUniqueViolation,
+  OFFER_PER_MISSION_EDITOR_INDEX,
+  sql,
+} from "@/lib/db";
 import type { Mission } from "@/lib/missions";
 
 export const OFFER_MINUTES = 5;
@@ -18,10 +23,12 @@ export type Offer = {
 
 export type Oferta = Offer;
 
-function isUniqueViolation(e: unknown): boolean {
-  return (
-    typeof e === "object" && e !== null && "code" in e && (e as { code?: unknown }).code === "23505"
-  );
+function invalidOffer(): { ok: false; error: string; erro: string } {
+  return {
+    ok: false,
+    error: "Essa oferta não é mais válida.",
+    erro: "Essa oferta não é mais válida.",
+  };
 }
 
 export async function markEditorActive(editorId: number): Promise<void> {
@@ -113,25 +120,27 @@ export async function dispatchMissions(): Promise<number> {
     if (!editorId) continue;
 
     try {
-      const [orderRow] = await sql`
-        SELECT COALESCE(MAX(ordem), 0) + 1 AS ordem FROM ofertas WHERE pauta_id = ${p.id}
-      `;
-      const order = orderRow?.ordem ?? 0;
-
-      await sql`
+      // Um único comando: ou a missão sai de 'disponivel' E a oferta nasce, ou
+      // nada acontece. Separado em dois, uma falha entre eles deixava oferta
+      // pendente numa missão que outro editor ainda podia reservar direto.
+      const created = await sql`
+        WITH claimed AS (
+          UPDATE pautas SET status = 'oferecida'
+          WHERE id = ${p.id} AND status = 'disponivel'
+          RETURNING id
+        )
         INSERT INTO ofertas (pauta_id, editor_id, expira_em, ordem)
-        VALUES (${p.id}, ${editorId},
-                now() + (${OFFER_MINUTES} || ' minutes')::interval,
-                ${order})
+        SELECT c.id, ${editorId},
+               now() + (${OFFER_MINUTES} || ' minutes')::interval,
+               (SELECT COALESCE(MAX(o.ordem), 0) + 1 FROM ofertas o WHERE o.pauta_id = c.id)
+        FROM claimed c
+        RETURNING id
       `;
-
-      await sql`
-        UPDATE pautas SET status = 'oferecida'
-        WHERE id = ${p.id} AND status = 'disponivel'
-      `;
-      dispatched++;
+      if (created.length > 0) dispatched++;
     } catch (e) {
-      if (!isUniqueViolation(e)) throw e;
+      // idx_ofertas_missao_editor: esse editor já viu essa missão. O comando
+      // inteiro reverte, então a missão continua 'disponivel' pro próximo.
+      if (!isUniqueViolation(e, OFFER_PER_MISSION_EDITOR_INDEX)) throw e;
     }
   }
   return dispatched;
@@ -206,27 +215,46 @@ export async function acceptOffer(
   missionId: number,
   editorId: number,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const closed = await sql`
-    UPDATE ofertas SET status = 'aceita', respondida_em = now()
-    WHERE pauta_id = ${missionId} AND editor_id = ${editorId}
-      AND status = 'pendente' AND expira_em > now()
-    RETURNING id
-  `;
-  if (closed.length === 0) {
-    return {
-      ok: false,
-      error: "Essa oferta não é mais válida.",
-      erro: "Essa oferta não é mais válida.",
-    };
+  // A reserva vem primeiro, condicionada a existir oferta viva: assim `ok: true`
+  // só sai quando o editor realmente ficou com a missão. Na ordem inversa, a
+  // oferta era consumida mesmo quando a missão já tinha voltado pra fila.
+  let reserved: readonly unknown[];
+  try {
+    reserved = await sql`
+      UPDATE pautas AS p
+      SET status = 'reservada',
+          reservada_por_id = ${editorId},
+          reservada_em = now()
+      WHERE p.id = ${missionId}
+        AND p.status = 'oferecida'
+        AND EXISTS (
+          SELECT 1 FROM ofertas o
+          WHERE o.pauta_id = p.id AND o.editor_id = ${editorId}
+            AND o.status = 'pendente' AND o.expira_em > now()
+        )
+      RETURNING p.id
+    `;
+  } catch (error) {
+    if (isUniqueViolation(error, ACTIVE_MISSION_PER_EDITOR_INDEX)) {
+      return {
+        ok: false,
+        error: "Você já tem uma missão em mãos.",
+        erro: "Você já tem uma missão em mãos.",
+      };
+    }
+    throw error;
   }
 
+  if (reserved.length === 0) return invalidOffer();
+
+  // Se cair aqui, a missão já é do editor. A oferta pendente que sobrar expira
+  // sozinha em OFFER_MINUTES e não devolve a missão pra fila (o sweep só mexe
+  // em status 'oferecida').
   await sql`
-    UPDATE pautas
-    SET status = 'reservada',
-        reservada_por_id = ${editorId},
-        reservada_em = now()
-    WHERE id = ${missionId} AND status = 'oferecida'
+    UPDATE ofertas SET status = 'aceita', respondida_em = now()
+    WHERE pauta_id = ${missionId} AND editor_id = ${editorId} AND status = 'pendente'
   `;
+
   return { ok: true };
 }
 
@@ -236,23 +264,23 @@ export async function rejectOffer(
   missionId: number,
   editorId: number,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
-  const closed = await sql`
-    UPDATE ofertas SET status = 'rejeitada', respondida_em = now()
-    WHERE pauta_id = ${missionId} AND editor_id = ${editorId} AND status = 'pendente'
-    RETURNING id
+  // Recusar e devolver a missão pra fila no mesmo comando: separados, uma falha
+  // entre eles deixava a missão presa em 'oferecida' sem oferta pendente, e o
+  // sweep de expiração não a resgatava (ele só olha ofertas pendentes).
+  const declined = await sql`
+    WITH declined AS (
+      UPDATE ofertas SET status = 'rejeitada', respondida_em = now()
+      WHERE pauta_id = ${missionId} AND editor_id = ${editorId} AND status = 'pendente'
+      RETURNING pauta_id
+    ), released AS (
+      UPDATE pautas SET status = 'disponivel'
+      WHERE id IN (SELECT pauta_id FROM declined) AND status = 'oferecida'
+      RETURNING id
+    )
+    SELECT pauta_id FROM declined
   `;
-  if (closed.length === 0) {
-    return {
-      ok: false,
-      error: "Essa oferta não é mais válida.",
-      erro: "Essa oferta não é mais válida.",
-    };
-  }
+  if (declined.length === 0) return invalidOffer();
 
-  await sql`
-    UPDATE pautas SET status = 'disponivel'
-    WHERE id = ${missionId} AND status = 'oferecida'
-  `;
   return { ok: true };
 }
 
