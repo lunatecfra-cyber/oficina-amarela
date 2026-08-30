@@ -51,6 +51,30 @@ CREATE INDEX idx_pautas_fila
 CREATE INDEX idx_pautas_porta_voz ON pautas (porta_voz_id);
 CREATE INDEX idx_pautas_reservada_por ON pautas (reservada_por_id);
 
+CREATE TABLE mensagens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pauta_id INTEGER NOT NULL REFERENCES pautas(id) ON DELETE CASCADE,
+  autor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  texto TEXT NOT NULL,
+  criada_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE INDEX idx_mensagens_pauta ON mensagens (pauta_id, criada_em);
+
+CREATE TABLE denuncias (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pauta_id INTEGER NOT NULL REFERENCES pautas(id) ON DELETE CASCADE,
+  denunciante_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  denunciado_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  texto TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'aberta'
+    CHECK (status IN ('aberta', 'resolvida', 'ignorada')),
+  criada_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  resolvida_em TEXT
+);
+
+CREATE INDEX idx_denuncias_status ON denuncias (status, criada_em);
+
 CREATE TABLE ofertas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   pauta_id INTEGER NOT NULL REFERENCES pautas(id) ON DELETE CASCADE,
