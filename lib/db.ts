@@ -40,3 +40,24 @@ export function sql(strings: TemplateStringsArray, ...values: unknown[]) {
 }
 
 sql.json = (value: unknown) => getClient().json(value as never);
+
+/** Fecha o pool. Usado por testes e scripts pontuais; o app não chama. */
+sql.end = () => getClient().end();
+
+/** Nomes dos índices únicos que carregam invariantes de negócio (ver
+ *  supabase/migrations/20260830_add_mission_concurrency_invariants.sql). */
+export const ACTIVE_MISSION_PER_EDITOR_INDEX = "idx_pautas_missao_ativa_por_editor";
+export const OFFER_PER_MISSION_EDITOR_INDEX = "idx_ofertas_missao_editor";
+
+/**
+ * Detecta violação de unicidade do PostgreSQL (SQLSTATE 23505), opcionalmente
+ * de uma restrição específica. Em D1/SQLite o código muda para
+ * SQLITE_CONSTRAINT_UNIQUE — ponto único de tradução quando a migração chegar.
+ */
+export function isUniqueViolation(error: unknown, constraint?: string): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const e = error as { code?: unknown; constraint_name?: unknown; constraint?: unknown };
+  if (e.code !== "23505") return false;
+  if (!constraint) return true;
+  return e.constraint_name === constraint || e.constraint === constraint;
+}

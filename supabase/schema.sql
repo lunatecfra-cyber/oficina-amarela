@@ -101,6 +101,13 @@ CREATE INDEX IF NOT EXISTS idx_pautas_status ON pautas (status);
 CREATE INDEX IF NOT EXISTS idx_pautas_porta_voz ON pautas (porta_voz_id);
 CREATE INDEX IF NOT EXISTS idx_pautas_reservada_por ON pautas (reservada_por_id);
 
+-- Invariante: um editor segura no máximo uma missão ativa por vez.
+-- Mesmo conjunto de status usado por reserveMission() e getNextEditor().
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pautas_missao_ativa_por_editor
+  ON pautas (reservada_por_id)
+  WHERE reservada_por_id IS NOT NULL
+    AND status IN ('reservada', 'em_revisao', 'reedicao');
+
 CREATE TABLE IF NOT EXISTS portfolio (
   id SERIAL PRIMARY KEY,
   user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -138,6 +145,9 @@ CREATE TABLE IF NOT EXISTS ofertas (
 
 CREATE INDEX IF NOT EXISTS idx_ofertas_editor_status ON ofertas (editor_id, status);
 CREATE INDEX IF NOT EXISTS idx_ofertas_pauta ON ofertas (pauta_id);
+
+-- Invariante: um editor recebe no máximo uma oferta por missão.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_missao_editor ON ofertas (pauta_id, editor_id);
 
 CREATE TABLE IF NOT EXISTS mensagens (
   id SERIAL PRIMARY KEY,
