@@ -106,6 +106,45 @@ export async function targetColumns(db: D1DatabaseLike, table: string): Promise<
   return results.map((column) => column.name);
 }
 
+/** Colunas que a origem realmente tem. */
+export async function sourceColumns(sql: SqlClient, table: string): Promise<Set<string>> {
+  const rows = await sql(
+    rawQuery(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = '${table}'`,
+    ),
+  );
+  return new Set((rows as unknown as Array<{ column_name: string }>).map((r) => r.column_name));
+}
+
+export type ColumnGap = { table: string; missing: string[] };
+
+/**
+ * O que o destino espera e a origem não tem.
+ *
+ * O recorte de colunas vem do PRAGMA do D1, então basta a origem estar uma
+ * migração atrás para o SELECT citar coluna que não existe — e a carga morria
+ * no meio, com o erro cru do PostgreSQL ("column whatsapp does not exist") e
+ * nenhuma pista de que faltava aplicar `supabase/migrations` na origem.
+ *
+ * Conferir antes de escrever qualquer linha é o que transforma isso num
+ * recado acionável em vez de uma migração pela metade.
+ */
+export async function findColumnGaps(
+  sql: SqlClient,
+  db: D1DatabaseLike,
+  plan: MigrationTable[] = MIGRATION_PLAN,
+): Promise<ColumnGap[]> {
+  const gaps: ColumnGap[] = [];
+  for (const entry of plan) {
+    const expected = await targetColumns(db, entry.table);
+    const available = await sourceColumns(sql, entry.source ?? entry.table);
+    const missing = expected.filter((column) => !available.has(column));
+    if (missing.length) gaps.push({ table: entry.table, missing });
+  }
+  return gaps;
+}
+
 /**
  * PostgreSQL devolve Date, boolean e objeto; o SQLite guarda texto, inteiro e
  * número. A conversão fica num lugar só para as duas pontas concordarem sobre
@@ -152,9 +191,10 @@ async function loadTable(
   sql: SqlClient,
   db: D1DatabaseLike,
   plan: MigrationTable,
-  options: { dryRun: boolean; batchSize: number },
+  options: { dryRun: boolean; batchSize: number; gaps?: ColumnGap[] },
 ): Promise<{ report: TableReport; deferred: Record<string, unknown>[] }> {
-  const columns = await targetColumns(db, plan.table);
+  const absent = new Set(options.gaps?.find((gap) => gap.table === plan.table)?.missing ?? []);
+  const columns = (await targetColumns(db, plan.table)).filter((column) => !absent.has(column));
   const deferred = new Set(plan.deferredColumns ?? []);
   const insertColumns = columns.filter((column) => !deferred.has(column));
   const source = plan.source ?? plan.table;
@@ -227,6 +267,12 @@ export type MigrateOptions = {
   dryRun?: boolean;
   batchSize?: number;
   plan?: MigrationTable[];
+  /**
+   * Carrega mesmo com coluna faltando na origem, deixando-a nula no destino.
+   * Só para migrar de uma origem que nunca terá aquela coluna — por padrão a
+   * carga para e manda aplicar as migrações na origem.
+   */
+  allowMissingColumns?: boolean;
 };
 
 export async function migrateToD1(
@@ -238,11 +284,22 @@ export async function migrateToD1(
   const batchSize = options.batchSize ?? 200;
   const plan = options.plan ?? MIGRATION_PLAN;
 
+  const gaps = await findColumnGaps(sql, db, plan);
+  if (gaps.length && !options.allowMissingColumns) {
+    const detail = gaps.map(({ table, missing }) => `  ${table}: ${missing.join(", ")}`).join("\n");
+    throw new Error(
+      "A origem não tem colunas que o destino espera:\n" +
+        `${detail}\n` +
+        "Aplique supabase/migrations na origem antes de migrar, ou use " +
+        "--aceitar-colunas-ausentes para carregá-las como nulas.",
+    );
+  }
+
   const tables: TableReport[] = [];
   const pending: Array<{ plan: MigrationTable; rows: Record<string, unknown>[] }> = [];
 
   for (const entry of plan) {
-    const { report, deferred } = await loadTable(sql, db, entry, { dryRun, batchSize });
+    const { report, deferred } = await loadTable(sql, db, entry, { dryRun, batchSize, gaps });
     tables.push(report);
     if (deferred.length) pending.push({ plan: entry, rows: deferred });
   }

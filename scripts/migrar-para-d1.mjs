@@ -9,6 +9,11 @@
  *   node scripts/migrar-para-d1.mjs --origem __LIT2__ --destino ./ensaio-d1
  *   node scripts/migrar-para-d1.mjs --origem __LIT3__ --destino ./ensaio-d1 --so-conferir
  *
+ * ANTES DE MIGRAR: aplique `supabase/migrations` na ORIGEM. O recorte de
+ * colunas vem do esquema do D1, então uma origem uma migração atrás faz o
+ * SELECT citar coluna que não existe. A carga confere isso antes de escrever
+ * qualquer linha e para com a lista do que falta.
+ *
  * O destino pode ser um D1 local (Miniflare) ou um D1 remoto de verdade:
  *
  *   node scripts/migrar-para-d1.mjs --origem "postgres://..." \
@@ -36,7 +41,7 @@ const root = path.join(here, "..");
 const { applyD1Tables, applyD1Triggers, dropD1Triggers } = await import(
   path.join(root, "packages/db/src/d1/schema.ts")
 );
-const { backfillD1EventTables, migrateToD1 } = await import(
+const { backfillD1EventTables, findColumnGaps, migrateToD1 } = await import(
   path.join(root, "packages/db/src/migration/pg-to-d1.ts")
 );
 const { validateMigration } = await import(
@@ -57,12 +62,14 @@ const target = option("destino") ?? process.env.MIGRACAO_DESTINO_D1;
 const remoteTarget = option("destino-remoto");
 const dryRun = hasFlag("a-seco");
 const validateOnly = hasFlag("so-conferir");
+const allowMissingColumns = hasFlag("aceitar-colunas-ausentes");
 
 if (!source || (!target && !remoteTarget)) {
   console.error(
     "Uso: --origem <postgres://...> --destino <pasta do D1 local>\n" +
       "     --origem <postgres://...> --destino-remoto <nome do banco D1>\n" +
       "     [--a-seco] só lê e relata; [--so-conferir] pula a carga e confere.\n" +
+      "     [--aceitar-colunas-ausentes] carrega mesmo faltando coluna na origem.\n" +
       "Origem e destino são obrigatórios de propósito.",
   );
   process.exit(2);
@@ -116,6 +123,22 @@ try {
       if (!/already exists/i.test(String(error))) throw error;
     });
 
+    // Conferir colunas ANTES de desligar gatilho. Parar aqui é seguro: nada foi
+    // escrito e o destino continua com os gatilhos que tinha. Parar depois
+    // deixaria um D1 sem gatilho nenhum, que é pior que não ter migrado.
+    const gaps = await findColumnGaps(sql, db);
+    if (gaps.length) {
+      const detail = gaps.map(({ table, missing }) => `  ${table}: ${missing.join(", ")}`);
+      if (!allowMissingColumns) {
+        throw new Error(
+          `A origem não tem colunas que o destino espera:\n${detail.join("\n")}\n` +
+            "Aplique supabase/migrations na origem antes de migrar, ou use " +
+            "--aceitar-colunas-ausentes para carregá-las como nulas.",
+        );
+      }
+      console.log(`Colunas ausentes na origem, entrarão nulas:\n${detail.join("\n")}\n`);
+    }
+
     // O destino real já vem com o esquema completo, gatilhos inclusive. Carregar
     // histórico com eles ligados reaplicaria pontuação, reputação, ranking e
     // auditoria. Desliga antes, religa no fim.
@@ -124,7 +147,7 @@ try {
       console.log(`Gatilhos desligados para a carga: ${dropped}\n`);
     }
 
-    const report = await migrateToD1(sql, db, { dryRun: dryRun });
+    const report = await migrateToD1(sql, db, { dryRun, allowMissingColumns });
     console.log("Tabelas:");
     printTable(report.tables);
 
