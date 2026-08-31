@@ -77,6 +77,33 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       return { ok: true, messages: rows.results.map(rowToMessage) };
     },
 
+    async messagesForMissions(missionIds, actor) {
+      if (actor.role !== "admin") return { ok: false, reason: "forbidden" as const };
+      const messages: Record<number, MissionMessage[]> = {};
+      if (missionIds.length === 0) return { ok: true as const, messages };
+
+      // D1 aceita no máximo 100 parâmetros por consulta; o painel do inspetor
+      // pode passar mais missões que isso.
+      const CHUNK = 50;
+      for (let start = 0; start < missionIds.length; start += CHUNK) {
+        const chunk = missionIds.slice(start, start + CHUNK);
+        const placeholders = chunk.map(() => "?").join(", ");
+        const rows = await db
+          .prepare(
+            `SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em
+             FROM mensagens m JOIN users u ON u.id = m.autor_id
+             WHERE m.pauta_id IN (${placeholders})
+             ORDER BY m.criada_em ASC, m.id ASC`,
+          )
+          .bind(...chunk)
+          .all<MessageRow>();
+        for (const row of rows.results) {
+          (messages[row.pauta_id] ??= []).push(rowToMessage(row));
+        }
+      }
+      return { ok: true as const, messages };
+    },
+
     async sendMessage(missionId, actor, rawText) {
       const text = limitStr(rawText, LIMITS.message);
       if (!text) return { ok: false, reason: "empty_message" };

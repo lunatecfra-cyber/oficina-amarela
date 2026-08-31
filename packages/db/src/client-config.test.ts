@@ -1,8 +1,11 @@
 // A ausência de DATABASE_URL não pode virar "banco vazio e saudável".
 //
-// Cada caso roda em processo separado porque lib/db.ts guarda o cliente em
+// Cada caso roda em processo separado porque client.ts guarda o cliente em
 // globalThis e o aviso em variável de módulo — reimportar no mesmo processo
 // devolveria o estado do caso anterior.
+//
+// Veio de apps/web quando o último acesso direto a banco saiu de lá; a
+// propriedade é do pacote de banco, não da aplicação web.
 
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
@@ -12,10 +15,10 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const PROBE = `
-  const { sql } = await import("@/lib/db");
+  const { sql } = await import("./src/client.ts");
   try {
     await sql\`SELECT 1\`;
     console.log("STUB");
@@ -27,18 +30,10 @@ const PROBE = `
 type ProbeEnv = { NODE_ENV: "production" | "development" } & Record<string, string>;
 
 async function probe(env: ProbeEnv) {
-  const { stdout } = await run(
-    process.execPath,
-    ["--import", "./scripts/test-alias-hooks.mjs", "--input-type=module", "-e", PROBE],
-    {
-      cwd: root,
-      env: {
-        PATH: process.env.PATH ?? "",
-        // DATABASE_URL, NEXT_PHASE e NODE_ENV entram só pelo caso de teste.
-        ...env,
-      },
-    },
-  );
+  const { stdout } = await run(process.execPath, ["--input-type=module", "-e", PROBE], {
+    cwd: packageRoot,
+    env: { PATH: process.env.PATH ?? "", ...env },
+  });
   return stdout.trim().split("\n").at(-1);
 }
 

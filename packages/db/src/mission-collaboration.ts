@@ -29,6 +29,10 @@ export type MissionCollaborationFailure =
   | "empty_message"
   | "empty_report";
 
+export type MissionMessagesByMissionResult =
+  | { ok: true; messages: Record<number, MissionMessage[]> }
+  | { ok: false; reason: MissionCollaborationFailure };
+
 export type MissionMessagesResult =
   | { ok: true; messages: MissionMessage[] }
   | { ok: false; reason: MissionCollaborationFailure };
@@ -43,6 +47,14 @@ export interface MissionCollaborationRepository {
     actor: Pick<MissionActor, "id" | "role">,
     after?: string,
   ): Promise<MissionMessagesResult>;
+  /**
+   * Mensagens de várias missões de uma vez. Só o inspetor usa, no painel: em
+   * requisição por missão isso vira N+1 na página que mais carrega dados.
+   */
+  messagesForMissions(
+    missionIds: number[],
+    actor: Pick<MissionActor, "id" | "role">,
+  ): Promise<MissionMessagesByMissionResult>;
   sendMessage(missionId: number, actor: MissionActor, text: string): Promise<MissionMessageResult>;
   reportMission(
     missionId: number,
@@ -127,6 +139,22 @@ export const postgresMissionCollaboration: MissionCollaborationRepository = {
           WHERE m.pauta_id = ${missionId}
           ORDER BY m.criada_em ASC`;
     return { ok: true, messages: (rows as unknown as MessageRow[]).map(rowToMessage) };
+  },
+
+  async messagesForMissions(missionIds, actor) {
+    if (actor.role !== "admin") return { ok: false, reason: "forbidden" };
+    const messages: Record<number, MissionMessage[]> = {};
+    if (missionIds.length === 0) return { ok: true, messages };
+
+    const rows = await sql`
+      SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em
+      FROM mensagens m JOIN users u ON u.id = m.autor_id
+      WHERE m.pauta_id = ANY(${missionIds})
+      ORDER BY m.criada_em ASC, m.id ASC`;
+    for (const row of rows as unknown as MessageRow[]) {
+      (messages[row.pauta_id] ??= []).push(rowToMessage(row));
+    }
+    return { ok: true, messages };
   },
 
   async sendMessage(missionId, actor, rawText) {

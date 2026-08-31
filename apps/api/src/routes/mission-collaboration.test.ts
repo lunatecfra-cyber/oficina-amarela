@@ -68,6 +68,33 @@ describe("colaboração da missão na API", {
     await sql`TRUNCATE denuncias, mensagens, ofertas, pautas, users RESTART IDENTITY CASCADE`;
   });
 
+  test("leitura em lote é só do inspetor e agrupa por missão", async () => {
+    await sql`
+      INSERT INTO mensagens (pauta_id, autor_id, texto)
+      VALUES (${missionId}, ${editorId}, 'primeira'), (${missionId}, ${spokespersonId}, 'segunda')
+    `;
+    const adminCookie = await cookieFor(spokespersonId, "voz.chat", "admin");
+    const batch = (cookie?: string, query = `?ids=${missionId}`) =>
+      app.request(`http://api.local/missions/messages${query}`, {
+        headers: cookie ? { cookie } : {},
+      });
+
+    assert.equal((await batch()).status, 401);
+    assert.equal((await batch(editorCookie)).status, 403, "editor não lê em lote");
+
+    const response = await batch(adminCookie);
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as { messages: Record<string, { text: string }[]> };
+    assert.equal(body.messages[String(missionId)].length, 2);
+
+    const empty = await batch(adminCookie, "?ids=");
+    assert.equal(empty.status, 200);
+    assert.deepEqual(((await empty.json()) as { messages: unknown }).messages, {});
+
+    const invalid = await batch(adminCookie, "?ids=abc");
+    assert.equal(invalid.status, 400);
+  });
+
   test("exige sessão em PT-BR", async () => {
     const response = await request("GET");
     assert.equal(response.status, 401);

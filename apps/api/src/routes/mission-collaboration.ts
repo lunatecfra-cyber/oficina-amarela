@@ -32,6 +32,30 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
   const routes = new Hono<MissionEnv>();
   routes.use("*", requireSession);
 
+  // Antes de "/:id": o painel do inspetor lê as mensagens de várias missões de
+  // uma vez, e em requisição por missão isso vira N+1.
+  routes.get("/messages", async (c) => {
+    const raw = c.req.query("ids") ?? "";
+    const missionIds = raw
+      .split(",")
+      .map((value) => Number(value.trim().replace(/^db-/, "")))
+      .filter((value) => Number.isInteger(value) && value > 0);
+
+    if (raw.trim() !== "" && missionIds.length === 0) {
+      return c.json({ error: "Lista de missões inválida." }, 400);
+    }
+
+    const result = await dependencies.missionCollaboration.messagesForMissions(
+      missionIds,
+      c.get("session"),
+    );
+    if (!result.ok) {
+      const response = failure(result.reason);
+      return c.json({ error: response.error }, response.status);
+    }
+    return c.json({ messages: result.messages });
+  });
+
   routes.get("/:id", async (c, next) => {
     const missionId = missionIdOf(c.req.param("id"));
     if (missionId === null) return next();
