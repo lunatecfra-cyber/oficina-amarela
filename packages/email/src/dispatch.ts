@@ -1,5 +1,5 @@
 import { type DrainResult, drainEmailQueue, enqueueEmails } from "@oficina/db/email-queue";
-import { deliverEmail, type EmailContent } from "./messages.ts";
+import { buildPasswordRecoveryEmail, deliverEmail, type EmailContent } from "./messages.ts";
 
 /**
  * Liga a caixa de saída ao provedor de e-mail.
@@ -70,4 +70,21 @@ export async function queueBroadcastEmail(
       `,
     },
   ]);
+}
+
+/**
+ * Enfileira o link de recuperação.
+ *
+ * Antes o envio era direto, dentro da requisição, e sem proteção: com o
+ * provedor não configurado ele lançava, a rota respondia 500 para e-mail que
+ * existe e 200 para e-mail que não existe — e isso enumerava conta, exatamente
+ * o que a rota tenta impedir. Enfileirar é uma escrita no banco: não depende do
+ * provedor estar de pé, e a resposta fica igual nos dois casos.
+ *
+ * A chave usa o minuto: pedir de novo dentro do minuto não manda dois e-mails.
+ */
+export async function queueRecoveryEmail(to: string, name: string, link: string): Promise<void> {
+  const { subject, html } = buildPasswordRecoveryEmail(name, link);
+  const minute = new Date().toISOString().slice(0, 16);
+  await enqueueEmails([{ key: `recovery:${to.toLowerCase()}:${minute}`, to, subject, html }]);
 }

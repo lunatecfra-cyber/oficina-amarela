@@ -53,7 +53,14 @@ async function wrangler(args, attempt = 0) {
 
 async function d1(command) {
   const stdout = await wrangler([
-    "d1", "execute", D1, "--remote", "--yes", "--json", "--command", command,
+    "d1",
+    "execute",
+    D1,
+    "--remote",
+    "--yes",
+    "--json",
+    "--command",
+    command,
   ]);
   const start = stdout.indexOf("[");
   return start === -1 ? [] : (JSON.parse(stdout.slice(start))[0]?.results ?? []);
@@ -119,11 +126,16 @@ async function freshMission() {
   const missionId = await freshMission();
   const responses = await Promise.all(editors.map((editor) => reserve(missionId, editor.cookie)));
   const winners = responses.filter((response) => response.ok).length;
-  const [row] = await d1(
-    `SELECT status, reservada_por_id FROM pautas WHERE id = ${missionId}`,
+  const [row] = await d1(`SELECT status, reservada_por_id FROM pautas WHERE id = ${missionId}`);
+  check(
+    "uma missão disputada por 5 editores tem exatamente 1 vencedor",
+    winners === 1,
+    `ok=${winners}`,
   );
-  check("uma missão disputada por 5 editores tem exatamente 1 vencedor", winners === 1, `ok=${winners}`);
-  check("a missão fica reservada para alguém", row.status === "reservada" && row.reservada_por_id !== null);
+  check(
+    "a missão fica reservada para alguém",
+    row.status === "reservada" && row.reservada_por_id !== null,
+  );
 }
 
 // ------------------------------------------ 2. um editor, muitas missões
@@ -136,7 +148,11 @@ async function freshMission() {
     `SELECT count(*) AS n FROM pautas WHERE reservada_por_id = ${editor.id} AND status IN ('reservada','em_revisao','reedicao')`,
   );
   check("um editor pedindo 4 missões ao mesmo tempo fica com 1", winners <= 1, `ok=${winners}`);
-  check("o banco confirma no máximo uma missão ativa por editor", Number(row.n) <= 1, `ativas=${row.n}`);
+  check(
+    "o banco confirma no máximo uma missão ativa por editor",
+    Number(row.n) <= 1,
+    `ativas=${row.n}`,
+  );
 }
 
 // ------------------------------------------------ 3. reserva repetida

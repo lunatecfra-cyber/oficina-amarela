@@ -138,8 +138,8 @@ export function d1ApiDependencies(db: D1DatabaseLike): ApiDependencies {
  */
 async function sendRecoveryEmail(userId: number, email: string, name: string): Promise<void> {
   const { createRecoveryToken } = await import("@oficina/auth/session");
-  const { sendPasswordRecoveryEmail } = await import("@oficina/email/messages");
+  const { queueRecoveryEmail } = await import("@oficina/email/dispatch");
   const token = await createRecoveryToken(userId);
   const origin = process.env.PUBLIC_ORIGIN ?? "https://oficinaamarela.com.br";
-  await sendPasswordRecoveryEmail(email, name, `${origin}/redefinir-senha?token=${token}`);
+  await queueRecoveryEmail(email, name, `${origin}/redefinir-senha?token=${token}`);
 }

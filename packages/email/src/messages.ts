@@ -36,14 +36,10 @@ export function isTestSender(): boolean {
 
 export const remetenteEhDeTeste = isTestSender;
 
-export async function sendPasswordRecoveryEmail(
-  to: string,
-  name: string,
-  link: string,
-): Promise<boolean> {
-  const { error } = await getClient().emails.send({
-    from: SENDER,
-    to,
+export type EmailContent = { subject: string; html: string };
+
+export function buildPasswordRecoveryEmail(name: string, link: string): EmailContent {
+  return {
     subject: "Recuperar sua senha — Oficina Amarela",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1c1c22;">
@@ -58,13 +54,16 @@ export async function sendPasswordRecoveryEmail(
         <p style="font-size: 13px; color: #666;">Esse link expira em 30 minutos.</p>
       </div>
     `,
-  });
+  };
+}
 
-  if (error) {
-    console.error("[email] falha ao mandar recuperação:", error);
-    return false;
-  }
-  return true;
+export async function sendPasswordRecoveryEmail(
+  to: string,
+  name: string,
+  link: string,
+): Promise<boolean> {
+  const { subject, html } = buildPasswordRecoveryEmail(name, link);
+  return deliverEmail(to, subject, html);
 }
 
 export const enviarEmailRecuperacao = sendPasswordRecoveryEmail;
@@ -229,8 +228,6 @@ export function notifyReEditRequested(
   return sendNotification(destination, subject, html);
 }
 export const avisarReedicaoPedida = notifyReEditRequested;
-
-export type EmailContent = { subject: string; html: string };
 
 export function buildEditorsQueueEmail(name: string, inQueue: number, url: string): EmailContent {
   return {

@@ -43,18 +43,29 @@ async function wrangler(args, attempt = 0) {
     });
     return stdout;
   } catch (error) {
-    if (attempt >= 3 || !/Authentication error|code: 10000|fetch failed/.test(String(error))) throw error;
+    if (attempt >= 3 || !/Authentication error|code: 10000|fetch failed/.test(String(error)))
+      throw error;
     await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
     return wrangler(args, attempt + 1);
   }
 }
 
 const d1 = async (command) => {
-  const stdout = await wrangler(["d1", "execute", D1, "--remote", "--yes", "--json", "--command", command]);
+  const stdout = await wrangler([
+    "d1",
+    "execute",
+    D1,
+    "--remote",
+    "--yes",
+    "--json",
+    "--command",
+    command,
+  ]);
   const start = stdout.indexOf("[");
   return start === -1 ? [] : (JSON.parse(stdout.slice(start))[0]?.results ?? []);
 };
-const d1Exec = (command) => wrangler(["d1", "execute", D1, "--remote", "--yes", "--command", command]);
+const d1Exec = (command) =>
+  wrangler(["d1", "execute", D1, "--remote", "--yes", "--command", command]);
 
 async function login(handle) {
   const response = await fetch(`${API}/auth/login`, {
@@ -92,10 +103,16 @@ step("inspetor e editor entram", Boolean(adminCookie && editorCookie));
 
 // ------------------------------------------------ 2. convite oficial emitido
 const voiceEmail = `voz.j${stamp}@teste.local`;
-const invitationResponse = await call("/admin/invitations", adminCookie, "POST", { email: voiceEmail });
+const invitationResponse = await call("/admin/invitations", adminCookie, "POST", {
+  email: voiceEmail,
+});
 const invitationBody = await invitationResponse.json().catch(() => ({}));
 const token = invitationBody.token ?? invitationBody.convite ?? invitationBody.invitation;
-step("inspetor emite convite de porta-voz", invitationResponse.ok && Boolean(token), `status=${invitationResponse.status}`);
+step(
+  "inspetor emite convite de porta-voz",
+  invitationResponse.ok && Boolean(token),
+  `status=${invitationResponse.status}`,
+);
 
 // -------------------------------------------- 3. porta-voz resgata e entra
 const signupResponse = await call("/auth/signup", null, "POST", {
@@ -106,8 +123,13 @@ const signupResponse = await call("/auth/signup", null, "POST", {
   role: "spokesperson",
   invitation: token,
 });
-step("porta-voz resgata o convite e vira conta oficial", signupResponse.ok, `status=${signupResponse.status}`);
-const voiceCookie = signupResponse.headers.get("set-cookie")?.split(";")[0] ?? (await login(`voz.j${stamp}`));
+step(
+  "porta-voz resgata o convite e vira conta oficial",
+  signupResponse.ok,
+  `status=${signupResponse.status}`,
+);
+const voiceCookie =
+  signupResponse.headers.get("set-cookie")?.split(";")[0] ?? (await login(`voz.j${stamp}`));
 
 const [voiceRow] = await d1(`SELECT papel FROM users WHERE email = '${voiceEmail}'`);
 step("a conta nasce com papel de porta-voz", voiceRow?.papel === "voz", `papel=${voiceRow?.papel}`);
@@ -137,7 +159,11 @@ for (let attempt = 0; attempt < 20 && offerResponse.status !== 200; attempt++) {
   await new Promise((resolve) => setTimeout(resolve, 3000));
   offerResponse = await call("/editor/queue/next", editorCookie);
 }
-step("a missão é oferecida ao editor", offerResponse.status === 200, `status=${offerResponse.status}`);
+step(
+  "a missão é oferecida ao editor",
+  offerResponse.status === 200,
+  `status=${offerResponse.status}`,
+);
 
 const acceptResponse = await call("/editor/queue/next", editorCookie, "POST", {
   missionId,
@@ -145,8 +171,13 @@ const acceptResponse = await call("/editor/queue/next", editorCookie, "POST", {
 });
 step("editor aceita a oferta", acceptResponse.ok, `status=${acceptResponse.status}`);
 
-const [afterAccept] = await d1(`SELECT status, reservada_por_id FROM pautas WHERE id = ${missionId}`);
-step("a missão fica com o editor", afterAccept?.status === "reservada" && afterAccept?.reservada_por_id === editor.id);
+const [afterAccept] = await d1(
+  `SELECT status, reservada_por_id FROM pautas WHERE id = ${missionId}`,
+);
+step(
+  "a missão fica com o editor",
+  afterAccept?.status === "reservada" && afterAccept?.reservada_por_id === editor.id,
+);
 
 // --------------------------------------------------------------- 6. conversa
 const messageResponse = await call(`/missions/db-${missionId}`, editorCookie, "POST", {
@@ -155,7 +186,10 @@ const messageResponse = await call(`/missions/db-${missionId}`, editorCookie, "P
 });
 const readResponse = await call(`/missions/db-${missionId}`, voiceCookie);
 const readBody = await readResponse.json().catch(() => ({}));
-step("editor manda mensagem e porta-voz lê", messageResponse.ok && (readBody.messages?.length ?? 0) >= 1);
+step(
+  "editor manda mensagem e porta-voz lê",
+  messageResponse.ok && (readBody.messages?.length ?? 0) >= 1,
+);
 
 // ------------------------------------------------- 7. entrega, revisão, nova
 const deliverResponse = await call(`/missions/db-${missionId}`, editorCookie, "POST", {
@@ -187,15 +221,21 @@ step("porta-voz aprova", approveResponse.ok, `status=${approveResponse.status}`)
 const [after] = await d1(`SELECT entregues, reputacao FROM users WHERE id = ${editor.id}`);
 step(
   "aprovação move entregas e reputação",
-  Number(after?.entregues) > Number(before?.entregues) && Number(after?.reputacao) > Number(before?.reputacao),
+  Number(after?.entregues) > Number(before?.entregues) &&
+    Number(after?.reputacao) > Number(before?.reputacao),
   `entregues ${before?.entregues}->${after?.entregues} reputacao ${before?.reputacao}->${after?.reputacao}`,
 );
 
-const [scored] = await d1(`SELECT count(*) AS n FROM ranking_aprovacoes WHERE pauta_id = ${missionId} AND anulado_em IS NULL`);
+const [scored] = await d1(
+  `SELECT count(*) AS n FROM ranking_aprovacoes WHERE pauta_id = ${missionId} AND anulado_em IS NULL`,
+);
 step("a aprovação pontua no ranking eleitoral", Number(scored?.n) === 1, `linhas=${scored?.n}`);
 
 // ------------------------------------------- 9. aprovação repetida é idempotente
-const again = await call(`/missions/db-${missionId}`, voiceCookie, "POST", { action: "approve", rating: 5 });
+const again = await call(`/missions/db-${missionId}`, voiceCookie, "POST", {
+  action: "approve",
+  rating: 5,
+});
 const [afterAgain] = await d1(`SELECT entregues FROM users WHERE id = ${editor.id}`);
 step(
   "aprovar de novo não pontua duas vezes",

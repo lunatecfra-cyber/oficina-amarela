@@ -192,7 +192,13 @@ export function createAuthRoutes(dependencies: ApiDependencies) {
     ]);
 
     const account = await accounts.findByEmail(email);
-    if (account) await dependencies.sendRecoveryEmail(account.id, account.email, account.name);
+    if (account) {
+      // A resposta não pode depender do envio: qualquer falha aqui viraria
+      // 500 para conta existente e 200 para inexistente, que é enumeração.
+      await dependencies
+        .sendRecoveryEmail(account.id, account.email, account.name)
+        .catch((error) => console.error("[recuperação] falha ao enfileirar", error));
+    }
 
     return c.json(RECOVERY_REPLY);
   });

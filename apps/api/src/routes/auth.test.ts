@@ -188,3 +188,38 @@ describe("autenticação na API", {
     await sql`UPDATE users SET senha_hash = ${hash} WHERE id = ${user.id}`;
   });
 });
+
+describe("recuperação de senha não enumera conta", {
+  skip: process.env.TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado",
+}, () => {
+  const app = createApp();
+
+  const recover = (email: string) =>
+    app.request("http://api.local/auth/recover", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+  test("e-mail conhecido e desconhecido respondem igual", async () => {
+    const { sql } = await import("@oficina/db/client");
+    await sql`DELETE FROM tentativas_login`;
+    await sql`DELETE FROM users WHERE email = 'enumera@teste.local'`;
+    await sql`
+      INSERT INTO users (apelido, nome, email, papel, senha_hash)
+      VALUES ('enumera.teste', 'Enumera', 'enumera@teste.local', 'editor', 'x')
+    `;
+
+    // O provedor de e-mail não está configurado no teste, que é exatamente a
+    // condição em que a rota respondia 500 para conta existente.
+    const known = await recover("enumera@teste.local");
+    const unknown = await recover("nao.existe.jamais@teste.local");
+
+    assert.equal(known.status, unknown.status, "status diferente já enumera conta");
+    assert.equal(known.status, 200);
+    assert.deepEqual(await known.json(), await unknown.json(), "corpo diferente também enumera");
+
+    await sql`DELETE FROM users WHERE email = 'enumera@teste.local'`;
+    await sql`DELETE FROM fila_emails WHERE chave LIKE 'recovery:%'`;
+  });
+});
