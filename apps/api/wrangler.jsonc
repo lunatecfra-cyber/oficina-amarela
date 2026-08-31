@@ -57,6 +57,10 @@
     // -------------------------------------------------------------------
     "staging": {
       "name": "oficina-amarela-api-staging",
+      // Base dos links que saem por e-mail (recuperação de senha, avisos).
+      // Sem isto o link de recuperação do staging apontava para produção: a
+      // pessoa testava em staging e recebia um e-mail levando ao site real.
+      "vars": { "PUBLIC_ORIGIN": "https://oficina-amarela-web-staging.casamarela.workers.dev" },
       "observability": { "enabled": true },
 
       // A presença deste binding leva o conjunto inteiro de repositórios para o
@@ -118,6 +122,10 @@
     // -------------------------------------------------------------------
     "production": {
       "name": "oficina-amarela-api",
+      // Base dos links que saem por e-mail (recuperação de senha, avisos).
+      // O domínio final. Explícito para não depender do padrão embutido no
+      // código quando o staging deixar de usá-lo.
+      "vars": { "PUBLIC_ORIGIN": "https://oficinaamarela.com.br" },
       "observability": { "enabled": true },
 
       "d1_databases": [
