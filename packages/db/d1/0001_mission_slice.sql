@@ -1,6 +1,16 @@
+-- Schema D1 da Oficina Amarela.
+--
+-- Aplicar com `node scripts/aplicar-schema-d1.mjs <ambiente>`, nunca com
+-- `wrangler d1 migrations apply`: o splitter de migração corta em ";" e quebra
+-- o corpo dos CREATE TRIGGER, falhando com "incomplete input" no meio do
+-- arquivo e deixando o banco pela metade.
+--
+-- Todo comando é IF NOT EXISTS, então reaplicar é seguro — inclusive depois de
+-- uma falha parcial.
+
 -- First D1 slice only: mission lifecycle, offer queue invariants, and outbox idempotency.
 -- Timestamps use sortable UTC ISO-8601 text throughout this slice.
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   apelido TEXT NOT NULL,
   nome TEXT NOT NULL,
@@ -49,13 +59,13 @@ CREATE TABLE users (
   indicado_por_id INTEGER REFERENCES users(id)
 );
 
-CREATE UNIQUE INDEX idx_users_apelido ON users (lower(apelido));
-CREATE UNIQUE INDEX idx_users_email ON users (lower(email));
-CREATE UNIQUE INDEX idx_users_google_id ON users (google_id) WHERE google_id IS NOT NULL;
-CREATE UNIQUE INDEX idx_users_codigo_indicacao
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_apelido ON users (lower(apelido));
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users (lower(email));
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users (google_id) WHERE google_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_codigo_indicacao
   ON users (codigo_indicacao) WHERE codigo_indicacao IS NOT NULL;
 
-CREATE TABLE pautas (
+CREATE TABLE IF NOT EXISTS pautas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   porta_voz_id INTEGER NOT NULL REFERENCES users(id),
   titulo TEXT NOT NULL,
@@ -84,17 +94,17 @@ CREATE TABLE pautas (
 
 -- One active mission per editor. Durable Objects may coordinate claims later;
 -- this index remains the durable database invariant.
-CREATE UNIQUE INDEX idx_pautas_missao_ativa_por_editor
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pautas_missao_ativa_por_editor
   ON pautas (reservada_por_id)
   WHERE reservada_por_id IS NOT NULL
     AND status IN ('reservada', 'em_revisao', 'reedicao');
-CREATE INDEX idx_pautas_fila
+CREATE INDEX IF NOT EXISTS idx_pautas_fila
   ON pautas (prioridade DESC, criada_em ASC)
   WHERE status IN ('disponivel', 'oferecida');
-CREATE INDEX idx_pautas_porta_voz ON pautas (porta_voz_id);
-CREATE INDEX idx_pautas_reservada_por ON pautas (reservada_por_id);
+CREATE INDEX IF NOT EXISTS idx_pautas_porta_voz ON pautas (porta_voz_id);
+CREATE INDEX IF NOT EXISTS idx_pautas_reservada_por ON pautas (reservada_por_id);
 
-CREATE TABLE mensagens (
+CREATE TABLE IF NOT EXISTS mensagens (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   pauta_id INTEGER NOT NULL REFERENCES pautas(id) ON DELETE CASCADE,
   autor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -102,9 +112,9 @@ CREATE TABLE mensagens (
   criada_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
-CREATE INDEX idx_mensagens_pauta ON mensagens (pauta_id, criada_em);
+CREATE INDEX IF NOT EXISTS idx_mensagens_pauta ON mensagens (pauta_id, criada_em);
 
-CREATE TABLE denuncias (
+CREATE TABLE IF NOT EXISTS denuncias (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   pauta_id INTEGER NOT NULL REFERENCES pautas(id) ON DELETE CASCADE,
   denunciante_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -116,9 +126,9 @@ CREATE TABLE denuncias (
   resolvida_em TEXT
 );
 
-CREATE INDEX idx_denuncias_status ON denuncias (status, criada_em);
+CREATE INDEX IF NOT EXISTS idx_denuncias_status ON denuncias (status, criada_em);
 
-CREATE TABLE avaliacoes (
+CREATE TABLE IF NOT EXISTS avaliacoes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   pauta_id INTEGER NOT NULL REFERENCES pautas(id) ON DELETE CASCADE,
   editor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -127,9 +137,9 @@ CREATE TABLE avaliacoes (
   criada_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
-CREATE INDEX idx_avaliacoes_editor ON avaliacoes (editor_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_editor ON avaliacoes (editor_id);
 
-CREATE TABLE ranking_ciclos (
+CREATE TABLE IF NOT EXISTS ranking_ciclos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nome TEXT NOT NULL,
   inicia_em TEXT NOT NULL,
@@ -141,7 +151,7 @@ CREATE TABLE ranking_ciclos (
   criado_por INTEGER REFERENCES users(id)
 );
 
-CREATE TABLE ranking_aprovacoes (
+CREATE TABLE IF NOT EXISTS ranking_aprovacoes (
   pauta_id INTEGER PRIMARY KEY REFERENCES pautas(id) ON DELETE CASCADE,
   ciclo_id INTEGER NOT NULL REFERENCES ranking_ciclos(id),
   editor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -152,11 +162,11 @@ CREATE TABLE ranking_aprovacoes (
   motivo_anulacao TEXT
 );
 
-CREATE INDEX idx_ranking_aprovacoes_editor
+CREATE INDEX IF NOT EXISTS idx_ranking_aprovacoes_editor
   ON ranking_aprovacoes (ciclo_id, editor_id, aprovado_em)
   WHERE anulado_em IS NULL;
 
-CREATE TABLE indicacoes_recompensas (
+CREATE TABLE IF NOT EXISTS indicacoes_recompensas (
   convidado_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   convidador_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   pontos INTEGER NOT NULL DEFAULT 100 CHECK (pontos = 100),
@@ -169,14 +179,14 @@ CREATE TABLE indicacoes_recompensas (
 -- de URL de upload — a chave carrega o assunto. O estado mora no banco de
 -- propósito: contador em memória de processo não vale nada quando há vários
 -- isolates, que é exatamente o caso nos Workers.
-CREATE TABLE tentativas_login (
+CREATE TABLE IF NOT EXISTS tentativas_login (
   chave TEXT PRIMARY KEY,
   tentativas INTEGER NOT NULL DEFAULT 0,
   primeira_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   travado_ate TEXT
 );
 
-CREATE TABLE auditoria_admin (
+CREATE TABLE IF NOT EXISTS auditoria_admin (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ator_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   acao TEXT NOT NULL,
@@ -189,7 +199,7 @@ CREATE TABLE auditoria_admin (
 -- Eventos de gamificação. A unicidade por (usuário, regra, referência) é o que
 -- torna o registro idempotente: o mesmo evento não pontua duas vezes, mesmo
 -- que a chamada se repita.
-CREATE TABLE gamificacao_eventos (
+CREATE TABLE IF NOT EXISTS gamificacao_eventos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   regra_id TEXT NOT NULL CHECK (regra_id IN ('entrada_diaria', 'missao_entregue')),
@@ -202,7 +212,7 @@ CREATE TABLE gamificacao_eventos (
 -- Bloqueios de constância concedidos pelo inspetor. O máximo de dois por editor
 -- é regra de aplicação, não de esquema: o PostgreSQL também não tem índice que
 -- a segure, e quem garante é a trava na linha do editor.
-CREATE TABLE bloqueios_constancia (
+CREATE TABLE IF NOT EXISTS bloqueios_constancia (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   editor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   concedido_por INTEGER NOT NULL REFERENCES users(id),
@@ -212,11 +222,11 @@ CREATE TABLE bloqueios_constancia (
   consumido_em TEXT
 );
 
-CREATE INDEX idx_bloqueios_constancia_disponiveis
+CREATE INDEX IF NOT EXISTS idx_bloqueios_constancia_disponiveis
   ON bloqueios_constancia (editor_id, concedido_em)
   WHERE consumido_em IS NULL;
 
-CREATE TABLE convites_porta_voz (
+CREATE TABLE IF NOT EXISTS convites_porta_voz (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT NOT NULL,
   token_hash TEXT NOT NULL UNIQUE,
@@ -229,14 +239,14 @@ CREATE TABLE convites_porta_voz (
   revogado_por INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE UNIQUE INDEX idx_convites_porta_voz_email_aberto
+CREATE UNIQUE INDEX IF NOT EXISTS idx_convites_porta_voz_email_aberto
   ON convites_porta_voz (lower(email))
   WHERE usado_em IS NULL AND revogado_em IS NULL;
 
 -- The redemption row is the single-use invariant. Creating it inserts the
 -- official spokesperson account, claims the invitation and writes the audit
 -- record inside the same D1 statement.
-CREATE TABLE invitation_redemptions (
+CREATE TABLE IF NOT EXISTS invitation_redemptions (
   token_hash TEXT PRIMARY KEY REFERENCES convites_porta_voz(token_hash),
   email TEXT NOT NULL,
   apelido TEXT NOT NULL,
@@ -248,7 +258,7 @@ CREATE TABLE invitation_redemptions (
   resgatado_em TEXT NOT NULL
 );
 
-CREATE TRIGGER apply_invitation_redemption
+CREATE TRIGGER IF NOT EXISTS apply_invitation_redemption
 AFTER INSERT ON invitation_redemptions
 BEGIN
   INSERT INTO users (
@@ -271,7 +281,7 @@ END;
 -- One durable approval event per mission. The trigger keeps every scoring side
 -- effect in the same D1 statement, so retries and concurrent requests cannot
 -- double-score even without PostgreSQL row locks.
-CREATE TABLE mission_approvals (
+CREATE TABLE IF NOT EXISTS mission_approvals (
   pauta_id INTEGER PRIMARY KEY REFERENCES pautas(id) ON DELETE CASCADE,
   editor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   aprovado_por INTEGER NOT NULL REFERENCES users(id),
@@ -281,7 +291,7 @@ CREATE TABLE mission_approvals (
   aprovado_em TEXT NOT NULL
 );
 
-CREATE TRIGGER apply_mission_approval
+CREATE TRIGGER IF NOT EXISTS apply_mission_approval
 AFTER INSERT ON mission_approvals
 BEGIN
   UPDATE pautas
@@ -342,7 +352,7 @@ BEGIN
     AND changes() = 1;
 END;
 
-CREATE TABLE ofertas (
+CREATE TABLE IF NOT EXISTS ofertas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   pauta_id INTEGER NOT NULL REFERENCES pautas(id) ON DELETE CASCADE,
   editor_id INTEGER NOT NULL REFERENCES users(id),
@@ -353,19 +363,19 @@ CREATE TABLE ofertas (
   ordem INTEGER NOT NULL DEFAULT 1
 );
 
-CREATE UNIQUE INDEX idx_ofertas_missao_editor ON ofertas (pauta_id, editor_id);
-CREATE UNIQUE INDEX idx_ofertas_pendente_por_missao
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_missao_editor ON ofertas (pauta_id, editor_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_pendente_por_missao
   ON ofertas (pauta_id) WHERE status = 'pendente';
-CREATE UNIQUE INDEX idx_ofertas_pendente_por_editor
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_pendente_por_editor
   ON ofertas (editor_id) WHERE status = 'pendente';
-CREATE INDEX idx_ofertas_editor_status ON ofertas (editor_id, status);
-CREATE INDEX idx_ofertas_pauta ON ofertas (pauta_id);
-CREATE INDEX idx_ofertas_pendentes
+CREATE INDEX IF NOT EXISTS idx_ofertas_editor_status ON ofertas (editor_id, status);
+CREATE INDEX IF NOT EXISTS idx_ofertas_pauta ON ofertas (pauta_id);
+CREATE INDEX IF NOT EXISTS idx_ofertas_pendentes
   ON ofertas (oferecida_em) WHERE status = 'pendente';
 
 -- D1/SQLite cannot express PostgreSQL's data-modifying CTEs. These triggers
 -- keep the same all-or-nothing boundary inside the database statement.
-CREATE TRIGGER claim_mission_on_pending_offer
+CREATE TRIGGER IF NOT EXISTS claim_mission_on_pending_offer
 AFTER INSERT ON ofertas
 WHEN NEW.status = 'pendente'
 BEGIN
@@ -374,7 +384,7 @@ BEGIN
   SELECT CASE WHEN changes() = 0 THEN RAISE(ABORT, 'mission_unavailable') END;
 END;
 
-CREATE TRIGGER reserve_mission_on_offer_accept
+CREATE TRIGGER IF NOT EXISTS reserve_mission_on_offer_accept
 AFTER UPDATE OF status ON ofertas
 WHEN OLD.status = 'pendente' AND NEW.status = 'aceita'
 BEGIN
@@ -385,7 +395,7 @@ BEGIN
   SELECT CASE WHEN changes() = 0 THEN RAISE(ABORT, 'offer_invalid') END;
 END;
 
-CREATE TRIGGER release_mission_on_offer_close
+CREATE TRIGGER IF NOT EXISTS release_mission_on_offer_close
 AFTER UPDATE OF status ON ofertas
 WHEN OLD.status = 'pendente' AND NEW.status IN ('rejeitada', 'expirada')
 BEGIN
@@ -393,12 +403,12 @@ BEGIN
   WHERE id = NEW.pauta_id AND status = 'oferecida';
 END;
 
-CREATE TABLE fila_emails (
+CREATE TABLE IF NOT EXISTS fila_emails (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   chave TEXT NOT NULL UNIQUE
 );
 
-CREATE TABLE portfolio (
+CREATE TABLE IF NOT EXISTS portfolio (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   titulo TEXT NOT NULL,
@@ -409,9 +419,9 @@ CREATE TABLE portfolio (
   criado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
-CREATE INDEX idx_portfolio_user ON portfolio (user_id);
+CREATE INDEX IF NOT EXISTS idx_portfolio_user ON portfolio (user_id);
 
-CREATE TABLE conquistas (
+CREATE TABLE IF NOT EXISTS conquistas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   nome TEXT NOT NULL,
@@ -419,9 +429,9 @@ CREATE TABLE conquistas (
   conquistada_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
-CREATE INDEX idx_conquistas_user ON conquistas (user_id);
+CREATE INDEX IF NOT EXISTS idx_conquistas_user ON conquistas (user_id);
 
-CREATE TABLE novidades (
+CREATE TABLE IF NOT EXISTS novidades (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   titulo TEXT NOT NULL,
   texto TEXT NOT NULL,
@@ -430,7 +440,7 @@ CREATE TABLE novidades (
   criada_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
-CREATE TABLE musicas (
+CREATE TABLE IF NOT EXISTS musicas (
   id TEXT PRIMARY KEY,
   nome TEXT NOT NULL,
   tags TEXT DEFAULT '[]',
@@ -440,7 +450,7 @@ CREATE TABLE musicas (
   criado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
-CREATE TABLE gamificacao_regras (
+CREATE TABLE IF NOT EXISTS gamificacao_regras (
   id TEXT PRIMARY KEY,
   titulo TEXT NOT NULL,
   descricao TEXT NOT NULL,

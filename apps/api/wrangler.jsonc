@@ -66,8 +66,7 @@
         {
           "binding": "DB",
           "database_name": "oficina-amarela-staging",
-          "database_id": "b667d137-ff01-41a5-bd57-bb3399e9cc5a",
-          "migrations_dir": "../../packages/db/d1"
+          "database_id": "b667d137-ff01-41a5-bd57-bb3399e9cc5a"
         }
       ],
 
@@ -109,9 +108,13 @@
     // -------------------------------------------------------------------
     // PRODUÇÃO
     //
-    // Mesma forma do staging, recursos separados. Só recebe ids depois que o
-    // staging rodar de verdade — inclusive o ensaio de migração
-    // (scripts/migrar-para-d1.mjs) com conferência limpa.
+    // Mesma forma do staging, recursos separados. Provisionado em 2026-08-31 na
+    // conta casamarela; o banco existe com o schema aplicado e sem dados de
+    // produção — os dados reais entram no ensaio de migração
+    // (scripts/migrar-para-d1.mjs), depois de P0-06 confirmar a origem.
+    //
+    // Sem Hyperdrive de propósito: a presença do binding D1 leva o conjunto
+    // inteiro de repositórios para o D1, então não há PostgreSQL neste caminho.
     // -------------------------------------------------------------------
     "production": {
       "name": "oficina-amarela-api",
@@ -121,15 +124,7 @@
         {
           "binding": "DB",
           "database_name": "oficina-amarela",
-          "database_id": "PROVISIONAR-d1-producao",
-          "migrations_dir": "../../packages/db/d1"
-        }
-      ],
-
-      "hyperdrive": [
-        {
-          "binding": "HYPERDRIVE",
-          "id": "PROVISIONAR-hyperdrive-producao"
+          "database_id": "a9ac89e5-38e9-4788-b8da-be8c79f40100"
         }
       ],
 
