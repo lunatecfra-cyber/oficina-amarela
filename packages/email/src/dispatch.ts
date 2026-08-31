@@ -1,5 +1,10 @@
 import { type DrainResult, drainEmailQueue, enqueueEmails } from "@oficina/db/email-queue";
-import { buildPasswordRecoveryEmail, deliverEmail, type EmailContent } from "./messages.ts";
+import {
+  buildPasswordRecoveryEmail,
+  deliverEmail,
+  type EmailContent,
+  escapeHtml,
+} from "./messages.ts";
 
 /**
  * Liga a caixa de saída ao provedor de e-mail.
@@ -46,6 +51,11 @@ export async function queueMissionNotification(
   ]);
 }
 
+/**
+ * O nome vem do cadastro do usuário e o texto do inspetor. Os dois entram
+ * escapados: era o único molde de e-mail que interpolava HTML cru, e um nome
+ * com marcação quebraria a mensagem que a própria pessoa recebe.
+ */
 export async function queueBroadcastEmail(
   to: string,
   name: string,
@@ -61,8 +71,8 @@ export async function queueBroadcastEmail(
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1c1c22;">
           <h1 style="font-size: 20px; color: #a9840e;">Oficina Amarela</h1>
-          <p>Oi, ${name}.</p>
-          <p>${message}</p>
+          <p>Oi, ${escapeHtml(name)}.</p>
+          <p>${escapeHtml(message)}</p>
           <p style="font-size: 12px; color: #888; margin-top: 28px; border-top: 1px solid #eee; padding-top: 12px;">
             Você recebe este comunicado da administração da Oficina Amarela.
           </p>
