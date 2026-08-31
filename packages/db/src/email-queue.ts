@@ -34,8 +34,44 @@ export type EmailToQueue = {
   html: string;
 };
 
+/**
+ * De onde a caixa de saída é lida e escrita.
+ *
+ * Existe pelo mesmo motivo de configureSessionRevocationSource: a drenagem
+ * acontece no Cron e no consumidor de fila, longe do conjunto de repositórios
+ * injetado nas rotas. Sem essa escolha, um Worker servido por D1 tenta drenar
+ * e-mail contra um PostgreSQL que não existe — foi exatamente o que derrubou o
+ * Cron do staging a cada minuto.
+ */
+export type EmailQueueSource = {
+  enqueue(messages: EmailToQueue[]): Promise<number>;
+  claim(limit: number): Promise<QueuedEmail[]>;
+  markSent(id: number): Promise<void>;
+  markFailed(id: number, error: string): Promise<void>;
+};
+
+let activeSource: EmailQueueSource | null = null;
+
+/** `null` volta para o PostgreSQL. */
+export function configureEmailQueueSource(source: EmailQueueSource | null): void {
+  activeSource = source;
+}
+
+const postgresSource: EmailQueueSource = {
+  enqueue: (messages) => postgresEnqueue(messages),
+  claim: (limit) => claimPendingEmails(limit),
+  markSent: (id) => markEmailSent(id),
+  markFailed: (id, error) => markEmailFailed(id, error),
+};
+
+const source = (): EmailQueueSource => activeSource ?? postgresSource;
+
 /** Enfileira ignorando repetição de chave. Devolve quantas mensagens são novas. */
-export async function enqueueEmails(messages: EmailToQueue[]): Promise<number> {
+export function enqueueEmails(messages: EmailToQueue[]): Promise<number> {
+  return source().enqueue(messages);
+}
+
+async function postgresEnqueue(messages: EmailToQueue[]): Promise<number> {
   if (messages.length === 0) return 0;
 
   let queued = 0;
@@ -97,21 +133,22 @@ export async function drainEmailQueue(
   send: (email: QueuedEmail) => Promise<boolean>,
   limit = 50,
 ): Promise<DrainResult> {
-  const claimed = await claimPendingEmails(limit);
+  const queue = source();
+  const claimed = await queue.claim(limit);
   let sent = 0;
   let failed = 0;
 
   for (const email of claimed) {
     try {
       if (await send(email)) {
-        await markEmailSent(email.id);
+        await queue.markSent(email.id);
         sent++;
       } else {
-        await markEmailFailed(email.id, "provedor recusou a mensagem");
+        await queue.markFailed(email.id, "provedor recusou a mensagem");
         failed++;
       }
     } catch (error) {
-      await markEmailFailed(email.id, error instanceof Error ? error.message : String(error));
+      await queue.markFailed(email.id, error instanceof Error ? error.message : String(error));
       failed++;
     }
   }

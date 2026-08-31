@@ -403,10 +403,23 @@ BEGIN
   WHERE id = NEW.pauta_id AND status = 'oferecida';
 END;
 
+-- Caixa de saída de e-mail. A chave é a idempotência: a mesma mensagem lógica
+-- não sai duas vezes, nem em retentativa nem em clique repetido.
 CREATE TABLE IF NOT EXISTS fila_emails (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  chave TEXT NOT NULL UNIQUE
+  chave TEXT NOT NULL UNIQUE,
+  destinatario TEXT NOT NULL,
+  assunto TEXT NOT NULL,
+  html TEXT NOT NULL,
+  tentativas INTEGER NOT NULL DEFAULT 0,
+  processar_apos TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  enviado_em TEXT,
+  erro TEXT,
+  criado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
+
+CREATE INDEX IF NOT EXISTS idx_fila_emails_pendentes
+  ON fila_emails (processar_apos) WHERE enviado_em IS NULL;
 
 CREATE TABLE IF NOT EXISTS portfolio (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

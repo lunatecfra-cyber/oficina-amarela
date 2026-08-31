@@ -1,5 +1,10 @@
 import { configureDatabaseUrl, withRequestDatabase } from "@oficina/db/client";
+import { createD1EmailQueueSource } from "@oficina/db/d1/email-queue";
 import { createD1SessionRevocationSource } from "@oficina/db/d1/session-revocation";
+import {
+  configureEmailQueueSource,
+  MAX_ATTEMPTS as EMAIL_MAX_ATTEMPTS,
+} from "@oficina/db/email-queue";
 import { configureSessionRevocationSource } from "@oficina/db/session-revocation";
 import { Hono } from "hono";
 import {
@@ -60,6 +65,12 @@ export function configureRuntimeBindings(bindings: Bindings | undefined): void {
   // um Worker servido por D1 autentica contra um PostgreSQL que não existe.
   configureSessionRevocationSource(
     bindings?.DB ? createD1SessionRevocationSource(bindings.DB as never) : null,
+  );
+
+  // Mesma razão: a caixa de saída é drenada pelo Cron e pelo consumidor de
+  // fila, fora do conjunto injetado nas rotas.
+  configureEmailQueueSource(
+    bindings?.DB ? createD1EmailQueueSource(bindings.DB as never, EMAIL_MAX_ATTEMPTS) : null,
   );
 }
 

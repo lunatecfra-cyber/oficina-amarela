@@ -164,10 +164,13 @@ describe("paridade local D1 da missão", () => {
       /UNIQUE constraint failed/,
     );
 
-    await db.prepare("INSERT INTO fila_emails (chave) VALUES (?)").bind("missao:1").run();
-    await assert.rejects(
-      () => db.prepare("INSERT INTO fila_emails (chave) VALUES (?)").bind("missao:1").run(),
-      /UNIQUE constraint failed/,
-    );
+    const outbox = (key: string) =>
+      db
+        .prepare("INSERT INTO fila_emails (chave, destinatario, assunto, html) VALUES (?, ?, ?, ?)")
+        .bind(key, "alguem@teste.local", "Assunto", "<p>Corpo</p>")
+        .run();
+
+    await outbox("missao:1");
+    await assert.rejects(() => outbox("missao:1"), /UNIQUE constraint failed/);
   });
 });

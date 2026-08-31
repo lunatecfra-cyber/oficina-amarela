@@ -10,10 +10,20 @@ import { postgresApiDependencies } from "./dependencies.ts";
 
 export { MissionCoordinator } from "./durable-objects/mission-coordinator.ts";
 
-const backgroundDependencies = {
-  missionQueue: postgresApiDependencies.missionQueue,
-  drainEmailQueue: drainEmailQueueNow,
-};
+/**
+ * O Cron e o consumidor de fila escolhem o banco igual ao fetch.
+ *
+ * Antes eles usavam postgresApiDependencies fixo, montado em escopo de módulo.
+ * Em staging e produção não existe PostgreSQL, então a manutenção agendada
+ * lançava "DATABASE_URL not configured" a cada minuto: oferta nunca expirava e
+ * a caixa de saída nunca drenava.
+ */
+function backgroundDependenciesFor(env: Bindings | undefined) {
+  return {
+    missionQueue: dependenciesFor(env, postgresApiDependencies).missionQueue,
+    drainEmailQueue: drainEmailQueueNow,
+  };
+}
 
 /**
  * O conjunto de repositórios depende do binding, que só existe em tempo de
@@ -37,13 +47,14 @@ export default {
   },
   async scheduled(_controller, env) {
     configureRuntimeBindings(env);
-    await withRequestDatabase(() => runScheduledMaintenance(backgroundDependencies));
+    await withRequestDatabase(() => runScheduledMaintenance(backgroundDependenciesFor(env)));
   },
   async queue(batch, env) {
     configureRuntimeBindings(env);
+    const dependencies = backgroundDependenciesFor(env);
     await withRequestDatabase(async () => {
       for (const message of batch.messages) {
-        await runBackgroundTask(backgroundDependencies, message.body);
+        await runBackgroundTask(dependencies, message.body);
       }
     });
   },
