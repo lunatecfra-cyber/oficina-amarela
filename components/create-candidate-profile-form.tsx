@@ -604,6 +604,7 @@ export function CreateCandidateProfileForm({
               <input
                 className="field-input !pl-4"
                 placeholder="Ou digite a sua…"
+              aria-label="Palavra-chave"
                 value={newKeyword}
                 disabled={keywords.length >= 3}
                 onChange={(e) => setNewKeyword(e.target.value)}
@@ -669,6 +670,7 @@ export function CreateCandidateProfileForm({
               className="field-input !pl-4 mt-3"
               rows={5}
               placeholder="Fale um pouquinho sobre você…"
+              aria-label="Biografia"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
             />
@@ -720,6 +722,7 @@ export function CreateCandidateProfileForm({
                 <input
                   className="field-input"
                   placeholder="Instagram — @seuperfil"
+              aria-label="Instagram"
                   value={socialLinks.instagram ?? ""}
                   onChange={(e) => updateSocialLink("instagram", e.target.value)}
                 />
@@ -729,6 +732,7 @@ export function CreateCandidateProfileForm({
                 <input
                   className="field-input"
                   placeholder="YouTube — nome do canal"
+              aria-label="YouTube"
                   value={socialLinks.youtube ?? ""}
                   onChange={(e) => updateSocialLink("youtube", e.target.value)}
                 />
@@ -738,6 +742,7 @@ export function CreateCandidateProfileForm({
                 <input
                   className="field-input"
                   placeholder="TikTok — @seuperfil"
+              aria-label="TikTok"
                   value={socialLinks.tiktok ?? ""}
                   onChange={(e) => updateSocialLink("tiktok", e.target.value)}
                 />
@@ -747,6 +752,7 @@ export function CreateCandidateProfileForm({
                 <input
                   className="field-input"
                   placeholder="X — @seuperfil"
+              aria-label="X"
                   value={socialLinks.x ?? ""}
                   onChange={(e) => updateSocialLink("x", e.target.value)}
                 />
