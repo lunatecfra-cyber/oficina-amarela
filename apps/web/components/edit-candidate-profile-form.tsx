@@ -1,5 +1,6 @@
 "use client";
 
+import { validateCampaignIdentity } from "@oficina/domain/campaign-identity";
 import {
   BRAZILIAN_STATES,
   COMMUNICATION_TONES,
@@ -16,9 +17,11 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { CampaignIdentity } from "@/components/campaign-identity";
 import { LegalNotice } from "@/components/legal-notice";
 import { SelectLocation } from "@/components/select-location";
 import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
+import { onlyDigits, WhatsappField } from "@/components/whatsapp-field";
 import type { CandidateOnboarding } from "@/lib/candidate-db";
 import { compressPhoto } from "@/lib/compress-photo";
 
@@ -73,6 +76,8 @@ export function EditCandidateProfileForm({
       marcaDagua: "",
       campaignTaxId: "",
       cnpjCampanha: "",
+      candidateNumber: "",
+      numeroEleitoral: "",
       voterId: "",
       tituloEleitor: "",
       socialLinks: {},
@@ -106,6 +111,11 @@ export function EditCandidateProfileForm({
     data.campaignTaxId ?? (data as any).cnpjCampanha ?? "",
   );
   const [voterId, setVoterId] = useState(data.voterId ?? (data as any).tituloEleitor ?? "");
+  const [whatsapp, setWhatsapp] = useState(onlyDigits((data as any).whatsapp ?? ""));
+  // número de urna (13, 22...). Diferente do título de eleitor acima.
+  const [candidateNumber, setCandidateNumber] = useState(
+    data.candidateNumber ?? data.numeroEleitoral ?? "",
+  );
 
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(
     data.socialLinks ?? (data as any).redes ?? {},
@@ -178,6 +188,17 @@ export function EditCandidateProfileForm({
       setError("Informe sua região.");
       return;
     }
+    // Identificação de campanha é obrigatória. A regra é a de
+    // `lib/campaign-identity.ts` — a mesma que a prévia da tarja usa.
+    const identidade = validateCampaignIdentity({
+      officialName: name,
+      candidateNumber,
+      campaignTaxId,
+    });
+    if (!identidade.ok) {
+      setError(identidade.error);
+      return;
+    }
     setError("");
     setIsSaving(true);
 
@@ -200,6 +221,8 @@ export function EditCandidateProfileForm({
         bio,
         watermark,
         campaignTaxId,
+        candidateNumber,
+        whatsapp,
         voterId,
         // compatibility aliases
         nome: name,
@@ -213,6 +236,7 @@ export function EditCandidateProfileForm({
         redes: socialLinks,
         marcaDagua: watermark,
         cnpjCampanha: campaignTaxId,
+        numeroEleitoral: candidateNumber,
         tituloEleitor: voterId,
       }),
     });
@@ -454,6 +478,7 @@ export function EditCandidateProfileForm({
             <input
               className="field-input !pl-4"
               placeholder="Ou digite a sua…"
+              aria-label="Palavra-chave"
               value={newKeyword}
               disabled={keywords.length >= 3}
               onChange={(e) => setNewKeyword(e.target.value)}
@@ -511,6 +536,7 @@ export function EditCandidateProfileForm({
           className="field-input !pl-4"
           rows={5}
           placeholder="Fale um pouquinho sobre você…"
+          aria-label="Biografia"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
         />
@@ -518,19 +544,38 @@ export function EditCandidateProfileForm({
 
       <section className="reveal flex flex-col gap-3">
         <div>
-          <h2 className={sectionTitle}>Regras Eleitorais (TSE)</h2>
+          <h2 className={sectionTitle}>Identificação de campanha</h2>
           <p className="mt-1 text-sm text-muted">
-            Essas informações serão preenchidas automaticamente nas suas missões para que o editor
-            inclua nos vídeos.
+            Obrigatório. Vai automático em toda missão, pro editor colocar no vídeo — e monta a
+            tarja que ele encaixa na lateral.
           </p>
         </div>
 
         <LegalNotice />
 
-        <div className="grid gap-4 sm:grid-cols-2 mt-2">
+        <CampaignIdentity
+          name={name}
+          onNameChange={(v) => {
+            setName(v);
+            setError("");
+          }}
+          candidateNumber={candidateNumber}
+          onCandidateNumberChange={(v) => {
+            setCandidateNumber(v);
+            setError("");
+          }}
+          campaignTaxId={campaignTaxId}
+          onCampaignTaxIdChange={(v) => {
+            setCampaignTaxId(v);
+            setError("");
+          }}
+          labelClassName={fieldLabel}
+        />
+
+        <div className="mt-2 grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="marcaDagua" className={fieldLabel}>
-              Marca d&apos;água
+              Marca d&apos;água <span className="text-muted-2">(opcional)</span>
             </label>
             <input
               id="marcaDagua"
@@ -544,51 +589,50 @@ export function EditCandidateProfileForm({
             />
           </div>
           <div>
-            <label htmlFor="cnpjCampanha" className={fieldLabel}>
-              CNPJ da Campanha
+            {/* Não confundir com o número eleitoral acima: este é o título de
+                eleitor, que segue indo pro briefing das missões. */}
+            <label htmlFor="tituloEleitor" className={fieldLabel}>
+              Título de eleitor <span className="text-muted-2">(opcional)</span>
             </label>
             <input
-              id="cnpjCampanha"
+              id="tituloEleitor"
               className="field-input !pl-4"
-              placeholder="00.000.000/0000-00"
-              value={campaignTaxId}
+              placeholder="0000 0000 0000"
+              inputMode="numeric"
+              value={voterId}
               onChange={(e) => {
-                setCampaignTaxId(e.target.value);
+                setVoterId(e.target.value);
                 setError("");
               }}
             />
           </div>
         </div>
-        <div>
-          <label htmlFor="tituloEleitor" className={fieldLabel}>
-            Título de Eleitor
-          </label>
-          <input
-            id="tituloEleitor"
-            className="field-input !pl-4"
-            placeholder="0000 0000 0000"
-            value={voterId}
-            onChange={(e) => {
-              setVoterId(e.target.value);
-              setError("");
-            }}
-          />
-        </div>
       </section>
 
       <section className="reveal flex flex-col gap-3">
         <div>
-          <h2 className={sectionTitle}>Redes</h2>
+          <h2 className={sectionTitle}>Contato e redes</h2>
           <p className="mt-1 text-sm text-muted">
-            Só o @ ou o link já ajuda. O editor precisa saber onde o vídeo vai ao ar.
+            O WhatsApp destrava a conversa direta com o editor. Só o @ ou o link das redes já ajuda
+            — o editor precisa saber onde o vídeo vai ao ar.
           </p>
         </div>
+        <WhatsappField
+          value={whatsapp}
+          onChange={(v) => {
+            setWhatsapp(v);
+            setError("");
+          }}
+          labelClassName={fieldLabel}
+          hint="Com DDD. Fica visível pro editor que pegar sua missão."
+        />
         <div className="flex flex-col gap-3">
           <div className="relative flex items-center">
             <IconInstagram className="pointer-events-none absolute left-4 h-[17px] w-[17px] text-muted-2" />
             <input
               className="field-input"
               placeholder="Instagram — @seuperfil"
+              aria-label="Instagram"
               value={socialLinks.instagram ?? ""}
               onChange={(e) => updateSocialLink("instagram", e.target.value)}
             />
@@ -598,6 +642,7 @@ export function EditCandidateProfileForm({
             <input
               className="field-input"
               placeholder="YouTube — nome do canal"
+              aria-label="YouTube"
               value={socialLinks.youtube ?? ""}
               onChange={(e) => updateSocialLink("youtube", e.target.value)}
             />
@@ -607,6 +652,7 @@ export function EditCandidateProfileForm({
             <input
               className="field-input"
               placeholder="TikTok — @seuperfil"
+              aria-label="TikTok"
               value={socialLinks.tiktok ?? ""}
               onChange={(e) => updateSocialLink("tiktok", e.target.value)}
             />
@@ -616,6 +662,7 @@ export function EditCandidateProfileForm({
             <input
               className="field-input"
               placeholder="X — @seuperfil"
+              aria-label="X"
               value={socialLinks.x ?? ""}
               onChange={(e) => updateSocialLink("x", e.target.value)}
             />
@@ -634,5 +681,3 @@ export function EditCandidateProfileForm({
     </form>
   );
 }
-
-export { EditCandidateProfileForm as EditarPerfilCandidatoForm };

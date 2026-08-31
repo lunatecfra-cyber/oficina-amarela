@@ -51,6 +51,7 @@ describe("paridade D1 de perfis e onboarding", () => {
       headline: [],
       bio: null,
       location: null,
+      whatsapp: null,
       localizacao: null,
       hasPassword: false,
       temSenha: false,
@@ -60,6 +61,7 @@ describe("paridade D1 de perfis e onboarding", () => {
       headline: ["Cortes rápidos", "Motion"],
       bio: "Editor experiente",
       location: "São Paulo, SP",
+      whatsapp: "(11) 98765-4321",
     });
     assert.deepEqual(saved, { ok: true });
 
@@ -67,6 +69,15 @@ describe("paridade D1 de perfis e onboarding", () => {
     assert.deepEqual(updated?.headline, ["Cortes rápidos", "Motion"]);
     assert.equal(updated?.bio, "Editor experiente");
     assert.equal(updated?.location, "São Paulo, SP");
+    // O formulário manda formatado; o banco guarda só dígitos.
+    assert.equal(updated?.whatsapp, "11987654321");
+
+    // Número pela metade não vira contato quebrado: vira ausência de contato.
+    await repo.saveEditableProfile(userId, {
+      headline: ["Cortes rápidos"],
+      whatsapp: "119",
+    });
+    assert.equal((await repo.readEditableProfile(userId))?.whatsapp, null);
   });
 
   test("onboarding de editor e grade de disponibilidade", async () => {

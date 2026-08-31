@@ -123,14 +123,14 @@ export function DevToolbar() {
                       Accounts & Profiles
                     </span>
                     <Link
-                      href="/signup?role=spokesperson"
+                      href="/criar-conta?role=spokesperson"
                       onClick={closeMenu}
                       className="block text-sm text-silver hover:text-gold-hi py-1"
                     >
                       ➔ Create Spokesperson
                     </Link>
                     <Link
-                      href="/signup?role=editor"
+                      href="/criar-conta?role=editor"
                       onClick={closeMenu}
                       className="block text-sm text-silver hover:text-gold-hi py-1"
                     >

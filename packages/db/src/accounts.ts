@@ -39,6 +39,8 @@ export type RateLock = { locked: boolean; minutes: number };
 
 export interface AccountsRepository {
   findByHandle(handle: string): Promise<AccountRow | null>;
+  /** Login por apelido OU e-mail: quem esquece o apelido ainda sabe o e-mail. */
+  findByHandleOrEmail(identity: string): Promise<AccountRow | null>;
   findByEmail(email: string): Promise<AccountRow | null>;
   findByGoogleId(googleId: string): Promise<AccountRow | null>;
   /** Vincula o Google a uma conta que já existe por e-mail. */
@@ -109,6 +111,16 @@ export const postgresAccounts: AccountsRepository = {
     const [row] = await sql`
       SELECT id, apelido, nome, email, papel, senha_hash, banido
       FROM users WHERE lower(email) = lower(${email.trim()})
+    `;
+    return toAccountRow(row as unknown as UserRow);
+  },
+
+  async findByHandleOrEmail(identity) {
+    const value = identity.trim();
+    const [row] = await sql`
+      SELECT id, apelido, nome, email, papel, senha_hash, banido
+      FROM users
+      WHERE lower(apelido) = lower(${value}) OR lower(email) = lower(${value})
     `;
     return toAccountRow(row as unknown as UserRow);
   },

@@ -106,7 +106,12 @@ export async function editorProgress(
   });
 
   const consistency = calculateConsistency(
-    detailed.map((week) => week.completed || week.saved),
+    detailed.map((week, index) => {
+      if (week.completed || week.saved) return true;
+      // A semana corrente ainda está aberta: o editor tem até o fim dela para
+      // entregar, então ela não pode contar como semana perdida.
+      return weeks[index].end.getTime() > now.getTime() ? "pending" : false;
+    }),
     shields,
   );
 

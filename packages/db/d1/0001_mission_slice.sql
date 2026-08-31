@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
   google_id TEXT,
   foto_url TEXT,
   codigo_indicacao TEXT,
+  whatsapp TEXT,
   ultimo_visto_em TEXT,
   travado_reservas_ate TEXT,
   disponibilidade TEXT,

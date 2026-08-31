@@ -2,6 +2,7 @@ import { validateCampaignIdentity } from "@oficina/domain/campaign-identity";
 import type { Candidate } from "@oficina/domain/candidates";
 import { isValidPhoto, LIMITS, limitList, limitOrNull, limitStr } from "@oficina/domain/limits";
 import type { HistoryItem, PortfolioItem, Tier } from "@oficina/domain/profile";
+import { normalizeWhatsapp } from "@oficina/domain/whatsapp";
 import {
   normalizeGrid,
   normalizeList,
@@ -15,12 +16,13 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
   return {
     async readEditableProfile(userId) {
       const row = await db
-        .prepare("SELECT headline, bio, localizacao, senha_hash FROM users WHERE id = ?")
+        .prepare("SELECT headline, bio, localizacao, whatsapp, senha_hash FROM users WHERE id = ?")
         .bind(userId)
         .first<{
           headline: string | null;
           bio: string | null;
           localizacao: string | null;
+          whatsapp: string | null;
           senha_hash: string | null;
         }>();
       if (!row) return null;
@@ -28,6 +30,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         headline: normalizeList(row.headline),
         bio: row.bio ?? null,
         location: row.localizacao ?? null,
+        whatsapp: row.whatsapp ?? null,
         hasPassword: Boolean(row.senha_hash),
         temSenha: Boolean(row.senha_hash),
         localizacao: row.localizacao ?? null,
@@ -39,11 +42,14 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         const loc = data.location ?? data.localizacao;
         const headlineJson = data.headline ? JSON.stringify(limitList(data.headline, 5)) : null;
         await db
-          .prepare("UPDATE users SET headline = ?, bio = ?, localizacao = ? WHERE id = ?")
+          .prepare(
+            "UPDATE users SET headline = ?, bio = ?, localizacao = ?, whatsapp = ? WHERE id = ?",
+          )
           .bind(
             headlineJson,
             limitOrNull(data.bio, LIMITS.bio),
             limitOrNull(loc, LIMITS.location),
+            normalizeWhatsapp(data.whatsapp),
             userId,
           )
           .run();
@@ -63,7 +69,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         const row = await db
           .prepare(
             `SELECT nome, foto_url, localizacao, headline, bio, softwares, estilos, nivel_edicao,
-                    setup_pc, link_portfolio, nicho, disponibilidade, perfil_completo
+                    setup_pc, link_portfolio, whatsapp, nicho, disponibilidade, perfil_completo
              FROM users WHERE id = ?`,
           )
           .bind(userId)
@@ -78,6 +84,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
             nivel_edicao: string | null;
             setup_pc: string | null;
             link_portfolio: string | null;
+            whatsapp: string | null;
             nicho: string | null;
             disponibilidade: string | null;
             perfil_completo: number | null;
@@ -95,6 +102,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           editingStyles: normalizeList(row.estilos),
           styles: normalizeList(row.estilos),
           portfolioLink: row.link_portfolio ?? "",
+          whatsapp: row.whatsapp ?? undefined,
           availability: normalizeGrid(row.disponibilidade),
           editingLevel: row.nivel_edicao ?? undefined,
           pcSetup: row.setup_pc ?? undefined,
@@ -161,6 +169,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
              nivel_edicao = ?,
              setup_pc = ?,
              link_portfolio = ?,
+             whatsapp = ?,
              nicho = ?,
              disponibilidade = COALESCE(?, disponibilidade),
              perfil_completo = 1
@@ -177,6 +186,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           limitOrNull(rawEditLevel, LIMITS.tag),
           limitOrNull(rawPcSetup, LIMITS.tag),
           limitOrNull(rawPortLink, LIMITS.link),
+          normalizeWhatsapp(data.whatsapp),
           nichesJson,
           newGridJson,
           userId,
@@ -408,7 +418,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         .prepare(
           `SELECT nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
                   bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  perfil_completo, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
+                  perfil_completo, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor, whatsapp
            FROM users WHERE id = ?`,
         )
         .bind(userId)
@@ -429,6 +439,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           cnpj_campanha: string | null;
           numero_eleitoral: string | null;
           titulo_eleitor: string | null;
+          whatsapp: string | null;
         }>();
       if (!l) return null;
       return {
@@ -451,6 +462,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         watermark: l.marca_dagua ?? undefined,
         campaignTaxId: l.cnpj_campanha ?? undefined,
         candidateNumber: l.numero_eleitoral ?? undefined,
+        whatsapp: l.whatsapp ?? undefined,
         voterId: l.titulo_eleitor ?? undefined,
         // aliases
         nome: l.nome ?? "",
@@ -532,6 +544,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
              marca_dagua = ?,
              cnpj_campanha = ?,
              numero_eleitoral = ?,
+             whatsapp = ?,
              titulo_eleitor = ?,
              perfil_completo = 1
            WHERE id = ?`,
@@ -551,6 +564,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           limitOrNull(watermark, LIMITS.briefField),
           limitOrNull(campaignTaxId, LIMITS.briefField),
           candidateNumber,
+          normalizeWhatsapp(data.whatsapp),
           limitOrNull(voterId, LIMITS.briefField),
           userId,
         )

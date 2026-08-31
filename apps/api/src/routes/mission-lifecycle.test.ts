@@ -163,7 +163,7 @@ describe("ciclo de vida da missão na API", { skip }, () => {
     `;
     assert.equal(mission.status, "em_revisao");
     assert.equal(mission.entrega_link, "https://video.example/entrega");
-    assert.deepEqual(event, { regra_id: "missao_entregue", xp: 40 });
+    assert.deepEqual(event, { regra_id: "missao_entregue", xp: 100 });
   });
 
   test("entrega rejeita texto que apenas contém o nome do armazenamento", async () => {

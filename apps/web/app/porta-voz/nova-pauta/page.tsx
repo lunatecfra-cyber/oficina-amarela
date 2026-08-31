@@ -15,11 +15,15 @@ export default async function NewMissionPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 lg:px-8">
-      <div className="pt-6">
+    <div className="mx-auto w-full max-w-xl">
+      {/* px-5 igual ao do formulário, e o -ml-3 desconta o padding interno do
+          tap-target: assim o TEXTO nasce nos mesmos 20px dos campos. Com px-2
+          a caixa do link começava em -4px, fora da tela. */}
+      <div className="px-5 pt-4">
+        {/* tap-target: sem ela o alvo ficava em 18px de altura, longe dos 44 */}
         <Link
           href="/porta-voz"
-          className="text-sm text-muted transition-colors hover:text-silver-hi"
+          className="tap-target -ml-3 text-sm text-muted hover:text-silver-hi"
         >
           ← Minhas missões
         </Link>
@@ -27,6 +31,7 @@ export default async function NewMissionPage() {
       <NewMissionForm
         defaultWatermark={candidate?.watermark ?? (candidate as any)?.marcaDagua}
         defaultCampaignTaxId={candidate?.campaignTaxId ?? (candidate as any)?.cnpjCampanha}
+        defaultCandidateNumber={candidate?.candidateNumber ?? candidate?.numeroEleitoral}
         defaultVoterId={candidate?.voterId ?? (candidate as any)?.tituloEleitor}
       />
     </div>

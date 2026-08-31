@@ -4,6 +4,7 @@ import { HEADLINES, MAX_HEADLINES } from "@oficina/domain/profile";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { onlyDigits, WhatsappField } from "@/components/whatsapp-field";
 import type { EditableProfile } from "@/lib/profile-db";
 
 function chip(active: boolean, blocked = false) {
@@ -24,10 +25,12 @@ export function EditProfileForm({
   inicial?: EditableProfile;
 }) {
   const router = useRouter();
-  const data = initial ?? inicial ?? { headline: [], location: "", localizacao: "", bio: "" };
+  const data = initial ??
+    inicial ?? { headline: [], location: "", localizacao: "", bio: "", whatsapp: null };
   const [headline, setHeadline] = useState<string[]>(data.headline ?? []);
   const [location, setLocation] = useState(data.location ?? (data as any).localizacao ?? "");
   const [bio, setBio] = useState(data.bio ?? "");
+  const [whatsapp, setWhatsapp] = useState(onlyDigits(data.whatsapp ?? ""));
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -47,7 +50,7 @@ export function EditProfileForm({
     const resp = await fetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ headline, bio, location, localizacao: location }),
+      body: JSON.stringify({ headline, bio, location, whatsapp, localizacao: location }),
     });
     setIsSaving(false);
 
@@ -126,6 +129,18 @@ export function EditProfileForm({
         />
       </div>
 
+      <div className="mb-4">
+        <WhatsappField
+          value={whatsapp}
+          onChange={(v) => {
+            setWhatsapp(v);
+            setError("");
+          }}
+          labelClassName="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+          hint="Com DDD. Fica visível pro porta-voz da missão que você pegar."
+        />
+      </div>
+
       <div className="mb-5">
         <label
           htmlFor="bio"
@@ -167,5 +182,3 @@ export function EditProfileForm({
     </form>
   );
 }
-
-export { EditProfileForm as EditarPerfilForm };

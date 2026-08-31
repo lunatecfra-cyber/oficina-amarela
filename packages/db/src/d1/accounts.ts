@@ -43,6 +43,19 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
       );
     },
 
+    async findByHandleOrEmail(identity) {
+      const value = identity.trim();
+      return toAccountRow(
+        await db
+          .prepare(
+            `SELECT ${SELECT_ACCOUNT} FROM users
+             WHERE lower(apelido) = lower(?) OR lower(email) = lower(?)`,
+          )
+          .bind(value, value)
+          .first<NonNullable<UserRow>>(),
+      );
+    },
+
     async findByGoogleId(googleId) {
       return toAccountRow(
         await db

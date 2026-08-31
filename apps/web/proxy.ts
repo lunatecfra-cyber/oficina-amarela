@@ -18,7 +18,8 @@ export default async function proxy(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname;
-  const defaultArea = session.role === "spokesperson" ? "/spokesperson" : "/editor";
+  // as rotas públicas são em PT-BR: mandar pra "/spokesperson" dava 404
+  const defaultArea = session.role === "spokesperson" ? "/porta-voz" : "/editor";
 
   // Inspector / Admin protected area
   if (

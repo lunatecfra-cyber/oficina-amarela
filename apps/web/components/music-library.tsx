@@ -253,7 +253,7 @@ export function MusicLibrary() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-xl border border-gold/40 bg-gold/10 px-6 py-2.5 text-sm font-semibold text-gold-hi transition-colors hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 items-center rounded-xl border border-gold/40 bg-gold/10 px-6 text-sm font-semibold text-gold-hi transition-colors hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? "Enviando…" : "Enviar música"}
           </button>

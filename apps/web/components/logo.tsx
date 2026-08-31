@@ -6,6 +6,7 @@ const SIZES = {
   normal: "w-8 h-8",
   large: "w-10 h-10",
   grande: "w-10 h-10",
+  xlarge: "w-24 h-24",
 };
 
 export function Logo({
@@ -14,12 +15,14 @@ export function Logo({
   tamanho,
   comSubtitulo,
   className = "",
+  showName = true,
 }: {
-  size?: "small" | "normal" | "large" | "pequeno" | "grande";
+  size?: "small" | "normal" | "large" | "xlarge" | "pequeno" | "grande";
   withSubtitle?: boolean;
   tamanho?: "pequeno" | "normal" | "grande";
   comSubtitulo?: boolean;
   className?: string;
+  showName?: boolean;
 }) {
   const chosenSize = tamanho ?? size;
   const showSub = comSubtitulo ?? withSubtitle;
@@ -34,16 +37,18 @@ export function Logo({
         priority
         className={`select-none ${SIZES[chosenSize]}`}
       />
-      <div>
-        <p className="font-[family-name:var(--font-display)] font-semibold leading-none tracking-[0.14em] text-text">
-          OFICINA AMARELA
-        </p>
-        {showSub && (
-          <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-2">
-            A bancada de edição
+      {showName && (
+        <div>
+          <p className="font-[family-name:var(--font-display)] font-semibold leading-none tracking-[0.14em] text-text">
+            OFICINA AMARELA
           </p>
-        )}
-      </div>
+          {showSub && (
+            <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-2">
+              A bancada de edição
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

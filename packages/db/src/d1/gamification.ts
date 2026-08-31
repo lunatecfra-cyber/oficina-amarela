@@ -1,6 +1,7 @@
 import {
   brasiliaDate,
   type DayChallenge,
+  EVENT_XP,
   type GamificationEventType,
   type GamificationRepository,
   RULES,
@@ -15,11 +16,6 @@ import type { D1DatabaseLike } from "./types.ts";
  * invariante: o INSERT OR IGNORE decide se o evento é novo, e só então a
  * reputação sobe. Repetir a chamada não pontua de novo.
  */
-
-const EVENT_XP = {
-  entrada_diaria: 10,
-  missao_entregue: 40,
-} as const;
 
 export function createD1Gamification(
   db: D1DatabaseLike,

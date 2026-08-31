@@ -9,7 +9,7 @@ export default function RecoverPage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-14">
       <Link href="/" className="mb-8 flex flex-col items-center text-center">
-        <Logo size="large" />
+        <Logo size="xlarge" showName={false} />
         <p className="text-gold-grad mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold tracking-[0.2em]">
           OFICINA AMARELA
         </p>

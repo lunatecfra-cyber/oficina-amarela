@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="grid flex-1 lg:grid-cols-[1.05fr_0.95fr]">
       <aside className="relative hidden flex-col justify-between overflow-hidden border-r border-line-soft p-14 lg:flex">
         <Link href="/" className="relative flex items-center gap-3">
-          <Logo size="large" />
+          <Logo size="large" showName={false} />
           <span className="font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[0.3em] text-gold">
             OFICINA AMARELA
           </span>
@@ -73,7 +73,7 @@ export default function LoginPage() {
         <h1 className="sr-only">Oficina Amarela — entrar</h1>
 
         <div className="mb-8 flex flex-col items-center text-center lg:hidden">
-          <Logo size="large" />
+          <Logo size="large" showName={false} />
           <p className="text-gold-grad mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold tracking-[0.2em]">
             OFICINA AMARELA
           </p>

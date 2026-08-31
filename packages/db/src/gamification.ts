@@ -28,23 +28,30 @@ export const RULES: Record<
     id: "entrada_diaria",
     title: "Entrou no site",
     description: "Acesse a Oficina Amarela hoje.",
-    xp: 10,
+    xp: 25,
     titulo: "Entrou no site",
     descricao: "Acesse a Oficina Amarela hoje.",
   },
   missao_entregue: {
     id: "missao_entregue",
-    title: "Entregue uma missão hoje",
-    description: "Envie uma edição válida para revisão.",
-    xp: 40,
-    titulo: "Entregue uma missão hoje",
-    descricao: "Envie uma edição válida para revisão.",
+    title: "Entregou um vídeo",
+    description: "Cada vídeo entregue soma 100 XP.",
+    xp: 100,
+    titulo: "Entregou um vídeo",
+    descricao: "Cada vídeo entregue soma 100 XP.",
   },
 };
 
-const EVENT_XP = {
-  entrada_diaria: 10,
-  missao_entregue: 40,
+/**
+ * O XP de cada evento sai de RULES, e não de uma segunda tabela.
+ *
+ * Eram três cópias do mesmo número — aqui, no card do desafio e na paridade
+ * D1 — e mexer na pontuação exigia lembrar das três. Uma que ficasse pra trás
+ * pagaria um XP no PostgreSQL e outro no D1 para o mesmo evento.
+ */
+export const EVENT_XP = {
+  entrada_diaria: RULES.entrada_diaria.xp,
+  missao_entregue: RULES.missao_entregue.xp,
 } as const;
 
 export function brasiliaDate(date = new Date()): string {

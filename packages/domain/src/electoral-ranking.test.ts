@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { describe } from "node:test";
 import {
   calculateConsistency,
   calculateUnlockedAwards,
@@ -98,4 +98,24 @@ test("referral awards after two videos and caps at five per month", () => {
   assert.equal(canReferralAward(1, 4, false), false);
   assert.equal(canReferralAward(2, 5, false), false);
   assert.equal(canReferralAward(2, 0, true), false);
+});
+
+describe("constância com semana em curso", () => {
+  test("semana ainda aberta não zera a sequência nem gasta bloqueio", () => {
+    // três semanas cumpridas e a corrente ainda sem entrega
+    const result = calculateConsistency([true, true, true, "pending"], 1);
+    assert.equal(result.sequence, 3);
+    assert.equal(result.consumedShields, 0);
+  });
+
+  test("semana encerrada sem entrega ainda quebra a sequência", () => {
+    const result = calculateConsistency([true, true, false, "pending"], 0);
+    assert.equal(result.sequence, 0);
+  });
+
+  test("bloqueio cobre semana encerrada, nunca a que está em curso", () => {
+    const result = calculateConsistency([true, false, "pending"], 1);
+    assert.equal(result.consumedShields, 1);
+    assert.equal(result.sequence, 2);
+  });
 });

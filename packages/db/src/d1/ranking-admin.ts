@@ -62,9 +62,9 @@ export function createD1RankingAdmin(db: D1DatabaseLike): RankingAdminRepository
       await database.prepare("DELETE FROM avaliacoes WHERE pauta_id = ?").bind(missionId).run();
       await database
         .prepare(
+          // Sem desconto de reputação: ver a nota em ranking-admin.ts.
           `UPDATE users
            SET entregues = max(entregues - 1, 0),
-               reputacao = max(reputacao - 25, 0),
                streak = max(streak - 1, 0),
                nota = (SELECT round(avg(nota), 2) FROM avaliacoes
                        WHERE editor_id = ? AND pauta_id <> ?)

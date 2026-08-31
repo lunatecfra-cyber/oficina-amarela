@@ -10,7 +10,7 @@ export default function Loading() {
           />
           <span className="relative h-3 w-3 rounded-full bg-gold" />
         </span>
-        <span className="text-xs uppercase tracking-[0.16em] text-muted-2">Loading</span>
+        <span className="text-xs uppercase tracking-[0.16em] text-muted-2">Carregando</span>
       </div>
     </main>
   );

@@ -127,6 +127,19 @@ describe("perfis e onboarding na API", {
     });
     assert.equal(denied.status, 403);
 
+    // Sem número na urna e CNPJ não dá pra montar a tarja de propaganda, que é
+    // obrigação legal — o perfil não fecha pela metade.
+    const incomplete = await app.request("http://api.local/spokesperson/profile", {
+      method: "POST",
+      headers: { cookie: spokespersonCookie, "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "Voz Perfil Oficial",
+        politicalOffice: "Vereador",
+        location: "Curitiba, PR",
+      }),
+    });
+    assert.equal(incomplete.status, 400);
+
     const saveRes = await app.request("http://api.local/spokesperson/profile", {
       method: "POST",
       headers: { cookie: spokespersonCookie, "content-type": "application/json" },
@@ -137,6 +150,8 @@ describe("perfis e onboarding na API", {
         location: "Curitiba, PR",
         campaignFlags: ["Saúde", "Educação"],
         communicationTone: "Direto e firme",
+        campaignTaxId: "12.345.678/0001-90",
+        candidateNumber: "5510",
       }),
     });
     assert.equal(saveRes.status, 200);
@@ -170,7 +185,7 @@ describe("perfis e onboarding na API", {
     assert.equal(loginRes.status, 200);
     const loginData = (await loginRes.json()) as { recorded: boolean; xp: number };
     assert.equal(loginData.recorded, true);
-    assert.equal(loginData.xp, 10);
+    assert.equal(loginData.xp, 25);
 
     const challengesRes = await app.request("http://api.local/editor/challenges", {
       headers: { cookie: editorCookie },

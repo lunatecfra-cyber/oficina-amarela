@@ -24,22 +24,23 @@ export default function ErrorPage({
         </span>
 
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text">
-          Something went wrong
+          Alguma coisa quebrou aqui
         </h1>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
-          An unexpected error occurred. Please try again or contact support if the issue persists.
+          Foi um erro inesperado da nossa parte. Tente de novo — se continuar, mande esse código pro
+          suporte.
         </p>
 
         {error.digest && (
-          <p className="mt-3 font-mono text-[11px] text-muted-2">Error ID: {error.digest}</p>
+          <p className="mt-3 font-mono text-[11px] text-muted-2">Código do erro: {error.digest}</p>
         )}
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <button onClick={unstable_retry} className="btn-gold sm:w-44">
-            Try Again
+            Tentar de novo
           </button>
-          <Link href="/" className="btn-ghost grid place-items-center sm:w-44">
-            Back to Home
+          <Link href="/" className="btn-ghost sm:w-44">
+            Voltar ao início
           </Link>
         </div>
       </div>

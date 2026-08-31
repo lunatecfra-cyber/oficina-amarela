@@ -80,12 +80,23 @@ export const ELECTORAL_AWARDS = [
 
 export const PREMIOS_ELEITORAIS = ELECTORAL_AWARDS;
 
-export function calculateConsistency(completedWeeks: boolean[], availableShields: number) {
+/**
+ * `"pending"` é a semana que ainda não acabou.
+ *
+ * Sem ela, a semana corrente entrava como semana perdida assim que o editor
+ * ainda não tinha entregue — zerava a sequência dele toda segunda-feira e
+ * chegava a gastar um bloqueio para cobrir uma semana em que ainda dava tempo
+ * de entregar. Semana em curso não conta nem a favor nem contra.
+ */
+export type ConsistencyWeek = boolean | "pending";
+
+export function calculateConsistency(completedWeeks: ConsistencyWeek[], availableShields: number) {
   let sequence = 0;
   let maxSequence = 0;
   let consumedShields = 0;
 
   for (const completed of completedWeeks) {
+    if (completed === "pending") continue;
     if (completed) {
       sequence += 1;
     } else if (consumedShields < availableShields) {

@@ -1,5 +1,10 @@
 "use client";
 
+import { formatWhatsapp, isCompleteWhatsapp, onlyDigits } from "@oficina/domain/whatsapp";
+
+// reexportado porque os formulários guardam só dígitos no estado
+export { onlyDigits };
+
 /**
  * Campo de WhatsApp — o contato direto entre porta-voz e editor.
  *
@@ -7,26 +12,6 @@
  * de três jeitos diferentes vira um valor só, e quem for montar o link
  * `wa.me/55...` depois não precisa limpar nada.
  */
-
-/** Deixa só os números e corta no tamanho de um celular com DDD. */
-export function onlyDigits(value: string): string {
-  return value.replace(/\D/g, "").slice(0, 11);
-}
-
-/** 11987654321 → (11) 98765-4321 */
-export function formatWhatsapp(digits: string): string {
-  const d = onlyDigits(digits);
-  if (d.length <= 2) return d;
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-}
-
-/** 10 dígitos (fixo com DDD) ou 11 (celular). Menos que isso não disca. */
-export function isCompleteWhatsapp(digits: string): boolean {
-  const d = onlyDigits(digits);
-  return d.length === 10 || d.length === 11;
-}
 
 export function WhatsappField({
   value,

@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS users (
   cnpj_campanha TEXT,
   numero_eleitoral TEXT,
   titulo_eleitor TEXT,
+  whatsapp TEXT,
   ultimo_visto_em TIMESTAMPTZ,
   codigo_indicacao UUID NOT NULL DEFAULT gen_random_uuid(),
   indicado_por_id INT REFERENCES users(id) ON DELETE SET NULL

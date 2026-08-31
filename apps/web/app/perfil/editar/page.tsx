@@ -19,6 +19,7 @@ export default async function EditProfilePage() {
     headline: [],
     bio: null,
     location: null,
+    whatsapp: null,
   };
 
   return (

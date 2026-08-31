@@ -339,9 +339,10 @@ export default async function ProfilePage() {
                   <span className="text-sm text-text">
                     <b className="text-gold-hi">{freeSlots}</b> blocos livres
                   </span>
+                  {/* tap-target: o alvo estava em 16px de altura */}
                   <Link
                     href="/agenda"
-                    className="text-xs text-muted transition-colors hover:text-gold-hi"
+                    className="tap-target -mr-3 text-xs text-muted hover:text-gold-hi"
                   >
                     Editar →
                   </Link>

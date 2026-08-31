@@ -1,5 +1,6 @@
 "use client";
 
+import { validateCampaignIdentity } from "@oficina/domain/campaign-identity";
 import {
   BRAZILIAN_STATES,
   COMMUNICATION_TONES,
@@ -15,9 +16,11 @@ import {
 } from "@oficina/domain/candidates";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { CampaignIdentity } from "@/components/campaign-identity";
 import { LegalNotice } from "@/components/legal-notice";
 import { SelectLocation } from "@/components/select-location";
 import { IconInstagram, IconTiktok, IconX, IconYoutube } from "@/components/social-icons";
+import { onlyDigits, WhatsappField } from "@/components/whatsapp-field";
 import type { CandidateOnboarding } from "@/lib/candidate-db";
 import { compressPhoto } from "@/lib/compress-photo";
 
@@ -78,6 +81,8 @@ export function CreateCandidateProfileForm({
       marcaDagua: "",
       campaignTaxId: "",
       cnpjCampanha: "",
+      candidateNumber: "",
+      numeroEleitoral: "",
       voterId: "",
       tituloEleitor: "",
       socialLinks: {},
@@ -114,6 +119,11 @@ export function CreateCandidateProfileForm({
     data.campaignTaxId ?? (data as any).cnpjCampanha ?? "",
   );
   const [voterId, setVoterId] = useState(data.voterId ?? (data as any).tituloEleitor ?? "");
+  const [whatsapp, setWhatsapp] = useState(onlyDigits((data as any).whatsapp ?? ""));
+  // número de urna (13, 22...). Diferente do título de eleitor acima.
+  const [candidateNumber, setCandidateNumber] = useState(
+    data.candidateNumber ?? data.numeroEleitoral ?? "",
+  );
 
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(
     data.socialLinks ?? (data as any).redes ?? {},
@@ -222,6 +232,18 @@ export function CreateCandidateProfileForm({
       setActiveTab("objective");
       return;
     }
+    // Identificação de campanha é obrigatória. A regra é a de
+    // `lib/campaign-identity.ts` — a mesma que a prévia da tarja usa.
+    const identidade = validateCampaignIdentity({
+      officialName: name,
+      candidateNumber,
+      campaignTaxId,
+    });
+    if (!identidade.ok) {
+      setError(identidade.error);
+      setActiveTab("channels");
+      return;
+    }
     setError("");
     setIsSaving(true);
 
@@ -244,6 +266,8 @@ export function CreateCandidateProfileForm({
         bio,
         watermark,
         campaignTaxId,
+        candidateNumber,
+        whatsapp,
         voterId,
         // compatibility aliases
         nome: name,
@@ -257,6 +281,7 @@ export function CreateCandidateProfileForm({
         redes: socialLinks,
         marcaDagua: watermark,
         cnpjCampanha: campaignTaxId,
+        numeroEleitoral: candidateNumber,
         tituloEleitor: voterId,
       }),
     });
@@ -588,6 +613,7 @@ export function CreateCandidateProfileForm({
               <input
                 className="field-input !pl-4"
                 placeholder="Ou digite a sua…"
+                aria-label="Palavra-chave"
                 value={newKeyword}
                 disabled={keywords.length >= 3}
                 onChange={(e) => setNewKeyword(e.target.value)}
@@ -653,6 +679,7 @@ export function CreateCandidateProfileForm({
               className="field-input !pl-4 mt-3"
               rows={5}
               placeholder="Fale um pouquinho sobre você…"
+              aria-label="Biografia"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
             />
@@ -679,12 +706,23 @@ export function CreateCandidateProfileForm({
           </button>
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
-              Suas redes
+              Contato e redes
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Só o @ ou o link já ajuda. A gente usa pra conferir seu estilo de postagem — o editor
-              precisa saber onde o vídeo vai ao ar pra editar no formato certo.
+              O WhatsApp destrava a conversa direta com o editor. Só o @ ou o link das redes já
+              ajuda — o editor precisa saber onde o vídeo vai ao ar pra editar no formato certo.
             </p>
+
+            <div className="mt-4">
+              <WhatsappField
+                value={whatsapp}
+                onChange={(v) => {
+                  setWhatsapp(v);
+                  setError("");
+                }}
+                hint="Com DDD. Fica visível pro editor que pegar sua missão."
+              />
+            </div>
 
             <div className="mt-4 flex flex-col gap-3">
               <div className="relative flex items-center">
@@ -692,6 +730,7 @@ export function CreateCandidateProfileForm({
                 <input
                   className="field-input"
                   placeholder="Instagram — @seuperfil"
+                  aria-label="Instagram"
                   value={socialLinks.instagram ?? ""}
                   onChange={(e) => updateSocialLink("instagram", e.target.value)}
                 />
@@ -701,6 +740,7 @@ export function CreateCandidateProfileForm({
                 <input
                   className="field-input"
                   placeholder="YouTube — nome do canal"
+                  aria-label="YouTube"
                   value={socialLinks.youtube ?? ""}
                   onChange={(e) => updateSocialLink("youtube", e.target.value)}
                 />
@@ -710,6 +750,7 @@ export function CreateCandidateProfileForm({
                 <input
                   className="field-input"
                   placeholder="TikTok — @seuperfil"
+                  aria-label="TikTok"
                   value={socialLinks.tiktok ?? ""}
                   onChange={(e) => updateSocialLink("tiktok", e.target.value)}
                 />
@@ -719,6 +760,7 @@ export function CreateCandidateProfileForm({
                 <input
                   className="field-input"
                   placeholder="X — @seuperfil"
+                  aria-label="X"
                   value={socialLinks.x ?? ""}
                   onChange={(e) => updateSocialLink("x", e.target.value)}
                 />
@@ -728,24 +770,44 @@ export function CreateCandidateProfileForm({
 
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
-              Regras Eleitorais (TSE)
+              Identificação de campanha
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Essas informações serão preenchidas automaticamente nas suas missões para que o editor
-              inclua nos vídeos.
+              Obrigatório. Vai automático em toda missão, pro editor colocar no vídeo — e monta a
+              tarja que ele encaixa na lateral.
             </p>
 
             <div className="mt-4">
               <LegalNotice />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 mt-4">
+            <div className="mt-5">
+              <CampaignIdentity
+                name={name}
+                onNameChange={(v) => {
+                  setName(v);
+                  setError("");
+                }}
+                candidateNumber={candidateNumber}
+                onCandidateNumberChange={(v) => {
+                  setCandidateNumber(v);
+                  setError("");
+                }}
+                campaignTaxId={campaignTaxId}
+                onCampaignTaxIdChange={(v) => {
+                  setCampaignTaxId(v);
+                  setError("");
+                }}
+              />
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div>
                 <label
                   htmlFor="marcaDagua"
-                  className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+                  className="mb-2 block text-xs font-medium uppercase tracking-[0.1em] text-muted"
                 >
-                  Marca d&apos;água
+                  Marca d&apos;água <span className="text-muted-2">(opcional)</span>
                 </label>
                 <input
                   id="marcaDagua"
@@ -759,41 +821,26 @@ export function CreateCandidateProfileForm({
                 />
               </div>
               <div>
+                {/* Não confundir com o número eleitoral acima: este é o título
+                    de eleitor, que segue indo pro briefing das missões. */}
                 <label
-                  htmlFor="cnpjCampanha"
-                  className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+                  htmlFor="tituloEleitor"
+                  className="mb-2 block text-xs font-medium uppercase tracking-[0.1em] text-muted"
                 >
-                  CNPJ da Campanha
+                  Título de eleitor <span className="text-muted-2">(opcional)</span>
                 </label>
                 <input
-                  id="cnpjCampanha"
+                  id="tituloEleitor"
                   className="field-input !pl-4"
-                  placeholder="00.000.000/0000-00"
-                  value={campaignTaxId}
+                  placeholder="0000 0000 0000"
+                  inputMode="numeric"
+                  value={voterId}
                   onChange={(e) => {
-                    setCampaignTaxId(e.target.value);
+                    setVoterId(e.target.value);
                     setError("");
                   }}
                 />
               </div>
-            </div>
-            <div className="mt-4">
-              <label
-                htmlFor="tituloEleitor"
-                className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
-              >
-                Título de Eleitor
-              </label>
-              <input
-                id="tituloEleitor"
-                className="field-input !pl-4"
-                placeholder="0000 0000 0000"
-                value={voterId}
-                onChange={(e) => {
-                  setVoterId(e.target.value);
-                  setError("");
-                }}
-              />
             </div>
           </div>
 
@@ -923,5 +970,3 @@ export function CreateCandidateProfileForm({
     </div>
   );
 }
-
-export { CreateCandidateProfileForm as CriarPerfilCandidatoForm };

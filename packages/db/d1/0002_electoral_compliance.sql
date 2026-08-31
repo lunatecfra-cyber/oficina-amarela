@@ -17,3 +17,6 @@ ALTER TABLE pautas ADD COLUMN titulo_eleitor TEXT;
 -- título de eleitor: aquele identifica a pessoa, este identifica a candidatura.
 ALTER TABLE users ADD COLUMN numero_eleitoral TEXT;
 ALTER TABLE pautas ADD COLUMN numero_eleitoral TEXT;
+
+-- Contato direto entre porta-voz e editor da mesma missão.
+ALTER TABLE users ADD COLUMN whatsapp TEXT;

@@ -68,7 +68,7 @@ export function createAuthRoutes(dependencies: ApiDependencies) {
     const handle = body?.handle ?? body?.apelido;
     const password = body?.password ?? body?.senha;
     if (typeof handle !== "string" || typeof password !== "string") {
-      return c.json({ error: "Digite seu apelido e senha." }, 400);
+      return c.json({ error: "Digite seu apelido ou e-mail e a senha." }, 400);
     }
 
     const ip = clientIp(c.req.raw.headers);
@@ -81,7 +81,7 @@ export function createAuthRoutes(dependencies: ApiDependencies) {
       return c.json({ error: `Muitas tentativas. Tente novamente em ${minutes} min.` }, 429);
     }
 
-    const account = await accounts.findByHandle(handle);
+    const account = await accounts.findByHandleOrEmail(handle);
     // Compara sempre, mesmo sem conta: o tempo de resposta não pode revelar
     // quais apelidos existem.
     const matches = await verifyPassword(password, account?.passwordHash ?? DUMMY_HASH);
@@ -91,7 +91,7 @@ export function createAuthRoutes(dependencies: ApiDependencies) {
         accounts.recordAttempt(`login:${handle}`, MAX_LOGIN_ATTEMPTS, WINDOW_MINUTES, LOCK_MINUTES),
         accounts.recordAttempt(`loginip:${ip}`, MAX_LOGINS_PER_IP, WINDOW_MINUTES, LOCK_MINUTES),
       ]);
-      return c.json({ error: "Apelido ou senha incorretos." }, 401);
+      return c.json({ error: "Apelido, e-mail ou senha incorretos." }, 401);
     }
     if (account.banned) {
       return c.json({ error: "Conta suspensa. Fale com a fiscalização." }, 401);

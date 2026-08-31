@@ -169,7 +169,7 @@ function ReviewCard({
     <li className="rounded-2xl border border-line bg-surface/70 p-4 lg:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
         <Link
-          href={`/candidate/${cand.slug}`}
+          href={`/candidato/${cand.slug}`}
           className="group flex flex-none items-center gap-3 lg:w-56"
         >
           <span
@@ -217,7 +217,7 @@ function ReviewCard({
                   href={deliveryLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-medium text-gold-hi hover:underline"
+                  className="tap-target -mx-3 font-medium text-gold-hi hover:underline"
                 >
                   Abrir vídeo entregue
                 </a>
@@ -227,7 +227,7 @@ function ReviewCard({
             <button
               type="button"
               onClick={() => setIsChatOpen((v) => !v)}
-              className="font-medium text-gold-hi hover:underline"
+              className="tap-target -mx-3 font-medium text-gold-hi hover:underline"
             >
               💬 Conversa ({messages.length})
             </button>

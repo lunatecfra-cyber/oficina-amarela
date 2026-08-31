@@ -2,7 +2,6 @@ import {
   currentStage,
   FORMAT_LABELS,
   MISSION_STAGES,
-  STATUS_LABELS,
   spokespersonStatusMessage,
 } from "@oficina/domain/missions";
 import {
@@ -13,11 +12,9 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CandidateAvatar } from "@/components/candidate-avatar";
 import { MissionActions } from "@/components/mission-actions";
 import { MissionChat } from "@/components/mission-chat";
 import { ReportButton } from "@/components/report-button";
-import { readOwnCandidate } from "@/lib/candidate-db";
 import { missionMessages } from "@/lib/chat-db";
 import { missionByIdOfSpokesperson, queuePosition, totalInQueue } from "@/lib/missions-db";
 import { requireSession } from "@/lib/server-session";
@@ -52,6 +49,30 @@ function timeSince(iso: string) {
   return months === 1 ? "há 1 mês" : `há ${months} meses`;
 }
 
+/** Título de bloco: um risco de ouro e o nome, sem virar mais um cartão. */
+function BlockTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">{children}</h2>
+  );
+}
+
+function BriefLine({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="border-b border-line-soft py-3 last:border-0">
+      <dt className="text-xs uppercase tracking-wide text-muted-2">{label}</dt>
+      <dd
+        className={
+          value
+            ? "mt-1 whitespace-pre-line text-sm leading-relaxed text-text"
+            : "mt-1 text-sm italic text-muted-2"
+        }
+      >
+        {value ?? "não informado"}
+      </dd>
+    </div>
+  );
+}
+
 export default async function MissionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
   const { id: rawId } = await params;
@@ -59,11 +80,10 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
   const numId = Number(String(rawId).replace(/^db-/, ""));
   if (!Number.isInteger(numId)) notFound();
 
-  const [mission, position, total, candidate, messages] = await Promise.all([
+  const [mission, position, total, messages] = await Promise.all([
     missionByIdOfSpokesperson(numId, session.id),
     queuePosition(numId),
     totalInQueue(),
-    readOwnCandidate(session.id),
     missionMessages(numId),
   ]);
   if (!mission) notFound();
@@ -94,19 +114,27 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
   const isInReview = status === "in_review" || (status as any) === "em_revisao";
   const isApproved = status === "approved" || (status as any) === "aprovada";
   const isAvailable = status === "available" || (status as any) === "disponivel";
+  const needsMyDecision = isInReview || isApproved;
+
+  const hasRawVideo =
+    (driveLink && looksLikeDriveLink(driveLink)) ||
+    (youtubeLink && looksLikeYoutubeLink(youtubeLink));
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-8 lg:px-8 lg:py-12">
-      <div className="mb-6">
+    <div className="mx-auto w-full max-w-2xl px-5 pb-16 lg:px-8">
+      {/* sem padding próprio: o container já tem px-5, e o -ml-3 do link só
+          desconta o padding interno do tap-target pra o texto cair nos 20px */}
+      <div className="pt-4">
         <Link
           href="/porta-voz"
-          className="text-sm text-muted transition-colors hover:text-silver-hi"
+          className="tap-target -ml-3 text-sm text-muted hover:text-silver-hi"
         >
           ← Minhas missões
         </Link>
       </div>
 
-      <header className="mb-8 overflow-hidden rounded-2xl border border-line bg-surface/60">
+      {/* Onde a missão está, antes de qualquer outra coisa. */}
+      <header className="mt-3 overflow-hidden rounded-2xl border border-line bg-surface/60">
         <div
           className="h-1 w-full"
           style={{
@@ -116,23 +144,20 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
           aria-hidden="true"
         />
         <div className="p-5 lg:p-6">
-          <p className={`text-sm font-medium ${msg.color}`}>{msg.text}</p>
-          <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
+          <p className={`text-sm font-semibold ${msg.color}`}>{msg.text}</p>
+          <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-semibold leading-tight text-text lg:text-3xl">
             {title}
           </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-2">
-            <span className="rounded-full border border-line bg-ink-2 px-2.5 py-0.5">
-              {FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}
-            </span>
-            <span>
-              {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ??
-                (STATUS_LABELS as any)[status] ??
-                status}
-            </span>
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-2">
+            <span>{FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}</span>
             <span aria-hidden="true">·</span>
-            <span>
-              criada {timeSince(createdAt)} · {formatDate(createdAt)}
-            </span>
+            <span>criada {timeSince(createdAt)}</span>
+            {desiredDeadline && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>prazo {formatPureDate(desiredDeadline)}</span>
+              </>
+            )}
           </div>
 
           {isAvailable && position > 0 && (
@@ -141,12 +166,22 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
             </p>
           )}
 
-          <ol className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-2 text-[11px]">
+          {reservedBy && (
+            <p className="mt-3 text-sm text-muted">
+              Com o editor <span className="font-medium text-text">{reservedBy}</span>
+              {reservedAt && (
+                <span className="text-muted-2"> desde {formatDate(reservedAt, false)}</span>
+              )}
+            </p>
+          )}
+
+          {/* A trilha da missão, enrolando em vez de esticar a tela. */}
+          <ol className="mt-4 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-xs">
             {MISSION_STAGES.map((name, i) => {
               const passed = i < stage;
               const isCurrent = i === stage;
               return (
-                <li key={name} className="flex items-center gap-2">
+                <li key={name} className="flex items-center gap-1.5">
                   <span
                     className={
                       isCurrent
@@ -171,64 +206,56 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
         </div>
       </header>
 
-      {(isInReview || isApproved) && <MissionActions id={mission.id} inReview={isInReview} />}
+      {/* Assistir vem antes de decidir: sem ver o vídeo, o botão de aprovar não
+          significa nada. */}
+      {deliveryLink && looksLikeLink(deliveryLink) && (
+        <a
+          href={deliveryLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-gold mt-5"
+          data-guia="ver-entrega"
+        >
+          ▶ Assistir ao vídeo entregue
+        </a>
+      )}
 
-      {candidate && (
-        <section className="mb-8 flex items-center gap-4 rounded-2xl border border-line bg-surface/60 p-5">
-          <CandidateAvatar candidate={candidate} className="h-14 w-14 text-lg" />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-text">
-              {candidate.name ?? (candidate as any).nome}
-            </p>
-            {(candidate.location ?? (candidate as any).local) && (
-              <p className="mt-0.5 text-xs text-muted">
-                {candidate.location ?? (candidate as any).local}
-              </p>
-            )}
-          </div>
+      {needsMyDecision && (
+        <div className="mt-5">
+          <MissionActions id={mission.id} inReview={isInReview} />
+        </div>
+      )}
+
+      {/* Enquanto o editor trabalha, a única ação útil é falar com ele. */}
+      {reservedBy && !needsMyDecision && (
+        <a href="#conversa" className="btn-ghost mt-5">
+          Enviar nova orientação ao editor
+        </a>
+      )}
+
+      {inspectorNotes && (
+        <section className="mt-8">
+          <BlockTitle>
+            {reeditRequestedBy === "spokesperson" || reeditRequestedBy === "porta_voz"
+              ? "O ajuste que você pediu"
+              : "Observação do controle de qualidade"}
+          </BlockTitle>
+          <p className="rounded-2xl border border-line bg-surface/40 p-4 text-sm leading-relaxed text-muted">
+            {inspectorNotes}
+          </p>
         </section>
       )}
 
-      {(reservedBy || deliveryLink) && (
-        <section className="mb-8 rounded-2xl border border-line bg-surface/60 p-5">
-          {reservedBy && (
-            <p className="text-sm text-muted">
-              Editor responsável: <span className="font-medium text-text">{reservedBy}</span>
-            </p>
-          )}
-          {reservedAt && (
-            <p className="mt-1 text-xs text-muted-2">
-              Com o editor desde {formatDate(reservedAt, false)} · sem prazo — é dele até entregar
-              ou devolver
-            </p>
-          )}
-          {deliveryLink && looksLikeLink(deliveryLink) && (
-            <a
-              href={deliveryLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-gold mt-3 inline-block w-auto px-5"
-              data-guia="ver-entrega"
-            >
-              ▶ Ver vídeo entregue
-            </a>
-          )}
-        </section>
-      )}
-
-      {((driveLink && looksLikeDriveLink(driveLink)) ||
-        (youtubeLink && looksLikeYoutubeLink(youtubeLink))) && (
-        <section className="mb-6">
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-gold">
-            Vídeo bruto
-          </h2>
-          <div className="flex flex-wrap gap-2">
+      {hasRawVideo && (
+        <section className="mt-8">
+          <BlockTitle>Vídeo bruto que você mandou</BlockTitle>
+          <div className="flex flex-col gap-2 sm:flex-row">
             {driveLink && looksLikeDriveLink(driveLink) && (
               <a
                 href={driveLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
+                className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
               >
                 📁 Abrir no Google Drive
               </a>
@@ -238,7 +265,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
                 href={youtubeLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
+                className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
               >
                 ▶ Abrir no YouTube
               </a>
@@ -247,67 +274,35 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
         </section>
       )}
 
-      <section className="mb-6">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
-          Briefing (como você pediu)
-        </h2>
-        <dl className="grid gap-3 rounded-2xl border border-line bg-surface/40 p-5 sm:grid-cols-2">
-          {(
-            [
-              ["Prazo desejado", desiredDeadline ? formatPureDate(desiredDeadline) : undefined],
-              ["Tom", tone],
-              ["Cor", color],
-              ["Fonte / legenda", font],
-            ] as const
-          ).map(([label, value]) => (
-            <div key={label}>
-              <dt className="text-[11px] uppercase tracking-wide text-muted-2">{label}</dt>
-              <dd
-                className={
-                  value ? "mt-0.5 text-sm text-text" : "mt-0.5 text-sm text-muted-2 italic"
-                }
-              >
-                {value ?? "não informado"}
-              </dd>
-            </div>
-          ))}
-          {(
-            [
-              ["Referências", refs],
-              ["Cortes específicos", extras],
-              ["Por que esse vídeo importa", reason],
-            ] as const
-          ).map(([label, value]) => (
-            <div key={label} className="sm:col-span-2">
-              <dt className="text-[11px] uppercase tracking-wide text-muted-2">{label}</dt>
-              <dd
-                className={`mt-0.5 text-sm ${value ? "whitespace-pre-line text-text" : "text-muted-2 italic"}`}
-              >
-                {value ?? "não informado"}
-              </dd>
-            </div>
-          ))}
+      {/* Recolhido: quem já mandou o briefing raramente precisa relê-lo, mas
+          precisa achá-lo quando o editor pergunta. */}
+      <details className="group mt-8 rounded-2xl border border-line bg-surface/40">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
+          O que você pediu
+          <span
+            aria-hidden="true"
+            className="text-muted-2 transition-transform group-open:rotate-180"
+          >
+            ▾
+          </span>
+        </summary>
+        <dl className="px-4 pb-2">
+          <BriefLine label="Objetivo da edição" value={reason} />
+          <BriefLine label="Trechos e cortes" value={extras} />
+          <BriefLine label="Referências" value={refs} />
+          <BriefLine label="Tom" value={tone} />
+          <BriefLine label="Cor" value={color} />
+          <BriefLine label="Fonte da legenda" value={font} />
         </dl>
+      </details>
+
+      <section id="conversa" className="mt-8 scroll-mt-4" data-guia="conversa-missao">
+        <MissionChat missionId={mission.id} messages={messages} />
       </section>
 
-      {inspectorNotes && (
-        <section className="mb-6">
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-gold">
-            {reeditRequestedBy === "spokesperson" || reeditRequestedBy === "porta_voz"
-              ? "O ajuste que você pediu"
-              : "Observação do controle de qualidade"}
-          </h2>
-          <p className="rounded-2xl border border-line bg-surface/40 p-5 text-sm leading-relaxed text-muted">
-            {inspectorNotes}
-          </p>
-        </section>
-      )}
-
-      <div className="mb-6" data-guia="conversa-missao">
-        <MissionChat missionId={mission.id} messages={messages} />
+      <div className="mt-10">
+        <ReportButton missionId={mission.id} />
       </div>
-
-      <ReportButton missionId={mission.id} />
     </div>
   );
 }

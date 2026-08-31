@@ -63,6 +63,25 @@ describe("autenticação na API", {
     assert.equal(body.handle, "editor.auth");
   });
 
+  test("entra pelo e-mail, do mesmo jeito que pelo apelido", async () => {
+    // Quem esquece o apelido ainda sabe o e-mail. Os dois abrem a mesma conta.
+    const response = await post("login", {
+      handle: "editor@auth.local",
+      password: "senha-correta",
+    });
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as { handle: string };
+    assert.equal(body.handle, "editor.auth");
+  });
+
+  test("e-mail com caixa diferente também entra", async () => {
+    const response = await post("login", {
+      handle: "EDITOR@Auth.Local",
+      password: "senha-correta",
+    });
+    assert.equal(response.status, 200);
+  });
+
   test("senha errada não distingue de apelido inexistente", async () => {
     const wrongPassword = await post("login", { handle: "editor.auth", password: "errada" });
     const noSuchUser = await post("login", { handle: "nao.existe", password: "errada" });

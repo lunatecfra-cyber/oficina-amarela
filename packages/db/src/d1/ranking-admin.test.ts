@@ -119,11 +119,13 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
       reason: "approval_not_active",
     });
 
+    // A reputação não entra na conta da anulação: o desconto fixo de 25 não
+    // correspondia ao XP que a entrega paga. Entregues e streak, sim.
     const editor = await db
       .prepare("SELECT entregues, reputacao, streak FROM users WHERE id = ?")
       .bind(editorId)
       .first<{ entregues: number; reputacao: number; streak: number }>();
-    assert.deepEqual(editor, { entregues: 0, reputacao: 0, streak: 0 });
+    assert.deepEqual(editor, { entregues: 0, reputacao: 25, streak: 0 });
 
     const mission = await db
       .prepare("SELECT pontuada FROM pautas WHERE id = ?")
@@ -204,7 +206,7 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
 
   test("gamificação pontua uma vez por referência", async () => {
     const first = await record(editorId, "missao_entregue", `pauta:${missionId}`);
-    assert.deepEqual(first, { recorded: true, xp: 40, registrado: true });
+    assert.deepEqual(first, { recorded: true, xp: 100, registrado: true });
 
     const again = await record(editorId, "missao_entregue", `pauta:${missionId}`);
     assert.deepEqual(again, { recorded: false, xp: 0, registrado: false });
@@ -213,12 +215,12 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
       .prepare("SELECT reputacao FROM users WHERE id = ?")
       .bind(editorId)
       .first<{ reputacao: number }>();
-    assert.equal(Number(editor?.reputacao), 65, "25 do preparo + 40 do evento, sem repetir");
+    assert.equal(Number(editor?.reputacao), 125, "25 do preparo + 100 do evento, sem repetir");
 
     // O apelido em inglês é a mesma regra, não uma segunda pontuação.
     assert.deepEqual(await record(editorId, "daily_login", "2026-08-30"), {
       recorded: true,
-      xp: 10,
+      xp: 25,
       registrado: true,
     });
     assert.deepEqual(await record(editorId, "entrada_diaria", "2026-08-30"), {

@@ -99,9 +99,14 @@ export const postgresRankingAdmin: RankingAdminRepository = {
           WHERE pauta_id = ${missionId} AND EXISTS (SELECT 1 FROM anulada)
           RETURNING editor_id
         ), usuario_corrigido AS (
+          -- A reputação NÃO é mexida aqui. Havia um desconto fixo de 25, e 25 não é o
+          -- que a entrega paga: o XP vem de gamificacao_eventos, hoje 100 por
+          -- vídeo. Anular uma aprovação descontava um número que ninguém tinha
+          -- creditado, e repetir a anulação drenava reputação de trabalho que
+          -- continuava valendo. Reverter o evento certo é outro assunto;
+          -- descontar um valor inventado é pior que não descontar.
           UPDATE users u
           SET entregues = GREATEST(u.entregues - 1, 0),
-              reputacao = GREATEST(u.reputacao - 25, 0),
               streak = GREATEST(u.streak - 1, 0),
               nota = (SELECT round(avg(a.nota)::numeric, 2)
                       FROM avaliacoes a WHERE a.editor_id = u.id AND a.pauta_id <> ${missionId})

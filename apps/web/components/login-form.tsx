@@ -20,9 +20,9 @@ function LoginFormContent() {
     if (!handle.trim() || !password) {
       setError(
         !handle.trim() && !password
-          ? "Preencha apelido e senha."
+          ? "Preencha apelido ou e-mail e senha."
           : !handle.trim()
-            ? "Digite seu apelido."
+            ? "Digite seu apelido ou e-mail."
             : "Digite sua senha.",
       );
       return;
@@ -44,7 +44,9 @@ function LoginFormContent() {
     }
 
     const role = data.role ?? data.papel;
-    router.push(role === "editor" ? "/editor" : "/spokesperson");
+    // "/spokesperson" não existe — a área do porta-voz é "/porta-voz". Quem
+    // entrava como porta-voz caía num 404 logo depois de acertar a senha.
+    router.push(role === "editor" ? "/editor" : "/porta-voz");
     router.refresh();
   }
 
@@ -111,7 +113,7 @@ function LoginFormContent() {
             htmlFor="handle"
             className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
           >
-            Apelido
+            Apelido ou e-mail
           </label>
           <div className="relative flex items-center">
             <svg
@@ -129,7 +131,7 @@ function LoginFormContent() {
               id="handle"
               name="handle"
               className="field-input"
-              placeholder="seu apelido"
+              placeholder="seu apelido ou e-mail"
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
@@ -240,7 +242,7 @@ function LoginFormContent() {
         Ainda não é membro?{" "}
         <Link
           href="/criar-conta"
-          className="inline-block px-2 py-2 font-medium text-gold-hi hover:underline"
+          className="inline-flex min-h-11 items-center px-2 font-medium text-gold-hi hover:underline"
         >
           Crie uma conta
         </Link>
@@ -250,14 +252,14 @@ function LoginFormContent() {
         Ao entrar, você concorda com os{" "}
         <Link
           href="/termos"
-          className="inline-block py-1.5 text-muted hover:text-silver-hi hover:underline"
+          className="inline-flex min-h-11 items-center text-muted hover:text-silver-hi hover:underline"
         >
           Termos de Uso
         </Link>{" "}
         e a{" "}
         <Link
           href="/privacidade"
-          className="inline-block py-1.5 text-muted hover:text-silver-hi hover:underline"
+          className="inline-flex min-h-11 items-center text-muted hover:text-silver-hi hover:underline"
         >
           Política de Privacidade
         </Link>

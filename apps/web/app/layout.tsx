@@ -22,7 +22,8 @@ export const metadata: Metadata = {
     default: "Oficina Amarela",
     template: "%s",
   },
-  description: "A Confraria dos Editores de Vídeo. Pegue missões, entregue cortes e suba de nível.",
+  description:
+    "A guilda de quem edita. Porta-vozes mandam o vídeo bruto, editores recebem uma missão por vez e todo mundo evolui junto.",
   icons: { icon: "/emblema.png", apple: "/emblema.png" },
 };
 

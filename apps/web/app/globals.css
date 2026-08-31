@@ -33,6 +33,9 @@
   --font-sans: var(--font-sora), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   --ease-guild: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Sai rápido, chega macio — a curva de tudo que reage ao dedo ou ao mouse.
+     Mais "solta" que a --ease-guild, que fica para as animações de entrada. */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
@@ -79,8 +82,17 @@ body {
 }
 
 @layer components {
+  /* Texto recortado sobre gradiente.
+   APLICAR NO MESMO ELEMENTO QUE TEM O TEXTO — nunca num pai cujos filhos
+   carreguem o texto. Um filho com `transform` (animação de entrada, por
+   exemplo) ganha camada própria e sai do recorte do pai: o texto herda o
+   preenchimento transparente, não recebe o gradiente e some da tela. Foi o
+   que apagou "OFICINA AMARELA" da home, com o gradiente no `<h1>` e as
+   linhas em `<span>` animados.
+   `-webkit-text-fill-color` acompanha o `color` porque o WebKit dá
+   precedência a ele. */
   .text-silver-grad {
-    background: linear-gradient(
+    background-image: linear-gradient(
       180deg,
       var(--color-silver-hi) 0%,
       var(--color-silver) 48%,
@@ -89,10 +101,11 @@ body {
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    -webkit-text-fill-color: transparent;
   }
 
   .text-gold-grad {
-    background: linear-gradient(
+    background-image: linear-gradient(
       180deg,
       var(--color-gold-hi) 0%,
       var(--color-gold) 55%,
@@ -101,6 +114,7 @@ body {
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    -webkit-text-fill-color: transparent;
   }
 
   .field-input {
@@ -147,6 +161,13 @@ body {
 
   .btn-gold {
     position: relative;
+    /* ARMADILHA: sem `display`, um <a class="btn-gold"> herda `inline`, e caixa
+     inline IGNORA `width` e `min-height` — o botão saía com a largura do texto
+     (141px em vez dos 100% abaixo) e podia ficar sob os 44px. Em <button> não
+     aparecia, porque o default dele já é inline-block. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     padding: 0.9rem 1rem;
     /* 44px é o menor alvo que o dedo acerta de primeira. O padding já passa
@@ -161,24 +182,40 @@ body {
     letter-spacing: 0.03em;
     cursor: pointer;
     overflow: hidden;
+    /* sombra em três camadas: quina de luz, contato e ambiente */
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.5) inset,
-      0 10px 24px rgba(0, 0, 0, 0.5);
+      0 6px 16px rgba(244, 206, 31, 0.14),
+      0 14px 34px rgba(0, 0, 0, 0.5);
     transition:
-      transform 0.18s var(--ease-guild),
-      box-shadow 0.25s var(--ease-guild);
+      transform 0.45s var(--ease-spring),
+      box-shadow 0.45s var(--ease-spring),
+      filter 0.45s var(--ease-spring);
   }
 
   .btn-gold:hover:not(:disabled) {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.6) inset,
-      0 14px 30px rgba(0, 0, 0, 0.6);
+      0 10px 24px rgba(244, 206, 31, 0.22),
+      0 20px 44px rgba(0, 0, 0, 0.55);
+  }
+
+  /* afunda ao apertar: sem isso o botão não confirma o toque no celular, onde
+   não existe hover nenhum */
+  .btn-gold:active:not(:disabled) {
+    transform: translateY(0) scale(0.985);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.4) inset,
+      0 4px 12px rgba(0, 0, 0, 0.5);
   }
 
   .btn-gold:disabled {
-    opacity: 0.65;
+    opacity: 0.5;
+    filter: grayscale(0.6);
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 
   .btn-ghost {
@@ -199,6 +236,77 @@ body {
   .btn-ghost:hover {
     border-color: var(--color-silver-lo);
     background: var(--color-surface-2);
+  }
+
+  /* Ação destrutiva (anular aprovação, apagar). Vermelho contido: o botão
+   precisa parecer botão e pesar mais que um `btn-ghost`, sem competir com o
+   ouro, que é a cor de avanço. Existe porque `btn-danger` era usada no painel
+   do inspetor sem estar definida — o botão de anular aprovação renderizava
+   sem fundo, sem borda e com 24px de altura. */
+  .btn-danger {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    min-height: 44px;
+    border: 1px solid var(--color-danger);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+    color: var(--color-danger);
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background 0.2s var(--ease-guild),
+      border-color 0.2s var(--ease-guild);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-danger) 20%, transparent);
+    border-color: var(--color-danger);
+  }
+
+  .btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ── Vidro ────────────────────────────────────────────────────────────────
+   Superfície elevada do fundo escuro. O que faz o vidro ler como vidro é a
+   BORDA clara: o blur sozinho vira borrão. E a sombra vem em três camadas —
+   luz interna (a quina de cima), contato (perto) e ambiente (longe e larga) —
+   porque uma sombra só, chapada, é o que faz card parecer adesivo colado.
+
+   ARMADILHA: `backdrop-filter: blur(12px) saturate(1.1)` é descartado inteiro
+   no build (o processador de CSS do Tailwind v4 come a declaração e ela nunca
+   chega ao navegador — a borda e a sombra aplicavam, o blur não). Uma função
+   só por declaração. Medido com getComputedStyle, não deduzido. */
+  .glass {
+    background: rgba(255, 255, 255, 0.022);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.05) inset,
+      0 8px 22px rgba(0, 0, 0, 0.38),
+      0 22px 54px rgba(0, 0, 0, 0.26);
+  }
+
+  /* Alvo de toque para link solto dentro de texto ou rodapé: nasce com a altura
+   da linha (~32px) e o dedo erra. O padding cresce a área sem mexer no
+   desenho. Ver docs/DESIGN.md §2. */
+  .tap-target {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 0.75rem;
+    border-radius: 0.5rem;
+    transition:
+      color 0.4s var(--ease-spring),
+      background 0.4s var(--ease-spring);
+  }
+
+  .tap-target:hover {
+    color: var(--color-gold-hi);
+    background: rgba(255, 255, 255, 0.03);
   }
 }
 
@@ -282,6 +390,10 @@ body {
   animation-delay: var(--linha-atraso, 0ms);
 }
 
+/* O quadro final é `transform: none`, e não `translateY(0)`: os dois param no
+   mesmo lugar, mas `translateY(0)` com `forwards` deixa uma matriz viva no
+   elemento pra sempre, e com ela uma camada de composição que não serve pra
+   nada depois que a animação acabou. */
 @keyframes linha-sobe {
   from {
     opacity: 0;
@@ -289,7 +401,7 @@ body {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 

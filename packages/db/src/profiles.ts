@@ -8,6 +8,7 @@ import type {
   PortfolioItem,
   Tier,
 } from "@oficina/domain/profile";
+import { normalizeWhatsapp } from "@oficina/domain/whatsapp";
 import { sql } from "./client.ts";
 
 export type { EditorProfile, EditorRanking, HistoryItem, PortfolioItem, Tier };
@@ -16,6 +17,7 @@ export type EditableProfile = {
   headline: string[];
   bio: string | null;
   location: string | null;
+  whatsapp: string | null;
   hasPassword?: boolean;
   temSenha?: boolean;
   localizacao?: string | null;
@@ -25,6 +27,7 @@ export type SaveEditableProfileInput = {
   headline?: string[];
   bio?: string;
   location?: string;
+  whatsapp?: string;
   localizacao?: string;
 };
 
@@ -40,6 +43,7 @@ export type EditorOnboarding = {
   editingStyles?: string[];
   styles?: string[];
   portfolioLink?: string;
+  whatsapp?: string;
   availability?: boolean[][];
   editingLevel?: string;
   pcSetup?: string;
@@ -72,6 +76,7 @@ export type SaveEditorOnboardingInput = {
   editingStyles?: string[];
   styles?: string[];
   portfolioLink?: string;
+  whatsapp?: string;
   availability?: boolean[][];
   availabilitySchedule?: boolean[][];
   editingLevel?: string;
@@ -111,6 +116,7 @@ export type CandidateOnboarding = {
   watermark?: string;
   campaignTaxId?: string;
   candidateNumber?: string;
+  whatsapp?: string;
   voterId?: string;
   // compatibility aliases
   nome?: string;
@@ -150,6 +156,7 @@ export type SaveCandidateOnboardingInput = {
   watermarkUrl?: string;
   campaignTaxId?: string;
   candidateNumber?: string;
+  whatsapp?: string;
   voterId?: string;
   voterRegistrationId?: string;
   // aliases
@@ -309,13 +316,14 @@ export function rowToCandidate(l: CandidateRow): Candidate {
 export const postgresProfiles: ProfilesRepository = {
   async readEditableProfile(userId) {
     const [row] = await sql`
-      SELECT headline, bio, localizacao, senha_hash FROM users WHERE id = ${userId}
+      SELECT headline, bio, localizacao, whatsapp, senha_hash FROM users WHERE id = ${userId}
     `;
     if (!row) return null;
     return {
       headline: normalizeList(row.headline),
       bio: row.bio ?? null,
       location: row.localizacao ?? null,
+      whatsapp: row.whatsapp ?? null,
       hasPassword: Boolean(row.senha_hash),
       temSenha: Boolean(row.senha_hash),
       localizacao: row.localizacao ?? null,
@@ -329,7 +337,8 @@ export const postgresProfiles: ProfilesRepository = {
         UPDATE users SET
           headline = ${data.headline ? sql.json(limitList(data.headline, 5)) : null},
           bio = ${limitOrNull(data.bio, LIMITS.bio)},
-          localizacao = ${limitOrNull(loc, LIMITS.location)}
+          localizacao = ${limitOrNull(loc, LIMITS.location)},
+          whatsapp = ${normalizeWhatsapp(data.whatsapp)}
         WHERE id = ${userId}
       `;
       return { ok: true };
@@ -347,7 +356,7 @@ export const postgresProfiles: ProfilesRepository = {
     try {
       const [row] = await sql`
         SELECT nome, foto_url, localizacao, headline, bio, softwares, estilos, nivel_edicao,
-               setup_pc, link_portfolio, nicho, disponibilidade, perfil_completo
+               setup_pc, link_portfolio, whatsapp, nicho, disponibilidade, perfil_completo
         FROM users WHERE id = ${userId}
       `;
       if (!row) return null;
@@ -363,6 +372,7 @@ export const postgresProfiles: ProfilesRepository = {
         editingStyles: normalizeList(row.estilos),
         styles: normalizeList(row.estilos),
         portfolioLink: row.link_portfolio ?? "",
+        whatsapp: row.whatsapp ?? undefined,
         availability: normalizeGrid(row.disponibilidade),
         editingLevel: row.nivel_edicao ?? undefined,
         pcSetup: row.setup_pc ?? undefined,
@@ -424,6 +434,7 @@ export const postgresProfiles: ProfilesRepository = {
         nivel_edicao = ${limitOrNull(rawEditLevel, LIMITS.tag)},
         setup_pc = ${limitOrNull(rawPcSetup, LIMITS.tag)},
         link_portfolio = ${limitOrNull(rawPortLink, LIMITS.link)},
+        whatsapp = ${normalizeWhatsapp(data.whatsapp)},
         nicho = ${limitList(rawNiches, 4)},
         disponibilidade = COALESCE(${newGrid}, disponibilidade),
         perfil_completo = true
@@ -599,7 +610,8 @@ export const postgresProfiles: ProfilesRepository = {
     const [l] = await sql`
       SELECT nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
              bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-             perfil_completo, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
+             perfil_completo, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor,
+             whatsapp
       FROM users WHERE id = ${userId}
     `;
     if (!l) return null;
@@ -623,6 +635,7 @@ export const postgresProfiles: ProfilesRepository = {
       watermark: l.marca_dagua ?? undefined,
       campaignTaxId: l.cnpj_campanha ?? undefined,
       candidateNumber: l.numero_eleitoral ?? undefined,
+      whatsapp: l.whatsapp ?? undefined,
       voterId: l.titulo_eleitor ?? undefined,
       // aliases
       nome: l.nome ?? "",
@@ -698,6 +711,7 @@ export const postgresProfiles: ProfilesRepository = {
         marca_dagua = ${limitOrNull(watermark, LIMITS.briefField)},
         cnpj_campanha = ${limitOrNull(campaignTaxId, LIMITS.briefField)},
         numero_eleitoral = ${candidateNumber},
+        whatsapp = ${normalizeWhatsapp(data.whatsapp)},
         titulo_eleitor = ${limitOrNull(voterId, LIMITS.briefField)},
         perfil_completo = true
       WHERE id = ${userId}

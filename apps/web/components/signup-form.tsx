@@ -174,7 +174,7 @@ export function SignupForm({
           </a>
           <Link
             href="/criar-conta"
-            className="mt-3 block text-center text-xs text-muted-2 transition-colors hover:text-text"
+            className="mt-3 flex min-h-11 items-center justify-center text-center text-xs text-muted-2 transition-colors hover:text-text"
           >
             ← voltar para escolher o papel
           </Link>
@@ -338,14 +338,14 @@ export function SignupForm({
         Ao criar sua conta você concorda com os{" "}
         <Link
           href="/termos"
-          className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline"
+          className="inline-flex min-h-11 items-center text-muted hover:text-gold-hi hover:underline"
         >
           Termos de Uso
         </Link>{" "}
         e a{" "}
         <Link
           href="/privacidade"
-          className="inline-block py-1.5 text-muted hover:text-gold-hi hover:underline"
+          className="inline-flex min-h-11 items-center text-muted hover:text-gold-hi hover:underline"
         >
           Política de Privacidade
         </Link>
@@ -356,7 +356,7 @@ export function SignupForm({
         Já é membro?{" "}
         <Link
           href="/login"
-          className="inline-block px-2 py-2 font-medium text-gold-hi hover:underline"
+          className="inline-flex min-h-11 items-center px-2 font-medium text-gold-hi hover:underline"
         >
           Entrar
         </Link>
@@ -364,5 +364,3 @@ export function SignupForm({
     </div>
   );
 }
-
-export { SignupForm as CriarContaForm };
