@@ -52,7 +52,29 @@ export const MIGRATION_PLAN: MigrationTable[] = [
   { table: "gamificacao_eventos" },
   { table: "auditoria_admin" },
   { table: "fila_emails" },
+  // Conteúdo e acervo do usuário. Ficaram de fora do plano original: sem eles a
+  // migração perde portfólio, conquistas, acervo de músicas e novidades
+  // publicadas — em silêncio, porque a conferência só olhava o que o plano
+  // listava. O teste de cobertura do plano existe para isso não voltar.
+  { table: "portfolio" },
+  { table: "conquistas" },
+  { table: "musicas" },
+  { table: "novidades" },
+  { table: "gamificacao_regras" },
 ];
+
+/**
+ * Tabelas deliberadamente fora do plano, com o motivo.
+ *
+ * O teste de cobertura falha se uma tabela existir nos dois schemas e não
+ * estiver nem aqui nem no plano.
+ */
+export const MIGRATION_EXCLUSIONS: Record<string, string> = {
+  tentativas_login:
+    "estado efêmero de limite de tentativas; recomeçar do zero é o comportamento correto",
+  tarefas_periodicas:
+    "trava de periodicidade por requisição; no D1 quem agenda é o Cron, e a tabela nem existe",
+};
 
 export type SqlClient = (
   strings: TemplateStringsArray,

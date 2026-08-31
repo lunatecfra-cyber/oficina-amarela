@@ -27,11 +27,11 @@ describe("caixa de saída de e-mail", { skip }, async () => {
   });
 
   beforeEach(async () => {
-    await sql`DELETE FROM fila_emails WHERE chave LIKE 'teste-%'`;
+    await sql`DELETE FROM fila_emails`;
   });
 
   after(async () => {
-    await sql`DELETE FROM fila_emails WHERE chave LIKE 'teste-%'`;
+    await sql`DELETE FROM fila_emails`;
   });
 
   test("a mesma chave só entra uma vez", async () => {
