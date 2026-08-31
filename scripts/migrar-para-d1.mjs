@@ -9,9 +9,18 @@
  *   node scripts/migrar-para-d1.mjs --origem __LIT2__ --destino ./ensaio-d1
  *   node scripts/migrar-para-d1.mjs --origem __LIT3__ --destino ./ensaio-d1 --so-conferir
  *
- * O destino é um D1 local (Miniflare). Para um D1 remoto, aponte o ensaio para
- * uma cópia local primeiro: a conferência é a mesma, e é ela que decide se a
- * migração de verdade pode acontecer.
+ * O destino pode ser um D1 local (Miniflare) ou um D1 remoto de verdade:
+ *
+ *   node scripts/migrar-para-d1.mjs --origem "postgres://..." \
+ *     --destino-remoto oficina-amarela
+ *
+ * ATENÇÃO — desligue o Cron do Worker de destino antes de migrar.
+ *
+ * O Cron roda a cada minuto e chama dispatchOffers e expireOffers. Com ele
+ * ligado durante a carga, ele mexe no que está sendo carregado: num ensaio
+ * contra o staging apareceu uma oferta que a origem não tinha, criada pelo
+ * despacho no meio da migração. Para desligar, publique o Worker sem
+ * `triggers.crons` e republique depois, ou pause o Worker.
  */
 
 import { readFile } from "node:fs/promises";
@@ -24,7 +33,7 @@ import postgres from "postgres";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
 
-const { applyD1Tables, applyD1Triggers } = await import(
+const { applyD1Tables, applyD1Triggers, dropD1Triggers } = await import(
   path.join(root, "packages/db/src/d1/schema.ts")
 );
 const { backfillD1EventTables, migrateToD1 } = await import(
@@ -33,6 +42,7 @@ const { backfillD1EventTables, migrateToD1 } = await import(
 const { validateMigration } = await import(
   path.join(root, "packages/db/src/migration/validate.ts")
 );
+const { createRemoteD1 } = await import(path.join(root, "packages/db/src/migration/remote-d1.ts"));
 
 function option(name) {
   const index = process.argv.indexOf(`--${name}`);
@@ -42,30 +52,40 @@ const hasFlag = (name) => process.argv.includes(`--${name}`);
 
 const source = option("origem") ?? process.env.MIGRACAO_ORIGEM_URL;
 const target = option("destino") ?? process.env.MIGRACAO_DESTINO_D1;
+// Destino remoto: um D1 de verdade, pelo wrangler. É o caminho do dia da
+// migração; o destino local continua sendo o do ensaio.
+const remoteTarget = option("destino-remoto");
 const dryRun = hasFlag("a-seco");
 const validateOnly = hasFlag("so-conferir");
 
-if (!source || !target) {
+if (!source || (!target && !remoteTarget)) {
   console.error(
     "Uso: --origem <postgres://...> --destino <pasta do D1 local>\n" +
+      "     --origem <postgres://...> --destino-remoto <nome do banco D1>\n" +
       "     [--a-seco] só lê e relata; [--so-conferir] pula a carga e confere.\n" +
       "Origem e destino são obrigatórios de propósito.",
   );
   process.exit(2);
 }
+if (target && remoteTarget) {
+  console.error("Escolha um destino: --destino (local) ou --destino-remoto. Não os dois.");
+  process.exit(2);
+}
 
 const sql = postgres(source, { prepare: false });
-const miniflare = new Miniflare(
-  convertV4MiniflareOptions({
-    compatibilityDate: "2026-08-30",
-    d1Databases: { DB: "oficina-ensaio" },
-    // O D1 local guarda o estado nesta pasta. É o que torna o ensaio retomável:
-    // parar no meio e rodar de novo continua de onde parou.
-    resourcePersistencePath: path.resolve(target),
-    modules: true,
-    script: "export default { fetch() { return new Response('ok') } }",
-  }),
-);
+const miniflare = remoteTarget
+  ? null
+  : new Miniflare(
+      convertV4MiniflareOptions({
+        compatibilityDate: "2026-08-30",
+        d1Databases: { DB: "oficina-ensaio" },
+        // O D1 local guarda o estado nesta pasta. É o que torna o ensaio retomável:
+        // parar no meio e rodar de novo continua de onde parou.
+        resourcePersistencePath: path.resolve(target),
+        modules: true,
+        script: "export default { fetch() { return new Response('ok') } }",
+      }),
+    );
 
 function printTable(rows) {
   const width = Math.max(...rows.map((entry) => entry.table.length), 10);
@@ -80,12 +100,13 @@ function printTable(rows) {
 }
 
 let exitCode = 0;
+let db;
 try {
-  const db = await miniflare.getD1Database("DB");
+  db = remoteTarget ? createRemoteD1(remoteTarget) : await miniflare.getD1Database("DB");
   const schema = await readFile(path.join(root, "packages/db/d1/0001_mission_slice.sql"), "utf8");
 
   console.log(`origem : ${source.replace(/:\/\/[^@]*@/, "://***@")}`);
-  console.log(`destino: ${path.resolve(target)}`);
+  console.log(`destino: ${remoteTarget ? `D1 remoto ${remoteTarget}` : path.resolve(target)}`);
   console.log(dryRun ? "modo   : a seco (não grava nada)\n" : "modo   : carga\n");
 
   if (!validateOnly) {
@@ -94,6 +115,14 @@ try {
     await applyD1Tables(db, schema).catch((error) => {
       if (!/already exists/i.test(String(error))) throw error;
     });
+
+    // O destino real já vem com o esquema completo, gatilhos inclusive. Carregar
+    // histórico com eles ligados reaplicaria pontuação, reputação, ranking e
+    // auditoria. Desliga antes, religa no fim.
+    if (!dryRun) {
+      const dropped = await dropD1Triggers(db, schema);
+      console.log(`Gatilhos desligados para a carga: ${dropped}\n`);
+    }
 
     const report = await migrateToD1(sql, db, { dryRun: dryRun });
     console.log("Tabelas:");
@@ -142,7 +171,8 @@ try {
   exitCode = 1;
 } finally {
   await sql.end();
-  await miniflare.dispose();
+  if (db?.flush) await db.flush();
+  await miniflare?.dispose();
 }
 
 process.exit(exitCode);

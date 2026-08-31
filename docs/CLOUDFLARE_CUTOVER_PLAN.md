@@ -216,6 +216,32 @@ node scripts/aplicar-schema-d1.mjs production
 
 O schema é idempotente, então reaplicar depois de falha parcial é seguro.
 
+### Procedimento de migração — verificado contra D1 remoto
+
+O ensaio rodou de ponta a ponta contra o D1 remoto do staging, com o esquema
+completo já aplicado no destino (que é a situação real da produção):
+
+```bash
+# 1. DESLIGUE O CRON do Worker de destino. Ele roda a cada minuto e chama
+#    dispatchOffers/expireOffers — mexe no que está sendo carregado.
+#    Publique sem "triggers.crons" ou pause o Worker.
+
+# 2. Carga + conferência
+node scripts/migrar-para-d1.mjs \
+  --origem "<postgres de produção>" --destino-remoto oficina-amarela
+
+# 3. Religue o Cron republicando com a configuração normal.
+```
+
+O script desliga os cinco gatilhos antes da carga e os religa no fim. Isso não
+é detalhe: os gatilhos do D1 aplicam pontuação, reputação, ranking e auditoria
+quando um evento nasce, e carregar histórico com eles ligados reaplicaria tudo.
+
+A carga é `INSERT OR IGNORE`, então repetir depois de falha parcial é seguro.
+
+**Descoberto no ensaio:** com o Cron ligado, apareceu no destino uma oferta que
+a origem não tinha — criada pelo despacho no meio da carga. Por isso o passo 1.
+
 ### O que ainda falta para o flip
 
 - `P0-06`: origem dos dados de produção (Supabase/Neon) — pendente com o time

@@ -51,6 +51,30 @@ export async function applyD1Triggers(db: D1DatabaseLike, schema: string): Promi
   await run(db, splitD1Schema(schema).triggers);
 }
 
+/** Nomes dos gatilhos declarados no esquema. */
+export function d1TriggerNames(schema: string): string[] {
+  return Array.from(
+    splitD1Schema(schema)
+      .triggers.join("\n")
+      .matchAll(/CREATE TRIGGER(?: IF NOT EXISTS)? (\w+)/g),
+    (match) => match[1],
+  );
+}
+
+/**
+ * Desliga os gatilhos de um destino que já tem o esquema inteiro.
+ *
+ * É o caso real da migração: o banco de produção é criado com o esquema
+ * completo, e só depois recebe o histórico. Carregar com gatilho ligado
+ * reaplicaria pontuação, reputação, ranking e auditoria de eventos que já
+ * aconteceram uma vez.
+ */
+export async function dropD1Triggers(db: D1DatabaseLike, schema: string): Promise<number> {
+  const names = d1TriggerNames(schema);
+  for (const name of names) await db.prepare(`DROP TRIGGER IF EXISTS ${name}`).run();
+  return names.length;
+}
+
 /** Esquema inteiro, na ordem. É o que os testes usam. */
 export async function applyD1Schema(db: D1DatabaseLike, schema: string): Promise<void> {
   const { tables, triggers } = splitD1Schema(schema);
