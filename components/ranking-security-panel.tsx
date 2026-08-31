@@ -226,7 +226,7 @@ export function RankingSecurityPanel() {
           <section className="border border-line bg-surface/60">
             <div className="flex items-center justify-between border-b border-line px-4 py-3">
               <h2 className="text-sm font-semibold text-text">Convites emitidos</h2>
-              <button type="button" className="text-xs text-muted hover:text-text" onClick={() => void loadInvitations()}>Atualizar</button>
+              <button type="button" className="link-toque -mr-3 text-xs text-muted hover:text-text" onClick={() => void loadInvitations()}>Atualizar</button>
             </div>
             {loadingInvitations ? <PanelState text="Carregando convites..." /> : invitationError ? <PanelState text={invitationError} error /> : invitations.length === 0 ? <PanelState text="Nenhum convite emitido ainda." /> : (
               <ul className="divide-y divide-line-soft">

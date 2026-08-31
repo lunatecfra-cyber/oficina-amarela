@@ -177,7 +177,7 @@ export function OverviewPanel({
           type="button"
           onClick={() => notify("editors")}
           disabled={notifying !== null || inQueueCount === 0}
-          className="mb-3 text-xs text-muted hover:text-gold disabled:opacity-40"
+          className="link-toque -ml-3 mb-1 text-xs text-muted hover:text-gold disabled:opacity-40"
           title={inQueueCount === 0 ? "Sem missões na fila" : "Enviar e-mail pra todos os editores"}
         >
           ✉ Avisar editores que há missões na fila
@@ -198,7 +198,7 @@ export function OverviewPanel({
           type="button"
           onClick={() => notify("candidates")}
           disabled={notifying !== null || freeEditorsCount === 0}
-          className="mb-3 text-xs text-muted hover:text-gold disabled:opacity-40"
+          className="link-toque -ml-3 mb-1 text-xs text-muted hover:text-gold disabled:opacity-40"
           title={freeEditorsCount === 0 ? "Sem editores livres" : "Enviar e-mail pra todos os porta-vozes"}
         >
           ✉ Avisar porta-vozes que há editores livres

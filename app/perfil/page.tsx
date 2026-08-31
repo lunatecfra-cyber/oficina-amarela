@@ -347,7 +347,8 @@ export default async function ProfilePage() {
                   <span className="text-sm text-text">
                     <b className="text-gold-hi">{freeSlots}</b> blocos livres
                   </span>
-                  <Link href="/agenda" className="text-xs text-muted transition-colors hover:text-gold-hi">
+                  {/* link-toque: o alvo estava em 16px de altura */}
+                  <Link href="/agenda" className="link-toque -mr-3 text-xs text-muted hover:text-gold-hi">
                     Editar →
                   </Link>
                 </div>

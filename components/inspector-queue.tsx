@@ -207,7 +207,7 @@ function ReviewCard({
                   href={deliveryLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-medium text-gold-hi hover:underline"
+                  className="link-toque -mx-3 font-medium text-gold-hi hover:underline"
                 >
                   Abrir vídeo entregue
                 </a>
@@ -217,7 +217,7 @@ function ReviewCard({
             <button
               type="button"
               onClick={() => setIsChatOpen((v) => !v)}
-              className="font-medium text-gold-hi hover:underline"
+              className="link-toque -mx-3 font-medium text-gold-hi hover:underline"
             >
               💬 Conversa ({messages.length})
             </button>
