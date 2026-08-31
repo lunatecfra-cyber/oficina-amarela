@@ -16,7 +16,11 @@
  *             por mais bonita que esteja a latência.
  */
 
+import { fork } from "node:child_process";
+import os from "node:os";
+import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 function option(name, fallback) {
   const index = process.argv.indexOf(`--${name}`);
@@ -30,6 +34,16 @@ const stages = String(option("estagios", "100,500,1000,2500,5000"))
   .map((value) => Number(value.trim()))
   .filter((value) => Number.isFinite(value) && value > 0);
 const seconds = Number(option("segundos", "30"));
+/**
+ * Quantos processos geram a carga.
+ *
+ * Um processo só de Node não sustenta muito mais que ~200 conexões simultâneas:
+ * a partir daí o que se mede é a fila do gerador, não o servidor. O sinal é
+ * claro — a vazão CAI enquanto o p50 continua baixo e o p95 explode, e o Worker
+ * não registra erro nenhum. Foi exatamente o que apareceu em 500 usuários.
+ */
+const processes = Math.max(1, Number(option("processos", String(Math.min(8, os.cpus().length)))));
+const shardUsers = Number(option("__fatia", "0"));
 const databaseUrl = option("banco") ?? process.env.TEST_DATABASE_URL;
 
 if (!baseUrl) {
@@ -73,7 +87,8 @@ async function runStage(users) {
   const latencies = [];
   const statuses = new Map();
   const deadline = Date.now() + seconds * 1000;
-  let errors = 0;
+  let serverErrors = 0;
+  let clientFailures = 0;
 
   async function worker() {
     while (Date.now() < deadline) {
@@ -87,10 +102,14 @@ async function runStage(users) {
         });
         latencies.push(performance.now() - startedAt);
         statuses.set(response.status, (statuses.get(response.status) ?? 0) + 1);
-        if (response.status >= 500) errors += 1;
+        if (response.status >= 500) serverErrors += 1;
       } catch {
+        // Conexão recusada, reset, timeout: falha do gerador ou do caminho de
+        // rede, não do servidor. Contar como erro de servidor faz perseguir
+        // fantasma — foi o que aconteceu quando o Worker registrava zero
+        // exceção e o relatório acusava 5% de erro.
         latencies.push(performance.now() - startedAt);
-        errors += 1;
+        clientFailures += 1;
       }
     }
   }
@@ -102,11 +121,15 @@ async function runStage(users) {
   return {
     users,
     total,
+    rawLatencies: sorted,
+    rawErrors: serverErrors,
+    rawClientFailures: clientFailures,
     rps: Math.round(total / seconds),
     p50: Math.round(percentile(sorted, 0.5)),
     p95: Math.round(percentile(sorted, 0.95)),
     p99: Math.round(percentile(sorted, 0.99)),
-    errorRate: total ? errors / total : 0,
+    errorRate: total ? serverErrors / total : 0,
+    clientFailureRate: total ? clientFailures / total : 0,
     rateLimited: statuses.get(429) ?? 0,
     statuses: [...statuses.entries()].sort((a, b) => b[1] - a[1]),
   };
@@ -196,8 +219,79 @@ async function runClaimBurst(users) {
   }
 }
 
+// Processo filho: roda a própria fatia e devolve as medições cruas.
+if (shardUsers > 0) {
+  const result = await runStage(shardUsers);
+  // process.send é assíncrono: sair antes do callback descarta a mensagem e o
+  // pai fica sem a fatia.
+  await new Promise((resolve) => {
+    process.send?.(
+      {
+        latencies: result.rawLatencies,
+        errors: result.rawErrors,
+        clientFailures: result.rawClientFailures,
+        total: result.total,
+      },
+      () => resolve(),
+    );
+  });
+  process.exit(0);
+}
+
+/** Distribui os usuários entre processos e junta as medições. */
+async function runShardedStage(users) {
+  if (processes === 1 || users <= 100) return runStage(users);
+
+  const here = fileURLToPath(import.meta.url);
+  const perShard = Math.ceil(users / processes);
+  const shards = [];
+  for (let remaining = users; remaining > 0; remaining -= perShard) {
+    shards.push(Math.min(perShard, remaining));
+  }
+
+  const collected = await Promise.all(
+    shards.map(
+      (count) =>
+        new Promise((resolve, reject) => {
+          const child = fork(
+            here,
+            ["--base", baseUrl, "--segundos", String(seconds), "--__fatia", String(count)],
+            { stdio: ["ignore", "ignore", "inherit", "ipc"] },
+          );
+          let payload = null;
+          child.on("message", (message) => {
+            payload = message;
+          });
+          child.on("exit", () =>
+            payload ? resolve(payload) : reject(new Error("fatia sem resposta")),
+          );
+          child.on("error", reject);
+        }),
+    ),
+  );
+
+  const latencies = collected.flatMap((entry) => entry.latencies).sort((a, b) => a - b);
+  const errors = collected.reduce((sum, entry) => sum + entry.errors, 0);
+  const clientFailures = collected.reduce((sum, entry) => sum + (entry.clientFailures ?? 0), 0);
+  const total = collected.reduce((sum, entry) => sum + entry.total, 0);
+
+  return {
+    users,
+    total,
+    rps: Math.round(total / seconds),
+    p50: Math.round(percentile(latencies, 0.5)),
+    p95: Math.round(percentile(latencies, 0.95)),
+    p99: Math.round(percentile(latencies, 0.99)),
+    errorRate: total ? errors / total : 0,
+    clientFailureRate: total ? clientFailures / total : 0,
+    rateLimited: 0,
+    statuses: [],
+  };
+}
+
 console.log(`alvo   : ${baseUrl}`);
-console.log(`cenário: ${scenario}\n`);
+console.log(`cenário: ${scenario}`);
+console.log(`geração: ${processes} processo(s)\n`);
 
 let failed = false;
 
@@ -207,14 +301,22 @@ if (scenario === "reserva") {
   }
 } else {
   for (const users of stages) {
-    const result = await runStage(users);
+    const result = await runShardedStage(users);
     const failures = verdict(result);
     console.log(
       `${String(users).padStart(5)} usuários  ${String(result.rps).padStart(6)} req/s  ` +
         `p50 ${String(result.p50).padStart(5)}ms  p95 ${String(result.p95).padStart(5)}ms  ` +
         `p99 ${String(result.p99).padStart(6)}ms  ` +
-        `erro ${(result.errorRate * 100).toFixed(2)}%  429 ${result.rateLimited}`,
+        `erro-servidor ${(result.errorRate * 100).toFixed(2)}%  ` +
+        `falha-cliente ${((result.clientFailureRate ?? 0) * 100).toFixed(2)}%  ` +
+        `429 ${result.rateLimited}`,
     );
+    if ((result.clientFailureRate ?? 0) > 0.01) {
+      console.log(
+        "        aviso: falha de cliente alta. Confira o tail do Worker antes de" +
+          " culpar o servidor — pode ser o gerador saturando.",
+      );
+    }
     if (failures.length > 0) {
       failed = true;
       for (const failure of failures) console.log(`        REPROVOU: ${failure}`);

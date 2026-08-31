@@ -1,12 +1,13 @@
 import type { DbNews } from "@oficina/db/news";
-import { fetchApi, fetchApiJson } from "@/lib/internal-api";
+import { fetchApi, fetchApiJson, fetchPublicApiJson } from "@/lib/internal-api";
 
 export type { DbNews };
 export type NewsItemDb = DbNews;
 export type NovidadeDb = DbNews;
 
 export async function getPublishedNews(limit = 4): Promise<DbNews[]> {
-  const list = await fetchApiJson<DbNews[]>(`/news?limit=${limit}`);
+  // Novidade publicada é pública: sem cookie, a home continua cacheável.
+  const list = await fetchPublicApiJson<DbNews[]>(`/news?limit=${limit}`);
   return list ?? [];
 }
 export const publishedNews = getPublishedNews;

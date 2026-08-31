@@ -162,3 +162,64 @@ metric in §2, pass/fail per threshold, and the raw result file. Commit under
 Feed the measured request mix, CPU-ms, rows read and cache hit ratios back into
 `CLOUDFLARE_COST_MODEL.md`, replacing the assumptions in its §2 and keeping the
 modelled figures alongside so the estimation error stays visible.
+
+---
+
+## Medições reais — 2026-08-31 (staging)
+
+Alvo: `oficina-amarela-web-staging`, cenário `mix`, 30s por estágio, geração em
+8 processos.
+
+| Usuários | req/s | p50 | p95 | p99 | erro servidor | falha cliente |
+|---|---|---|---|---|---|---|
+| 100 | 1454 | 19ms | 231ms | 385ms | **0,00%** | 0,00% |
+| 250 | 885 | 15ms | 184ms | 10479ms | **0,00%** | 2,35% |
+
+**100 usuários simultâneos passa em todos os limiares.**
+
+### O gargalo medido foi o gerador, não a plataforma
+
+Durante um estágio de 500 usuários, o tail do Worker registrou:
+
+```
+outcome    2218 ok · 1 canceled · 0 exception
+status     2012 × 401 (rotas com sessão)  ·  206 × 200
+cpuTime    p50 1ms · p95 3ms · p99 5ms · max 133ms
+```
+
+Zero exceção, CPU quase parada. A vazão CAINDO enquanto o p50 continua baixo e
+o p95 explode é assinatura de fila no gerador. Uma máquina só não sustenta
+muito além de ~200 conexões simultâneas.
+
+**Os degraus de 1.000, 2.500 e 5.000 continuam sem medição.** Precisam de
+geração distribuída — várias máquinas ou um serviço de carga. Medir daqui e
+declarar aprovado seria inventar.
+
+### Dois gargalos reais encontrados e corrigidos
+
+**A home estourava o limite de CPU do Worker.** Sob 100 usuários,
+`Worker exceeded CPU time limit` em `GET /` — 65% do tráfego do cenário.
+
+Duas causas, as duas de arquitetura:
+
+1. `apps/web/lib/internal-api.ts` fazia `createApp()` em escopo de módulo, com
+   import estático da API. Cada isolate novo instanciava a API inteira, com
+   todas as rotas e o driver do PostgreSQL. Virou import dinâmico e preguiçoso:
+   em staging e produção o Service Binding sempre existe, então esse caminho
+   nunca é tocado.
+
+2. A home tinha `revalidate = 300` e mesmo assim respondia
+   `cache-control: no-store` com `cf-cache-status: BYPASS`. O cliente da API
+   lia cookie em toda chamada para repassar sessão, e ler cookie marca a rota
+   como dinâmica no Next — o que desliga o cache da página inteira. Leitura de
+   dado público passou a não tocar em cookie.
+
+Efeito somado, em 100 usuários:
+
+| | antes | depois |
+|---|---|---|
+| vazão | 137 req/s | 1454 req/s |
+| p50 | 307ms | 19ms |
+| erro de servidor | 4,03% | 0,00% |
+
+A home agora é classificada `◐ ISR (300s)` no build e responde `public`.

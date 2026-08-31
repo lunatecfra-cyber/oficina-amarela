@@ -1,5 +1,3 @@
-import { createApp } from "@oficina/api/app";
-
 /**
  * Fronteira web → API.
  *
@@ -19,8 +17,30 @@ export type ApiServiceBinding = {
   fetch(request: Request): Promise<Response> | Response;
 };
 
-const localApi = createApp();
 let apiBinding: ApiServiceBinding | null = null;
+let localApi: ApiServiceBinding | null = null;
+
+/**
+ * A aplicação em processo é o caminho de desenvolvimento e teste, e só ele.
+ *
+ * O import é dinâmico de propósito. Estático, ele arrastava a API inteira — com
+ * todas as rotas e o driver do PostgreSQL — para dentro do bundle do Worker
+ * web, que instanciava tudo isso em cada isolate novo. Sob carga o resultado
+ * era "Worker exceeded CPU time limit" na home. Em staging e produção o Service
+ * Binding sempre existe, então este caminho nunca é tocado.
+ */
+async function inProcessApi(): Promise<ApiServiceBinding> {
+  if (!localApi) {
+    const { createApp } = await import("@oficina/api/app");
+    localApi = createApp();
+  }
+  return localApi;
+}
+
+/** O binding quando existe; a aplicação em processo só quando não existe. */
+async function transport(binding?: ApiServiceBinding): Promise<ApiServiceBinding> {
+  return binding ?? apiBinding ?? (await inProcessApi());
+}
 
 /** Registra o Service Binding do Worker da API. Sem isso, roda em processo. */
 export function setApiBinding(binding: ApiServiceBinding | null | undefined): void {
@@ -56,10 +76,8 @@ export async function registerApiBindingFromWorkerEnv(): Promise<"service-bindin
   return apiTransport();
 }
 
-export function forwardToApi(
-  request: Request,
-  binding: ApiServiceBinding = apiBinding ?? localApi,
-) {
+export async function forwardToApi(request: Request, binding?: ApiServiceBinding) {
+  const target = await transport(binding);
   const url = new URL(request.url);
   url.pathname = url.pathname.replace(/^\/api/, "");
 
@@ -79,7 +97,7 @@ export function forwardToApi(
     (init as { duplex?: string }).duplex = "half";
   }
 
-  return respondMutable(binding.fetch(new Request(url, init)));
+  return respondMutable(target.fetch(new Request(url, init)));
 }
 
 /**
@@ -88,36 +106,69 @@ export function forwardToApi(
  * Repassa cookies da requisição atual quando existirem para preservar a sessão
  * do usuário automaticamente.
  */
+export type FetchApiOptions = {
+  /**
+   * Repassar o cookie da requisição atual.
+   *
+   * Ligado por padrão, porque quase toda chamada é em nome de alguém. Mas ler
+   * cookie marca a rota como dinâmica no Next, e rota dinâmica não entra em
+   * cache: a home tinha `revalidate = 300` e mesmo assim respondia
+   * `cache-control: no-store`, renderizando inteira a cada visita. Para dado
+   * público, desligue — é o que devolve o cache à página.
+   */
+  forwardCookies?: boolean;
+};
+
 export async function fetchApi(
   path: string,
   init?: RequestInit,
-  binding: ApiServiceBinding = apiBinding ?? localApi,
+  binding?: ApiServiceBinding,
+  options: FetchApiOptions = {},
 ): Promise<Response> {
+  const target = await transport(binding);
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const url = `http://api.local${normalizedPath}`;
   const headers = new Headers(init?.headers);
 
-  try {
-    const { cookies } = await import("next/headers");
-    const jar = await cookies();
-    const cookieHeader = jar.toString();
-    if (cookieHeader && !headers.has("cookie")) {
-      headers.set("cookie", cookieHeader);
+  if (options.forwardCookies !== false) {
+    try {
+      const { cookies } = await import("next/headers");
+      const jar = await cookies();
+      const cookieHeader = jar.toString();
+      if (cookieHeader && !headers.has("cookie")) {
+        headers.set("cookie", cookieHeader);
+      }
+    } catch {
+      // Fora do contexto de requisição do Next (build time / testes sem headers)
     }
-  } catch {
-    // Fora do contexto de requisição do Next (build time / testes sem headers)
   }
 
   const requestInit: RequestInit = {
     ...init,
     headers,
   };
-  return respondMutable(binding.fetch(new Request(url, requestInit)));
+  return respondMutable(target.fetch(new Request(url, requestInit)));
 }
 
 export async function fetchApiJson<T>(path: string, init?: RequestInit): Promise<T | null> {
   try {
     const res = await fetchApi(path, init);
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Leitura de dado público, sem tocar em cookie.
+ *
+ * É o que mantém a página elegível a cache: sem leitura de cookie o Next não
+ * marca a rota como dinâmica, e o `revalidate` da página volta a valer.
+ */
+export async function fetchPublicApiJson<T>(path: string, init?: RequestInit): Promise<T | null> {
+  try {
+    const res = await fetchApi(path, init, undefined, { forwardCookies: false });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
