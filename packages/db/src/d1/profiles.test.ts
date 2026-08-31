@@ -190,6 +190,7 @@ describe("paridade D1 de perfis e onboarding", () => {
       bio: "Bio do Busnelo",
       watermark: "Marca d'água",
       campaignTaxId: "12.345.678/0001-90",
+      candidateNumber: "5510",
       voterId: "123456789012",
     });
     assert.deepEqual(saved, { ok: true });
@@ -200,6 +201,10 @@ describe("paridade D1 de perfis e onboarding", () => {
     assert.deepEqual(onboarding?.campaignFlags, ["Segurança", "Comunidade"]);
     assert.deepEqual(onboarding?.socialLinks, { instagram: "@busnelo.oficial" });
     assert.equal(onboarding?.profileComplete, true);
+    // A tarja de propaganda é montada com estes três: se o D1 não devolver o
+    // número na urna, a tarja sai incompleta e a propaganda vira irregular.
+    assert.equal(onboarding?.candidateNumber, "5510");
+    assert.equal(onboarding?.campaignTaxId, "12.345.678/0001-90");
 
     const own = await repo.readOwnCandidate(userId);
     assert.ok(own !== null);
@@ -210,6 +215,8 @@ describe("paridade D1 de perfis e onboarding", () => {
     const pub = await repo.readPublicCandidate("busnelo");
     assert.ok(pub !== null);
     assert.equal(pub.slug, "busnelo");
+
+    assert.equal(own.candidateNumber, "5510");
 
     const map = await repo.readCandidatesByHandles(["busnelo", "inexistente"]);
     assert.equal(map.size, 1);

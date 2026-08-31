@@ -1,3 +1,4 @@
+import { validateCampaignIdentity } from "@oficina/domain/campaign-identity";
 import type { Candidate } from "@oficina/domain/candidates";
 import { isValidPhoto, LIMITS, limitList, limitOrNull, limitStr } from "@oficina/domain/limits";
 import type { HistoryItem, PortfolioItem, Tier } from "@oficina/domain/profile";
@@ -407,7 +408,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         .prepare(
           `SELECT nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
                   bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  perfil_completo, marca_dagua, cnpj_campanha, titulo_eleitor
+                  perfil_completo, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
            FROM users WHERE id = ?`,
         )
         .bind(userId)
@@ -426,6 +427,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           perfil_completo: number | null;
           marca_dagua: string | null;
           cnpj_campanha: string | null;
+          numero_eleitoral: string | null;
           titulo_eleitor: string | null;
         }>();
       if (!l) return null;
@@ -448,6 +450,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         profileCompleted: Boolean(l.perfil_completo),
         watermark: l.marca_dagua ?? undefined,
         campaignTaxId: l.cnpj_campanha ?? undefined,
+        candidateNumber: l.numero_eleitoral ?? undefined,
         voterId: l.titulo_eleitor ?? undefined,
         // aliases
         nome: l.nome ?? "",
@@ -463,14 +466,21 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         perfilCompleto: Boolean(l.perfil_completo),
         marcaDagua: l.marca_dagua ?? undefined,
         cnpjCampanha: l.cnpj_campanha ?? undefined,
+        numeroEleitoral: l.numero_eleitoral ?? undefined,
         tituloEleitor: l.titulo_eleitor ?? undefined,
       };
     },
 
     async saveCandidateOnboarding(userId, data) {
-      const rawName = data.name ?? data.nome ?? "";
-      const name = limitStr(rawName, LIMITS.name);
-      if (!name) return { ok: false, error: "Digite seu nome.", erro: "Digite seu nome." };
+      // Mesma regra do PostgreSQL: nome oficial, número na urna e CNPJ da
+      // campanha viram a tarja de propaganda, que é obrigação legal.
+      const identity = validateCampaignIdentity({
+        officialName: data.name ?? data.nome ?? "",
+        candidateNumber: data.candidateNumber ?? data.numeroEleitoral ?? "",
+        campaignTaxId: data.campaignTaxId ?? data.cnpjCampanha ?? "",
+      });
+      if (!identity.ok) return { ok: false, error: identity.error, erro: identity.error };
+      const name = limitStr(identity.value.officialName, LIMITS.name);
 
       const photo = data.avatarUrl ?? data.photoUrl ?? data.fotoUrl;
       if (!isValidPhoto(photo)) {
@@ -497,7 +507,8 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
       const links = data.socialLinks ?? data.redes ?? {};
       const bio = data.bio;
       const watermark = data.watermark ?? data.marcaDagua;
-      const campaignTaxId = data.campaignTaxId ?? data.cnpjCampanha;
+      const campaignTaxId = identity.value.campaignTaxId;
+      const candidateNumber = identity.value.candidateNumber;
       const voterId = data.voterId ?? data.tituloEleitor;
 
       const flagsJson = flags ? JSON.stringify(limitList(flags, 12)) : null;
@@ -520,6 +531,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
              bio = ?,
              marca_dagua = ?,
              cnpj_campanha = ?,
+             numero_eleitoral = ?,
              titulo_eleitor = ?,
              perfil_completo = 1
            WHERE id = ?`,
@@ -538,6 +550,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           limitOrNull(bio, LIMITS.bio),
           limitOrNull(watermark, LIMITS.briefField),
           limitOrNull(campaignTaxId, LIMITS.briefField),
+          candidateNumber,
           limitOrNull(voterId, LIMITS.briefField),
           userId,
         )
@@ -551,7 +564,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         .prepare(
           `SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
                   localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  criado_em, marca_dagua, cnpj_campanha, titulo_eleitor
+                  criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
            FROM users
            WHERE id = ?`,
         )
@@ -573,6 +586,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           criado_em: string;
           marca_dagua: string | null;
           cnpj_campanha: string | null;
+          numero_eleitoral: string | null;
           titulo_eleitor: string | null;
         }>();
       if (!l) return null;
@@ -589,7 +603,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         .prepare(
           `SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
                   localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  criado_em, marca_dagua, cnpj_campanha, titulo_eleitor
+                  criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
            FROM users
            WHERE lower(apelido) = lower(?) AND papel IN ('voz', 'spokesperson') AND perfil_completo = 1 AND banido = 0`,
         )
@@ -611,6 +625,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           criado_em: string;
           marca_dagua: string | null;
           cnpj_campanha: string | null;
+          numero_eleitoral: string | null;
           titulo_eleitor: string | null;
         }>();
       if (!l) return null;
@@ -629,7 +644,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         .prepare(
           `SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
                   localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  criado_em, marca_dagua, cnpj_campanha, titulo_eleitor
+                  criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
            FROM users
            WHERE apelido IN (${placeholders})`,
         )
@@ -651,6 +666,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           criado_em: string;
           marca_dagua: string | null;
           cnpj_campanha: string | null;
+          numero_eleitoral: string | null;
           titulo_eleitor: string | null;
         }>();
 

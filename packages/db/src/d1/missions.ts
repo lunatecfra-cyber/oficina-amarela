@@ -15,6 +15,7 @@ const BASE_QUERY = `
          p.notas_inspetor, p.criada_em,
          p.extras, p.motivo, p.prazo_desejado, p.reedicao_pedida_por,
          p.drive_link AS video_bruto_url, p.video_entrega_url,
+         p.marca_dagua, p.cnpj_campanha, p.numero_eleitoral, p.titulo_eleitor,
          e.apelido AS reservada_por_apelido
   FROM pautas p
   JOIN users u ON u.id = p.porta_voz_id
@@ -66,6 +67,19 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
           data.deadline ?? data.prazo ?? data.desiredDeadline ?? data.prazoDesejado,
           10,
         ),
+        watermark: limitOrNull(
+          data.watermark ?? data.watermarkUrl ?? data.marcaDagua,
+          LIMITS.briefField,
+        ),
+        campaignTaxId: limitOrNull(data.campaignTaxId ?? data.cnpjCampanha, LIMITS.briefField),
+        candidateNumber: limitOrNull(
+          data.candidateNumber ?? data.numeroEleitoral,
+          LIMITS.briefField,
+        ),
+        voterId: limitOrNull(
+          data.voterId ?? data.voterRegistrationId ?? data.tituloEleitor,
+          LIMITS.briefField,
+        ),
       };
 
       const dbFormato = rawFormat === "long" ? "longo" : rawFormat;
@@ -75,8 +89,9 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
           `INSERT INTO pautas (
              porta_voz_id, titulo, formato, drive_link, youtube_link,
              brief_tom, brief_cor, brief_fonte, brief_refs,
-             extras, motivo, prazo_desejado
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             extras, motivo, prazo_desejado,
+             marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING id`,
         )
         .bind(
@@ -92,6 +107,10 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
           brief.extras,
           brief.motivation,
           brief.deadline,
+          brief.watermark,
+          brief.campaignTaxId,
+          brief.candidateNumber,
+          brief.voterId,
         )
         .first<{ id: number }>();
 

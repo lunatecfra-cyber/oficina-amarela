@@ -83,4 +83,34 @@ describe("paridade D1 de missões e consultas", () => {
     const totalAfterDelete = await repo.getTotalInQueue();
     assert.equal(totalAfterDelete, 0);
   });
+
+  // Regressão: a conformidade eleitoral existia só no PostgreSQL. O D1 aceitava
+  // a missão, respondia ok e descartava marca d'água, CNPJ, número na urna e
+  // título de eleitor — sem erro nenhum, e é justamente o que a tarja estampa.
+  test("missão guarda a conformidade eleitoral no D1", async () => {
+    const sp = await db
+      .prepare(
+        "INSERT INTO users (apelido, nome, email, papel, perfil_completo) VALUES (?, ?, ?, ?, 1) RETURNING id",
+      )
+      .bind("candidato9", "Candidato Nove", "cand9@teste.local", "voz")
+      .first<{ id: number }>();
+
+    const created = await repo.createMission({
+      spokespersonId: Number(sp?.id),
+      title: "Vídeo com tarja",
+      format: "short",
+      watermark: "Marca d'água",
+      campaignTaxId: "12.345.678/0001-90",
+      candidateNumber: "5510",
+      voterId: "123456789012",
+    });
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+
+    const mission = await repo.getMissionById(created.id);
+    assert.equal(mission?.watermark, "Marca d'água");
+    assert.equal(mission?.campaignTaxId, "12.345.678/0001-90");
+    assert.equal(mission?.candidateNumber, "5510");
+    assert.equal(mission?.voterId, "123456789012");
+  });
 });

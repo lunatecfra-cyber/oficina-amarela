@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS users (
   redes_sociais TEXT,
   marca_dagua TEXT,
   cnpj_campanha TEXT,
+  numero_eleitoral TEXT,
   titulo_eleitor TEXT,
   indicado_por_id INTEGER REFERENCES users(id)
 );
@@ -85,6 +86,14 @@ CREATE TABLE IF NOT EXISTS pautas (
   reservada_ate TEXT,
   reservada_em TEXT,
   entrega_link TEXT,
+  -- Conformidade eleitoral da missão. Existiam só no PostgreSQL: sem elas o
+  -- D1 aceitava a missão e descartava em silêncio a marca d'água, o CNPJ da
+  -- campanha, o número na urna e o título de eleitor — justamente o que a
+  -- tarja de propaganda precisa estampar.
+  marca_dagua TEXT,
+  cnpj_campanha TEXT,
+  numero_eleitoral TEXT,
+  titulo_eleitor TEXT,
   video_entrega_url TEXT,
   notas_inspetor TEXT,
   reedicao_pedida_por TEXT,

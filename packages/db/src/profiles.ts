@@ -1,3 +1,4 @@
+import { validateCampaignIdentity } from "@oficina/domain/campaign-identity";
 import { type Candidate, DEFAULT_TINT, type SocialLinks } from "@oficina/domain/candidates";
 import { isValidPhoto, LIMITS, limitList, limitOrNull, limitStr } from "@oficina/domain/limits";
 import type {
@@ -109,6 +110,7 @@ export type CandidateOnboarding = {
   profileCompleted?: boolean;
   watermark?: string;
   campaignTaxId?: string;
+  candidateNumber?: string;
   voterId?: string;
   // compatibility aliases
   nome?: string;
@@ -124,6 +126,7 @@ export type CandidateOnboarding = {
   perfilCompleto?: boolean;
   marcaDagua?: string;
   cnpjCampanha?: string;
+  numeroEleitoral?: string;
   tituloEleitor?: string;
 };
 
@@ -146,6 +149,7 @@ export type SaveCandidateOnboardingInput = {
   watermark?: string;
   watermarkUrl?: string;
   campaignTaxId?: string;
+  candidateNumber?: string;
   voterId?: string;
   voterRegistrationId?: string;
   // aliases
@@ -161,6 +165,7 @@ export type SaveCandidateOnboardingInput = {
   redes?: SocialLinks;
   marcaDagua?: string;
   cnpjCampanha?: string;
+  numeroEleitoral?: string;
   tituloEleitor?: string;
 };
 
@@ -255,6 +260,7 @@ type CandidateRow = {
   criado_em: string;
   marca_dagua: string | null;
   cnpj_campanha: string | null;
+  numero_eleitoral: string | null;
   titulo_eleitor: string | null;
 };
 
@@ -278,6 +284,7 @@ export function rowToCandidate(l: CandidateRow): Candidate {
     since: new Date(l.criado_em).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
     watermark: l.marca_dagua ?? undefined,
     campaignTaxId: l.cnpj_campanha ?? undefined,
+    candidateNumber: l.numero_eleitoral ?? undefined,
     voterId: l.titulo_eleitor ?? undefined,
     // aliases
     nome: l.nome,
@@ -294,6 +301,7 @@ export function rowToCandidate(l: CandidateRow): Candidate {
     desde: new Date(l.criado_em).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
     marcaDagua: l.marca_dagua ?? undefined,
     cnpjCampanha: l.cnpj_campanha ?? undefined,
+    numeroEleitoral: l.numero_eleitoral ?? undefined,
     tituloEleitor: l.titulo_eleitor ?? undefined,
   };
 }
@@ -591,7 +599,7 @@ export const postgresProfiles: ProfilesRepository = {
     const [l] = await sql`
       SELECT nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
              bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-             perfil_completo, marca_dagua, cnpj_campanha, titulo_eleitor
+             perfil_completo, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
       FROM users WHERE id = ${userId}
     `;
     if (!l) return null;
@@ -614,6 +622,7 @@ export const postgresProfiles: ProfilesRepository = {
       profileCompleted: Boolean(l.perfil_completo),
       watermark: l.marca_dagua ?? undefined,
       campaignTaxId: l.cnpj_campanha ?? undefined,
+      candidateNumber: l.numero_eleitoral ?? undefined,
       voterId: l.titulo_eleitor ?? undefined,
       // aliases
       nome: l.nome ?? "",
@@ -629,14 +638,22 @@ export const postgresProfiles: ProfilesRepository = {
       perfilCompleto: Boolean(l.perfil_completo),
       marcaDagua: l.marca_dagua ?? undefined,
       cnpjCampanha: l.cnpj_campanha ?? undefined,
+      numeroEleitoral: l.numero_eleitoral ?? undefined,
       tituloEleitor: l.titulo_eleitor ?? undefined,
     };
   },
 
   async saveCandidateOnboarding(userId, data) {
-    const rawName = data.name ?? data.nome ?? "";
-    const name = limitStr(rawName, LIMITS.name);
-    if (!name) return { ok: false, error: "Digite seu nome.", erro: "Digite seu nome." };
+    // Nome oficial, número na urna e CNPJ da campanha viram a tarja de
+    // propaganda eleitoral, que é obrigação legal — por isso os três são
+    // validados juntos, e não um a um espalhado pelo formulário.
+    const identity = validateCampaignIdentity({
+      officialName: data.name ?? data.nome ?? "",
+      candidateNumber: data.candidateNumber ?? data.numeroEleitoral ?? "",
+      campaignTaxId: data.campaignTaxId ?? data.cnpjCampanha ?? "",
+    });
+    if (!identity.ok) return { ok: false, error: identity.error, erro: identity.error };
+    const name = limitStr(identity.value.officialName, LIMITS.name);
 
     const photo = data.avatarUrl ?? data.photoUrl ?? data.fotoUrl;
     if (!isValidPhoto(photo)) {
@@ -661,7 +678,8 @@ export const postgresProfiles: ProfilesRepository = {
     const links = data.socialLinks ?? data.redes ?? {};
     const bio = data.bio;
     const watermark = data.watermark ?? data.marcaDagua;
-    const campaignTaxId = data.campaignTaxId ?? data.cnpjCampanha;
+    const campaignTaxId = identity.value.campaignTaxId;
+    const candidateNumber = identity.value.candidateNumber;
     const voterId = data.voterId ?? data.tituloEleitor;
 
     await sql`
@@ -679,6 +697,7 @@ export const postgresProfiles: ProfilesRepository = {
         bio = ${limitOrNull(bio, LIMITS.bio)},
         marca_dagua = ${limitOrNull(watermark, LIMITS.briefField)},
         cnpj_campanha = ${limitOrNull(campaignTaxId, LIMITS.briefField)},
+        numero_eleitoral = ${candidateNumber},
         titulo_eleitor = ${limitOrNull(voterId, LIMITS.briefField)},
         perfil_completo = true
       WHERE id = ${userId}
@@ -691,7 +710,7 @@ export const postgresProfiles: ProfilesRepository = {
     const [l] = await sql`
       SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
              localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-             criado_em, marca_dagua, cnpj_campanha, titulo_eleitor
+             criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
       FROM users
       WHERE id = ${userId}
     `;
@@ -703,7 +722,7 @@ export const postgresProfiles: ProfilesRepository = {
     const [l] = await sql`
       SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
              localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-             criado_em, marca_dagua, cnpj_campanha, titulo_eleitor
+             criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
       FROM users
       WHERE lower(apelido) = lower(${slug}) AND papel IN ('voz', 'spokesperson') AND perfil_completo = true AND banido = false
     `;
@@ -716,7 +735,7 @@ export const postgresProfiles: ProfilesRepository = {
     const rows = await sql`
       SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
              localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-             criado_em, marca_dagua, cnpj_campanha, titulo_eleitor
+             criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
       FROM users
       WHERE apelido = ANY(${handles})
     `;

@@ -21,6 +21,7 @@ export type CreateMissionInput = {
   watermark?: string | null;
   watermarkUrl?: string | null;
   campaignTaxId?: string | null;
+  candidateNumber?: string | null;
   voterId?: string | null;
   voterRegistrationId?: string | null;
   // PT-BR aliases
@@ -36,6 +37,7 @@ export type CreateMissionInput = {
   videoBrutoUrl?: string | null;
   marcaDagua?: string | null;
   cnpjCampanha?: string | null;
+  numeroEleitoral?: string | null;
   tituloEleitor?: string | null;
 };
 
@@ -66,6 +68,7 @@ export type MissionRow = {
   video_entrega_url: string | null;
   marca_dagua: string | null;
   cnpj_campanha: string | null;
+  numero_eleitoral: string | null;
   titulo_eleitor: string | null;
 };
 
@@ -112,6 +115,7 @@ export function rowToMission(r: MissionRow): Mission {
     deliveryVideoUrl: r.video_entrega_url ?? undefined,
     watermark: r.marca_dagua ?? undefined,
     campaignTaxId: r.cnpj_campanha ?? undefined,
+    candidateNumber: r.numero_eleitoral ?? undefined,
     voterId: r.titulo_eleitor ?? undefined,
     // compatibility aliases
     portaVoz: r.porta_voz_nome,
@@ -130,6 +134,7 @@ export function rowToMission(r: MissionRow): Mission {
     videoEntregaUrl: r.video_entrega_url ?? undefined,
     marcaDagua: r.marca_dagua ?? undefined,
     cnpjCampanha: r.cnpj_campanha ?? undefined,
+    numeroEleitoral: r.numero_eleitoral ?? undefined,
     tituloEleitor: r.titulo_eleitor ?? undefined,
   };
 }
@@ -160,7 +165,8 @@ const baseSelect = () => sql`
          p.drive_link, p.youtube_link, p.status, p.reservada_ate, p.reservada_em, p.entrega_link,
          p.notas_inspetor, p.criada_em,
          p.extras, p.motivo, p.prazo_desejado, p.reedicao_pedida_por,
-         p.video_bruto_url, p.video_entrega_url, p.marca_dagua, p.cnpj_campanha, p.titulo_eleitor,
+         p.video_bruto_url, p.video_entrega_url, p.marca_dagua, p.cnpj_campanha,
+         p.numero_eleitoral, p.titulo_eleitor,
          e.apelido AS reservada_por_apelido
   FROM pautas p
   JOIN users u ON u.id = p.porta_voz_id
@@ -210,6 +216,7 @@ export const postgresMissions: MissionsRepository = {
         LIMITS.briefField,
       ),
       campaignTaxId: limitOrNull(data.campaignTaxId ?? data.cnpjCampanha, LIMITS.briefField),
+      candidateNumber: limitOrNull(data.candidateNumber ?? data.numeroEleitoral, LIMITS.briefField),
       voterId: limitOrNull(
         data.voterId ?? data.voterRegistrationId ?? data.tituloEleitor,
         LIMITS.briefField,
@@ -222,7 +229,7 @@ export const postgresMissions: MissionsRepository = {
       INSERT INTO pautas (porta_voz_id, titulo, formato, drive_link, youtube_link,
                           brief_tom, brief_cor, brief_fonte, brief_refs,
                           extras, motivo, prazo_desejado, video_bruto_url,
-                          marca_dagua, cnpj_campanha, titulo_eleitor)
+                          marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor)
       VALUES (${spokespersonId}, ${title}, ${dbFormato},
               ${brief.driveLink}, ${brief.youtubeLink},
               ${brief.tone}, ${brief.color},
@@ -233,6 +240,7 @@ export const postgresMissions: MissionsRepository = {
               ${brief.rawVideoUrl},
               ${brief.watermark},
               ${brief.campaignTaxId},
+              ${brief.candidateNumber},
               ${brief.voterId})
       RETURNING id
     `;

@@ -28,6 +28,7 @@ export type Candidate = {
   since?: string;
   watermark?: string;
   campaignTaxId?: string;
+  candidateNumber?: string;
   voterId?: string;
   // compatibility aliases
   nome?: string;
@@ -45,6 +46,7 @@ export type Candidate = {
   desde?: string;
   marcaDagua?: string;
   cnpjCampanha?: string;
+  numeroEleitoral?: string;
   tituloEleitor?: string;
 };
 export type Candidato = Candidate;
