@@ -160,3 +160,71 @@ validated in production, backup confirmed, rollback documented, tests passing.
 | Sentry | only after Workers observability is proven sufficient to diagnose a real production error |
 
 Record the final state of each in `AI_HANDOFF.md` under **External Providers**.
+
+---
+
+## Estado real da produção — 2026-08-31
+
+Provisionado na conta **casamarela** (`53878b12fbc280f03fc30b5875f3522f`), em
+execução paralela: no ar, sem tráfego de usuário e sem dados.
+
+| Recurso | Identificador | Estado |
+|---|---|---|
+| D1 | `oficina-amarela` · `a9ac89e5-38e9-4788-b8da-be8c79f40100` | schema aplicado, **0 linhas** |
+| Fila | `oficina-amarela-manutencao` | criada |
+| DLQ | `oficina-amarela-manutencao-dlq` | criada |
+| Worker API | `oficina-amarela-api` | no ar, com D1 + fila + Durable Object |
+| Worker web | `oficina-amarela-web` | no ar, com Service Binding `API` |
+
+URLs (sem DNS próprio, sem tráfego):
+`https://oficina-amarela-api.casamarela.workers.dev`
+`https://oficina-amarela-web.casamarela.workers.dev`
+
+Paridade de schema conferida contra o staging: 24 tabelas, 5 triggers, 30
+índices nos dois.
+
+Provado de ponta a ponta em produção: cadastro pelo web atravessando o Service
+Binding até o D1, sessão lida de volta com os claims legados em português
+intactos, e cadastro público recusando papel `admin`. Os dados do teste foram
+apagados; o banco voltou a zero.
+
+### ⚠️ Dois bloqueios obrigatórios antes de virar o tráfego
+
+**1. `AUTH_SECRET` de produção é temporário.**
+
+O Worker de produção subiu com um segredo aleatório, porque o segredo real de
+produção não estava disponível. Virar o tráfego com ele **invalida a sessão de
+todos os usuários** — os tokens duram 30 dias.
+
+Antes do flip:
+
+```bash
+cd apps/api
+echo -n "<o segredo real de produção>" | npx wrangler secret put AUTH_SECRET --env production
+npx wrangler deploy --env production
+```
+
+**2. Nunca use `wrangler d1 migrations apply` neste schema.**
+
+O splitter corta em `;` e quebra o corpo dos `CREATE TRIGGER`, falhando com
+`incomplete input` no meio do arquivo e deixando o banco pela metade. Foi
+exatamente o que aconteceu na primeira tentativa de provisionar produção.
+
+```bash
+node scripts/aplicar-schema-d1.mjs production
+```
+
+O schema é idempotente, então reaplicar depois de falha parcial é seguro.
+
+### O que ainda falta para o flip
+
+- `P0-06`: origem dos dados de produção (Supabase/Neon) — pendente com o time
+- ensaio de migração PostgreSQL → D1 com dados reais
+- backup restaurável e teste de restauração
+- ensaio de rollback
+- jornada completa e prova de concorrência contra o ambiente publicado
+- Queue/Cron/DLQ exercitados de verdade, não só provisionados
+- R2
+- teste de carga (nenhum nível executado)
+- WAF, rate limit de borda, Turnstile
+- revisão de log do `P0-09`
