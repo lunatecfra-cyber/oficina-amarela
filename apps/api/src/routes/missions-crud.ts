@@ -2,6 +2,7 @@ import type { UserSession } from "@oficina/auth/session";
 import type { CreateMissionInput } from "@oficina/db/missions";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
+import { requestMissionDispatch } from "../background.ts";
 import type { ApiDependencies } from "../dependencies.ts";
 import { requireAdmin, requireEditor, requireSession, requireSpokesperson } from "../session.ts";
 
@@ -26,6 +27,12 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
     if (!result.ok) {
       return c.json({ error: result.error, erro: result.error }, 400);
     }
+    // Despacho dirigido por evento: a missão nova sai para um editor agora, sem
+    // esperar o próximo tique do Cron.
+    await requestMissionDispatch(c.env, dependencies.missionQueue).catch((error) =>
+      console.error("[fila] falha ao pedir despacho da missão nova", error),
+    );
+
     return c.json(result, 201);
   });
 

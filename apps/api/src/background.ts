@@ -43,6 +43,24 @@ export async function runScheduledMaintenance(dependencies: BackgroundDependenci
  * publicação falhar, o tique seguinte tenta de novo — por isso o Cron não
  * precisa de fallback aqui.
  */
+/**
+ * Pede uma rodada de despacho agora, sem esperar o Cron.
+ *
+ * Missão nova precisa sair para um editor na hora — esperar o próximo tique
+ * seria até um minuto de silêncio depois de criar a pauta. Com fila no ar,
+ * publica; sem fila, despacha inline.
+ */
+export async function requestMissionDispatch(
+  env: { BACKGROUND_QUEUE?: { send(message: unknown): Promise<void> } } | undefined,
+  missionQueue: BackgroundDependencies["missionQueue"],
+): Promise<void> {
+  if (env?.BACKGROUND_QUEUE) {
+    await env.BACKGROUND_QUEUE.send({ type: "mission-queue-sweep" });
+    return;
+  }
+  await missionQueue.dispatchOffers();
+}
+
 export async function enqueueScheduledMaintenance(queue: {
   send(message: unknown): Promise<void>;
 }): Promise<number> {

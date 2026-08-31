@@ -9,7 +9,9 @@
 
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { describe, test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { runBackgroundTask } from "./background.ts";
 
 const dependencies = {
@@ -27,7 +29,11 @@ const dependencies = {
 };
 
 async function wranglerConfig() {
-  const raw = await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8");
+  const configPath = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../wrangler.jsonc",
+  );
+  const raw = await readFile(configPath, "utf8");
   // jsonc: tira comentários de linha antes de interpretar.
   return JSON.parse(raw.replace(/^\s*\/\/.*$/gm, ""));
 }
