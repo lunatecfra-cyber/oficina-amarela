@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test, { describe } from "node:test";
 import {
   type BackgroundDependencies,
+  enqueueScheduledMaintenance,
+  MAINTENANCE_TASKS,
   runBackgroundTask,
   runScheduledMaintenance,
 } from "./background.ts";
@@ -69,5 +71,25 @@ describe("tarefas de fundo", () => {
       /Unknown background task message/,
     );
     assert.deepEqual(calls, []);
+  });
+
+  test("com fila no ar o cron publica em vez de executar", async () => {
+    const sent: unknown[] = [];
+    const count = await enqueueScheduledMaintenance({
+      async send(message) {
+        sent.push(message);
+      },
+    });
+
+    assert.equal(count, MAINTENANCE_TASKS.length);
+    assert.deepEqual(sent, MAINTENANCE_TASKS);
+  });
+
+  test("toda tarefa publicada é aceita pelo consumidor", async () => {
+    for (const task of MAINTENANCE_TASKS) {
+      const calls: string[] = [];
+      await runBackgroundTask(dependencies(calls), task);
+      assert.ok(calls.length > 0, `tarefa ${task.type} não fez nada`);
+    }
   });
 });

@@ -26,9 +26,26 @@ export async function runBackgroundTask(
   throw new Error("Unknown background task message");
 }
 
+export const MAINTENANCE_TASKS: BackgroundTaskMessage[] = [
+  { type: "mission-queue-sweep" },
+  { type: "email-drain" },
+];
+
 export async function runScheduledMaintenance(dependencies: BackgroundDependencies): Promise<void> {
-  await Promise.all([
-    runBackgroundTask(dependencies, { type: "mission-queue-sweep" }),
-    runBackgroundTask(dependencies, { type: "email-drain" }),
-  ]);
+  await Promise.all(MAINTENANCE_TASKS.map((task) => runBackgroundTask(dependencies, task)));
+}
+
+/**
+ * Publica a manutenção na fila em vez de executá-la no Cron.
+ *
+ * O Cron tem orçamento de CPU próprio e uma tentativa só. Na fila, cada tarefa
+ * tem retentativa e, esgotada, cai na dead letter queue em vez de sumir. Se a
+ * publicação falhar, o tique seguinte tenta de novo — por isso o Cron não
+ * precisa de fallback aqui.
+ */
+export async function enqueueScheduledMaintenance(queue: {
+  send(message: unknown): Promise<void>;
+}): Promise<number> {
+  await Promise.all(MAINTENANCE_TASKS.map((task) => queue.send(task)));
+  return MAINTENANCE_TASKS.length;
 }

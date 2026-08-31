@@ -3,6 +3,7 @@ import { drainEmailQueueNow } from "@oficina/email/dispatch";
 import { type Bindings, configureRuntimeBindings, createApp, dependenciesFor } from "./app.ts";
 import {
   type BackgroundTaskMessage,
+  enqueueScheduledMaintenance,
   runBackgroundTask,
   runScheduledMaintenance,
 } from "./background.ts";
@@ -47,6 +48,15 @@ export default {
   },
   async scheduled(_controller, env) {
     configureRuntimeBindings(env);
+
+    // Com fila no ar, o Cron só publica: quem executa é o consumidor, que tem
+    // retentativa e dead letter queue. Sem fila — local e teste — o Cron faz o
+    // trabalho ele mesmo.
+    if (env?.BACKGROUND_QUEUE) {
+      await enqueueScheduledMaintenance(env.BACKGROUND_QUEUE);
+      return;
+    }
+
     await withRequestDatabase(() => runScheduledMaintenance(backgroundDependenciesFor(env)));
   },
   async queue(batch, env) {
