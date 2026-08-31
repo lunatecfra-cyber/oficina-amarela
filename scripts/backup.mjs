@@ -20,7 +20,7 @@
 //   DATABASE_URL="postgres://..." node scripts/backup.mjs
 //
 // Guarde o arquivo fora do repositório. Ele NÃO deve ser versionado.
-// Para voltar: scripts/restaurar.mjs
+// Para voltar: scripts/restore.mjs
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -80,27 +80,27 @@ async function tablesInDependencyOrder() {
   return ordered;
 }
 
-const carimbo = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-const pasta = process.env.BACKUP_DIR || join(process.cwd(), "backups");
-mkdirSync(pasta, { recursive: true });
+const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+const folder = process.env.BACKUP_DIR || join(process.cwd(), "backups");
+mkdirSync(folder, { recursive: true });
 
-const tabelas = await tablesInDependencyOrder();
-const dump = { gerado_em: new Date().toISOString(), ordem: tabelas, tabelas: {} };
+const tables = await tablesInDependencyOrder();
+const dump = { generatedAt: new Date().toISOString(), order: tables, tables: {} };
 let total = 0;
 
-for (const t of tabelas) {
-  const linhas = await sql`SELECT * FROM ${sql(t)}`;
-  dump.tabelas[t] = linhas;
-  total += linhas.length;
-  console.log(`  ${t.padEnd(24)} ${String(linhas.length).padStart(6)} linhas`);
+for (const t of tables) {
+  const rows = await sql`SELECT * FROM ${sql(t)}`;
+  dump.tables[t] = rows;
+  total += rows.length;
+  console.log(`  ${t.padEnd(24)} ${String(rows.length).padStart(6)} linhas`);
 }
 
-const destino = join(pasta, `oficina-amarela-${carimbo}.json`);
-writeFileSync(destino, JSON.stringify(dump, null, 2), "utf8");
+const outFile = join(folder, `oficina-amarela-${stamp}.json`);
+writeFileSync(outFile, JSON.stringify(dump, null, 2), "utf8");
 
-console.log(`\n  ${tabelas.length} tabelas, ${total} linhas no total`);
-console.log(`  salvo em: ${destino}`);
+console.log(`\n  ${tables.length} tabelas, ${total} linhas no total`);
+console.log(`  salvo em: ${outFile}`);
 console.log("\n  Guarde fora do repositório — tem e-mail e hash de senha.");
-console.log("  Para voltar:  node scripts/restaurar.mjs --arquivo <caminho>");
+console.log("  Para voltar:  node scripts/restore.mjs --arquivo <caminho>");
 
 await sql.end();

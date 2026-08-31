@@ -267,7 +267,7 @@ type CandidateRow = {
   criado_em: string;
   marca_dagua: string | null;
   cnpj_campanha: string | null;
-  numero_eleitoral: string | null;
+  candidate_number: string | null;
   titulo_eleitor: string | null;
 };
 
@@ -291,7 +291,7 @@ export function rowToCandidate(l: CandidateRow): Candidate {
     since: new Date(l.criado_em).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
     watermark: l.marca_dagua ?? undefined,
     campaignTaxId: l.cnpj_campanha ?? undefined,
-    candidateNumber: l.numero_eleitoral ?? undefined,
+    candidateNumber: l.candidate_number ?? undefined,
     voterId: l.titulo_eleitor ?? undefined,
     // aliases
     nome: l.nome,
@@ -308,7 +308,7 @@ export function rowToCandidate(l: CandidateRow): Candidate {
     desde: new Date(l.criado_em).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
     marcaDagua: l.marca_dagua ?? undefined,
     cnpjCampanha: l.cnpj_campanha ?? undefined,
-    numeroEleitoral: l.numero_eleitoral ?? undefined,
+    numeroEleitoral: l.candidate_number ?? undefined,
     tituloEleitor: l.titulo_eleitor ?? undefined,
   };
 }
@@ -610,7 +610,7 @@ export const postgresProfiles: ProfilesRepository = {
     const [l] = await sql`
       SELECT nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
              bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-             perfil_completo, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor,
+             perfil_completo, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor,
              whatsapp
       FROM users WHERE id = ${userId}
     `;
@@ -634,7 +634,7 @@ export const postgresProfiles: ProfilesRepository = {
       profileCompleted: Boolean(l.perfil_completo),
       watermark: l.marca_dagua ?? undefined,
       campaignTaxId: l.cnpj_campanha ?? undefined,
-      candidateNumber: l.numero_eleitoral ?? undefined,
+      candidateNumber: l.candidate_number ?? undefined,
       whatsapp: l.whatsapp ?? undefined,
       voterId: l.titulo_eleitor ?? undefined,
       // aliases
@@ -651,7 +651,7 @@ export const postgresProfiles: ProfilesRepository = {
       perfilCompleto: Boolean(l.perfil_completo),
       marcaDagua: l.marca_dagua ?? undefined,
       cnpjCampanha: l.cnpj_campanha ?? undefined,
-      numeroEleitoral: l.numero_eleitoral ?? undefined,
+      numeroEleitoral: l.candidate_number ?? undefined,
       tituloEleitor: l.titulo_eleitor ?? undefined,
     };
   },
@@ -710,7 +710,7 @@ export const postgresProfiles: ProfilesRepository = {
         bio = ${limitOrNull(bio, LIMITS.bio)},
         marca_dagua = ${limitOrNull(watermark, LIMITS.briefField)},
         cnpj_campanha = ${limitOrNull(campaignTaxId, LIMITS.briefField)},
-        numero_eleitoral = ${candidateNumber},
+        candidate_number = ${candidateNumber},
         whatsapp = ${normalizeWhatsapp(data.whatsapp)},
         titulo_eleitor = ${limitOrNull(voterId, LIMITS.briefField)},
         perfil_completo = true
@@ -724,7 +724,7 @@ export const postgresProfiles: ProfilesRepository = {
     const [l] = await sql`
       SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
              localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-             criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
+             criado_em, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
       FROM users
       WHERE id = ${userId}
     `;
@@ -736,7 +736,7 @@ export const postgresProfiles: ProfilesRepository = {
     const [l] = await sql`
       SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
              localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-             criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
+             criado_em, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
       FROM users
       WHERE lower(apelido) = lower(${slug}) AND papel IN ('voz', 'spokesperson') AND perfil_completo = true AND banido = false
     `;
@@ -749,7 +749,7 @@ export const postgresProfiles: ProfilesRepository = {
     const rows = await sql`
       SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
              localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-             criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
+             criado_em, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
       FROM users
       WHERE apelido = ANY(${handles})
     `;

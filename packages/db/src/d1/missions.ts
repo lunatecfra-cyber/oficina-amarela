@@ -15,7 +15,7 @@ const BASE_QUERY = `
          p.notas_inspetor, p.criada_em,
          p.extras, p.motivo, p.prazo_desejado, p.reedicao_pedida_por,
          p.drive_link AS video_bruto_url, p.video_entrega_url,
-         p.marca_dagua, p.cnpj_campanha, p.numero_eleitoral, p.titulo_eleitor,
+         p.marca_dagua, p.cnpj_campanha, p.candidate_number, p.titulo_eleitor,
          e.apelido AS reservada_por_apelido
   FROM pautas p
   JOIN users u ON u.id = p.porta_voz_id
@@ -90,7 +90,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
              porta_voz_id, titulo, formato, drive_link, youtube_link,
              brief_tom, brief_cor, brief_fonte, brief_refs,
              extras, motivo, prazo_desejado,
-             marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
+             marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING id`,
         )

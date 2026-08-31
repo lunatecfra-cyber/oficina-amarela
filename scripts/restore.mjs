@@ -42,9 +42,12 @@ if (!file || !target) {
 }
 
 const dump = JSON.parse(readFileSync(file, "utf8"));
-const ordem = dump.ordem ?? Object.keys(dump.tabelas);
+// Aceita as chaves antigas em PT-BR: um backup gerado antes da renomeação
+// continua restaurável.
+const tables = dump.tables ?? dump.tabelas ?? {};
+const order = dump.order ?? dump.ordem ?? Object.keys(tables);
 
-console.log(`arquivo : ${file} (gerado em ${dump.gerado_em})`);
+console.log(`arquivo : ${file} (gerado em ${dump.generatedAt ?? dump.gerado_em})`);
 console.log(`destino : ${target.replace(/:\/\/[^@]*@/, "://***@")}`);
 console.log(confirm ? "modo    : restauração\n" : "modo    : relatório (nada será escrito)\n");
 
@@ -53,7 +56,7 @@ let exitCode = 0;
 
 try {
   const existing = [];
-  for (const table of ordem) {
+  for (const table of order) {
     const [row] = await sql`
       SELECT count(*)::int AS total FROM information_schema.tables
       WHERE table_schema = 'public' AND table_name = ${table}
@@ -66,7 +69,7 @@ try {
     const [count] = await sql`SELECT count(*)::int AS total FROM ${sql(table)}`;
     if (count.total > 0) existing.push(`${table} (${count.total})`);
     console.log(
-      `  ${table.padEnd(24)} arquivo ${String(dump.tabelas[table]?.length ?? 0).padStart(6)}` +
+      `  ${table.padEnd(24)} arquivo ${String(tables[table]?.length ?? 0).padStart(6)}` +
         `   destino ${String(count.total).padStart(6)}`,
     );
   }
@@ -85,7 +88,7 @@ try {
   } else {
     if (overwrite && existing.length) {
       // TRUNCATE numa lista só: CASCADE resolve as dependências entre elas.
-      await sql`TRUNCATE ${sql.unsafe(ordem.map((t) => `"${t}"`).join(", "))} RESTART IDENTITY CASCADE`;
+      await sql`TRUNCATE ${sql.unsafe(order.map((t) => `"${t}"`).join(", "))} RESTART IDENTITY CASCADE`;
       console.log("\nTabelas esvaziadas.");
     }
 
@@ -130,11 +133,11 @@ try {
       asJson.get(table_name).add(column_name);
     }
 
-    let total = 0;
-    for (const table of ordem) {
+    let restored = 0;
+    for (const table of order) {
       const omit = skip.get(table);
       const json = asJson.get(table);
-      const rows = (dump.tabelas[table] ?? []).map((row) => {
+      const rows = (tables[table] ?? []).map((row) => {
         const out = {};
         for (const [key, value] of Object.entries(row)) {
           if (omit?.has(key)) continue;
@@ -149,7 +152,7 @@ try {
         const batch = rows.slice(i, i + 500);
         await sql`INSERT INTO ${sql(table)} ${sql(batch)} ON CONFLICT DO NOTHING`;
       }
-      total += rows.length;
+      restored += rows.length;
       console.log(`  ${table.padEnd(24)} ${String(rows.length).padStart(6)} linhas restauradas`);
     }
 
@@ -169,7 +172,7 @@ try {
           COALESCE((SELECT max(${sql(column_name)}) FROM ${sql(table_name)}), 0) + 1, false)
       `;
     }
-    console.log(`\n  ${total} linhas restauradas; ${sequences.length} sequências recolocadas.`);
+    console.log(`\n  ${restored} linhas restauradas; ${sequences.length} sequências recolocadas.`);
   }
 } catch (error) {
   console.error(`\nRestauração interrompida: ${error.message}`);

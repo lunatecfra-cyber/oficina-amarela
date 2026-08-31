@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS users (
   redes_sociais TEXT,
   marca_dagua TEXT,
   cnpj_campanha TEXT,
-  numero_eleitoral TEXT,
+  candidate_number TEXT,
   titulo_eleitor TEXT,
   indicado_por_id INTEGER REFERENCES users(id)
 );
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS pautas (
   -- tarja de propaganda precisa estampar.
   marca_dagua TEXT,
   cnpj_campanha TEXT,
-  numero_eleitoral TEXT,
+  candidate_number TEXT,
   titulo_eleitor TEXT,
   video_entrega_url TEXT,
   notas_inspetor TEXT,

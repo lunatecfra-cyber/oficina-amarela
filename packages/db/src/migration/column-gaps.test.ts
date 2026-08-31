@@ -43,14 +43,14 @@ describe("colunas que a origem não tem", () => {
     const gaps = await findColumnGaps(
       fakeSql({ users: ["id", "nome"], pautas: ["id", "titulo"] }),
       fakeD1({
-        users: ["id", "nome", "whatsapp", "numero_eleitoral"],
-        pautas: ["id", "titulo", "numero_eleitoral"],
+        users: ["id", "nome", "whatsapp", "candidate_number"],
+        pautas: ["id", "titulo", "candidate_number"],
       }),
       plan,
     );
     assert.deepEqual(gaps, [
-      { table: "users", missing: ["whatsapp", "numero_eleitoral"] },
-      { table: "pautas", missing: ["numero_eleitoral"] },
+      { table: "users", missing: ["whatsapp", "candidate_number"] },
+      { table: "pautas", missing: ["candidate_number"] },
     ]);
   });
 

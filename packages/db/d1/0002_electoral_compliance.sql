@@ -15,8 +15,16 @@ ALTER TABLE pautas ADD COLUMN titulo_eleitor TEXT;
 
 -- Número na urna, no perfil do porta-voz e na missão. Não confundir com o
 -- título de eleitor: aquele identifica a pessoa, este identifica a candidatura.
-ALTER TABLE users ADD COLUMN numero_eleitoral TEXT;
-ALTER TABLE pautas ADD COLUMN numero_eleitoral TEXT;
+--
+-- A coluna nasceu como `numero_eleitoral` e foi renomeada: identificador novo
+-- no banco vai em inglês. O RENAME vem antes do ADD e os dois toleram falha —
+-- num banco que já nasceu com `candidate_number` o RENAME não acha a coluna
+-- antiga, e num banco que acabou de ser renomeado o ADD acha coluna repetida.
+-- Qualquer ordem de aplicação chega no mesmo lugar.
+ALTER TABLE users RENAME COLUMN numero_eleitoral TO candidate_number;
+ALTER TABLE pautas RENAME COLUMN numero_eleitoral TO candidate_number;
+ALTER TABLE users ADD COLUMN candidate_number TEXT;
+ALTER TABLE pautas ADD COLUMN candidate_number TEXT;
 
 -- Contato direto entre porta-voz e editor da mesma missão.
 ALTER TABLE users ADD COLUMN whatsapp TEXT;

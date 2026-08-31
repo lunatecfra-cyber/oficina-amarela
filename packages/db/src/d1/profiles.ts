@@ -418,7 +418,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         .prepare(
           `SELECT nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
                   bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  perfil_completo, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor, whatsapp
+                  perfil_completo, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor, whatsapp
            FROM users WHERE id = ?`,
         )
         .bind(userId)
@@ -437,7 +437,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           perfil_completo: number | null;
           marca_dagua: string | null;
           cnpj_campanha: string | null;
-          numero_eleitoral: string | null;
+          candidate_number: string | null;
           titulo_eleitor: string | null;
           whatsapp: string | null;
         }>();
@@ -461,7 +461,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         profileCompleted: Boolean(l.perfil_completo),
         watermark: l.marca_dagua ?? undefined,
         campaignTaxId: l.cnpj_campanha ?? undefined,
-        candidateNumber: l.numero_eleitoral ?? undefined,
+        candidateNumber: l.candidate_number ?? undefined,
         whatsapp: l.whatsapp ?? undefined,
         voterId: l.titulo_eleitor ?? undefined,
         // aliases
@@ -478,7 +478,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         perfilCompleto: Boolean(l.perfil_completo),
         marcaDagua: l.marca_dagua ?? undefined,
         cnpjCampanha: l.cnpj_campanha ?? undefined,
-        numeroEleitoral: l.numero_eleitoral ?? undefined,
+        numeroEleitoral: l.candidate_number ?? undefined,
         tituloEleitor: l.titulo_eleitor ?? undefined,
       };
     },
@@ -543,7 +543,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
              bio = ?,
              marca_dagua = ?,
              cnpj_campanha = ?,
-             numero_eleitoral = ?,
+             candidate_number = ?,
              whatsapp = ?,
              titulo_eleitor = ?,
              perfil_completo = 1
@@ -578,7 +578,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         .prepare(
           `SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
                   localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
+                  criado_em, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
            FROM users
            WHERE id = ?`,
         )
@@ -600,7 +600,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           criado_em: string;
           marca_dagua: string | null;
           cnpj_campanha: string | null;
-          numero_eleitoral: string | null;
+          candidate_number: string | null;
           titulo_eleitor: string | null;
         }>();
       if (!l) return null;
@@ -617,7 +617,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         .prepare(
           `SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
                   localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
+                  criado_em, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
            FROM users
            WHERE lower(apelido) = lower(?) AND papel IN ('voz', 'spokesperson') AND perfil_completo = 1 AND banido = 0`,
         )
@@ -639,7 +639,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           criado_em: string;
           marca_dagua: string | null;
           cnpj_campanha: string | null;
-          numero_eleitoral: string | null;
+          candidate_number: string | null;
           titulo_eleitor: string | null;
         }>();
       if (!l) return null;
@@ -658,7 +658,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         .prepare(
           `SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
                   localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  criado_em, marca_dagua, cnpj_campanha, numero_eleitoral, titulo_eleitor
+                  criado_em, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
            FROM users
            WHERE apelido IN (${placeholders})`,
         )
@@ -680,7 +680,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           criado_em: string;
           marca_dagua: string | null;
           cnpj_campanha: string | null;
-          numero_eleitoral: string | null;
+          candidate_number: string | null;
           titulo_eleitor: string | null;
         }>();
 

@@ -63,20 +63,36 @@ for (const patch of patches) {
     .filter(Boolean);
 
   for (const statement of statements) {
-    const applied = spawnSync(
-      "npx",
-      ["wrangler", "d1", "execute", database, remote, "--command", statement, "--yes"],
-      { cwd: root, encoding: "utf8", env: process.env },
-    );
-
-    const output = `${applied.stdout ?? ""}${applied.stderr ?? ""}`;
+    // Uma instrução por chamada significa uma autenticação por instrução, e a
+    // API responde "Authentication error [code: 10000]" quando elas vêm em
+    // rajada. É transitório: a mesma instrução passa segundos depois. Sem a
+    // repetição, o patch parava no meio — pior num banco de produção, que
+    // ficava com parte das colunas.
+    let applied;
+    let output = "";
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      applied = spawnSync(
+        "npx",
+        ["wrangler", "d1", "execute", database, remote, "--command", statement, "--yes"],
+        { cwd: root, encoding: "utf8", env: process.env },
+      );
+      output = `${applied.stdout ?? ""}${applied.stderr ?? ""}`;
+      if (applied.status === 0 || !/Authentication error|code: 10000|rate limit/i.test(output)) {
+        break;
+      }
+      const wait = 2000 * attempt;
+      console.log(`  autenticação falhou, tentando de novo em ${wait / 1000}s`);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, wait);
+    }
 
     if (applied.status === 0) {
       console.log(`  ok: ${statement}`);
       continue;
     }
-    // Única falha aceitável: a coluna já existe de uma execução anterior.
-    if (/duplicate column name/i.test(output)) {
+    // Falhas aceitáveis, as duas significando "já está como deveria":
+    // a coluna já existe (ADD repetido) ou a coluna antiga não existe mais
+    // (RENAME num banco que já nasceu com o nome novo).
+    if (/duplicate column name|no such column/i.test(output)) {
       console.log(`  já aplicado: ${statement}`);
       continue;
     }
