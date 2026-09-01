@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import { createD1SessionRevocationSource } from "./session-revocation.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
@@ -27,18 +27,14 @@ describe("paridade D1 da revogação de sessão", () => {
 
   before(async () => {
     db = (await miniflare.getD1Database("DB")) as unknown as D1DatabaseLike;
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db, schema);
+    await applyAllD1Migrations(db);
     cutoffFor = createD1SessionRevocationSource(db);
   });
 
   beforeEach(async () => {
     await db.prepare("DELETE FROM users").run();
     const user = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("revog.d1", "Revogação D1", "revog@d1.local", "editor")
       .first<{ id: number }>();
     userId = Number(user?.id);
@@ -57,7 +53,7 @@ describe("paridade D1 da revogação de sessão", () => {
 
   test("mover o corte para frente revoga a sessão anterior", async () => {
     await db
-      .prepare("UPDATE users SET sessoes_validas_apos = ? WHERE id = ?")
+      .prepare("UPDATE users SET sessions_valid_after = ? WHERE id = ?")
       .bind("2099-01-01T00:00:00.000Z", userId)
       .run();
     const cutoff = await cutoffFor(userId);

@@ -5,7 +5,7 @@ import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1Gamification } from "./gamification.ts";
 import { createD1MissionContacts } from "./mission-contacts.ts";
 import { createD1RankingAdmin } from "./ranking-admin.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade D1 do ranking, gamificação e contatos", () => {
@@ -30,7 +30,7 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
   async function newUser(handle: string, papel: string, referrer?: number) {
     const row = await db
       .prepare(
-        `INSERT INTO users (apelido, nome, email, papel, indicado_por_id)
+        `INSERT INTO users (handle, name, email, role, referred_by_id)
          VALUES (?, ?, ?, ?, ?) RETURNING id`,
       )
       .bind(handle, handle, `${handle}@d1.local`, papel, referrer ?? null)
@@ -40,11 +40,7 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
 
   before(async () => {
     db = (await miniflare.getD1Database("DB")) as unknown as D1DatabaseLike;
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db, schema);
+    await applyAllD1Migrations(db);
     admin = createD1RankingAdmin(db);
     record = createD1Gamification(db);
     contacts = createD1MissionContacts(db);
@@ -52,14 +48,14 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
 
   beforeEach(async () => {
     for (const table of [
-      "auditoria_admin",
-      "bloqueios_constancia",
-      "gamificacao_eventos",
-      "indicacoes_recompensas",
-      "ranking_aprovacoes",
-      "avaliacoes",
-      "ranking_ciclos",
-      "pautas",
+      "admin_audit",
+      "consistency_shields",
+      "gamification_events",
+      "referral_rewards",
+      "ranking_approvals",
+      "reviews",
+      "ranking_cycles",
+      "missions",
       "users",
     ]) {
       await db.prepare(`DELETE FROM ${table}`).run();
@@ -70,7 +66,7 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
 
     const mission = await db
       .prepare(
-        `INSERT INTO pautas (porta_voz_id, titulo, formato, status, reservada_por_id, pontuada)
+        `INSERT INTO missions (spokesperson_id, title, format, status, reserved_by_id, is_scored)
          VALUES (?, 'Missão D1', 'short', 'aprovada', ?, 1) RETURNING id`,
       )
       .bind(spokespersonId, editorId)
@@ -79,7 +75,7 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
 
     const cycle = await db
       .prepare(
-        `INSERT INTO ranking_ciclos (nome, inicia_em, termina_em)
+        `INSERT INTO ranking_cycles (name, starts_at, ends_at)
          VALUES ('Ciclo D1', '2026-01-01T00:00:00.000Z', '2099-01-01T00:00:00.000Z')
          RETURNING id`,
       )
@@ -88,13 +84,13 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
 
     await db
       .prepare(
-        `INSERT INTO ranking_aprovacoes (pauta_id, ciclo_id, editor_id, aprovado_por, aprovado_em)
+        `INSERT INTO ranking_approvals (mission_id, cycle_id, editor_id, approved_by, approved_at)
          VALUES (?, ?, ?, ?, ?)`,
       )
       .bind(missionId, cycleId, editorId, adminId, new Date().toISOString())
       .run();
     await db
-      .prepare("UPDATE users SET entregues = 1, reputacao = 25, streak = 1 WHERE id = ?")
+      .prepare("UPDATE users SET delivered_count = 1, reputation = 25, streak = 1 WHERE id = ?")
       .bind(editorId)
       .run();
   });
@@ -119,22 +115,20 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
       reason: "approval_not_active",
     });
 
-    // A reputação não entra na conta da anulação: o desconto fixo de 25 não
-    // correspondia ao XP que a entrega paga. Entregues e streak, sim.
     const editor = await db
-      .prepare("SELECT entregues, reputacao, streak FROM users WHERE id = ?")
+      .prepare("SELECT delivered_count, reputation, streak FROM users WHERE id = ?")
       .bind(editorId)
-      .first<{ entregues: number; reputacao: number; streak: number }>();
-    assert.deepEqual(editor, { entregues: 0, reputacao: 25, streak: 0 });
+      .first<{ delivered_count: number; reputation: number; streak: number }>();
+    assert.deepEqual(editor, { delivered_count: 0, reputation: 25, streak: 0 });
 
     const mission = await db
-      .prepare("SELECT pontuada FROM pautas WHERE id = ?")
+      .prepare("SELECT is_scored FROM missions WHERE id = ?")
       .bind(missionId)
-      .first<{ pontuada: number }>();
-    assert.equal(Number(mission?.pontuada), 0);
+      .first<{ is_scored: number }>();
+    assert.equal(Number(mission?.is_scored), 0);
 
     const audits = await db
-      .prepare("SELECT count(*) AS total FROM auditoria_admin WHERE acao = 'aprovacao_anulada'")
+      .prepare("SELECT count(*) AS total FROM admin_audit WHERE action = 'aprovacao_anulada'")
       .first<{ total: number }>();
     assert.equal(Number(audits?.total), 1);
   });
@@ -142,26 +136,26 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
   test("anular abaixo de duas aprovações revoga a indicação e devolve os pontos", async () => {
     await db
       .prepare(
-        `INSERT INTO indicacoes_recompensas (convidado_id, convidador_id, pontos, premiado_em)
+        `INSERT INTO referral_rewards (invitee_id, inviter_id, points, awarded_at)
          VALUES (?, ?, 100, ?)`,
       )
       .bind(editorId, spokespersonId, new Date().toISOString())
       .run();
-    await db.prepare("UPDATE users SET reputacao = 100 WHERE id = ?").bind(spokespersonId).run();
+    await db.prepare("UPDATE users SET reputation = 100 WHERE id = ?").bind(spokespersonId).run();
 
     assert.deepEqual(await admin.cancelApproval(missionId, adminId, "engano"), { ok: true });
 
     const referrer = await db
-      .prepare("SELECT reputacao FROM users WHERE id = ?")
+      .prepare("SELECT reputation FROM users WHERE id = ?")
       .bind(spokespersonId)
-      .first<{ reputacao: number }>();
-    assert.equal(Number(referrer?.reputacao), 0);
+      .first<{ reputation: number }>();
+    assert.equal(Number(referrer?.reputation), 0);
 
     const reward = await db
-      .prepare("SELECT revogado_em FROM indicacoes_recompensas WHERE convidado_id = ?")
+      .prepare("SELECT revoked_at FROM referral_rewards WHERE invitee_id = ?")
       .bind(editorId)
-      .first<{ revogado_em: string | null }>();
-    assert.ok(reward?.revogado_em, "a indicação precisa ficar revogada");
+      .first<{ revoked_at: string | null }>();
+    assert.ok(reward?.revoked_at, "a indicação precisa ficar revogada");
   });
 
   test("bloqueio para no máximo de dois, inclusive em concessões simultâneas", async () => {
@@ -174,7 +168,7 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
     assert.equal(racing.filter((result) => result.ok).length, 1);
 
     const total = await db
-      .prepare("SELECT count(*) AS total FROM bloqueios_constancia WHERE editor_id = ?")
+      .prepare("SELECT count(*) AS total FROM consistency_shields WHERE editor_id = ?")
       .bind(editorId)
       .first<{ total: number }>();
     assert.equal(Number(total?.total), 2);
@@ -191,7 +185,7 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
       reason: "shield_limit_reached",
     });
     const total = await db
-      .prepare("SELECT count(*) AS total FROM bloqueios_constancia")
+      .prepare("SELECT count(*) AS total FROM consistency_shields")
       .first<{ total: number }>();
     assert.equal(Number(total?.total), 0);
   });
@@ -200,7 +194,7 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
     await admin.grantConsistencyShield(editorId, adminId, "leitura");
     const audit = await admin.recentAudit(10);
     assert.equal(audit[0].acao, "bloqueio_concedido");
-    assert.equal(audit[0].ator_nome, "insp.d1");
+    assert.equal(audit[0].actorName ?? audit[0].ator_nome, "insp.d1");
     assert.deepEqual(await admin.recentAudit(0), []);
   });
 
@@ -212,10 +206,10 @@ describe("paridade D1 do ranking, gamificação e contatos", () => {
     assert.deepEqual(again, { recorded: false, xp: 0, registrado: false });
 
     const editor = await db
-      .prepare("SELECT reputacao FROM users WHERE id = ?")
+      .prepare("SELECT reputation FROM users WHERE id = ?")
       .bind(editorId)
-      .first<{ reputacao: number }>();
-    assert.equal(Number(editor?.reputacao), 125, "25 do preparo + 100 do evento, sem repetir");
+      .first<{ reputation: number }>();
+    assert.equal(Number(editor?.reputation), 125, "25 do preparo + 100 do evento, sem repetir");
 
     // O apelido em inglês é a mesma regra, não uma segunda pontuação.
     assert.deepEqual(await record(editorId, "daily_login", "2026-08-30"), {

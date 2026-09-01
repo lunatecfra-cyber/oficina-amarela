@@ -25,48 +25,48 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
       const query = t
         ? db
             .prepare(
-              `SELECT id, apelido, nome, email, papel, banido, perfil_completo, criado_em
+              `SELECT id, handle, name, email, role, is_banned, profile_completed, created_at
              FROM users
-             WHERE nome LIKE ? OR apelido LIKE ? OR email LIKE ?
-             ORDER BY CASE WHEN apelido LIKE ? THEN 0 ELSE 1 END, criado_em DESC
+             WHERE name LIKE ? OR handle LIKE ? OR email LIKE ?
+             ORDER BY CASE WHEN handle LIKE ? THEN 0 ELSE 1 END, created_at DESC
              LIMIT 20`,
             )
             .bind(pattern, pattern, pattern, pattern)
         : db.prepare(
-            `SELECT id, apelido, nome, email, papel, banido, perfil_completo, criado_em
+            `SELECT id, handle, name, email, role, is_banned, profile_completed, created_at
              FROM users
-             ORDER BY criado_em DESC
+             ORDER BY created_at DESC
              LIMIT 20`,
           );
 
       const result = await query.all<{
         id: number;
-        apelido: string;
-        nome: string;
+        handle: string;
+        name: string;
         email: string;
-        papel: string;
-        banido: number | boolean;
-        perfil_completo: number | boolean;
-        criado_em: string;
+        role: string;
+        is_banned: number | boolean;
+        profile_completed: number | boolean;
+        created_at: string;
       }>();
 
       return (result.results ?? []).map((l) => {
-        const role = normalizeRoleFromDb(l.papel);
+        const role = normalizeRoleFromDb(l.role);
         return {
           id: Number(l.id),
-          handle: String(l.apelido),
-          name: String(l.nome),
+          handle: String(l.handle),
+          name: String(l.name),
           email: String(l.email),
           role,
-          isBanned: Boolean(l.banido),
-          profileCompleted: Boolean(l.perfil_completo),
-          createdAt: String(l.criado_em),
-          apelido: String(l.apelido),
-          nome: String(l.nome),
+          isBanned: Boolean(l.is_banned),
+          profileCompleted: Boolean(l.profile_completed),
+          createdAt: String(l.created_at),
+          apelido: String(l.handle),
+          nome: String(l.name),
           papel: role,
-          banido: Boolean(l.banido),
-          perfilCompleto: Boolean(l.perfil_completo),
-          criadoEm: String(l.criado_em),
+          banido: Boolean(l.is_banned),
+          perfilCompleto: Boolean(l.profile_completed),
+          criadoEm: String(l.created_at),
         };
       });
     },
@@ -75,36 +75,36 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
       const row = await db
         .prepare(
           `SELECT
-             id, apelido, nome, email, papel, banido, perfil_completo, criado_em,
-             foto_url, localizacao, bio,
-             entregues, reputacao, streak, nota,
-             cargo, disputa_por, ano_eleicao,
-             banido_em, motivo_banimento
+             id, handle, name, email, role, is_banned, profile_completed, created_at,
+             avatar_url, location, bio,
+             delivered_count, reputation, streak, rating,
+             political_office, running_for, election_year,
+             banned_at, ban_reason
            FROM users
            WHERE id = ?`,
         )
         .bind(userId)
         .first<{
           id: number;
-          apelido: string;
-          nome: string;
+          handle: string;
+          name: string;
           email: string;
-          papel: string;
-          banido: number | boolean;
-          perfil_completo: number | boolean;
-          criado_em: string;
-          foto_url: string | null;
-          localizacao: string | null;
+          role: string;
+          is_banned: number | boolean;
+          profile_completed: number | boolean;
+          created_at: string;
+          avatar_url: string | null;
+          location: string | null;
           bio: string | null;
-          entregues: number;
-          reputacao: number;
+          delivered_count: number;
+          reputation: number;
           streak: number;
-          nota: number | null;
-          cargo: string | null;
-          disputa_por: string | null;
-          ano_eleicao: string | null;
-          banido_em: string | null;
-          motivo_banimento: string | null;
+          rating: number | null;
+          political_office: string | null;
+          running_for: string | null;
+          election_year: string | null;
+          banned_at: string | null;
+          ban_reason: string | null;
         }>();
 
       if (!row) return null;
@@ -112,53 +112,53 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
       const countRow = await db
         .prepare(
           `SELECT count(*) AS total
-           FROM pautas
-           WHERE reservada_por_id = ?
+           FROM missions
+           WHERE reserved_by_id = ?
              AND status IN ('reservada','oferecida','reedicao','em_revisao')`,
         )
         .bind(userId)
         .first<{ total: number }>();
 
-      const role = normalizeRoleFromDb(row.papel);
+      const role = normalizeRoleFromDb(row.role);
 
       return {
         id: Number(row.id),
-        handle: String(row.apelido),
-        name: String(row.nome),
+        handle: String(row.handle),
+        name: String(row.name),
         email: String(row.email),
         role,
-        isBanned: Boolean(row.banido),
-        profileCompleted: Boolean(row.perfil_completo),
-        createdAt: String(row.criado_em),
-        avatarUrl: row.foto_url ? String(row.foto_url) : null,
-        location: row.localizacao ? String(row.localizacao) : null,
+        isBanned: Boolean(row.is_banned),
+        profileCompleted: Boolean(row.profile_completed),
+        createdAt: String(row.created_at),
+        avatarUrl: row.avatar_url ? String(row.avatar_url) : null,
+        location: row.location ? String(row.location) : null,
         bio: row.bio ? String(row.bio) : null,
-        deliveredCount: Number(row.entregues ?? 0),
-        reputation: Number(row.reputacao ?? 0),
+        deliveredCount: Number(row.delivered_count ?? 0),
+        reputation: Number(row.reputation ?? 0),
         streak: Number(row.streak ?? 0),
-        rating: row.nota === null ? null : Number(row.nota),
-        politicalOffice: row.cargo ? String(row.cargo) : null,
-        runningFor: row.disputa_por ? String(row.disputa_por) : null,
-        electionYear: row.ano_eleicao ? String(row.ano_eleicao) : null,
-        bannedAt: row.banido_em ? String(row.banido_em) : null,
-        banReason: row.motivo_banimento ? String(row.motivo_banimento) : null,
+        rating: row.rating === null ? null : Number(row.rating),
+        politicalOffice: row.political_office ? String(row.political_office) : null,
+        runningFor: row.running_for ? String(row.running_for) : null,
+        electionYear: row.election_year ? String(row.election_year) : null,
+        bannedAt: row.banned_at ? String(row.banned_at) : null,
+        banReason: row.ban_reason ? String(row.ban_reason) : null,
         activeMissions: Number(countRow?.total ?? 0),
-        apelido: String(row.apelido),
-        nome: String(row.nome),
+        apelido: String(row.handle),
+        nome: String(row.name),
         papel: role,
-        banido: Boolean(row.banido),
-        perfilCompleto: Boolean(row.perfil_completo),
-        criadoEm: String(row.criado_em),
-        fotoUrl: row.foto_url ? String(row.foto_url) : null,
-        localizacao: row.localizacao ? String(row.localizacao) : null,
-        entregues: Number(row.entregues ?? 0),
-        reputacao: Number(row.reputacao ?? 0),
-        nota: row.nota === null ? null : Number(row.nota),
-        cargo: row.cargo ? String(row.cargo) : null,
-        disputaPor: row.disputa_por ? String(row.disputa_por) : null,
-        anoEleicao: row.ano_eleicao ? String(row.ano_eleicao) : null,
-        banidoEm: row.banido_em ? String(row.banido_em) : null,
-        motivoBanimento: row.motivo_banimento ? String(row.motivo_banimento) : null,
+        banido: Boolean(row.is_banned),
+        perfilCompleto: Boolean(row.profile_completed),
+        criadoEm: String(row.created_at),
+        fotoUrl: row.avatar_url ? String(row.avatar_url) : null,
+        localizacao: row.location ? String(row.location) : null,
+        entregues: Number(row.delivered_count ?? 0),
+        reputacao: Number(row.reputation ?? 0),
+        nota: row.rating === null ? null : Number(row.rating),
+        cargo: row.political_office ? String(row.political_office) : null,
+        disputaPor: row.running_for ? String(row.running_for) : null,
+        anoEleicao: row.election_year ? String(row.election_year) : null,
+        banidoEm: row.banned_at ? String(row.banned_at) : null,
+        motivoBanimento: row.ban_reason ? String(row.ban_reason) : null,
         pautasAtivas: Number(countRow?.total ?? 0),
       };
     },
@@ -183,11 +183,11 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
       const updated = await db
         .prepare(
           `UPDATE users
-           SET banido = 1,
-               banido_em = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
-               motivo_banimento = ?,
-               sessoes_validas_apos = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-           WHERE id = ? AND papel <> 'admin'
+           SET is_banned = 1,
+               banned_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+               ban_reason = ?,
+               sessions_valid_after = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+           WHERE id = ? AND role <> 'admin'
            RETURNING id`,
         )
         .bind(cleanReason, userId)
@@ -207,9 +207,9 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
       const updated = await db
         .prepare(
           `UPDATE users
-           SET banido = 0,
-               banido_em = null,
-               motivo_banimento = null
+           SET is_banned = 0,
+               banned_at = null,
+               ban_reason = null
            WHERE id = ?
            RETURNING id`,
         )
@@ -223,13 +223,13 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
 
     async removeUser(userId: number) {
       const target = await db
-        .prepare("SELECT id, apelido, papel FROM users WHERE id = ?")
+        .prepare("SELECT id, handle, role FROM users WHERE id = ?")
         .bind(userId)
-        .first<{ id: number; apelido: string; papel: string }>();
+        .first<{ id: number; handle: string; role: string }>();
 
       if (!target)
         return { ok: false, error: "Conta não encontrada.", erro: "Conta não encontrada." };
-      if (target.papel === "admin") {
+      if (target.role === "admin") {
         return {
           ok: false,
           error: "Conta de inspetor não pode ser apagada por aqui.",
@@ -239,44 +239,44 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
 
       await db
         .prepare(
-          `UPDATE pautas
-           SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL, reservada_em = NULL
-           WHERE reservada_por_id = ? AND status IN ('reservada','reedicao','oferecida')`,
+          `UPDATE missions
+           SET status = 'disponivel', reserved_by_id = NULL, reserved_until = NULL, reserved_at = NULL
+           WHERE reserved_by_id = ? AND status IN ('reservada','reedicao','oferecida')`,
         )
         .bind(userId)
         .run();
 
       await db.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();
-      return { ok: true, handle: String(target.apelido), apelido: String(target.apelido) };
+      return { ok: true, handle: String(target.handle), apelido: String(target.handle) };
     },
 
     async reportsForInspector(): Promise<Report[]> {
       const result = await db
         .prepare(
-          `SELECT r.id, r.pauta_id, r.texto, r.status, r.criada_em,
-                  p.titulo AS pauta_titulo, p.status AS pauta_status,
-                  u1.nome AS denunciante_nome, u1.apelido AS denunciante_apelido, u1.id AS denunciante_id,
-                  u2.nome AS denunciado_nome, u2.apelido AS denunciado_apelido, u2.id AS denunciado_id
-           FROM denuncias r
-           JOIN pautas p ON p.id = r.pauta_id
-           JOIN users u1 ON u1.id = r.denunciante_id
-           LEFT JOIN users u2 ON u2.id = r.denunciado_id
-           ORDER BY CASE WHEN r.status = 'aberta' THEN 0 ELSE 1 END, r.criada_em DESC`,
+          `SELECT r.id, r.mission_id, r.body AS text, r.status, r.created_at,
+                  p.title AS mission_title, p.status AS mission_status,
+                  u1.name AS reporter_name, u1.handle AS reporter_handle, u1.id AS reporter_id,
+                  u2.name AS reported_name, u2.handle AS reported_handle, u2.id AS reported_id
+           FROM reports r
+           JOIN missions p ON p.id = r.mission_id
+           JOIN users u1 ON u1.id = r.reporter_id
+           LEFT JOIN users u2 ON u2.id = r.reported_id
+           ORDER BY CASE WHEN r.status = 'aberta' THEN 0 ELSE 1 END, r.created_at DESC`,
         )
         .all<{
           id: number;
-          pauta_id: number;
-          texto: string;
+          mission_id: number;
+          text: string;
           status: string;
-          criada_em: string;
-          pauta_titulo: string;
-          pauta_status: string;
-          denunciante_nome: string;
-          denunciante_apelido: string;
-          denunciante_id: number;
-          denunciado_nome: string | null;
-          denunciado_apelido: string | null;
-          denunciado_id: number | null;
+          created_at: string;
+          mission_title: string;
+          mission_status: string;
+          reporter_name: string;
+          reporter_handle: string;
+          reporter_id: number;
+          reported_name: string | null;
+          reported_handle: string | null;
+          reported_id: number | null;
         }>();
 
       return (result.results ?? []).map((r) => {
@@ -288,29 +288,29 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
         const normStatus = statusMap[String(r.status)] ?? "open";
         return {
           id: Number(r.id),
-          missionId: Number(r.pauta_id),
-          missionTitle: String(r.pauta_titulo),
-          missionStatus: String(r.pauta_status),
-          reporterId: Number(r.denunciante_id),
-          reporterName: String(r.denunciante_nome),
-          reporterHandle: String(r.denunciante_apelido),
-          reportedId: r.denunciado_id ? Number(r.denunciado_id) : null,
-          reportedName: r.denunciado_nome ? String(r.denunciado_nome) : null,
-          reportedHandle: r.denunciado_apelido ? String(r.denunciado_apelido) : null,
-          text: String(r.texto),
+          missionId: Number(r.mission_id),
+          missionTitle: String(r.mission_title),
+          missionStatus: String(r.mission_status),
+          reporterId: Number(r.reporter_id),
+          reporterName: String(r.reporter_name),
+          reporterHandle: String(r.reporter_handle),
+          reportedId: r.reported_id ? Number(r.reported_id) : null,
+          reportedName: r.reported_name ? String(r.reported_name) : null,
+          reportedHandle: r.reported_handle ? String(r.reported_handle) : null,
+          text: String(r.text),
           status: normStatus,
-          createdAt: String(r.criada_em),
-          pautaId: Number(r.pauta_id),
-          pautaTitulo: String(r.pauta_titulo),
-          pautaStatus: String(r.pauta_status),
-          denuncianteId: Number(r.denunciante_id),
-          denuncianteNome: String(r.denunciante_nome),
-          denuncianteApelido: String(r.denunciante_apelido),
-          denunciadoId: r.denunciado_id ? Number(r.denunciado_id) : null,
-          denunciadoNome: r.denunciado_nome ? String(r.denunciado_nome) : null,
-          denunciadoApelido: r.denunciado_apelido ? String(r.denunciado_apelido) : null,
-          texto: String(r.texto),
-          criadaEm: String(r.criada_em),
+          createdAt: String(r.created_at),
+          pautaId: Number(r.mission_id),
+          pautaTitulo: String(r.mission_title),
+          pautaStatus: String(r.mission_status),
+          denuncianteId: Number(r.reporter_id),
+          denuncianteNome: String(r.reporter_name),
+          denuncianteApelido: String(r.reporter_handle),
+          denunciadoId: r.reported_id ? Number(r.reported_id) : null,
+          denunciadoNome: r.reported_name ? String(r.reported_name) : null,
+          denunciadoApelido: r.reported_handle ? String(r.reported_handle) : null,
+          texto: String(r.text),
+          criadaEm: String(r.created_at),
         };
       });
     },
@@ -319,8 +319,8 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
       const normStatus = status === "resolved" || status === "resolvida" ? "resolvida" : "ignorada";
       const updated = await db
         .prepare(
-          `UPDATE denuncias
-           SET status = ?, resolvida_em = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+          `UPDATE reports
+           SET status = ?, resolved_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
            WHERE id = ?
            RETURNING id`,
         )
@@ -342,7 +342,7 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
              count(CASE WHEN status = 'em_revisao' THEN 1 END) AS em_conferencia,
              count(CASE WHEN status = 'reedicao' THEN 1 END) AS em_reedicao,
              count(CASE WHEN status IN ('aprovada','finalizada') THEN 1 END) AS concluidas
-           FROM pautas`,
+           FROM missions`,
         )
         .first<{
           na_fila: number;
@@ -356,16 +356,16 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
       const u = await db
         .prepare(
           `SELECT
-             count(CASE WHEN papel IN ('voz', 'spokesperson') AND (banido = 0 OR banido = false OR banido IS NULL) THEN 1 END) AS candidatos,
-             count(CASE WHEN papel = 'editor' AND (banido = 0 OR banido = false OR banido IS NULL) THEN 1 END) AS editores,
-             count(CASE WHEN banido = 1 OR banido = true THEN 1 END) AS banidos,
-             count(CASE WHEN papel = 'editor' AND (banido = 0 OR banido = false OR banido IS NULL) AND (perfil_completo = 1 OR perfil_completo = true)
+             count(CASE WHEN role IN ('voz', 'spokesperson') AND (is_banned = 0 OR is_banned = false OR is_banned IS NULL) THEN 1 END) AS candidatos,
+             count(CASE WHEN role = 'editor' AND (is_banned = 0 OR is_banned = false OR is_banned IS NULL) THEN 1 END) AS editores,
+             count(CASE WHEN is_banned = 1 OR is_banned = true THEN 1 END) AS banidos,
+             count(CASE WHEN role = 'editor' AND (is_banned = 0 OR is_banned = false OR is_banned IS NULL) AND (profile_completed = 1 OR profile_completed = true)
                AND NOT EXISTS (
-                 SELECT 1 FROM pautas p
-                 WHERE p.reservada_por_id = users.id AND p.status IN ('reservada','em_revisao','reedicao')
+                 SELECT 1 FROM missions p
+                 WHERE p.reserved_by_id = users.id AND p.status IN ('reservada','em_revisao','reedicao')
                )
                AND NOT EXISTS (
-                 SELECT 1 FROM ofertas o WHERE o.editor_id = users.id AND o.status = 'pendente'
+                 SELECT 1 FROM offers o WHERE o.editor_id = users.id AND o.status = 'pendente'
                )
              THEN 1 END) AS editores_livres
            FROM users`,
@@ -417,93 +417,93 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
     async getEditingQueue(): Promise<QueueItem[]> {
       const result = await db
         .prepare(
-          `SELECT p.id, p.titulo, p.formato, p.criada_em, p.prioridade, p.status,
-                  v.nome AS candidato,
-                  e.apelido AS oferecida_para,
-                  o.oferecida_em
-           FROM pautas p
-           JOIN users v ON v.id = p.porta_voz_id
-           LEFT JOIN ofertas o ON o.pauta_id = p.id AND o.status = 'pendente'
+          `SELECT p.id, p.title, p.format, p.created_at, p.priority, p.status,
+                  v.name AS candidate,
+                  e.handle AS offered_to,
+                  o.offered_at
+           FROM missions p
+           JOIN users v ON v.id = p.spokesperson_id
+           LEFT JOIN offers o ON o.mission_id = p.id AND o.status = 'pendente'
            LEFT JOIN users e ON e.id = o.editor_id
            WHERE p.status IN ('disponivel','oferecida')
-           ORDER BY p.prioridade DESC, p.criada_em ASC`,
+           ORDER BY p.priority DESC, p.created_at ASC`,
         )
         .all<{
           id: number;
-          titulo: string;
-          formato: string;
-          criada_em: string;
-          prioridade: number;
+          title: string;
+          format: string;
+          created_at: string;
+          priority: number;
           status: string;
-          candidato: string;
-          oferecida_para: string | null;
-          oferecida_em: string | null;
+          candidate: string;
+          offered_to: string | null;
+          offered_at: string | null;
         }>();
 
       return (result.results ?? []).map((l) => ({
         id: Number(l.id),
-        title: String(l.titulo),
-        format: String(l.formato),
-        spokesperson: String(l.candidato),
-        candidateName: String(l.candidato),
-        createdAt: new Date(l.criada_em).toISOString(),
-        priority: Number(l.prioridade),
+        title: String(l.title),
+        format: String(l.format),
+        spokesperson: String(l.candidate),
+        candidateName: String(l.candidate),
+        createdAt: new Date(l.created_at).toISOString(),
+        priority: Number(l.priority),
         status: String(l.status),
-        offeredTo: l.oferecida_para ? String(l.oferecida_para) : null,
-        offeredAt: l.oferecida_em ? new Date(l.oferecida_em).toISOString() : null,
-        titulo: String(l.titulo),
-        formato: String(l.formato),
-        candidato: String(l.candidato),
-        criadaEm: new Date(l.criada_em).toISOString(),
-        prioridade: Number(l.prioridade),
-        oferecidaPara: l.oferecida_para ? String(l.oferecida_para) : null,
-        oferecidaEm: l.oferecida_em ? new Date(l.oferecida_em).toISOString() : null,
+        offeredTo: l.offered_to ? String(l.offered_to) : null,
+        offeredAt: l.offered_at ? new Date(l.offered_at).toISOString() : null,
+        titulo: String(l.title),
+        formato: String(l.format),
+        candidato: String(l.candidate),
+        criadaEm: new Date(l.created_at).toISOString(),
+        prioridade: Number(l.priority),
+        oferecidaPara: l.offered_to ? String(l.offered_to) : null,
+        oferecidaEm: l.offered_at ? new Date(l.offered_at).toISOString() : null,
       }));
     },
 
     async getMissionsInFlight(): Promise<MissionInFlight[]> {
       const result = await db
         .prepare(
-          `SELECT p.id, p.titulo, p.status, p.reservada_em, p.entrega_link,
-                  v.nome AS candidato, e.apelido AS editor
-           FROM pautas p
-           JOIN users v ON v.id = p.porta_voz_id
-           LEFT JOIN users e ON e.id = p.reservada_por_id
+          `SELECT p.id, p.title, p.status, p.reserved_at, p.delivery_link,
+                  v.name AS candidate, e.handle AS editor
+           FROM missions p
+           JOIN users v ON v.id = p.spokesperson_id
+           LEFT JOIN users e ON e.id = p.reserved_by_id
            WHERE p.status IN ('reservada','em_revisao','reedicao')
-           ORDER BY p.reservada_em ASC`,
+           ORDER BY p.reserved_at ASC`,
         )
         .all<{
           id: number;
-          titulo: string;
+          title: string;
           status: string;
-          reservada_em: string | null;
-          entrega_link: string | null;
-          candidato: string;
+          reserved_at: string | null;
+          delivery_link: string | null;
+          candidate: string;
           editor: string | null;
         }>();
 
       return (result.results ?? []).map((l) => ({
         id: Number(l.id),
-        title: String(l.titulo),
+        title: String(l.title),
         status: String(l.status),
-        spokesperson: String(l.candidato),
-        candidateName: String(l.candidato),
+        spokesperson: String(l.candidate),
+        candidateName: String(l.candidate),
         editor: l.editor ? String(l.editor) : null,
-        since: l.reservada_em ? new Date(l.reservada_em).toISOString() : null,
-        hasDelivery: Boolean(l.entrega_link),
-        titulo: String(l.titulo),
-        candidato: String(l.candidato),
-        desde: l.reservada_em ? new Date(l.reservada_em).toISOString() : null,
-        temEntrega: Boolean(l.entrega_link),
+        since: l.reserved_at ? new Date(l.reserved_at).toISOString() : null,
+        hasDelivery: Boolean(l.delivery_link),
+        titulo: String(l.title),
+        candidato: String(l.candidate),
+        desde: l.reserved_at ? new Date(l.reserved_at).toISOString() : null,
+        temEntrega: Boolean(l.delivery_link),
       }));
     },
 
     async moveInQueue(missionId: number, movement: QueueMove) {
       const result = await db
         .prepare(
-          `SELECT id FROM pautas
+          `SELECT id FROM missions
            WHERE status IN ('disponivel','oferecida')
-           ORDER BY prioridade DESC, criada_em ASC`,
+           ORDER BY priority DESC, created_at ASC`,
         )
         .all<{ id: number }>();
 
@@ -537,7 +537,7 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
 
       const priorities = ids.map((_, i) => ids.length - i);
       const stmts = ids.map((id, idx) =>
-        db.prepare("UPDATE pautas SET prioridade = ? WHERE id = ?").bind(priorities[idx], id),
+        db.prepare("UPDATE missions SET priority = ? WHERE id = ?").bind(priorities[idx], id),
       );
       if (typeof db.batch === "function") {
         await db.batch(stmts);
@@ -553,32 +553,32 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
     async getActiveEditorEmails() {
       const result = await db
         .prepare(
-          `SELECT nome, email FROM users
-           WHERE papel = 'editor' AND (banido = 0 OR banido = false OR banido IS NULL)
-           ORDER BY nome ASC`,
+          `SELECT name, email FROM users
+           WHERE role = 'editor' AND (is_banned = 0 OR is_banned = false OR is_banned IS NULL)
+           ORDER BY name ASC`,
         )
-        .all<{ nome: string; email: string }>();
+        .all<{ name: string; email: string }>();
 
       return (result.results ?? []).map((l) => ({
-        name: String(l.nome),
+        name: String(l.name),
         email: String(l.email),
-        nome: String(l.nome),
+        nome: String(l.name),
       }));
     },
 
     async getActiveSpokespersonEmails() {
       const result = await db
         .prepare(
-          `SELECT nome, email FROM users
-           WHERE papel IN ('voz', 'spokesperson') AND (banido = 0 OR banido = false OR banido IS NULL)
-           ORDER BY nome ASC`,
+          `SELECT name, email FROM users
+           WHERE role IN ('voz', 'spokesperson') AND (is_banned = 0 OR is_banned = false OR is_banned IS NULL)
+           ORDER BY name ASC`,
         )
-        .all<{ nome: string; email: string }>();
+        .all<{ name: string; email: string }>();
 
       return (result.results ?? []).map((l) => ({
-        name: String(l.nome),
+        name: String(l.name),
         email: String(l.email),
-        nome: String(l.nome),
+        nome: String(l.name),
       }));
     },
   };

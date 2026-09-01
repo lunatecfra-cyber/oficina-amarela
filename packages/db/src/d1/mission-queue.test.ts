@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test, { after, before, beforeEach, describe } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1MissionQueue } from "./mission-queue.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade local D1 da fila de missões", () => {
@@ -23,24 +23,20 @@ describe("paridade local D1 da fila de missões", () => {
 
   before(async () => {
     db = await miniflare.getD1Database("DB");
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db as unknown as D1DatabaseLike, schema);
+    await applyAllD1Migrations(db as unknown as D1DatabaseLike);
     queue = createD1MissionQueue(db as unknown as D1DatabaseLike, () => now);
   });
 
   beforeEach(async () => {
     now = new Date("2026-08-30T15:00:00.000Z");
     await db.batch([
-      db.prepare("DELETE FROM ofertas"),
-      db.prepare("DELETE FROM pautas"),
+      db.prepare("DELETE FROM offers"),
+      db.prepare("DELETE FROM missions"),
       db.prepare("DELETE FROM users"),
-      db.prepare("DELETE FROM fila_emails"),
+      db.prepare("DELETE FROM email_queue"),
     ]);
     const spokesperson = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("voz.fila.d1", "Voz Fila D1", "voz.fila.d1@teste.local", "voz")
       .first<{ id: number }>();
     spokespersonId = spokesperson?.id as number;
@@ -49,7 +45,7 @@ describe("paridade local D1 da fila de missões", () => {
     for (let index = 1; index <= 3; index++) {
       const editor = await db
         .prepare(
-          `INSERT INTO users (apelido, nome, email, papel, ultimo_visto_em)
+          `INSERT INTO users (handle, name, email, role, last_seen_at)
            VALUES (?, ?, ?, 'editor', ?) RETURNING id`,
         )
         .bind(
@@ -68,7 +64,7 @@ describe("paridade local D1 da fila de missões", () => {
   async function createMission(status = "disponivel", reservedBy: number | null = null) {
     const mission = await db
       .prepare(
-        `INSERT INTO pautas (porta_voz_id, titulo, formato, status, reservada_por_id)
+        `INSERT INTO missions (spokesperson_id, title, format, status, reserved_by_id)
          VALUES (?, 'Missão da fila D1', 'short', ?, ?) RETURNING id`,
       )
       .bind(spokespersonId, status, reservedBy)
@@ -79,7 +75,7 @@ describe("paridade local D1 da fila de missões", () => {
   async function createOffer(missionId: number, editorId: number, expiresAt?: string) {
     await db
       .prepare(
-        `INSERT INTO ofertas (pauta_id, editor_id, oferecida_em, expira_em)
+        `INSERT INTO offers (mission_id, editor_id, offered_at, expires_at)
          VALUES (?, ?, ?, ?)`,
       )
       .bind(
@@ -93,9 +89,9 @@ describe("paridade local D1 da fila de missões", () => {
 
   async function missionState(missionId: number) {
     return db
-      .prepare("SELECT status, reservada_por_id FROM pautas WHERE id = ?")
+      .prepare("SELECT status, reserved_by_id FROM missions WHERE id = ?")
       .bind(missionId)
-      .first<{ status: string; reservada_por_id: number | null }>();
+      .first<{ status: string; reserved_by_id: number | null }>();
   }
 
   test("uma reserva vence cada corrida de missão e editor", async () => {
@@ -122,7 +118,7 @@ describe("paridade local D1 da fila de missões", () => {
     assert.equal(await queue.dispatchOffers(), 1);
 
     const offer = await db
-      .prepare("SELECT editor_id, status FROM ofertas WHERE pauta_id = ?")
+      .prepare("SELECT editor_id, status FROM offers WHERE mission_id = ?")
       .bind(missionId)
       .first<{ editor_id: number; status: string }>();
     assert.equal(offer?.status, "pendente");
@@ -135,7 +131,7 @@ describe("paridade local D1 da fila de missões", () => {
     assert.deepEqual(await queue.acceptOffer(missionId, offer?.editor_id as number), { ok: true });
     assert.deepEqual(await missionState(missionId), {
       status: "reservada",
-      reservada_por_id: offer?.editor_id,
+      reserved_by_id: offer?.editor_id,
     });
     assert.deepEqual(await queue.acceptOffer(missionId, offer?.editor_id as number), {
       ok: false,
@@ -155,10 +151,10 @@ describe("paridade local D1 da fila de missões", () => {
     });
     assert.deepEqual(await missionState(offered), {
       status: "oferecida",
-      reservada_por_id: null,
+      reserved_by_id: null,
     });
     const offer = await db
-      .prepare("SELECT status FROM ofertas WHERE pauta_id = ?")
+      .prepare("SELECT status FROM offers WHERE mission_id = ?")
       .bind(offered)
       .first<{ status: string }>();
     assert.equal(offer?.status, "pendente");
@@ -177,7 +173,7 @@ describe("paridade local D1 da fila de missões", () => {
     const expired = await createMission();
     await createOffer(expired, editorIds[1]);
     await db
-      .prepare("UPDATE ofertas SET oferecida_em = ? WHERE pauta_id = ?")
+      .prepare("UPDATE offers SET offered_at = ? WHERE mission_id = ?")
       .bind(new Date(now.getTime() - 5 * 60_000 - 1).toISOString(), expired)
       .run();
     assert.equal(await queue.expireOffers(), 1);
@@ -188,14 +184,14 @@ describe("paridade local D1 da fila de missões", () => {
     for (let index = 0; index < 5; index++) await createMission();
     const counts = await Promise.all([queue.dispatchOffers(), queue.dispatchOffers()]);
     const pending = await db
-      .prepare("SELECT COUNT(*) AS total FROM ofertas WHERE status = 'pendente'")
+      .prepare("SELECT COUNT(*) AS total FROM offers WHERE status = 'pendente'")
       .first<{ total: number }>();
     const orphan = await db
       .prepare(
-        `SELECT COUNT(*) AS total FROM pautas p
+        `SELECT COUNT(*) AS total FROM missions p
          WHERE p.status = 'oferecida'
            AND NOT EXISTS (
-             SELECT 1 FROM ofertas o WHERE o.pauta_id = p.id AND o.status = 'pendente'
+             SELECT 1 FROM offers o WHERE o.mission_id = p.id AND o.status = 'pendente'
            )`,
       )
       .first<{ total: number }>();
@@ -206,32 +202,29 @@ describe("paridade local D1 da fila de missões", () => {
   test("disponibilidade e janela de presença evitam trabalho indevido", async () => {
     const unavailable = Array.from({ length: 3 }, () => Array(7).fill(false));
     await db
-      .prepare("UPDATE users SET disponibilidade = ? WHERE id = ?")
+      .prepare("UPDATE users SET availability = ? WHERE id = ?")
       .bind(JSON.stringify(unavailable), editorIds[2])
       .run();
     const missionId = await createMission();
     assert.equal(await queue.dispatchOffers(), 1);
     const offer = await db
-      .prepare("SELECT editor_id FROM ofertas WHERE pauta_id = ?")
+      .prepare("SELECT editor_id FROM offers WHERE mission_id = ?")
       .bind(missionId)
       .first<{ editor_id: number }>();
     assert.notEqual(offer?.editor_id, editorIds[2]);
 
-    await db
-      .prepare("UPDATE users SET ultimo_visto_em = NULL WHERE id = ?")
-      .bind(editorIds[0])
-      .run();
+    await db.prepare("UPDATE users SET last_seen_at = NULL WHERE id = ?").bind(editorIds[0]).run();
     await queue.markEditorActive(editorIds[0]);
     const first = await db
-      .prepare("SELECT ultimo_visto_em FROM users WHERE id = ?")
+      .prepare("SELECT last_seen_at FROM users WHERE id = ?")
       .bind(editorIds[0])
-      .first<{ ultimo_visto_em: string }>();
+      .first<{ last_seen_at: string }>();
     now = new Date(now.getTime() + 30_000);
     await queue.markEditorActive(editorIds[0]);
     const second = await db
-      .prepare("SELECT ultimo_visto_em FROM users WHERE id = ?")
+      .prepare("SELECT last_seen_at FROM users WHERE id = ?")
       .bind(editorIds[0])
-      .first<{ ultimo_visto_em: string }>();
-    assert.equal(second?.ultimo_visto_em, first?.ultimo_visto_em);
+      .first<{ last_seen_at: string }>();
+    assert.equal(second?.last_seen_at, first?.last_seen_at);
   });
 });

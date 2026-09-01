@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1Missions } from "./missions.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade D1 de missões e consultas", () => {
@@ -20,17 +20,13 @@ describe("paridade D1 de missões e consultas", () => {
 
   before(async () => {
     db = (await miniflare.getD1Database("DB")) as unknown as D1DatabaseLike;
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db, schema);
+    await applyAllD1Migrations(db);
     repo = createD1Missions(db);
   });
 
   beforeEach(async () => {
-    await db.prepare("DELETE FROM ofertas").run();
-    await db.prepare("DELETE FROM pautas").run();
+    await db.prepare("DELETE FROM offers").run();
+    await db.prepare("DELETE FROM missions").run();
     await db.prepare("DELETE FROM users").run();
   });
 
@@ -39,7 +35,7 @@ describe("paridade D1 de missões e consultas", () => {
   test("criação e listagem de missões por porta-voz e pública", async () => {
     const sp = await db
       .prepare(
-        "INSERT INTO users (apelido, nome, email, papel, perfil_completo) VALUES (?, ?, ?, ?, 1) RETURNING id",
+        "INSERT INTO users (handle, name, email, role, profile_completed) VALUES (?, ?, ?, ?, 1) RETURNING id",
       )
       .bind("candidato1", "Candidato Um", "cand1@teste.local", "voz")
       .first<{ id: number }>();
@@ -90,7 +86,7 @@ describe("paridade D1 de missões e consultas", () => {
   test("missão guarda a conformidade eleitoral no D1", async () => {
     const sp = await db
       .prepare(
-        "INSERT INTO users (apelido, nome, email, papel, perfil_completo) VALUES (?, ?, ?, ?, 1) RETURNING id",
+        "INSERT INTO users (handle, name, email, role, profile_completed) VALUES (?, ?, ?, ?, 1) RETURNING id",
       )
       .bind("candidato9", "Candidato Nove", "cand9@teste.local", "voz")
       .first<{ id: number }>();

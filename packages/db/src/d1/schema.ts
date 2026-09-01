@@ -12,6 +12,10 @@ import type { D1DatabaseLike } from "./types.ts";
  * migração cria as tabelas, carrega o passado e só então liga os gatilhos.
  */
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 export type D1SchemaParts = { tables: string[]; triggers: string[] };
 
 export function splitD1Schema(schema: string): D1SchemaParts {
@@ -38,7 +42,16 @@ export function splitD1Schema(schema: string): D1SchemaParts {
 }
 
 async function run(db: D1DatabaseLike, statements: string[]): Promise<void> {
-  for (const statement of statements) await db.prepare(statement).run();
+  for (const statement of statements) {
+    try {
+      await db.prepare(statement).run();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!/duplicate column name|no such column/i.test(msg)) {
+        throw e;
+      }
+    }
+  }
 }
 
 /** Só tabelas e índices: o destino aceita carga sem disparar efeito de evento. */
@@ -80,4 +93,19 @@ export async function applyD1Schema(db: D1DatabaseLike, schema: string): Promise
   const { tables, triggers } = splitD1Schema(schema);
   await run(db, tables);
   await run(db, triggers);
+}
+
+/** Aplica todas as migrações D1 (0001, 0002, 0003) na ordem correta com tolerância a idempotência. */
+export async function applyAllD1Migrations(db: D1DatabaseLike): Promise<void> {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const migrationsDir = path.resolve(here, "../../d1");
+  const files = [
+    "0001_mission_slice.sql",
+    "0002_electoral_compliance.sql",
+    "0003_rename_to_english.sql",
+  ];
+  for (const file of files) {
+    const content = await readFile(path.join(migrationsDir, file), "utf8");
+    await applyD1Schema(db, content);
+  }
 }

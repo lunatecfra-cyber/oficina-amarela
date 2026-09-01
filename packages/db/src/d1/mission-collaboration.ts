@@ -9,49 +9,63 @@ import type { D1DatabaseLike } from "./types.ts";
 
 type MessageRow = {
   id: number;
-  pauta_id: number;
-  autor_id: number;
-  nome: string;
-  papel: string;
-  texto: string;
-  criada_em: string;
+  mission_id?: number;
+  author_id?: number;
+  name?: string;
+  role?: string;
+  body?: string;
+  created_at?: string;
+
+  pauta_id?: number;
+  autor_id?: number;
+  nome?: string;
+  papel?: string;
+  texto?: string;
+  criada_em?: string;
 };
 
 function rowToMessage(row: MessageRow): MissionMessage {
+  const rawRole = row.role ?? row.papel;
   const role: Role =
-    row.papel === "voz" || row.papel === "spokesperson"
+    rawRole === "voz" || rawRole === "spokesperson"
       ? "spokesperson"
-      : row.papel === "admin"
+      : rawRole === "admin"
         ? "admin"
         : "editor";
+  const missionId = row.mission_id ?? row.pauta_id ?? 0;
+  const authorId = row.author_id ?? row.autor_id ?? 0;
+  const authorName = row.name ?? row.nome ?? "";
+  const text = row.body ?? row.texto ?? "";
+  const createdAt = row.created_at ?? row.criada_em ?? "";
+
   return {
     id: `m-${row.id}`,
-    missionId: row.pauta_id,
-    authorId: row.autor_id,
-    authorName: row.nome,
+    missionId,
+    authorId,
+    authorName,
     authorRole: role,
-    text: row.texto,
-    createdAt: row.criada_em,
-    pautaId: row.pauta_id,
-    autorId: row.autor_id,
-    autorNome: row.nome,
+    text,
+    createdAt,
+    pautaId: missionId,
+    autorId: authorId,
+    autorNome: authorName,
     autorPapel: role,
-    texto: row.texto,
-    criadaEm: row.criada_em,
+    texto: text,
+    criadaEm: createdAt,
   };
 }
 
 export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollaborationRepository {
   async function participant(missionId: number, actor: Pick<MissionActor, "id" | "role">) {
     const mission = await db
-      .prepare("SELECT porta_voz_id, reservada_por_id FROM pautas WHERE id = ?")
+      .prepare("SELECT spokesperson_id, reserved_by_id FROM missions WHERE id = ?")
       .bind(missionId)
-      .first<{ porta_voz_id: number; reservada_por_id: number | null }>();
+      .first<{ spokesperson_id: number; reserved_by_id: number | null }>();
     if (!mission) return { ok: false as const, reason: "mission_not_found" as const };
     if (
       actor.role !== "admin" &&
-      actor.id !== mission.porta_voz_id &&
-      actor.id !== mission.reservada_por_id
+      actor.id !== mission.spokesperson_id &&
+      actor.id !== mission.reserved_by_id
     ) {
       return { ok: false as const, reason: "forbidden" as const };
     }
@@ -63,12 +77,12 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       const access = await participant(missionId, actor);
       if (!access.ok) return access;
       const query = after
-        ? `SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em
-           FROM mensagens m JOIN users u ON u.id = m.autor_id
-           WHERE m.pauta_id = ? AND m.criada_em > ? ORDER BY m.criada_em ASC, m.id ASC`
-        : `SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em
-           FROM mensagens m JOIN users u ON u.id = m.autor_id
-           WHERE m.pauta_id = ? ORDER BY m.criada_em ASC, m.id ASC`;
+        ? `SELECT m.id, m.mission_id, m.author_id, u.name, u.role, m.body, m.created_at
+           FROM messages m JOIN users u ON u.id = m.author_id
+           WHERE m.mission_id = ? AND m.created_at > ? ORDER BY m.created_at ASC, m.id ASC`
+        : `SELECT m.id, m.mission_id, m.author_id, u.name, u.role, m.body, m.created_at
+           FROM messages m JOIN users u ON u.id = m.author_id
+           WHERE m.mission_id = ? ORDER BY m.created_at ASC, m.id ASC`;
       const statement = db.prepare(query);
       const rows = await (after
         ? statement.bind(missionId, after)
@@ -90,18 +104,19 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
         const placeholders = chunk.map(() => "?").join(", ");
         const rows = await db
           .prepare(
-            `SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em
-             FROM mensagens m JOIN users u ON u.id = m.autor_id
-             WHERE m.pauta_id IN (${placeholders})
-             ORDER BY m.criada_em ASC, m.id ASC`,
+            `SELECT m.id, m.mission_id, m.author_id, u.name, u.role, m.body, m.created_at
+             FROM messages m JOIN users u ON u.id = m.author_id
+             WHERE m.mission_id IN (${placeholders})
+             ORDER BY m.created_at ASC, m.id ASC`,
           )
           .bind(...chunk)
           .all<MessageRow>();
         for (const row of rows.results) {
-          if (!messages[row.pauta_id]) {
-            messages[row.pauta_id] = [];
+          const mid = row.mission_id ?? row.pauta_id ?? 0;
+          if (!messages[mid]) {
+            messages[mid] = [];
           }
-          messages[row.pauta_id].push(rowToMessage(row));
+          messages[mid].push(rowToMessage(row));
         }
       }
       return { ok: true as const, messages };
@@ -114,14 +129,14 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       if (!access.ok) return access;
       const row = await db
         .prepare(
-          `INSERT INTO mensagens (pauta_id, autor_id, texto) VALUES (?, ?, ?)
-           RETURNING id, pauta_id, autor_id, texto, criada_em`,
+          `INSERT INTO messages (mission_id, author_id, body) VALUES (?, ?, ?)
+           RETURNING id, mission_id, author_id, body, created_at`,
         )
         .bind(missionId, actor.id, text)
-        .first<Omit<MessageRow, "nome" | "papel">>();
+        .first<Omit<MessageRow, "name" | "role">>();
       return {
         ok: true,
-        message: rowToMessage({ ...row, nome: actor.name, papel: actor.role } as MessageRow),
+        message: rowToMessage({ ...row, name: actor.name, role: actor.role } as MessageRow),
       };
     },
 
@@ -131,12 +146,12 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       const access = await participant(missionId, actor);
       if (!access.ok) return access;
       const reportedId =
-        actor.id === access.mission.porta_voz_id
-          ? access.mission.reservada_por_id
-          : access.mission.porta_voz_id;
+        actor.id === access.mission.spokesperson_id
+          ? access.mission.reserved_by_id
+          : access.mission.spokesperson_id;
       await db
         .prepare(
-          "INSERT INTO denuncias (pauta_id, denunciante_id, denunciado_id, texto) VALUES (?, ?, ?, ?)",
+          "INSERT INTO reports (mission_id, reporter_id, reported_id, body) VALUES (?, ?, ?, ?)",
         )
         .bind(missionId, actor.id, reportedId, text)
         .run();

@@ -20,47 +20,59 @@ export function createD1Music(db: D1DatabaseLike): MusicRepository {
       const query = filterTag
         ? db
             .prepare(
-              `SELECT m.id, m.nome, m.tags, m.url, m.tamanho, m.adicionado_por, m.criado_em
-             FROM musicas m, json_each(m.tags)
-             WHERE json_each.value = ?
-             ORDER BY m.criado_em DESC`,
+              `SELECT m.id, m.name, m.tags, m.url, m.size_bytes, m.added_by, m.created_at
+               FROM music_tracks m, json_each(m.tags)
+               WHERE json_each.value = ?
+               ORDER BY m.created_at DESC`,
             )
             .bind(filterTag)
         : db.prepare(
-            `SELECT id, nome, tags, url, tamanho, adicionado_por, criado_em
-             FROM musicas
-             ORDER BY criado_em DESC`,
+            `SELECT id, name, tags, url, size_bytes, added_by, created_at
+             FROM music_tracks
+             ORDER BY created_at DESC`,
           );
 
       const result = await query.all<{
         id: string;
-        nome: string;
+        name?: string;
         tags: unknown;
         url: string;
-        tamanho: number | null;
-        adicionado_por: string | null;
-        criado_em: string;
+        size_bytes?: number | null;
+        added_by?: string | null;
+        created_at?: string;
+        // legacy
+        nome?: string;
+        tamanho?: number | null;
+        adicionado_por?: string | null;
+        criado_em?: string;
       }>();
 
-      return (result.results ?? []).map((r) => ({
-        id: String(r.id),
-        name: String(r.nome),
-        tags: parseTags(r.tags),
-        url: String(r.url),
-        size: r.tamanho === null ? null : Number(r.tamanho),
-        added_by: r.adicionado_por ? String(r.adicionado_por) : null,
-        created_at: String(r.criado_em),
-        nome: String(r.nome),
-        tamanho: r.tamanho === null ? null : Number(r.tamanho),
-        adicionado_por: r.adicionado_por ? String(r.adicionado_por) : null,
-        criado_em: String(r.criado_em),
-      }));
+      return (result.results ?? []).map((r) => {
+        const name = String(r.name ?? r.nome ?? "");
+        const size = (r.size_bytes ?? r.tamanho) == null ? null : Number(r.size_bytes ?? r.tamanho);
+        const addedBy =
+          (r.added_by ?? r.adicionado_por) ? String(r.added_by ?? r.adicionado_por) : null;
+        const createdAt = String(r.created_at ?? r.criado_em ?? "");
+        return {
+          id: String(r.id),
+          name,
+          tags: parseTags(r.tags),
+          url: String(r.url),
+          size,
+          added_by: addedBy,
+          created_at: createdAt,
+          nome: name,
+          tamanho: size,
+          adicionado_por: addedBy,
+          criado_em: createdAt,
+        };
+      });
     },
 
     async addMusicTrack(name, tags, url, size, addedBy) {
       await db
         .prepare(
-          `INSERT INTO musicas (nome, tags, url, tamanho, adicionado_por)
+          `INSERT INTO music_tracks (name, tags, url, size_bytes, added_by)
            VALUES (?, ?, ?, ?, ?)`,
         )
         .bind(name, JSON.stringify(tags), url, size, addedBy)
@@ -72,7 +84,7 @@ export function createD1Music(db: D1DatabaseLike): MusicRepository {
         const result = await db
           .prepare(
             `SELECT DISTINCT json_each.value AS tag
-             FROM musicas, json_each(musicas.tags)
+             FROM music_tracks, json_each(music_tracks.tags)
              ORDER BY tag`,
           )
           .all<{ tag: string }>();

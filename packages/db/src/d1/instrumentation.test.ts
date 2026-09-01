@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
+import { after, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import {
   D1MetricsCollector,
@@ -18,6 +18,8 @@ describe("instrumentação do banco D1", () => {
       script: "export default { fetch() { return new Response('ok') } }",
     }),
   );
+
+  after(() => miniflare.dispose());
 
   test("coleta métricas de consultas, leituras e escritas", async () => {
     const rawDb = (await miniflare.getD1Database("DB")) as unknown as D1DatabaseLike;

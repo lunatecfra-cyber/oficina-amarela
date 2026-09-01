@@ -38,7 +38,7 @@ export function createD1Gamification(
 
     const inserted = await db
       .prepare(
-        `INSERT OR IGNORE INTO gamificacao_eventos (user_id, regra_id, referencia, xp)
+        `INSERT OR IGNORE INTO gamification_events (user_id, rule_id, reference, xp)
          VALUES (?, ?, ?, ?) RETURNING xp`,
       )
       .bind(userId, normalizedRule, reference, xp)
@@ -46,7 +46,7 @@ export function createD1Gamification(
     if (!inserted) return { recorded: false, xp: 0, registrado: false };
 
     await db
-      .prepare("UPDATE users SET reputacao = reputacao + ? WHERE id = ?")
+      .prepare("UPDATE users SET reputation = reputation + ? WHERE id = ?")
       .bind(xp, userId)
       .run();
 
@@ -64,24 +64,24 @@ export function createD1Gamification(
     userId: number,
     date = brasiliaDate(),
   ): Promise<DayChallenge[]> {
-    let rows: { regra_id: unknown }[] = [];
+    let rows: { rule_id?: unknown; regra_id?: unknown }[] = [];
     try {
       const result = await db
         .prepare(
-          `SELECT regra_id
-           FROM gamificacao_eventos
+          `SELECT rule_id
+           FROM gamification_events
            WHERE user_id = ?
-             AND ((regra_id = 'entrada_diaria' AND referencia = ?)
-               OR (regra_id = 'missao_entregue' AND date(criado_em) >= ?))`,
+             AND ((rule_id = 'entrada_diaria' AND reference = ?)
+               OR (rule_id = 'missao_entregue' AND date(created_at) >= ?))`,
         )
         .bind(userId, date, date)
-        .all<{ regra_id: unknown }>();
+        .all<{ rule_id?: unknown; regra_id?: unknown }>();
       rows = result.results ?? [];
     } catch {
       // Graceful fallback
     }
 
-    const completedSet = new Set(rows.map((r) => String(r.regra_id)));
+    const completedSet = new Set(rows.map((r) => String(r.rule_id ?? r.regra_id)));
     return Object.values(RULES).map((rule) => {
       const isCompleted = completedSet.has(rule.id);
       return {

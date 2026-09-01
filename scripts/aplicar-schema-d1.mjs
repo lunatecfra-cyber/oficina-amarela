@@ -39,28 +39,56 @@ if (!database) {
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const schema = path.join(root, "packages", "db", "d1", "0001_mission_slice.sql");
+const config = path.join(root, "apps", "api", "wrangler.jsonc");
 const remote = environment === "local" ? "--local" : "--remote";
+const envFlag = environment === "production" ? ["--env", "production"] : ["--env", "staging"];
+const targetDb = environment === "local" ? "DB" : database;
 
 console.log(`aplicando schema em ${database} (${remote})`);
 
 const base = spawnSync(
   "npx",
-  ["wrangler", "d1", "execute", database, remote, "--file", schema, "--yes"],
+  [
+    "wrangler",
+    "d1",
+    "execute",
+    targetDb,
+    remote,
+    "--config",
+    config,
+    ...envFlag,
+    "--file",
+    schema,
+    "--yes",
+  ],
   { cwd: root, stdio: "inherit", env: process.env },
 );
 
 if (base.status !== 0) process.exit(base.status ?? 1);
 
-const patches = [path.join(root, "packages", "db", "d1", "0002_electoral_compliance.sql")];
+const patches = [
+  path.join(root, "packages", "db", "d1", "0002_electoral_compliance.sql"),
+  path.join(root, "packages", "db", "d1", "0003_rename_to_english.sql"),
+];
 
 for (const patch of patches) {
   console.log(`aplicando patch ${path.basename(patch)}`);
 
-  const statements = readFileSync(patch, "utf8")
-    .replace(/^--.*$/gm, "")
-    .split(";")
-    .map((statement) => statement.trim())
-    .filter(Boolean);
+  const raw = readFileSync(patch, "utf8");
+  const statements = [];
+  let current = "";
+  let inTrigger = false;
+  for (const line of raw.replace(/^--.*$/gm, "").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith("CREATE TRIGGER")) inTrigger = true;
+    current += `${line}\n`;
+    if ((!inTrigger && trimmed.endsWith(";")) || (inTrigger && trimmed === "END;")) {
+      statements.push(current.trim());
+      current = "";
+      inTrigger = false;
+    }
+  }
 
   for (const statement of statements) {
     // Uma instrução por chamada significa uma autenticação por instrução, e a
@@ -73,7 +101,19 @@ for (const patch of patches) {
     for (let attempt = 1; attempt <= 4; attempt++) {
       applied = spawnSync(
         "npx",
-        ["wrangler", "d1", "execute", database, remote, "--command", statement, "--yes"],
+        [
+          "wrangler",
+          "d1",
+          "execute",
+          targetDb,
+          remote,
+          "--config",
+          config,
+          ...envFlag,
+          "--command",
+          statement,
+          "--yes",
+        ],
         { cwd: root, encoding: "utf8", env: process.env },
       );
       output = `${applied.stdout ?? ""}${applied.stderr ?? ""}`;
@@ -89,10 +129,11 @@ for (const patch of patches) {
       console.log(`  ok: ${statement}`);
       continue;
     }
-    // Falhas aceitáveis, as duas significando "já está como deveria":
-    // a coluna já existe (ADD repetido) ou a coluna antiga não existe mais
-    // (RENAME num banco que já nasceu com o nome novo).
-    if (/duplicate column name|no such column/i.test(output)) {
+    // Falhas aceitáveis, significando "já está como deveria":
+    // a coluna já existe (ADD repetido), a coluna antiga não existe mais
+    // (RENAME num banco que já nasceu com o nome novo), a tabela já foi
+    // renomeada (no such table para a tabela antiga) ou já existe.
+    if (/duplicate column name|no such column|no such table|already exists/i.test(output)) {
       console.log(`  já aplicado: ${statement}`);
       continue;
     }

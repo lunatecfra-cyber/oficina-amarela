@@ -4,7 +4,7 @@ import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1Music } from "./music.ts";
 import { createD1News } from "./news.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade D1 de novidades e músicas", () => {
@@ -22,18 +22,14 @@ describe("paridade D1 de novidades e músicas", () => {
 
   before(async () => {
     db = (await miniflare.getD1Database("DB")) as unknown as D1DatabaseLike;
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db, schema);
+    await applyAllD1Migrations(db);
     newsRepo = createD1News(db);
     musicRepo = createD1Music(db);
   });
 
   beforeEach(async () => {
-    await db.prepare("DELETE FROM musicas").run();
-    await db.prepare("DELETE FROM novidades").run();
+    await db.prepare("DELETE FROM music_tracks").run();
+    await db.prepare("DELETE FROM news").run();
     await db.prepare("DELETE FROM users").run();
   });
 
@@ -41,7 +37,7 @@ describe("paridade D1 de novidades e músicas", () => {
 
   test("criação, publicação e remoção de novidades", async () => {
     const u = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("admin1", "Admin Um", "admin1@teste.local", "admin")
       .first<{ id: number }>();
     const adminId = Number(u?.id);
@@ -67,7 +63,7 @@ describe("paridade D1 de novidades e músicas", () => {
 
   test("músicas e filtragem por tags", async () => {
     const u = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("editor1", "Editor Um", "ed1@teste.local", "editor")
       .first<{ id: number }>();
     const userId = Number(u?.id);

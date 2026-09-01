@@ -75,24 +75,31 @@ export function roleFromDb(papel: string): Role {
 
 type UserRow = {
   id: number;
-  apelido: string;
-  nome: string;
+  handle?: string;
+  name?: string;
   email: string;
-  papel: string;
-  senha_hash: string | null;
-  banido: boolean | number | null;
+  role?: string;
+  password_hash?: string | null;
+  is_banned?: boolean | number | null;
+  // legacy:
+  apelido?: string;
+  nome?: string;
+  papel?: string;
+  senha_hash?: string | null;
+  banido?: boolean | number | null;
 };
 
 export function toAccountRow(row: UserRow | undefined | null): AccountRow | null {
   if (!row) return null;
+  const roleVal = row.role ?? row.papel ?? "editor";
   return {
     id: Number(row.id),
-    handle: row.apelido,
-    name: row.nome,
+    handle: row.handle ?? row.apelido ?? "",
+    name: row.name ?? row.nome ?? "",
     email: row.email,
-    role: roleFromDb(row.papel),
-    passwordHash: row.senha_hash ?? null,
-    banned: Boolean(row.banido),
+    role: roleFromDb(roleVal),
+    passwordHash: row.password_hash ?? row.senha_hash ?? null,
+    banned: Boolean(row.is_banned ?? row.banido),
   };
 }
 

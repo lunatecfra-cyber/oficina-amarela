@@ -13,7 +13,7 @@ export function createD1Ranking(db: D1DatabaseLike): RankingRepository {
     async freezeExpiredCycles() {
       await db
         .prepare(
-          "UPDATE ranking_ciclos SET congelado_em = termina_em WHERE congelado_em IS NULL AND termina_em < ?",
+          "UPDATE ranking_cycles SET frozen_at = ends_at WHERE frozen_at IS NULL AND ends_at < ?",
         )
         .bind(new Date().toISOString())
         .run();
@@ -22,53 +22,71 @@ export function createD1Ranking(db: D1DatabaseLike): RankingRepository {
     async currentCycle() {
       const row = await db
         .prepare(
-          `SELECT id, nome, inicia_em, termina_em, congelado_em, max_editores_ativos
-           FROM ranking_ciclos ORDER BY inicia_em DESC LIMIT 1`,
+          `SELECT id, name, starts_at, ends_at, frozen_at, max_active_editors
+           FROM ranking_cycles ORDER BY starts_at DESC LIMIT 1`,
         )
         .first<{
           id: number;
-          nome: string;
-          inicia_em: string;
-          termina_em: string;
-          congelado_em: string | null;
-          max_editores_ativos: number | null;
+          name: string;
+          starts_at: string;
+          ends_at: string;
+          frozen_at: string | null;
+          max_active_editors: number | null;
+          // legacy
+          nome?: string;
+          inicia_em?: string;
+          termina_em?: string;
+          congelado_em?: string | null;
         }>();
       if (!row) return null;
+      const name = row.name ?? row.nome ?? "";
+      const startsAt = row.starts_at ?? row.inicia_em ?? "";
+      const endsAt = row.ends_at ?? row.termina_em ?? "";
+      const frozenAt = row.frozen_at ?? row.congelado_em ?? null;
+
       return {
         id: Number(row.id),
-        name: row.nome,
-        startsAt: new Date(row.inicia_em).toISOString(),
-        endsAt: new Date(row.termina_em).toISOString(),
-        frozenAt: row.congelado_em ? new Date(row.congelado_em).toISOString() : null,
-        highestActiveCount: Number(row.max_editores_ativos ?? 0),
+        name,
+        startsAt: new Date(startsAt).toISOString(),
+        endsAt: new Date(endsAt).toISOString(),
+        frozenAt: frozenAt ? new Date(frozenAt).toISOString() : null,
+        highestActiveCount: Number(row.max_active_editors ?? 0),
       };
     },
 
     async entriesForCycle(cycleId) {
       const { results } = await db
         .prepare(
-          `SELECT u.id, u.apelido, u.nome, count(a.pauta_id) AS quantidade,
-                  max(a.aprovado_em) AS atingiu_em
-           FROM ranking_aprovacoes a
+          `SELECT u.id, u.handle, u.name, count(a.mission_id) AS count,
+                  max(a.approved_at) AS reached_at
+           FROM ranking_approvals a
            JOIN users u ON u.id = a.editor_id
-           WHERE a.anulado_em IS NULL AND a.ciclo_id = ?
-           GROUP BY u.id, u.apelido, u.nome
-           ORDER BY quantidade DESC, atingiu_em ASC, u.id ASC`,
+           WHERE a.voided_at IS NULL AND a.cycle_id = ?
+           GROUP BY u.id, u.handle, u.name
+           ORDER BY count DESC, reached_at ASC, u.id ASC`,
         )
         .bind(cycleId)
         .all<{
           id: number;
-          apelido: string;
-          nome: string;
-          quantidade: number;
-          atingiu_em: string | null;
+          handle?: string;
+          name?: string;
+          count?: number;
+          reached_at?: string | null;
+          // legacy
+          apelido?: string;
+          nome?: string;
+          quantidade?: number;
+          atingiu_em?: string | null;
         }>();
       return results.map((row) => ({
         id: Number(row.id),
-        handle: row.apelido,
-        name: row.nome,
-        count: Number(row.quantidade),
-        reachedAt: row.atingiu_em ? new Date(row.atingiu_em).toISOString() : null,
+        handle: row.handle ?? row.apelido ?? "",
+        name: row.name ?? row.nome ?? "",
+        count: Number(row.count ?? row.quantidade ?? 0),
+        reachedAt:
+          (row.reached_at ?? row.atingiu_em)
+            ? new Date(row.reached_at ?? row.atingiu_em ?? "").toISOString()
+            : null,
       }));
     },
 
@@ -76,22 +94,22 @@ export function createD1Ranking(db: D1DatabaseLike): RankingRepository {
       const statement = editorId
         ? db
             .prepare(
-              "SELECT aprovado_em FROM ranking_aprovacoes WHERE anulado_em IS NULL AND ciclo_id = ? AND editor_id = ?",
+              "SELECT approved_at FROM ranking_approvals WHERE voided_at IS NULL AND cycle_id = ? AND editor_id = ?",
             )
             .bind(cycleId, editorId)
         : db
             .prepare(
-              "SELECT aprovado_em FROM ranking_aprovacoes WHERE anulado_em IS NULL AND ciclo_id = ?",
+              "SELECT approved_at FROM ranking_approvals WHERE voided_at IS NULL AND cycle_id = ?",
             )
             .bind(cycleId);
-      const { results } = await statement.all<{ aprovado_em: string }>();
-      return results.map((row) => new Date(row.aprovado_em).toISOString());
+      const { results } = await statement.all<{ approved_at?: string; aprovado_em?: string }>();
+      return results.map((row) => new Date(row.approved_at ?? row.aprovado_em ?? "").toISOString());
     },
 
     async availableShields(editorId) {
       const row = await db
         .prepare(
-          "SELECT count(*) AS total FROM bloqueios_constancia WHERE editor_id = ? AND consumido_em IS NULL",
+          "SELECT count(*) AS total FROM consistency_shields WHERE editor_id = ? AND consumed_at IS NULL",
         )
         .bind(editorId)
         .first<{ total: number }>();
@@ -101,27 +119,25 @@ export function createD1Ranking(db: D1DatabaseLike): RankingRepository {
     async consumedShieldWeeks(editorId) {
       const { results } = await db
         .prepare(
-          "SELECT consumido_semana FROM bloqueios_constancia WHERE editor_id = ? AND consumido_semana IS NOT NULL",
+          "SELECT consumed_week FROM consistency_shields WHERE editor_id = ? AND consumed_week IS NOT NULL",
         )
         .bind(editorId)
-        .all<{ consumido_semana: string }>();
-      return results.map((row) => String(row.consumido_semana).slice(0, 10));
+        .all<{ consumed_week?: string; consumido_semana?: string }>();
+      return results.map((row) => String(row.consumed_week ?? row.consumido_semana).slice(0, 10));
     },
 
     async consumeShield(editorId, weekKey) {
-      // Mesma invariante do PostgreSQL numa instrução só: a semana já gasta
-      // aparece no NOT EXISTS, então não dá para consumir dois na mesma semana.
       const consumed = await db
         .prepare(
-          `UPDATE bloqueios_constancia SET consumido_em = ?, consumido_semana = ?
+          `UPDATE consistency_shields SET consumed_at = ?, consumed_week = ?
            WHERE id = (
-             SELECT b.id FROM bloqueios_constancia b
-             WHERE b.editor_id = ? AND b.consumido_em IS NULL
+             SELECT b.id FROM consistency_shields b
+             WHERE b.editor_id = ? AND b.consumed_at IS NULL
                AND NOT EXISTS (
-                 SELECT 1 FROM bloqueios_constancia usado
-                 WHERE usado.editor_id = ? AND usado.consumido_semana = ?
+                 SELECT 1 FROM consistency_shields usado
+                 WHERE usado.editor_id = ? AND usado.consumed_week = ?
                )
-             ORDER BY b.concedido_em LIMIT 1
+             ORDER BY b.granted_at LIMIT 1
            )
            RETURNING id`,
         )
@@ -132,21 +148,21 @@ export function createD1Ranking(db: D1DatabaseLike): RankingRepository {
 
     async referralCode(editorId) {
       const row = await db
-        .prepare("SELECT codigo_indicacao FROM users WHERE id = ?")
+        .prepare("SELECT referral_code FROM users WHERE id = ?")
         .bind(editorId)
-        .first<{ codigo_indicacao: string | null }>();
-      return row?.codigo_indicacao ?? null;
+        .first<{ referral_code?: string | null; codigo_indicacao?: string | null }>();
+      return row?.referral_code ?? row?.codigo_indicacao ?? null;
     },
 
     async raiseActiveMilestone(cycleId, activeCount) {
       const row = await db
         .prepare(
-          `UPDATE ranking_ciclos SET max_editores_ativos = max(max_editores_ativos, ?)
-           WHERE id = ? RETURNING max_editores_ativos`,
+          `UPDATE ranking_cycles SET max_active_editors = max(max_active_editors, ?)
+           WHERE id = ? RETURNING max_active_editors`,
         )
         .bind(activeCount, cycleId)
-        .first<{ max_editores_ativos: number }>();
-      return Number(row?.max_editores_ativos ?? activeCount);
+        .first<{ max_active_editors: number }>();
+      return Number(row?.max_active_editors ?? activeCount);
     },
   };
 }

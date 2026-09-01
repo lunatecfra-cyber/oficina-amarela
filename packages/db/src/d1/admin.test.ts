@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1Admin } from "./admin.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade D1 de administração e fiscalização", () => {
@@ -20,18 +20,14 @@ describe("paridade D1 de administração e fiscalização", () => {
 
   before(async () => {
     db = (await miniflare.getD1Database("DB")) as unknown as D1DatabaseLike;
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db, schema);
+    await applyAllD1Migrations(db);
     repo = createD1Admin(db);
   });
 
   beforeEach(async () => {
-    await db.prepare("DELETE FROM denuncias").run();
-    await db.prepare("DELETE FROM ofertas").run();
-    await db.prepare("DELETE FROM pautas").run();
+    await db.prepare("DELETE FROM reports").run();
+    await db.prepare("DELETE FROM offers").run();
+    await db.prepare("DELETE FROM missions").run();
     await db.prepare("DELETE FROM users").run();
   });
 
@@ -39,7 +35,7 @@ describe("paridade D1 de administração e fiscalização", () => {
 
   test("busca, detalhes, banimento e desbanimento de usuários", async () => {
     const u1 = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("editor.alfa", "Alfa Editor", "alfa@editor.local", "editor")
       .first<{ id: number }>();
     const userId = Number(u1?.id);
@@ -69,25 +65,25 @@ describe("paridade D1 de administração e fiscalização", () => {
 
   test("denúncias e visão geral do sistema", async () => {
     const sp = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("voz1", "Voz Um", "voz1@teste.local", "voz")
       .first<{ id: number }>();
     const ed = await db
       .prepare(
-        "INSERT INTO users (apelido, nome, email, papel, perfil_completo) VALUES (?, ?, ?, ?, 1) RETURNING id",
+        "INSERT INTO users (handle, name, email, role, profile_completed) VALUES (?, ?, ?, ?, 1) RETURNING id",
       )
       .bind("ed1", "Editor Um", "ed1@teste.local", "editor")
       .first<{ id: number }>();
     const pauta = await db
       .prepare(
-        "INSERT INTO pautas (porta_voz_id, titulo, formato, status) VALUES (?, ?, ?, ?) RETURNING id",
+        "INSERT INTO missions (spokesperson_id, title, format, status) VALUES (?, ?, ?, ?) RETURNING id",
       )
       .bind(Number(sp?.id), "Pauta 1", "curto", "disponivel")
       .first<{ id: number }>();
 
     await db
       .prepare(
-        "INSERT INTO denuncias (pauta_id, denunciante_id, denunciado_id, texto, status) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO reports (mission_id, reporter_id, reported_id, body, status) VALUES (?, ?, ?, ?, ?)",
       )
       .bind(Number(pauta?.id), Number(sp?.id), Number(ed?.id), "Entrega com atraso", "aberta")
       .run();

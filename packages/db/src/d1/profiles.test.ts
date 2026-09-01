@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1Profiles } from "./profiles.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade D1 de perfis e onboarding", () => {
@@ -20,20 +20,16 @@ describe("paridade D1 de perfis e onboarding", () => {
 
   before(async () => {
     db = (await miniflare.getD1Database("DB")) as unknown as D1DatabaseLike;
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db, schema);
+    await applyAllD1Migrations(db);
     repo = createD1Profiles(db);
   });
 
   beforeEach(async () => {
-    await db.prepare("DELETE FROM ranking_aprovacoes").run();
-    await db.prepare("DELETE FROM ranking_ciclos").run();
-    await db.prepare("DELETE FROM pautas").run();
+    await db.prepare("DELETE FROM ranking_approvals").run();
+    await db.prepare("DELETE FROM ranking_cycles").run();
+    await db.prepare("DELETE FROM missions").run();
     await db.prepare("DELETE FROM portfolio").run();
-    await db.prepare("DELETE FROM conquistas").run();
+    await db.prepare("DELETE FROM achievements").run();
     await db.prepare("DELETE FROM users").run();
   });
 
@@ -41,7 +37,7 @@ describe("paridade D1 de perfis e onboarding", () => {
 
   test("leitura e escrita do perfil editável", async () => {
     const created = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("editor1", "Editor Um", "editor1@teste.local", "editor")
       .first<{ id: number }>();
     const userId = Number(created?.id);
@@ -82,7 +78,7 @@ describe("paridade D1 de perfis e onboarding", () => {
 
   test("onboarding de editor e grade de disponibilidade", async () => {
     const created = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("editor2", "Editor Dois", "editor2@teste.local", "editor")
       .first<{ id: number }>();
     const userId = Number(created?.id);
@@ -128,8 +124,8 @@ describe("paridade D1 de perfis e onboarding", () => {
     const editor = await db
       .prepare(
         `INSERT INTO users (
-           apelido, nome, email, papel, headline, bio, localizacao, entregues, reputacao, streak,
-           nota, softwares, estilos, nicho, nivel_edicao, setup_pc, perfil_completo
+           handle, name, email, role, headline, bio, location, delivered_count, reputation, streak,
+           rating, software_tools, editing_styles, niches, editing_level, pc_setup, profile_completed
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1) RETURNING id`,
       )
       .bind(
@@ -155,13 +151,13 @@ describe("paridade D1 de perfis e onboarding", () => {
 
     await db
       .prepare(
-        "INSERT INTO portfolio (user_id, titulo, formato, porta_voz, tint, link_video) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO portfolio (user_id, title, format, spokesperson, tint, video_link) VALUES (?, ?, ?, ?, ?, ?)",
       )
       .bind(editorId, "Corte 1", "short", "Busnelo", "tint-padrao", "https://youtube.com/watch?v=1")
       .run();
 
     await db
-      .prepare("INSERT INTO conquistas (user_id, nome, icone) VALUES (?, ?, ?)")
+      .prepare("INSERT INTO achievements (user_id, name, icon) VALUES (?, ?, ?)")
       .bind(editorId, "Primeira Entrega", "⚡")
       .run();
 
@@ -182,7 +178,7 @@ describe("paridade D1 de perfis e onboarding", () => {
 
   test("onboarding de porta-voz e consultas de candidato", async () => {
     const spokesperson = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("busnelo", "Busnelo", "busnelo@teste.local", "voz")
       .first<{ id: number }>();
     const userId = Number(spokesperson?.id);

@@ -10,7 +10,7 @@ import type { D1DatabaseLike } from "./types.ts";
  * importa é a chave trancar ao atingir o máximo, não onde a subtração acontece.
  */
 
-const SELECT_ACCOUNT = "id, apelido, nome, email, papel, senha_hash, banido";
+const SELECT_ACCOUNT = "id, handle, name, email, role, password_hash, is_banned";
 
 type UserRow = Parameters<typeof toAccountRow>[0];
 
@@ -28,7 +28,7 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
     async findByHandle(handle) {
       return toAccountRow(
         await db
-          .prepare(`SELECT ${SELECT_ACCOUNT} FROM users WHERE lower(apelido) = lower(?)`)
+          .prepare(`SELECT ${SELECT_ACCOUNT} FROM users WHERE lower(handle) = lower(?)`)
           .bind(handle.trim())
           .first<NonNullable<UserRow>>(),
       );
@@ -49,7 +49,7 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
         await db
           .prepare(
             `SELECT ${SELECT_ACCOUNT} FROM users
-             WHERE lower(apelido) = lower(?) OR lower(email) = lower(?)`,
+             WHERE lower(handle) = lower(?) OR lower(email) = lower(?)`,
           )
           .bind(value, value)
           .first<NonNullable<UserRow>>(),
@@ -71,10 +71,8 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
     },
 
     async createAccount(input) {
-      // O apelido não tem índice único no esquema, então a checagem é explícita;
-      // o e-mail tem, e a violação dele é o que decide o outro motivo.
       const handleTaken = await db
-        .prepare("SELECT id FROM users WHERE lower(apelido) = lower(?)")
+        .prepare("SELECT id FROM users WHERE lower(handle) = lower(?)")
         .bind(input.handle)
         .first<{ id: number }>();
       if (handleTaken) return { ok: false, reason: "handle_taken" };
@@ -83,9 +81,9 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
         const created = await db
           .prepare(
             `INSERT INTO users (
-               apelido, nome, email, senha_hash, google_id, papel, foto_url, indicado_por_id, sessoes_validas_apos
+               handle, name, email, password_hash, google_id, role, avatar_url, referred_by_id, sessions_valid_after
              )
-             VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT id FROM users WHERE codigo_indicacao = ?), '1970-01-01T00:00:00.000Z')
+             VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT id FROM users WHERE referral_code = ?), '1970-01-01T00:00:00.000Z')
              RETURNING id`,
           )
           .bind(
@@ -111,7 +109,7 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
 
     async updatePassword(userId, passwordHash) {
       await db
-        .prepare("UPDATE users SET senha_hash = ?, sessoes_validas_apos = ? WHERE id = ?")
+        .prepare("UPDATE users SET password_hash = ?, sessions_valid_after = ? WHERE id = ?")
         .bind(passwordHash, new Date().toISOString(), userId)
         .run();
     },
@@ -119,10 +117,10 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
     async deleteAccount(userId) {
       await db
         .prepare(
-          `UPDATE pautas
-           SET status = 'disponivel', reservada_por_id = NULL, reservada_ate = NULL,
-               reservada_em = NULL
-           WHERE reservada_por_id = ? AND status IN ('reservada', 'reedicao', 'oferecida')`,
+          `UPDATE missions
+           SET status = 'disponivel', reserved_by_id = NULL, reserved_until = NULL,
+               reserved_at = NULL
+           WHERE reserved_by_id = ? AND status IN ('reservada', 'reedicao', 'oferecida')`,
         )
         .bind(userId)
         .run();
@@ -131,15 +129,15 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
 
     async sessionCutoffMs(userId) {
       const row = await db
-        .prepare("SELECT sessoes_validas_apos FROM users WHERE id = ?")
+        .prepare("SELECT sessions_valid_after FROM users WHERE id = ?")
         .bind(userId)
-        .first<{ sessoes_validas_apos: string }>();
-      return row?.sessoes_validas_apos ? new Date(row.sessoes_validas_apos).getTime() : null;
+        .first<{ sessions_valid_after: string }>();
+      return row?.sessions_valid_after ? new Date(row.sessions_valid_after).getTime() : null;
     },
 
     async countByRole(role) {
       const row = await db
-        .prepare("SELECT count(*) AS total FROM users WHERE papel = ?")
+        .prepare("SELECT count(*) AS total FROM users WHERE role = ?")
         .bind(roleToDb(role))
         .first<{ total: number }>();
       return Number(row?.total ?? 0);
@@ -147,11 +145,11 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
 
     async isRateLocked(rawKey) {
       const row = await db
-        .prepare("SELECT travado_ate FROM tentativas_login WHERE chave = ?")
+        .prepare("SELECT locked_until FROM login_attempts WHERE key = ?")
         .bind(rawKey.trim().toLowerCase())
-        .first<{ travado_ate: string | null }>();
-      if (!row?.travado_ate) return { locked: false, minutes: 0 };
-      const remainingMs = new Date(row.travado_ate).getTime() - Date.now();
+        .first<{ locked_until: string | null }>();
+      if (!row?.locked_until) return { locked: false, minutes: 0 };
+      const remainingMs = new Date(row.locked_until).getTime() - Date.now();
       if (remainingMs <= 0) return { locked: false, minutes: 0 };
       return { locked: true, minutes: Math.max(1, Math.ceil(remainingMs / 60000)) };
     },
@@ -163,24 +161,24 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
 
       const counted = await db
         .prepare(
-          `INSERT INTO tentativas_login (chave, tentativas, primeira_em)
+          `INSERT INTO login_attempts (key, attempts, first_at)
            VALUES (?, 1, ?)
-           ON CONFLICT (chave) DO UPDATE SET
-             tentativas = CASE WHEN tentativas_login.primeira_em < ? THEN 1
-                               ELSE tentativas_login.tentativas + 1 END,
-             primeira_em = CASE WHEN tentativas_login.primeira_em < ? THEN ?
-                                ELSE tentativas_login.primeira_em END
-           RETURNING tentativas`,
+           ON CONFLICT (key) DO UPDATE SET
+             attempts = CASE WHEN login_attempts.first_at < ? THEN 1
+                             ELSE login_attempts.attempts + 1 END,
+             first_at = CASE WHEN login_attempts.first_at < ? THEN ?
+                             ELSE login_attempts.first_at END
+           RETURNING attempts`,
         )
         .bind(key, now.toISOString(), windowStart, windowStart, now.toISOString())
-        .first<{ tentativas: number }>();
+        .first<{ attempts: number }>();
 
-      if (counted && Number(counted.tentativas) >= max) {
+      if (counted && Number(counted.attempts) >= max) {
         await db
           .prepare(
-            `UPDATE tentativas_login
-             SET travado_ate = ?, tentativas = 0, primeira_em = ?
-             WHERE chave = ?`,
+            `UPDATE login_attempts
+             SET locked_until = ?, attempts = 0, first_at = ?
+             WHERE key = ?`,
           )
           .bind(
             new Date(now.getTime() + lockMinutes * 60_000).toISOString(),
@@ -195,7 +193,7 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
 
     async clearAttempts(rawKey) {
       await db
-        .prepare("DELETE FROM tentativas_login WHERE chave = ?")
+        .prepare("DELETE FROM login_attempts WHERE key = ?")
         .bind(rawKey.trim().toLowerCase())
         .run();
     },

@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1MissionApproval } from "./mission-approval.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade D1 da aprovação de missão", () => {
@@ -25,26 +25,22 @@ describe("paridade D1 da aprovação de missão", () => {
 
   before(async () => {
     db = await miniflare.getD1Database("DB");
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db as unknown as D1DatabaseLike, schema);
+    await applyAllD1Migrations(db as unknown as D1DatabaseLike);
     approval = createD1MissionApproval(db as unknown as D1DatabaseLike);
   });
 
   beforeEach(async () => {
     await db.batch([
-      db.prepare("DELETE FROM auditoria_admin"),
-      db.prepare("DELETE FROM indicacoes_recompensas"),
-      db.prepare("DELETE FROM ranking_aprovacoes"),
-      db.prepare("DELETE FROM ranking_ciclos"),
-      db.prepare("DELETE FROM avaliacoes"),
+      db.prepare("DELETE FROM admin_audit"),
+      db.prepare("DELETE FROM referral_rewards"),
+      db.prepare("DELETE FROM ranking_approvals"),
+      db.prepare("DELETE FROM ranking_cycles"),
+      db.prepare("DELETE FROM reviews"),
       db.prepare("DELETE FROM mission_approvals"),
-      db.prepare("DELETE FROM denuncias"),
-      db.prepare("DELETE FROM mensagens"),
-      db.prepare("DELETE FROM ofertas"),
-      db.prepare("DELETE FROM pautas"),
+      db.prepare("DELETE FROM reports"),
+      db.prepare("DELETE FROM messages"),
+      db.prepare("DELETE FROM offers"),
+      db.prepare("DELETE FROM missions"),
       db.prepare("DELETE FROM users"),
     ]);
     const ids: number[] = [];
@@ -55,7 +51,7 @@ describe("paridade D1 da aprovação de missão", () => {
       ["admin.aprova.d1", "admin"],
     ]) {
       const user = await db
-        .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+        .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
         .bind(handle, handle, `${handle}@teste.local`, role)
         .first<{ id: number }>();
       ids.push(user?.id as number);
@@ -63,13 +59,13 @@ describe("paridade D1 da aprovação de missão", () => {
     [spokespersonId, otherSpokespersonId, editorId, adminId] = ids;
     const mission = await db
       .prepare(
-        "INSERT INTO pautas (porta_voz_id, titulo, formato, status, reservada_por_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
+        "INSERT INTO missions (spokesperson_id, title, format, status, reserved_by_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
       )
       .bind(spokespersonId, "Missão aprovada no D1", "short", "em_revisao", editorId)
       .first<{ id: number }>();
     missionId = mission?.id as number;
     await db
-      .prepare("INSERT INTO ranking_ciclos (nome, inicia_em, termina_em) VALUES (?, ?, ?)")
+      .prepare("INSERT INTO ranking_cycles (name, starts_at, ends_at) VALUES (?, ?, ?)")
       .bind("Ciclo D1", "2026-01-01T00:00:00.000Z", "2027-01-01T00:00:00.000Z")
       .run();
   });
@@ -94,20 +90,20 @@ describe("paridade D1 da aprovação de missão", () => {
     assert.equal(results.filter((result) => result.ok && result.scored).length, 1);
 
     const editor = await db
-      .prepare("SELECT entregues, reputacao, streak, nota FROM users WHERE id = ?")
+      .prepare("SELECT delivered_count, reputation, streak, rating FROM users WHERE id = ?")
       .bind(editorId)
       .first();
     const counts = await db
       .prepare(
         `SELECT
-           (SELECT count(*) FROM avaliacoes WHERE pauta_id = ?) AS avaliacoes,
-           (SELECT count(*) FROM ranking_aprovacoes WHERE pauta_id = ?) AS ranking,
-           (SELECT count(*) FROM auditoria_admin WHERE entidade_id = ?) AS auditoria`,
+           (SELECT count(*) FROM reviews WHERE mission_id = ?) AS reviews,
+           (SELECT count(*) FROM ranking_approvals WHERE mission_id = ?) AS ranking,
+           (SELECT count(*) FROM admin_audit WHERE entity_id = ?) AS audit`,
       )
       .bind(missionId, missionId, String(missionId))
       .first();
-    assert.deepEqual(editor, { entregues: 1, reputacao: 25, streak: 1, nota: 5 });
-    assert.deepEqual(counts, { avaliacoes: 1, ranking: 1, auditoria: 1 });
+    assert.deepEqual(editor, { delivered_count: 1, reputation: 25, streak: 1, rating: 5 });
+    assert.deepEqual(counts, { reviews: 1, ranking: 1, audit: 1 });
   });
 
   test("porta-voz precisa ser proprietária e finaliza a missão", async () => {
@@ -125,10 +121,10 @@ describe("paridade D1 da aprovação de missão", () => {
     });
     assert.equal(result.ok, true);
     const mission = await db
-      .prepare("SELECT status, pontuada FROM pautas WHERE id = ?")
+      .prepare("SELECT status, is_scored FROM missions WHERE id = ?")
       .bind(missionId)
       .first();
-    assert.deepEqual(mission, { status: "finalizada", pontuada: 1 });
+    assert.deepEqual(mission, { status: "finalizada", is_scored: 1 });
   });
 
   test("nota inválida não grava o evento idempotente", async () => {

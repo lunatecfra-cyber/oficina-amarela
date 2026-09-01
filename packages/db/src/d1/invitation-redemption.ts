@@ -7,16 +7,19 @@ import type { D1DatabaseLike } from "./types.ts";
 
 type InvitationState = {
   email: string;
-  expira_em: string;
-  usado_em: string | null;
-  revogado_em: string | null;
+  expires_at?: string;
+  used_at?: string | null;
+  revoked_at?: string | null;
+  expira_em?: string;
+  usado_em?: string | null;
+  revogado_em?: string | null;
 };
 
 export function createD1InvitationRedemption(db: D1DatabaseLike): InvitationRedemptionRepository {
   async function failure(input: RedeemInvitationInput): Promise<InvitationRedemptionResult> {
     const invitation = await db
       .prepare(
-        "SELECT email, expira_em, usado_em, revogado_em FROM convites_porta_voz WHERE token_hash = ?",
+        "SELECT email, expires_at, used_at, revoked_at FROM spokesperson_invitations WHERE token_hash = ?",
       )
       .bind(input.tokenHash)
       .first<InvitationState>();
@@ -24,9 +27,12 @@ export function createD1InvitationRedemption(db: D1DatabaseLike): InvitationRede
     if (invitation.email.toLowerCase() !== input.email.trim().toLowerCase()) {
       return { ok: false, reason: "email_mismatch" };
     }
-    if (invitation.revogado_em) return { ok: false, reason: "invitation_revoked" };
-    if (invitation.usado_em) return { ok: false, reason: "invitation_used" };
-    if (new Date(invitation.expira_em).getTime() <= Date.now()) {
+    const revokedAt = invitation.revoked_at ?? invitation.revogado_em;
+    const usedAt = invitation.used_at ?? invitation.usado_em;
+    const expiresAt = invitation.expires_at ?? invitation.expira_em ?? "";
+    if (revokedAt) return { ok: false, reason: "invitation_revoked" };
+    if (usedAt) return { ok: false, reason: "invitation_used" };
+    if (new Date(expiresAt).getTime() <= Date.now()) {
       return { ok: false, reason: "invitation_expired" };
     }
     return { ok: false, reason: "account_conflict" };
@@ -39,13 +45,13 @@ export function createD1InvitationRedemption(db: D1DatabaseLike): InvitationRede
         const inserted = await db
           .prepare(
             `INSERT INTO invitation_redemptions (
-               token_hash, email, apelido, nome, senha_hash, google_id,
-               foto_url, codigo_indicacao, resgatado_em
+               token_hash, email, handle, name, password_hash, google_id,
+               avatar_url, referral_code, redeemed_at
              )
              SELECT token_hash, ?, ?, ?, ?, ?, ?, ?, ?
-             FROM convites_porta_voz
+             FROM spokesperson_invitations
              WHERE token_hash = ? AND lower(email) = lower(?)
-               AND usado_em IS NULL AND revogado_em IS NULL AND expira_em > ?
+               AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?
              ON CONFLICT (token_hash) DO NOTHING
              RETURNING token_hash`,
           )

@@ -11,9 +11,9 @@ import type { D1DatabaseLike } from "./types.ts";
 export function createD1SessionRevocationSource(db: D1DatabaseLike): SessionRevocationSource {
   return async (userId) => {
     const row = await db
-      .prepare("SELECT sessoes_validas_apos FROM users WHERE id = ?")
+      .prepare("SELECT sessions_valid_after FROM users WHERE id = ?")
       .bind(userId)
-      .first<{ sessoes_validas_apos: string }>();
-    return row ? Math.floor(new Date(row.sessoes_validas_apos).getTime() / 1000) : null;
+      .first<{ sessions_valid_after: string }>();
+    return row ? Math.floor(new Date(row.sessions_valid_after).getTime() / 1000) : null;
   };
 }

@@ -19,6 +19,12 @@ export type RankingAdminResult = { ok: true } | { ok: false; reason: RankingAdmi
 
 export type AuditEvent = {
   id: number;
+  action?: string;
+  entity?: string;
+  entityId?: string | null;
+  details?: unknown;
+  createdAt?: string;
+  actorName?: string | null;
   acao: string;
   entidade: string;
   entidade_id: string | null;

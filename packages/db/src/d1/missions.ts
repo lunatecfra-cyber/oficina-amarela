@@ -9,17 +9,17 @@ import {
 import type { D1DatabaseLike } from "./types.ts";
 
 const BASE_QUERY = `
-  SELECT p.id, u.nome AS porta_voz_nome, u.apelido AS porta_voz_apelido, p.titulo, p.formato,
-         p.brief_tom, p.brief_cor, p.brief_fonte, p.brief_refs,
-         p.drive_link, p.youtube_link, p.status, p.reservada_ate, p.reservada_em, p.entrega_link,
-         p.notas_inspetor, p.criada_em,
-         p.extras, p.motivo, p.prazo_desejado, p.reedicao_pedida_por,
-         p.drive_link AS video_bruto_url, p.video_entrega_url,
-         p.marca_dagua, p.cnpj_campanha, p.candidate_number, p.titulo_eleitor,
-         e.apelido AS reservada_por_apelido
-  FROM pautas p
-  JOIN users u ON u.id = p.porta_voz_id
-  LEFT JOIN users e ON e.id = p.reservada_por_id
+  SELECT p.id, u.name AS spokesperson_name, u.handle AS spokesperson_handle, p.title, p.format,
+         p.brief_tone, p.brief_color, p.brief_font, p.brief_refs,
+         p.drive_link, p.youtube_link, p.status, p.reserved_until, p.reserved_at, p.delivery_link,
+         p.inspector_notes, p.created_at,
+         p.extras, p.motivation, p.desired_deadline, p.revision_requested_by,
+         p.drive_link AS raw_video_url, p.delivery_video_url,
+         p.watermark, p.campaign_tax_id, p.candidate_number, p.voter_id,
+         e.handle AS reserved_by_handle
+  FROM missions p
+  JOIN users u ON u.id = p.spokesperson_id
+  LEFT JOIN users e ON e.id = p.reserved_by_id
 `;
 
 export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
@@ -86,11 +86,11 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
 
       const row = await db
         .prepare(
-          `INSERT INTO pautas (
-             porta_voz_id, titulo, formato, drive_link, youtube_link,
-             brief_tom, brief_cor, brief_fonte, brief_refs,
-             extras, motivo, prazo_desejado,
-             marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
+          `INSERT INTO missions (
+             spokesperson_id, title, format, drive_link, youtube_link,
+             brief_tone, brief_color, brief_font, brief_refs,
+             extras, motivation, desired_deadline,
+             watermark, campaign_tax_id, candidate_number, voter_id
            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING id`,
         )
@@ -124,7 +124,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
 
     async getSpokespersonMissions(spokespersonId: number): Promise<Mission[]> {
       const result = await db
-        .prepare(`${BASE_QUERY} WHERE p.porta_voz_id = ? ORDER BY p.criada_em DESC`)
+        .prepare(`${BASE_QUERY} WHERE p.spokesperson_id = ? ORDER BY p.created_at DESC`)
         .bind(spokespersonId)
         .all<MissionRow>();
       return (result.results ?? []).map(rowToMission);
@@ -132,7 +132,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
 
     async getSpokespersonMissionById(id: number, spokespersonId: number): Promise<Mission | null> {
       const row = await db
-        .prepare(`${BASE_QUERY} WHERE p.id = ? AND p.porta_voz_id = ?`)
+        .prepare(`${BASE_QUERY} WHERE p.id = ? AND p.spokesperson_id = ?`)
         .bind(id, spokespersonId)
         .first<MissionRow>();
       return row ? rowToMission(row) : null;
@@ -141,7 +141,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
     async getAvailableMissions(): Promise<Mission[]> {
       const result = await db
         .prepare(
-          `${BASE_QUERY} WHERE p.status = 'disponivel' ORDER BY p.prioridade DESC, p.criada_em ASC`,
+          `${BASE_QUERY} WHERE p.status = 'disponivel' ORDER BY p.priority DESC, p.created_at ASC`,
         )
         .all<MissionRow>();
       return (result.results ?? []).map(rowToMission);
@@ -149,7 +149,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
 
     async getMissionsInReview(): Promise<Mission[]> {
       const result = await db
-        .prepare(`${BASE_QUERY} WHERE p.status = 'em_revisao' ORDER BY p.criada_em ASC`)
+        .prepare(`${BASE_QUERY} WHERE p.status = 'em_revisao' ORDER BY p.created_at ASC`)
         .all<MissionRow>();
       return (result.results ?? []).map(rowToMission);
     },
@@ -158,9 +158,9 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
       const row = await db
         .prepare(
           `${BASE_QUERY}
-           WHERE p.reservada_por_id = ?
+           WHERE p.reserved_by_id = ?
              AND p.status IN ('reservada', 'em_revisao', 'reedicao', 'aprovada')
-           ORDER BY p.reservada_em DESC
+           ORDER BY p.reserved_at DESC
            LIMIT 1`,
         )
         .bind(editorId)
@@ -171,7 +171,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
     async getApprovedDeliveries(editorId: number): Promise<Mission[]> {
       const result = await db
         .prepare(
-          `${BASE_QUERY} WHERE p.reservada_por_id = ? AND p.status IN ('aprovada', 'finalizada') ORDER BY p.criada_em DESC`,
+          `${BASE_QUERY} WHERE p.reserved_by_id = ? AND p.status IN ('aprovada', 'finalizada') ORDER BY p.created_at DESC`,
         )
         .bind(editorId)
         .all<MissionRow>();
@@ -182,8 +182,8 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
       const result = await db
         .prepare(
           `${BASE_QUERY}
-           WHERE lower(u.apelido) = lower(?) AND u.papel IN ('voz', 'spokesperson') AND (u.perfil_completo = 1 OR u.perfil_completo = true)
-           ORDER BY p.criada_em DESC`,
+           WHERE lower(u.handle) = lower(?) AND u.role IN ('voz', 'spokesperson') AND (u.profile_completed = 1 OR u.profile_completed = true)
+           ORDER BY p.created_at DESC`,
         )
         .bind(handle)
         .all<MissionRow>();
@@ -192,21 +192,21 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
 
     async getQueuePosition(missionId: number): Promise<number> {
       const mission = await db
-        .prepare("SELECT criada_em, status FROM pautas WHERE id = ?")
+        .prepare("SELECT created_at, status FROM missions WHERE id = ?")
         .bind(missionId)
-        .first<{ criada_em: string; status: string }>();
+        .first<{ created_at: string; status: string }>();
 
       if (mission?.status !== "disponivel") return 0;
 
       const countRow = await db
         .prepare(
           `SELECT COUNT(*) AS total
-           FROM pautas
+           FROM missions
            WHERE status = 'disponivel'
-             AND criada_em <= ?
+             AND created_at <= ?
              AND id <> ?`,
         )
-        .bind(mission.criada_em, missionId)
+        .bind(mission.created_at, missionId)
         .first<{ total: number }>();
 
       return Number(countRow?.total ?? 0) + 1;
@@ -214,18 +214,18 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
 
     async getTotalInQueue(): Promise<number> {
       const row = await db
-        .prepare("SELECT COUNT(*) AS total FROM pautas WHERE status = 'disponivel'")
+        .prepare("SELECT COUNT(*) AS total FROM missions WHERE status = 'disponivel'")
         .first<{ total: number }>();
       return Number(row?.total ?? 0);
     },
 
     async deleteMission(missionId: number) {
       await db
-        .prepare("UPDATE pautas SET reservada_por_id = NULL WHERE id = ?")
+        .prepare("UPDATE missions SET reserved_by_id = NULL WHERE id = ?")
         .bind(missionId)
         .run();
       const row = await db
-        .prepare("DELETE FROM pautas WHERE id = ? RETURNING id")
+        .prepare("DELETE FROM missions WHERE id = ? RETURNING id")
         .bind(missionId)
         .first<{ id: number }>();
       if (!row)
@@ -234,7 +234,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
     },
 
     async listAllMissions(): Promise<Mission[]> {
-      const result = await db.prepare(`${BASE_QUERY} ORDER BY p.criada_em DESC`).all<MissionRow>();
+      const result = await db.prepare(`${BASE_QUERY} ORDER BY p.created_at DESC`).all<MissionRow>();
       return (result.results ?? []).map(rowToMission);
     },
   };

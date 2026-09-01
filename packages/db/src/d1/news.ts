@@ -8,36 +8,49 @@ export function createD1News(db: D1DatabaseLike): NewsRepository {
       try {
         const result = await db
           .prepare(
-            `SELECT n.id, n.titulo, n.texto, n.publicada, n.criada_em, u.apelido AS autor
-             FROM novidades n
-             LEFT JOIN users u ON u.id = n.autor_id
-             WHERE n.publicada = 1 OR n.publicada = true
-             ORDER BY n.criada_em DESC
+            `SELECT n.id, n.title, n.body, n.is_published, n.created_at, u.handle AS author
+             FROM news n
+             LEFT JOIN users u ON u.id = n.author_id
+             WHERE n.is_published = 1 OR n.is_published = true
+             ORDER BY n.created_at DESC
              LIMIT ?`,
           )
           .bind(limit)
           .all<{
             id: number;
-            titulo: string;
-            texto: string;
-            publicada: number | boolean;
-            criada_em: string;
-            autor: string | null;
+            title?: string;
+            body?: string;
+            is_published?: number | boolean;
+            created_at?: string;
+            author?: string | null;
+            // legacy
+            titulo?: string;
+            texto?: string;
+            publicada?: number | boolean;
+            criada_em?: string;
+            autor?: string | null;
           }>();
 
-        return (result.results ?? []).map((l) => ({
-          id: Number(l.id),
-          title: String(l.titulo),
-          text: String(l.texto),
-          isPublished: Boolean(l.publicada),
-          published: Boolean(l.publicada),
-          createdAt: new Date(l.criada_em).toISOString(),
-          author: l.autor ? String(l.autor) : null,
-          titulo: String(l.titulo),
-          texto: String(l.texto),
-          publicada: Boolean(l.publicada),
-          criadaEm: new Date(l.criada_em).toISOString(),
-        }));
+        return (result.results ?? []).map((l) => {
+          const title = String(l.title ?? l.titulo ?? "");
+          const body = String(l.body ?? l.texto ?? "");
+          const isPublished = Boolean(l.is_published ?? l.publicada);
+          const createdAt = new Date(l.created_at ?? l.criada_em ?? Date.now()).toISOString();
+          const author = (l.author ?? l.autor) ? String(l.author ?? l.autor) : null;
+          return {
+            id: Number(l.id),
+            title,
+            text: body,
+            isPublished,
+            published: isPublished,
+            createdAt,
+            author,
+            titulo: title,
+            texto: body,
+            publicada: isPublished,
+            criadaEm: createdAt,
+          };
+        });
       } catch {
         return [];
       }
@@ -47,33 +60,45 @@ export function createD1News(db: D1DatabaseLike): NewsRepository {
       try {
         const result = await db
           .prepare(
-            `SELECT n.id, n.titulo, n.texto, n.publicada, n.criada_em, u.apelido AS autor
-             FROM novidades n
-             LEFT JOIN users u ON u.id = n.autor_id
-             ORDER BY n.criada_em DESC`,
+            `SELECT n.id, n.title, n.body, n.is_published, n.created_at, u.handle AS author
+             FROM news n
+             LEFT JOIN users u ON u.id = n.author_id
+             ORDER BY n.created_at DESC`,
           )
           .all<{
             id: number;
-            titulo: string;
-            texto: string;
-            publicada: number | boolean;
-            criada_em: string;
-            autor: string | null;
+            title?: string;
+            body?: string;
+            is_published?: number | boolean;
+            created_at?: string;
+            author?: string | null;
+            titulo?: string;
+            texto?: string;
+            publicada?: number | boolean;
+            criada_em?: string;
+            autor?: string | null;
           }>();
 
-        return (result.results ?? []).map((l) => ({
-          id: Number(l.id),
-          title: String(l.titulo),
-          text: String(l.texto),
-          isPublished: Boolean(l.publicada),
-          published: Boolean(l.publicada),
-          createdAt: new Date(l.criada_em).toISOString(),
-          author: l.autor ? String(l.autor) : null,
-          titulo: String(l.titulo),
-          texto: String(l.texto),
-          publicada: Boolean(l.publicada),
-          criadaEm: new Date(l.criada_em).toISOString(),
-        }));
+        return (result.results ?? []).map((l) => {
+          const title = String(l.title ?? l.titulo ?? "");
+          const body = String(l.body ?? l.texto ?? "");
+          const isPublished = Boolean(l.is_published ?? l.publicada);
+          const createdAt = new Date(l.created_at ?? l.criada_em ?? Date.now()).toISOString();
+          const author = (l.author ?? l.autor) ? String(l.author ?? l.autor) : null;
+          return {
+            id: Number(l.id),
+            title,
+            text: body,
+            isPublished,
+            published: isPublished,
+            createdAt,
+            author,
+            titulo: title,
+            texto: body,
+            publicada: isPublished,
+            criadaEm: createdAt,
+          };
+        });
       } catch {
         return [];
       }
@@ -92,7 +117,7 @@ export function createD1News(db: D1DatabaseLike): NewsRepository {
 
       const row = await db
         .prepare(
-          `INSERT INTO novidades (titulo, texto, autor_id, publicada)
+          `INSERT INTO news (title, body, author_id, is_published)
            VALUES (?, ?, ?, ?)
            RETURNING id`,
         )
@@ -104,13 +129,14 @@ export function createD1News(db: D1DatabaseLike): NewsRepository {
 
     async toggleNewsPublication(id: number) {
       const current = await db
-        .prepare("SELECT publicada FROM novidades WHERE id = ?")
+        .prepare("SELECT is_published FROM news WHERE id = ?")
         .bind(id)
-        .first<{ publicada: number | boolean }>();
+        .first<{ is_published: number | boolean }>();
       if (!current)
         return { ok: false, error: "Novidade não encontrada.", erro: "Novidade não encontrada." };
-      const nextVal = current.publicada ? 0 : 1;
-      await db.prepare("UPDATE novidades SET publicada = ? WHERE id = ?").bind(nextVal, id).run();
+      const currentVal = current.is_published;
+      const nextVal = currentVal ? 0 : 1;
+      await db.prepare("UPDATE news SET is_published = ? WHERE id = ?").bind(nextVal, id).run();
       return {
         ok: true,
         isPublished: Boolean(nextVal),
@@ -121,7 +147,7 @@ export function createD1News(db: D1DatabaseLike): NewsRepository {
 
     async deleteNews(id: number) {
       const row = await db
-        .prepare("DELETE FROM novidades WHERE id = ? RETURNING id")
+        .prepare("DELETE FROM news WHERE id = ? RETURNING id")
         .bind(id)
         .first<{ id: number }>();
       if (!row)

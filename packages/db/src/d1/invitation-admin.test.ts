@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1InvitationAdmin } from "./invitation-admin.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade D1 da administração de convites", () => {
@@ -21,23 +21,19 @@ describe("paridade D1 da administração de convites", () => {
 
   before(async () => {
     db = await miniflare.getD1Database("DB");
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db as unknown as D1DatabaseLike, schema);
+    await applyAllD1Migrations(db as unknown as D1DatabaseLike);
     admin = createD1InvitationAdmin(db as unknown as D1DatabaseLike);
   });
 
   beforeEach(async () => {
     await db.batch([
       db.prepare("DELETE FROM invitation_redemptions"),
-      db.prepare("DELETE FROM convites_porta_voz"),
-      db.prepare("DELETE FROM auditoria_admin"),
+      db.prepare("DELETE FROM spokesperson_invitations"),
+      db.prepare("DELETE FROM admin_audit"),
       db.prepare("DELETE FROM users"),
     ]);
     const inspector = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("inspetor.d1", "Inspetor D1", "inspetor.d1@teste.local", "admin")
       .first<{ id: number }>();
     adminId = inspector?.id as number;
@@ -54,20 +50,20 @@ describe("paridade D1 da administração de convites", () => {
     if (!result.ok) return;
 
     const invitation = await db
-      .prepare("SELECT email, token_hash, criado_por, expira_em FROM convites_porta_voz")
-      .first<{ email: string; token_hash: string; criado_por: number; expira_em: string }>();
+      .prepare("SELECT email, token_hash, created_by, expires_at FROM spokesperson_invitations")
+      .first<{ email: string; token_hash: string; created_by: number; expires_at: string }>();
     assert.equal(invitation?.email, "voz.d1@teste.local");
     assert.equal(invitation?.token_hash, "a".repeat(64));
-    assert.equal(invitation?.criado_por, adminId);
-    assert.ok(new Date(invitation?.expira_em as string).getTime() > Date.now());
+    assert.equal(invitation?.created_by, adminId);
+    assert.ok(new Date(invitation?.expires_at as string).getTime() > Date.now());
 
     const audit = await db
-      .prepare("SELECT ator_id, acao, entidade FROM auditoria_admin")
-      .first<{ ator_id: number; acao: string; entidade: string }>();
+      .prepare("SELECT actor_id, action, entity FROM admin_audit")
+      .first<{ actor_id: number; action: string; entity: string }>();
     assert.deepEqual(audit, {
-      ator_id: adminId,
-      acao: "convite_criado",
-      entidade: "convite_porta_voz",
+      actor_id: adminId,
+      action: "convite_criado",
+      entity: "convite_porta_voz",
     });
   });
 
@@ -78,7 +74,7 @@ describe("paridade D1 da administração de convites", () => {
 
     const open = await db
       .prepare(
-        "SELECT count(*) AS total FROM convites_porta_voz WHERE usado_em IS NULL AND revogado_em IS NULL",
+        "SELECT count(*) AS total FROM spokesperson_invitations WHERE used_at IS NULL AND revoked_at IS NULL",
       )
       .first<{ total: number }>();
     assert.equal(open?.total, 1);
@@ -94,10 +90,11 @@ describe("paridade D1 da administração de convites", () => {
   test("listar classifica expirado sem depender do relógio do banco", async () => {
     await db
       .prepare(
-        "INSERT INTO convites_porta_voz (email, token_hash, criado_por, expira_em) VALUES (?, ?, ?, ?)",
+        "INSERT INTO spokesperson_invitations (email, token_hash, created_by, expires_at) VALUES (?, ?, ?, ?)",
       )
       .bind("vencido.d1@teste.local", "d".repeat(64), adminId, "2000-01-01T00:00:00.000Z")
       .run();
+
     const [invitation] = await admin.listInvitations();
     assert.equal(invitation.status, "expirado");
     assert.equal(invitation.usedByName, null);
@@ -115,7 +112,7 @@ describe("paridade D1 da administração de convites", () => {
     });
 
     const audits = await db
-      .prepare("SELECT count(*) AS total FROM auditoria_admin WHERE acao = 'convite_revogado'")
+      .prepare("SELECT count(*) AS total FROM admin_audit WHERE action = 'convite_revogado'")
       .first<{ total: number }>();
     assert.equal(audits?.total, 1);
   });
@@ -125,7 +122,7 @@ describe("paridade D1 da administração de convites", () => {
     assert.equal(issued.ok, true);
     if (!issued.ok) return;
     await db
-      .prepare("UPDATE convites_porta_voz SET usado_em = ?, usado_por = ? WHERE id = ?")
+      .prepare("UPDATE spokesperson_invitations SET used_at = ?, used_by = ? WHERE id = ?")
       .bind(new Date().toISOString(), adminId, issued.id)
       .run();
 

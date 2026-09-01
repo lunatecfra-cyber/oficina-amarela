@@ -13,11 +13,15 @@ function errorIncludes(error: unknown, fragment: string): boolean {
 }
 
 function isActiveMissionConflict(error: unknown): boolean {
-  return errorIncludes(error, "UNIQUE constraint failed: pautas.reservada_por_id");
+  return (
+    errorIncludes(error, "UNIQUE constraint failed: missions.reserved_by_id") ||
+    errorIncludes(error, "UNIQUE constraint failed: pautas.reservada_por_id")
+  );
 }
 
 function isOfferConflict(error: unknown): boolean {
   return (
+    errorIncludes(error, "UNIQUE constraint failed: offers.") ||
     errorIncludes(error, "UNIQUE constraint failed: ofertas.") ||
     errorIncludes(error, "mission_unavailable")
   );
@@ -53,32 +57,32 @@ async function nextEligibleEditor(
     .prepare(
       `SELECT u.id
        FROM users u
-       WHERE u.papel = 'editor'
-         AND u.ultimo_visto_em > ?
-         AND (u.travado_reservas_ate IS NULL OR u.travado_reservas_ate <= ?)
+       WHERE u.role = 'editor'
+         AND u.last_seen_at > ?
+         AND (u.reservations_locked_until IS NULL OR u.reservations_locked_until <= ?)
          AND (
-           u.disponibilidade IS NULL
-           OR json_extract(u.disponibilidade, ?) IS NULL
-           OR json_extract(u.disponibilidade, ?) = 1
+           u.availability IS NULL
+           OR json_extract(u.availability, ?) IS NULL
+           OR json_extract(u.availability, ?) = 1
          )
          AND NOT EXISTS (
-           SELECT 1 FROM pautas p
-           WHERE p.reservada_por_id = u.id
+           SELECT 1 FROM missions p
+           WHERE p.reserved_by_id = u.id
              AND p.status IN ('reservada', 'em_revisao', 'reedicao')
          )
          AND NOT EXISTS (
-           SELECT 1 FROM ofertas o WHERE o.editor_id = u.id AND o.status = 'pendente'
+           SELECT 1 FROM offers o WHERE o.editor_id = u.id AND o.status = 'pendente'
          )
          AND NOT EXISTS (
-           SELECT 1 FROM ofertas o WHERE o.editor_id = u.id AND o.pauta_id = ?
+           SELECT 1 FROM offers o WHERE o.editor_id = u.id AND o.mission_id = ?
          )
        ORDER BY
-         (SELECT COUNT(*) FROM pautas h
-          WHERE h.reservada_por_id = u.id
-            AND h.porta_voz_id = ?
+         (SELECT COUNT(*) FROM missions h
+          WHERE h.reserved_by_id = u.id
+            AND h.spokesperson_id = ?
             AND h.status IN ('aprovada', 'finalizada')) DESC,
-         u.entregues DESC,
-         u.ultimo_visto_em ASC
+         u.delivered_count DESC,
+         u.last_seen_at ASC
        LIMIT 1`,
     )
     .bind(presenceCutoff, nowIso, availabilityPath, availabilityPath, missionId, spokespersonId)
@@ -94,8 +98,8 @@ export function createD1MissionQueue(
     async reserveMission(missionId, editorId) {
       const active = await db
         .prepare(
-          `SELECT id FROM pautas
-           WHERE reservada_por_id = ? AND status IN ('reservada', 'em_revisao', 'reedicao')`,
+          `SELECT id FROM missions
+           WHERE reserved_by_id = ? AND status IN ('reservada', 'em_revisao', 'reedicao')`,
         )
         .bind(editorId)
         .first();
@@ -104,8 +108,8 @@ export function createD1MissionQueue(
       try {
         const result = await db
           .prepare(
-            `UPDATE pautas
-             SET status = 'reservada', reservada_por_id = ?, reservada_em = ?
+            `UPDATE missions
+             SET status = 'reservada', reserved_by_id = ?, reserved_at = ?
              WHERE id = ? AND status = 'disponivel'`,
           )
           .bind(editorId, clock().toISOString(), missionId)
@@ -120,10 +124,10 @@ export function createD1MissionQueue(
     async abandonMission(missionId, editorId) {
       const result = await db
         .prepare(
-          `UPDATE pautas
-           SET status = 'disponivel', reservada_por_id = NULL,
-               reservada_ate = NULL, reservada_em = NULL
-           WHERE id = ? AND reservada_por_id = ? AND status IN ('reservada', 'reedicao')`,
+          `UPDATE missions
+           SET status = 'disponivel', reserved_by_id = NULL,
+               reserved_until = NULL, reserved_at = NULL
+           WHERE id = ? AND reserved_by_id = ? AND status IN ('reservada', 'reedicao')`,
         )
         .bind(missionId, editorId)
         .run();
@@ -135,10 +139,10 @@ export function createD1MissionQueue(
         const nowIso = clock().toISOString();
         const result = await db
           .prepare(
-            `UPDATE ofertas
-             SET status = 'aceita', respondida_em = ?
-             WHERE pauta_id = ? AND editor_id = ?
-               AND status = 'pendente' AND expira_em > ?`,
+            `UPDATE offers
+             SET status = 'aceita', answered_at = ?
+             WHERE mission_id = ? AND editor_id = ?
+               AND status = 'pendente' AND expires_at > ?`,
           )
           .bind(nowIso, missionId, editorId, nowIso)
           .run();
@@ -153,9 +157,9 @@ export function createD1MissionQueue(
     async rejectOffer(missionId, editorId) {
       const result = await db
         .prepare(
-          `UPDATE ofertas
-           SET status = 'rejeitada', respondida_em = ?
-           WHERE pauta_id = ? AND editor_id = ? AND status = 'pendente'`,
+          `UPDATE offers
+           SET status = 'rejeitada', answered_at = ?
+           WHERE mission_id = ? AND editor_id = ? AND status = 'pendente'`,
         )
         .bind(clock().toISOString(), missionId, editorId)
         .run();
@@ -165,17 +169,17 @@ export function createD1MissionQueue(
     async dispatchOffers() {
       const { results: missions } = await db
         .prepare(
-          `SELECT id, porta_voz_id FROM pautas
+          `SELECT id, spokesperson_id FROM missions
            WHERE status = 'disponivel'
-           ORDER BY prioridade DESC, criada_em ASC
+           ORDER BY priority DESC, created_at ASC
            LIMIT 20`,
         )
-        .all<{ id: number; porta_voz_id: number }>();
+        .all<{ id: number; spokesperson_id: number }>();
 
       let dispatched = 0;
       for (const mission of missions) {
         const now = clock();
-        const editorId = await nextEligibleEditor(db, mission.id, mission.porta_voz_id, now);
+        const editorId = await nextEligibleEditor(db, mission.id, mission.spokesperson_id, now);
         if (!editorId) continue;
 
         try {
@@ -183,11 +187,11 @@ export function createD1MissionQueue(
           const expiresAt = new Date(now.getTime() + OFFER_MINUTES * 60_000).toISOString();
           const result = await db
             .prepare(
-              `INSERT INTO ofertas
-                 (pauta_id, editor_id, status, oferecida_em, expira_em, ordem)
+              `INSERT INTO offers
+                 (mission_id, editor_id, status, offered_at, expires_at, position)
                VALUES
                  (?, ?, 'pendente', ?, ?,
-                  (SELECT COALESCE(MAX(ordem), 0) + 1 FROM ofertas WHERE pauta_id = ?))`,
+                  (SELECT COALESCE(MAX(position), 0) + 1 FROM offers WHERE mission_id = ?))`,
             )
             .bind(mission.id, editorId, offeredAt, expiresAt, mission.id)
             .run();
@@ -203,39 +207,39 @@ export function createD1MissionQueue(
       const now = clock();
       const { results } = await db
         .prepare(
-          `UPDATE ofertas
-           SET status = 'expirada', respondida_em = ?
+          `UPDATE offers
+           SET status = 'expirada', answered_at = ?
            WHERE status = 'pendente'
              AND (
-               oferecida_em <= ?
+               offered_at <= ?
                OR EXISTS (
                  SELECT 1 FROM users u
-                 WHERE u.id = ofertas.editor_id AND u.ultimo_visto_em <= ?
+                 WHERE u.id = offers.editor_id AND u.last_seen_at <= ?
                )
              )
-           RETURNING pauta_id`,
+           RETURNING mission_id`,
         )
         .bind(
           now.toISOString(),
           new Date(now.getTime() - OFFER_MINUTES * 60_000).toISOString(),
           new Date(now.getTime() - PRESENCE_MINUTES * 60_000).toISOString(),
         )
-        .all<{ pauta_id: number }>();
+        .all<{ mission_id: number }>();
       return results.length;
     },
 
     async pendingOfferFor(editorId) {
       const row = await db
         .prepare(
-          `SELECT o.expira_em, o.ordem,
-                  p.id, p.titulo, p.formato, p.drive_link, p.youtube_link, p.status,
-                  p.brief_tom, p.brief_cor, p.brief_fonte, p.brief_refs,
-                  p.extras, p.motivo, p.prazo_desejado, p.criada_em,
-                  u.nome AS porta_voz_nome, u.apelido AS porta_voz_apelido
-           FROM ofertas o
-           JOIN pautas p ON p.id = o.pauta_id
-           JOIN users u ON u.id = p.porta_voz_id
-           WHERE o.editor_id = ? AND o.status = 'pendente' AND o.expira_em > ?
+          `SELECT o.expires_at, o.position,
+                  p.id, p.title, p.format, p.drive_link, p.youtube_link, p.status,
+                  p.brief_tone, p.brief_color, p.brief_font, p.brief_refs,
+                  p.extras, p.motivation, p.desired_deadline, p.created_at,
+                  u.name AS spokesperson_name, u.handle AS spokesperson_handle
+           FROM offers o
+           JOIN missions p ON p.id = o.mission_id
+           JOIN users u ON u.id = p.spokesperson_id
+           WHERE o.editor_id = ? AND o.status = 'pendente' AND o.expires_at > ?
            LIMIT 1`,
         )
         .bind(editorId, clock().toISOString())
@@ -247,9 +251,9 @@ export function createD1MissionQueue(
       const now = clock();
       await db
         .prepare(
-          `UPDATE users SET ultimo_visto_em = ?
+          `UPDATE users SET last_seen_at = ?
            WHERE id = ?
-             AND (ultimo_visto_em IS NULL OR ultimo_visto_em < ?)`,
+             AND (last_seen_at IS NULL OR last_seen_at < ?)`,
         )
         .bind(
           now.toISOString(),

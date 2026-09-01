@@ -11,7 +11,9 @@ const failure = (reason: MissionActionFailure): MissionActionResult => ({ ok: fa
 
 export function createD1MissionLifecycle(db: D1DatabaseLike): MissionLifecycleRepository {
   async function missionExists(missionId: number): Promise<boolean> {
-    return Boolean(await db.prepare("SELECT id FROM pautas WHERE id = ?").bind(missionId).first());
+    return Boolean(
+      await db.prepare("SELECT id FROM missions WHERE id = ?").bind(missionId).first(),
+    );
   }
 
   async function transitionFailure(
@@ -27,9 +29,9 @@ export function createD1MissionLifecycle(db: D1DatabaseLike): MissionLifecycleRe
     async submitDelivery(missionId, editorId, delivery) {
       const result = await db
         .prepare(
-          `UPDATE pautas
-           SET status = 'em_revisao', entrega_link = ?, video_entrega_url = ?, notas_inspetor = NULL
-           WHERE id = ? AND reservada_por_id = ? AND status IN ('reservada', 'reedicao')`,
+          `UPDATE missions
+           SET status = 'em_revisao', delivery_link = ?, delivery_video_url = ?, inspector_notes = NULL
+           WHERE id = ? AND reserved_by_id = ? AND status IN ('reservada', 'reedicao')`,
         )
         .bind(delivery.link, delivery.videoUrl, missionId, editorId)
         .run();
@@ -44,8 +46,8 @@ export function createD1MissionLifecycle(db: D1DatabaseLike): MissionLifecycleRe
 
       const result = await db
         .prepare(
-          `UPDATE pautas
-           SET status = 'reedicao', notas_inspetor = ?, reedicao_pedida_por = 'inspetor'
+          `UPDATE missions
+           SET status = 'reedicao', inspector_notes = ?, revision_requested_by = 'inspetor'
            WHERE id = ? AND status = 'em_revisao'`,
         )
         .bind(cleanNotes, missionId)
@@ -58,8 +60,8 @@ export function createD1MissionLifecycle(db: D1DatabaseLike): MissionLifecycleRe
     async finishMission(missionId, spokespersonId) {
       const result = await db
         .prepare(
-          `UPDATE pautas SET status = 'finalizada'
-           WHERE id = ? AND porta_voz_id = ? AND status = 'aprovada'`,
+          `UPDATE missions SET status = 'finalizada'
+           WHERE id = ? AND spokesperson_id = ? AND status = 'aprovada'`,
         )
         .bind(missionId, spokespersonId)
         .run();
@@ -74,9 +76,9 @@ export function createD1MissionLifecycle(db: D1DatabaseLike): MissionLifecycleRe
 
       const result = await db
         .prepare(
-          `UPDATE pautas
-           SET status = 'reedicao', notas_inspetor = ?, reedicao_pedida_por = 'porta_voz'
-           WHERE id = ? AND porta_voz_id = ? AND status IN ('em_revisao', 'aprovada')`,
+          `UPDATE missions
+           SET status = 'reedicao', inspector_notes = ?, revision_requested_by = 'porta_voz'
+           WHERE id = ? AND spokesperson_id = ? AND status IN ('em_revisao', 'aprovada')`,
         )
         .bind(cleanNotes, missionId, spokespersonId)
         .run();

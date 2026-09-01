@@ -24,9 +24,9 @@ export function createD1EmailQueueSource(
       for (const message of messages) {
         const result = await db
           .prepare(
-            `INSERT INTO fila_emails (chave, destinatario, assunto, html)
+            `INSERT INTO email_queue (key, recipient, subject, html)
              VALUES (?, ?, ?, ?)
-             ON CONFLICT (chave) DO NOTHING
+             ON CONFLICT (key) DO NOTHING
              RETURNING id`,
           )
           .bind(message.key, message.to, message.subject, message.html)
@@ -39,32 +39,47 @@ export function createD1EmailQueueSource(
     async claim(limit) {
       const rows = await db
         .prepare(
-          `UPDATE fila_emails
-           SET tentativas = tentativas + 1, processar_apos = ?
+          `UPDATE email_queue
+           SET attempts = attempts + 1, process_after = ?
            WHERE id IN (
-             SELECT id FROM fila_emails
-             WHERE enviado_em IS NULL AND processar_apos <= ? AND tentativas < ?
-             ORDER BY processar_apos
+             SELECT id FROM email_queue
+             WHERE sent_at IS NULL AND process_after <= ? AND attempts < ?
+             ORDER BY process_after
              LIMIT ?
            )
-             AND enviado_em IS NULL
-           RETURNING id, destinatario, assunto, html, tentativas`,
+             AND sent_at IS NULL
+           RETURNING id, recipient, subject, html, attempts`,
         )
         .bind(backoffIso(), nowIso(), maxAttempts, limit)
-        .all<QueuedEmail>();
-      return rows.results;
+        .all<{
+          id: number;
+          recipient: string;
+          subject: string;
+          html: string;
+          attempts: number;
+        }>();
+      return rows.results.map((r) => ({
+        id: r.id,
+        recipient: r.recipient,
+        subject: r.subject,
+        html: r.html,
+        attempts: r.attempts,
+        destinatario: r.recipient,
+        assunto: r.subject,
+        tentativas: r.attempts,
+      }));
     },
 
     async markSent(id) {
       await db
-        .prepare("UPDATE fila_emails SET enviado_em = ?, erro = NULL WHERE id = ?")
+        .prepare("UPDATE email_queue SET sent_at = ?, error = NULL WHERE id = ?")
         .bind(nowIso(), id)
         .run();
     },
 
     async markFailed(id, error) {
       await db
-        .prepare("UPDATE fila_emails SET erro = ? WHERE id = ?")
+        .prepare("UPDATE email_queue SET error = ? WHERE id = ?")
         .bind(error.slice(0, 500), id)
         .run();
     },

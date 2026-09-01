@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test, { after, before, beforeEach, describe } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1MissionLifecycle, type D1DatabaseLike } from "./mission-lifecycle.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 
 describe("paridade local D1 da missão", () => {
   const miniflare = new Miniflare(
@@ -22,27 +22,23 @@ describe("paridade local D1 da missão", () => {
 
   before(async () => {
     db = await miniflare.getD1Database("DB");
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db as unknown as D1DatabaseLike, schema);
+    await applyAllD1Migrations(db as unknown as D1DatabaseLike);
     missions = createD1MissionLifecycle(db as unknown as D1DatabaseLike);
   });
 
   beforeEach(async () => {
     await db.batch([
-      db.prepare("DELETE FROM ofertas"),
-      db.prepare("DELETE FROM pautas"),
+      db.prepare("DELETE FROM offers"),
+      db.prepare("DELETE FROM missions"),
       db.prepare("DELETE FROM users"),
-      db.prepare("DELETE FROM fila_emails"),
+      db.prepare("DELETE FROM email_queue"),
     ]);
     const spokesperson = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("voz.d1", "Voz D1", "voz.d1@teste.local", "voz")
       .first<{ id: number }>();
     const editor = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("editor.d1", "Editor D1", "editor.d1@teste.local", "editor")
       .first<{ id: number }>();
     spokespersonId = spokesperson?.id as number;
@@ -54,7 +50,7 @@ describe("paridade local D1 da missão", () => {
   async function createMission(status: string, reservedBy: number | null = null) {
     const mission = await db
       .prepare(
-        "INSERT INTO pautas (porta_voz_id, titulo, formato, status, reservada_por_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
+        "INSERT INTO missions (spokesperson_id, title, format, status, reserved_by_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
       )
       .bind(spokespersonId, "Missão D1", "short", status, reservedBy)
       .first<{ id: number }>();
@@ -98,16 +94,16 @@ describe("paridade local D1 da missão", () => {
       ok: true,
     });
     const review = await db
-      .prepare("SELECT status, notas_inspetor, reedicao_pedida_por FROM pautas WHERE id = ?")
+      .prepare("SELECT status, inspector_notes, revision_requested_by FROM missions WHERE id = ?")
       .bind(reviewId)
       .first();
     assert.deepEqual(review, {
       status: "reedicao",
-      notas_inspetor: "Corrigir áudio",
-      reedicao_pedida_por: "inspetor",
+      inspector_notes: "Corrigir áudio",
+      revision_requested_by: "inspetor",
     });
 
-    await db.prepare("UPDATE pautas SET status = 'aprovada' WHERE id = ?").bind(reviewId).run();
+    await db.prepare("UPDATE missions SET status = 'aprovada' WHERE id = ?").bind(reviewId).run();
     assert.deepEqual(await missions.finishMission(reviewId, spokespersonId), { ok: true });
   });
 
@@ -116,7 +112,7 @@ describe("paridade local D1 da missão", () => {
     await assert.rejects(() => createMission("reedicao", editorId), /UNIQUE constraint failed/);
 
     const otherEditor = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("editor.d1.outro", "Outro Editor D1", "editor.d1.outro@teste.local", "editor")
       .first<{ id: number }>();
     const otherEditorId = otherEditor?.id as number;
@@ -125,7 +121,7 @@ describe("paridade local D1 da missão", () => {
     const pairMissionId = await createMission("disponivel");
     await db
       .prepare(
-        "INSERT INTO ofertas (pauta_id, editor_id, status, expira_em) VALUES (?, ?, 'expirada', ?)",
+        "INSERT INTO offers (mission_id, editor_id, status, expires_at) VALUES (?, ?, 'expirada', ?)",
       )
       .bind(pairMissionId, editorId, expires)
       .run();
@@ -133,7 +129,7 @@ describe("paridade local D1 da missão", () => {
       () =>
         db
           .prepare(
-            "INSERT INTO ofertas (pauta_id, editor_id, status, expira_em) VALUES (?, ?, 'rejeitada', ?)",
+            "INSERT INTO offers (mission_id, editor_id, status, expires_at) VALUES (?, ?, 'rejeitada', ?)",
           )
           .bind(pairMissionId, editorId, expires)
           .run(),
@@ -142,13 +138,13 @@ describe("paridade local D1 da missão", () => {
 
     const pendingMissionId = await createMission("disponivel");
     await db
-      .prepare("INSERT INTO ofertas (pauta_id, editor_id, expira_em) VALUES (?, ?, ?)")
+      .prepare("INSERT INTO offers (mission_id, editor_id, expires_at) VALUES (?, ?, ?)")
       .bind(pendingMissionId, editorId, expires)
       .run();
     await assert.rejects(
       () =>
         db
-          .prepare("INSERT INTO ofertas (pauta_id, editor_id, expira_em) VALUES (?, ?, ?)")
+          .prepare("INSERT INTO offers (mission_id, editor_id, expires_at) VALUES (?, ?, ?)")
           .bind(pendingMissionId, otherEditorId, expires)
           .run(),
       /UNIQUE constraint failed/,
@@ -158,7 +154,7 @@ describe("paridade local D1 da missão", () => {
     await assert.rejects(
       () =>
         db
-          .prepare("INSERT INTO ofertas (pauta_id, editor_id, expira_em) VALUES (?, ?, ?)")
+          .prepare("INSERT INTO offers (mission_id, editor_id, expires_at) VALUES (?, ?, ?)")
           .bind(otherMissionId, editorId, expires)
           .run(),
       /UNIQUE constraint failed/,
@@ -166,7 +162,7 @@ describe("paridade local D1 da missão", () => {
 
     const outbox = (key: string) =>
       db
-        .prepare("INSERT INTO fila_emails (chave, destinatario, assunto, html) VALUES (?, ?, ?, ?)")
+        .prepare("INSERT INTO email_queue (key, recipient, subject, html) VALUES (?, ?, ?, ?)")
         .bind(key, "alguem@teste.local", "Assunto", "<p>Corpo</p>")
         .run();
 

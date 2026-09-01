@@ -31,7 +31,7 @@ function schemaTables(): Set<string> {
 }
 
 /** Tabelas que cada migração toca ou cria. */
-function migrationTables(sql: string): { altered: string[]; created: string[] } {
+function migrationTables(sql: string): { altered: string[]; created: string[]; renamed: string[] } {
   const strip = sql.replace(/^\s*--.*$/gm, "");
   return {
     altered: Array.from(strip.matchAll(/ALTER TABLE (?:IF EXISTS )?(?:ONLY )?(\w+)/gi), (m) =>
@@ -39,6 +39,10 @@ function migrationTables(sql: string): { altered: string[]; created: string[] } 
     ),
     created: Array.from(strip.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?(\w+)/gi), (m) =>
       m[1].toLowerCase(),
+    ),
+    renamed: Array.from(
+      strip.matchAll(/ALTER TABLE (?:IF EXISTS )?(?:ONLY )?\w+\s+RENAME TO\s+(\w+)/gi),
+      (m) => m[1].toLowerCase(),
     ),
   };
 }
@@ -57,9 +61,9 @@ describe("vocabulário das migrações", () => {
     const offenders: string[] = [];
     for (const file of files) {
       const sql = readFileSync(path.join(MIGRATIONS, file), "utf8");
-      const { altered, created } = migrationTables(sql);
-      // uma migração pode alterar o que ela mesma acabou de criar
-      const available = new Set([...known, ...created]);
+      const { altered, created, renamed } = migrationTables(sql);
+      // uma migração pode alterar o que ela mesma acabou de criar ou renomear
+      const available = new Set([...known, ...created, ...renamed]);
       for (const table of altered) {
         if (!available.has(table)) offenders.push(`${file} → ALTER TABLE ${table}`);
       }

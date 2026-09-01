@@ -29,14 +29,44 @@ export function createD1RankingAdmin(db: D1DatabaseLike): RankingAdminRepository
     async recentAudit(limit) {
       const { results } = await database
         .prepare(
-          `SELECT a.id, a.acao, a.entidade, a.entidade_id, a.detalhes, a.criado_em,
-                  u.nome AS ator_nome
-           FROM auditoria_admin a LEFT JOIN users u ON u.id = a.ator_id
-           ORDER BY a.criado_em DESC LIMIT ?`,
+          `SELECT a.id, a.action, a.entity, a.entity_id, a.details, a.created_at,
+                  u.name AS actor_name
+           FROM admin_audit a LEFT JOIN users u ON u.id = a.actor_id
+           ORDER BY a.created_at DESC LIMIT ?`,
         )
         .bind(limit)
-        .all();
-      return results as never;
+        .all<{
+          id: number;
+          action: string;
+          entity: string;
+          entity_id: string | null;
+          details: unknown;
+          created_at: string;
+          actor_name: string | null;
+        }>();
+      return results.map((r) => {
+        let parsedDetails = r.details;
+        if (typeof parsedDetails === "string") {
+          try {
+            parsedDetails = JSON.parse(parsedDetails);
+          } catch {}
+        }
+        return {
+          id: r.id,
+          action: r.action,
+          entity: r.entity,
+          entityId: r.entity_id,
+          details: parsedDetails,
+          createdAt: r.created_at,
+          actorName: r.actor_name,
+          acao: r.action,
+          entidade: r.entity,
+          entidade_id: r.entity_id,
+          detalhes: parsedDetails,
+          criado_em: r.created_at,
+          ator_nome: r.actor_name,
+        };
+      });
     },
 
     async cancelApproval(missionId, adminId, reason): Promise<RankingAdminResult> {
@@ -44,12 +74,11 @@ export function createD1RankingAdmin(db: D1DatabaseLike): RankingAdminRepository
       if (!trimmed) return { ok: false, reason: "reason_required" };
       const now = new Date().toISOString();
 
-      // Só quem consegue anular segue adiante. Este UPDATE é o portão.
       const cancelled = await database
         .prepare(
-          `UPDATE ranking_aprovacoes
-           SET anulado_em = ?, anulado_por = ?, motivo_anulacao = ?
-           WHERE pauta_id = ? AND anulado_em IS NULL
+          `UPDATE ranking_approvals
+           SET voided_at = ?, voided_by = ?, void_reason = ?
+           WHERE mission_id = ? AND voided_at IS NULL
            RETURNING editor_id`,
         )
         .bind(now, adminId, trimmed, missionId)
@@ -58,50 +87,51 @@ export function createD1RankingAdmin(db: D1DatabaseLike): RankingAdminRepository
 
       const editorId = Number(cancelled.editor_id);
 
-      await database.prepare("UPDATE pautas SET pontuada = 0 WHERE id = ?").bind(missionId).run();
-      await database.prepare("DELETE FROM avaliacoes WHERE pauta_id = ?").bind(missionId).run();
+      await database
+        .prepare("UPDATE missions SET is_scored = 0 WHERE id = ?")
+        .bind(missionId)
+        .run();
+      await database.prepare("DELETE FROM reviews WHERE mission_id = ?").bind(missionId).run();
       await database
         .prepare(
-          // Sem desconto de reputação: ver a nota em ranking-admin.ts.
           `UPDATE users
-           SET entregues = max(entregues - 1, 0),
+           SET delivered_count = max(delivered_count - 1, 0),
                streak = max(streak - 1, 0),
-               nota = (SELECT round(avg(nota), 2) FROM avaliacoes
-                       WHERE editor_id = ? AND pauta_id <> ?)
+               rating = (SELECT round(avg(rating), 2) FROM reviews
+                         WHERE editor_id = ? AND mission_id <> ?)
            WHERE id = ?`,
         )
         .bind(editorId, missionId, editorId)
         .run();
       await database
         .prepare(
-          `INSERT INTO auditoria_admin (ator_id, acao, entidade, entidade_id, detalhes, criado_em)
+          `INSERT INTO admin_audit (actor_id, action, entity, entity_id, details, created_at)
            VALUES (?, 'aprovacao_anulada', 'pauta', ?, ?, ?)`,
         )
         .bind(adminId, String(missionId), JSON.stringify({ motivo: trimmed }), now)
         .run();
 
-      // Indicação premiada deixa de valer abaixo de duas aprovações válidas.
       const remaining = await database
         .prepare(
-          `SELECT count(*) AS total FROM ranking_aprovacoes
-           WHERE editor_id = ? AND anulado_em IS NULL`,
+          `SELECT count(*) AS total FROM ranking_approvals
+           WHERE editor_id = ? AND voided_at IS NULL`,
         )
         .bind(editorId)
         .first<{ total: number }>();
       if (Number(remaining?.total ?? 0) < 2) {
         const revoked = await database
           .prepare(
-            `UPDATE indicacoes_recompensas
-             SET revogado_em = ?, motivo_revogacao = ?
-             WHERE convidado_id = ? AND revogado_em IS NULL
-             RETURNING convidador_id, pontos`,
+            `UPDATE referral_rewards
+             SET revoked_at = ?, revoke_reason = ?
+             WHERE invitee_id = ? AND revoked_at IS NULL
+             RETURNING inviter_id, points`,
           )
           .bind(now, `Aprovação anulada: ${trimmed}`, editorId)
-          .first<{ convidador_id: number; pontos: number }>();
+          .first<{ inviter_id: number; points: number }>();
         if (revoked) {
           await database
-            .prepare("UPDATE users SET reputacao = max(reputacao - ?, 0) WHERE id = ?")
-            .bind(Number(revoked.pontos), Number(revoked.convidador_id))
+            .prepare("UPDATE users SET reputation = max(reputation - ?, 0) WHERE id = ?")
+            .bind(Number(revoked.points), Number(revoked.inviter_id))
             .run();
         }
       }
@@ -114,14 +144,12 @@ export function createD1RankingAdmin(db: D1DatabaseLike): RankingAdminRepository
       if (!trimmed) return { ok: false, reason: "reason_required" };
       const now = new Date().toISOString();
 
-      // Contar e inserir numa instrução só: não existe janela entre a leitura
-      // do saldo e a gravação, então não há corrida a proteger com trava.
       const granted = await database
         .prepare(
-          `INSERT INTO bloqueios_constancia (editor_id, concedido_por, motivo, concedido_em)
+          `INSERT INTO consistency_shields (editor_id, granted_by, reason, granted_at)
            SELECT ?, ?, ?, ?
-           WHERE (SELECT count(*) FROM bloqueios_constancia
-                  WHERE editor_id = ? AND consumido_em IS NULL) < ?
+           WHERE (SELECT count(*) FROM consistency_shields
+                  WHERE editor_id = ? AND consumed_at IS NULL) < ?
              AND EXISTS (SELECT 1 FROM users WHERE id = ?)
            RETURNING id`,
         )
@@ -131,7 +159,7 @@ export function createD1RankingAdmin(db: D1DatabaseLike): RankingAdminRepository
 
       await database
         .prepare(
-          `INSERT INTO auditoria_admin (ator_id, acao, entidade, entidade_id, detalhes, criado_em)
+          `INSERT INTO admin_audit (actor_id, action, entity, entity_id, details, created_at)
            VALUES (?, 'bloqueio_concedido', 'editor', ?, ?, ?)`,
         )
         .bind(adminId, String(editorId), JSON.stringify({ motivo: trimmed }), now)

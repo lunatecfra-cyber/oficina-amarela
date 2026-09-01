@@ -6,30 +6,39 @@ export function createD1MissionContacts(db: D1DatabaseLike) {
   return async function missionContacts(missionId: number): Promise<MissionContacts | null> {
     const row = await db
       .prepare(
-        `SELECT p.titulo,
-                v.nome AS voz_nome, v.email AS voz_email,
-                e.nome AS ed_nome, e.email AS ed_email
-         FROM pautas p
-         JOIN users v ON v.id = p.porta_voz_id
-         LEFT JOIN users e ON e.id = p.reservada_por_id
+        `SELECT p.title,
+                v.name AS spokesperson_name, v.email AS spokesperson_email,
+                e.name AS editor_name, e.email AS editor_email
+         FROM missions p
+         JOIN users v ON v.id = p.spokesperson_id
+         LEFT JOIN users e ON e.id = p.reserved_by_id
          WHERE p.id = ?`,
       )
       .bind(missionId)
       .first<{
-        titulo: string;
-        voz_nome: string | null;
-        voz_email: string | null;
-        ed_nome: string | null;
-        ed_email: string | null;
+        title?: string;
+        spokesperson_name?: string | null;
+        spokesperson_email?: string | null;
+        editor_name?: string | null;
+        editor_email?: string | null;
+        titulo?: string;
+        voz_nome?: string | null;
+        voz_email?: string | null;
+        ed_nome?: string | null;
+        ed_email?: string | null;
       }>();
     if (!row) return null;
 
+    const title = row.title ?? row.titulo ?? "";
+    const spEmail = row.spokesperson_email ?? row.voz_email;
+    const spName = row.spokesperson_name ?? row.voz_nome;
+    const edEmail = row.editor_email ?? row.ed_email;
+    const edName = row.editor_name ?? row.ed_nome;
+
     return {
-      title: String(row.titulo),
-      spokesperson: row.voz_email
-        ? { name: String(row.voz_nome), email: String(row.voz_email) }
-        : null,
-      editor: row.ed_email ? { name: String(row.ed_nome), email: String(row.ed_email) } : null,
+      title: String(title),
+      spokesperson: spEmail ? { name: String(spName), email: String(spEmail) } : null,
+      editor: edEmail ? { name: String(edName), email: String(edEmail) } : null,
     };
   };
 }

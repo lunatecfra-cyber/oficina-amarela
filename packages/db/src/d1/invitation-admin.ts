@@ -22,18 +22,18 @@ export function createD1InvitationAdmin(db: D1DatabaseLike): InvitationAdminRepo
       const now = new Date().toISOString();
       const { results } = await db
         .prepare(
-          `SELECT c.id, c.email, c.criado_em, c.expira_em, c.usado_em, c.revogado_em,
-                  criador.nome AS criado_por_nome, usado.nome AS usado_por_nome,
+          `SELECT c.id, c.email, c.created_at, c.expires_at, c.used_at, c.revoked_at,
+                  criador.name AS created_by_name, usado.name AS used_by_name,
                   CASE
-                    WHEN c.revogado_em IS NOT NULL THEN 'revogado'
-                    WHEN c.usado_em IS NOT NULL THEN 'usado'
-                    WHEN c.expira_em <= ? THEN 'expirado'
+                    WHEN c.revoked_at IS NOT NULL THEN 'revogado'
+                    WHEN c.used_at IS NOT NULL THEN 'usado'
+                    WHEN c.expires_at <= ? THEN 'expirado'
                     ELSE 'valido'
                   END AS status
-           FROM convites_porta_voz c
-           JOIN users criador ON criador.id = c.criado_por
-           LEFT JOIN users usado ON usado.id = c.usado_por
-           ORDER BY c.criado_em DESC`,
+           FROM spokesperson_invitations c
+           JOIN users criador ON criador.id = c.created_by
+           LEFT JOIN users usado ON usado.id = c.used_by
+           ORDER BY c.created_at DESC`,
         )
         .bind(now)
         .all<InvitationRow>();
@@ -49,8 +49,8 @@ export function createD1InvitationAdmin(db: D1DatabaseLike): InvitationAdminRepo
 
       await db
         .prepare(
-          `UPDATE convites_porta_voz SET revogado_em = ?, revogado_por = ?
-           WHERE lower(email) = lower(?) AND usado_em IS NULL AND revogado_em IS NULL`,
+          `UPDATE spokesperson_invitations SET revoked_at = ?, revoked_by = ?
+           WHERE lower(email) = lower(?) AND used_at IS NULL AND revoked_at IS NULL`,
         )
         .bind(createdAt, input.adminId, input.email)
         .run();
@@ -58,17 +58,17 @@ export function createD1InvitationAdmin(db: D1DatabaseLike): InvitationAdminRepo
       try {
         const invitation = await db
           .prepare(
-            `INSERT INTO convites_porta_voz (email, token_hash, criado_por, criado_em, expira_em)
+            `INSERT INTO spokesperson_invitations (email, token_hash, created_by, created_at, expires_at)
              VALUES (?, ?, ?, ?, ?)
-             RETURNING id, email, expira_em`,
+             RETURNING id, email, expires_at`,
           )
           .bind(input.email, input.tokenHash, input.adminId, createdAt, expiresAt)
-          .first<{ id: number; email: string; expira_em: string }>();
+          .first<{ id: number; email: string; expires_at: string; expira_em?: string }>();
         if (!invitation) return { ok: false, reason: "issue_conflict" };
 
         await db
           .prepare(
-            `INSERT INTO auditoria_admin (ator_id, acao, entidade, entidade_id, detalhes, criado_em)
+            `INSERT INTO admin_audit (actor_id, action, entity, entity_id, details, created_at)
              VALUES (?, 'convite_criado', 'convite_porta_voz', ?, ?, ?)`,
           )
           .bind(
@@ -79,11 +79,12 @@ export function createD1InvitationAdmin(db: D1DatabaseLike): InvitationAdminRepo
           )
           .run();
 
+        const expires = invitation.expires_at ?? invitation.expira_em ?? "";
         return {
           ok: true,
           id: Number(invitation.id),
           email: invitation.email,
-          expiresAt: new Date(invitation.expira_em).toISOString(),
+          expiresAt: new Date(expires).toISOString(),
         };
       } catch (error) {
         if (/UNIQUE constraint failed/.test(String(error))) {
@@ -97,8 +98,8 @@ export function createD1InvitationAdmin(db: D1DatabaseLike): InvitationAdminRepo
       const revokedAt = new Date().toISOString();
       const invitation = await db
         .prepare(
-          `UPDATE convites_porta_voz SET revogado_em = ?, revogado_por = ?
-           WHERE id = ? AND usado_em IS NULL AND revogado_em IS NULL
+          `UPDATE spokesperson_invitations SET revoked_at = ?, revoked_by = ?
+           WHERE id = ? AND used_at IS NULL AND revoked_at IS NULL
            RETURNING id, email`,
         )
         .bind(revokedAt, adminId, id)
@@ -107,7 +108,7 @@ export function createD1InvitationAdmin(db: D1DatabaseLike): InvitationAdminRepo
 
       await db
         .prepare(
-          `INSERT INTO auditoria_admin (ator_id, acao, entidade, entidade_id, detalhes, criado_em)
+          `INSERT INTO admin_audit (actor_id, action, entity, entity_id, details, created_at)
            VALUES (?, 'convite_revogado', 'convite_porta_voz', ?, ?, ?)`,
         )
         .bind(adminId, String(id), JSON.stringify({ email: invitation.email }), revokedAt)

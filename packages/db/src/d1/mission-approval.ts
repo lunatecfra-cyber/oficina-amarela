@@ -6,10 +6,10 @@ import type {
 import type { D1DatabaseLike } from "./types.ts";
 
 type ApprovalState = {
-  porta_voz_id: number;
-  reservada_por_id: number | null;
+  spokesperson_id: number;
+  reserved_by_id: number | null;
   status: string;
-  pontuada: number;
+  is_scored: number;
   approval_status: string | null;
 };
 
@@ -17,22 +17,22 @@ export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepo
   async function currentState(input: ApproveMissionInput): Promise<MissionApprovalResult> {
     const state = await db
       .prepare(
-        `SELECT p.porta_voz_id, p.reservada_por_id, p.status, p.pontuada,
+        `SELECT p.spokesperson_id, p.reserved_by_id, p.status, p.is_scored,
                 a.status_final AS approval_status
-         FROM pautas p LEFT JOIN mission_approvals a ON a.pauta_id = p.id
+         FROM missions p LEFT JOIN mission_approvals a ON a.mission_id = p.id
          WHERE p.id = ?`,
       )
       .bind(input.missionId)
       .first<ApprovalState>();
     if (!state) return { ok: false, reason: "mission_not_found" };
-    if (input.actor.role === "spokesperson" && state.porta_voz_id !== input.actor.id) {
+    if (input.actor.role === "spokesperson" && state.spokesperson_id !== input.actor.id) {
       return { ok: false, reason: "forbidden" };
     }
     const expectedStatus = input.actor.role === "admin" ? "aprovada" : "finalizada";
-    if (state.approval_status === expectedStatus && state.reservada_por_id) {
+    if (state.approval_status === expectedStatus && state.reserved_by_id) {
       return {
         ok: true,
-        editorId: state.reservada_por_id,
+        editorId: state.reserved_by_id,
         scored: false,
         referralAwarded: false,
       };
@@ -58,14 +58,14 @@ export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepo
         const inserted = await db
           .prepare(
             `INSERT INTO mission_approvals (
-               pauta_id, editor_id, aprovado_por, status_final, nota, comentario, aprovado_em
+               mission_id, editor_id, approved_by, status_final, rating, comment, approved_at
              )
-             SELECT id, reservada_por_id, ?, ?, ?, ?, ?
-             FROM pautas
-             WHERE id = ? AND status = 'em_revisao' AND pontuada = 0
-               AND reservada_por_id IS NOT NULL
-               AND (? = 'admin' OR porta_voz_id = ?)
-             ON CONFLICT (pauta_id) DO NOTHING
+             SELECT id, reserved_by_id, ?, ?, ?, ?, ?
+             FROM missions
+             WHERE id = ? AND status = 'em_revisao' AND is_scored = 0
+               AND reserved_by_id IS NOT NULL
+               AND (? = 'admin' OR spokesperson_id = ?)
+             ON CONFLICT (mission_id) DO NOTHING
              RETURNING editor_id`,
           )
           .bind(
@@ -81,7 +81,7 @@ export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepo
           .first<{ editor_id: number }>();
         if (!inserted) return currentState(input);
         const referral = await db
-          .prepare("SELECT convidado_id FROM indicacoes_recompensas WHERE convidado_id = ?")
+          .prepare("SELECT invitee_id FROM referral_rewards WHERE invitee_id = ?")
           .bind(inserted.editor_id)
           .first();
         return {

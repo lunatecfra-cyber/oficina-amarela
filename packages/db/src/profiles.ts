@@ -252,64 +252,97 @@ export function normalizeSocialLinks(val: unknown): SocialLinks {
 
 type CandidateRow = {
   id: number;
-  apelido: string;
-  nome: string;
-  foto_url: string | null;
-  cargo: string | null;
-  disputa_por: string | null;
-  ano_eleicao: string | null;
-  localizacao: string | null;
-  bandeiras: string[] | null;
-  tom_comunicacao: string | null;
-  palavras_chave: string[] | null;
-  redes_sociais: SocialLinks | null;
-  bio: string | null;
-  criado_em: string;
-  marca_dagua: string | null;
-  cnpj_campanha: string | null;
-  candidate_number: string | null;
-  titulo_eleitor: string | null;
+  handle?: string;
+  name?: string;
+  avatar_url?: string | null;
+  political_office?: string | null;
+  running_for?: string | null;
+  election_year?: string | null;
+  location?: string | null;
+  campaign_flags?: string[] | null;
+  communication_tone?: string | null;
+  keywords?: string[] | null;
+  social_links?: SocialLinks | null;
+  bio?: string | null;
+  created_at?: string;
+  watermark?: string | null;
+  campaign_tax_id?: string | null;
+  candidate_number?: string | null;
+  voter_id?: string | null;
+
+  // legacy:
+  apelido?: string;
+  nome?: string;
+  foto_url?: string | null;
+  cargo?: string | null;
+  disputa_por?: string | null;
+  ano_eleicao?: string | null;
+  localizacao?: string | null;
+  bandeiras?: string[] | null;
+  tom_comunicacao?: string | null;
+  palavras_chave?: string[] | null;
+  redes_sociais?: SocialLinks | null;
+  criado_em?: string;
+  marca_dagua?: string | null;
+  cnpj_campanha?: string | null;
+  titulo_eleitor?: string | null;
 };
 
 export function rowToCandidate(l: CandidateRow): Candidate {
+  const slug = l.handle ?? l.apelido ?? "";
+  const name = l.name ?? l.nome ?? "";
+  const office = l.political_office ?? l.cargo ?? "Porta-voz";
+  const photo = l.avatar_url ?? l.foto_url ?? undefined;
+  const runningFor = l.running_for ?? l.disputa_por ?? undefined;
+  const electionYear = l.election_year ?? l.ano_eleicao ?? undefined;
+  const location = l.location ?? l.localizacao ?? "";
+  const tone = l.communication_tone ?? l.tom_comunicacao ?? undefined;
+  const flags = l.campaign_flags ?? l.bandeiras;
+  const keywords = l.keywords ?? l.palavras_chave;
+  const socials = l.social_links ?? l.redes_sociais;
+  const createdAt = l.created_at ?? l.criado_em ?? new Date().toISOString();
+  const watermark = l.watermark ?? l.marca_dagua ?? undefined;
+  const taxId = l.campaign_tax_id ?? l.cnpj_campanha ?? undefined;
+  const voterId = l.voter_id ?? l.titulo_eleitor ?? undefined;
+
   return {
-    slug: l.apelido,
-    name: l.nome,
-    role: l.cargo ?? "Porta-voz",
-    photoUrl: l.foto_url ?? undefined,
-    politicalOffice: l.cargo ?? "",
-    runningFor: l.disputa_por ?? undefined,
-    electionYear: l.ano_eleicao ?? undefined,
-    location: l.localizacao ?? "",
+    slug,
+    name,
+    role: office,
+    photoUrl: photo,
+    politicalOffice: office === "Porta-voz" ? "" : office,
+    runningFor,
+    electionYear,
+    location,
     proximity: 0,
     bio: l.bio ?? "",
     tint: DEFAULT_TINT,
-    communicationTone: l.tom_comunicacao ?? undefined,
-    campaignFlags: normalizeList(l.bandeiras),
-    keywords: normalizeList(l.palavras_chave),
-    socialLinks: normalizeSocialLinks(l.redes_sociais),
-    since: new Date(l.criado_em).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
-    watermark: l.marca_dagua ?? undefined,
-    campaignTaxId: l.cnpj_campanha ?? undefined,
+    communicationTone: tone,
+    campaignFlags: normalizeList(flags),
+    keywords: normalizeList(keywords),
+    socialLinks: normalizeSocialLinks(socials),
+    since: new Date(createdAt).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+    watermark,
+    campaignTaxId: taxId,
     candidateNumber: l.candidate_number ?? undefined,
-    voterId: l.titulo_eleitor ?? undefined,
+    voterId,
     // aliases
-    nome: l.nome,
-    foto: l.foto_url ?? undefined,
-    fotoUrl: l.foto_url ?? undefined,
-    cargo: l.cargo ?? "",
-    disputaPor: l.disputa_por ?? undefined,
-    anoEleicao: l.ano_eleicao ?? undefined,
-    local: l.localizacao ?? "",
-    bandeiras: normalizeList(l.bandeiras),
-    tomComunicacao: l.tom_comunicacao ?? undefined,
-    palavrasChave: normalizeList(l.palavras_chave),
-    redes: normalizeSocialLinks(l.redes_sociais),
-    desde: new Date(l.criado_em).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
-    marcaDagua: l.marca_dagua ?? undefined,
-    cnpjCampanha: l.cnpj_campanha ?? undefined,
+    nome: name,
+    foto: photo,
+    fotoUrl: photo,
+    cargo: office === "Porta-voz" ? "" : office,
+    disputaPor: runningFor,
+    anoEleicao: electionYear,
+    local: location,
+    bandeiras: normalizeList(flags),
+    tomComunicacao: tone,
+    palavrasChave: normalizeList(keywords),
+    redes: normalizeSocialLinks(socials),
+    desde: new Date(createdAt).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+    marcaDagua: watermark,
+    cnpjCampanha: taxId,
     numeroEleitoral: l.candidate_number ?? undefined,
-    tituloEleitor: l.titulo_eleitor ?? undefined,
+    tituloEleitor: voterId,
   };
 }
 

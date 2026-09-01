@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1MissionCollaboration } from "./mission-collaboration.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade D1 da colaboração de missão", () => {
@@ -24,32 +24,28 @@ describe("paridade D1 da colaboração de missão", () => {
 
   before(async () => {
     db = await miniflare.getD1Database("DB");
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db as unknown as D1DatabaseLike, schema);
+    await applyAllD1Migrations(db as unknown as D1DatabaseLike);
     collaboration = createD1MissionCollaboration(db as unknown as D1DatabaseLike);
   });
 
   beforeEach(async () => {
     await db.batch([
-      db.prepare("DELETE FROM denuncias"),
-      db.prepare("DELETE FROM mensagens"),
-      db.prepare("DELETE FROM ofertas"),
-      db.prepare("DELETE FROM pautas"),
+      db.prepare("DELETE FROM reports"),
+      db.prepare("DELETE FROM messages"),
+      db.prepare("DELETE FROM offers"),
+      db.prepare("DELETE FROM missions"),
       db.prepare("DELETE FROM users"),
     ]);
     const spokesperson = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("voz.d1.chat", "Voz D1", "voz.d1.chat@teste.local", "voz")
       .first<{ id: number }>();
     const editor = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("editor.d1.chat", "Editor D1", "editor.d1.chat@teste.local", "editor")
       .first<{ id: number }>();
     const outsider = await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel) VALUES (?, ?, ?, ?) RETURNING id")
+      .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")
       .bind("fora.d1.chat", "Fora D1", "fora.d1.chat@teste.local", "editor")
       .first<{ id: number }>();
     spokespersonId = spokesperson?.id as number;
@@ -57,7 +53,7 @@ describe("paridade D1 da colaboração de missão", () => {
     outsiderId = outsider?.id as number;
     const mission = await db
       .prepare(
-        "INSERT INTO pautas (porta_voz_id, titulo, formato, status, reservada_por_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
+        "INSERT INTO missions (spokesperson_id, title, format, status, reserved_by_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
       )
       .bind(spokespersonId, "Missão D1", "short", "reservada", editorId)
       .first<{ id: number }>();
@@ -110,13 +106,13 @@ describe("paridade D1 da colaboração de missão", () => {
       { ok: true },
     );
     const report = await db
-      .prepare("SELECT denunciante_id, denunciado_id, texto FROM denuncias WHERE pauta_id = ?")
+      .prepare("SELECT reporter_id, reported_id, body FROM reports WHERE mission_id = ?")
       .bind(missionId)
       .first();
     assert.deepEqual(report, {
-      denunciante_id: spokespersonId,
-      denunciado_id: editorId,
-      texto: "Problema",
+      reporter_id: spokespersonId,
+      reported_id: editorId,
+      body: "Problema",
     });
     assert.deepEqual(
       await collaboration.reportMission(missionId, { id: editorId, role: "editor" }, "  "),

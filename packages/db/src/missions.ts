@@ -43,99 +43,146 @@ export type CreateMissionInput = {
 
 export type MissionRow = {
   id: number;
-  porta_voz_nome: string;
-  porta_voz_apelido: string;
-  titulo: string;
-  formato: VideoFormat;
-  brief_tom: string | null;
-  brief_cor: string | null;
-  brief_fonte: string | null;
-  brief_refs: string | null;
-  drive_link: string | null;
-  youtube_link: string | null;
+  // English column names:
+  spokesperson_name?: string;
+  spokesperson_handle?: string;
+  title?: string;
+  format?: VideoFormat;
+  brief_tone?: string | null;
+  brief_color?: string | null;
+  brief_font?: string | null;
+  brief_refs?: string | null;
+  raw_video_url?: string | null;
+  youtube_link?: string | null;
   status: MissionStatus;
-  reservada_por_apelido: string | null;
-  reservada_ate: string | null;
-  reservada_em: string | null;
-  entrega_link: string | null;
-  notas_inspetor: string | null;
-  criada_em: string;
-  extras: string | null;
-  motivo: string | null;
-  prazo_desejado: Date | string | null;
-  reedicao_pedida_por: "inspetor" | "porta_voz" | "inspector" | "spokesperson" | null;
-  video_bruto_url: string | null;
-  video_entrega_url: string | null;
-  marca_dagua: string | null;
-  cnpj_campanha: string | null;
-  candidate_number: string | null;
-  titulo_eleitor: string | null;
+  reserved_by_handle?: string | null;
+  reserved_until?: string | null;
+  reserved_at?: string | null;
+  delivery_link?: string | null;
+  inspector_notes?: string | null;
+  created_at?: string;
+  extras?: string | null;
+  motivation?: string | null;
+  desired_deadline?: Date | string | null;
+  revision_requested_by?: "inspetor" | "porta_voz" | "inspector" | "spokesperson" | null;
+  delivery_video_url?: string | null;
+  watermark?: string | null;
+  campaign_tax_id?: string | null;
+  candidate_number?: string | null;
+  voter_id?: string | null;
+
+  // Legacy Portuguese aliases:
+  porta_voz_nome?: string;
+  porta_voz_apelido?: string;
+  titulo?: string;
+  formato?: VideoFormat;
+  brief_tom?: string | null;
+  brief_cor?: string | null;
+  brief_fonte?: string | null;
+  drive_link?: string | null;
+  reservada_por_apelido?: string | null;
+  reservada_ate?: string | null;
+  reservada_em?: string | null;
+  entrega_link?: string | null;
+  notas_inspetor?: string | null;
+  criada_em?: string;
+  motivo?: string | null;
+  prazo_desejado?: Date | string | null;
+  reedicao_pedida_por?: "inspetor" | "porta_voz" | "inspector" | "spokesperson" | null;
+  video_bruto_url?: string | null;
+  video_entrega_url?: string | null;
+  marca_dagua?: string | null;
+  cnpj_campanha?: string | null;
+  titulo_eleitor?: string | null;
 };
 
 export function rowToMission(r: MissionRow): Mission {
-  const desiredDeadlineStr = r.prazo_desejado
-    ? new Date(r.prazo_desejado).toISOString().slice(0, 10)
+  const desiredDeadline = r.desired_deadline ?? r.prazo_desejado;
+  const desiredDeadlineStr = desiredDeadline
+    ? new Date(desiredDeadline).toISOString().slice(0, 10)
     : undefined;
 
+  const rawRevBy = r.revision_requested_by ?? r.reedicao_pedida_por;
   const revBy =
-    r.reedicao_pedida_por === "inspetor" || r.reedicao_pedida_por === "inspector"
+    rawRevBy === "inspetor" || rawRevBy === "inspector"
       ? "inspector"
-      : r.reedicao_pedida_por === "porta_voz" || r.reedicao_pedida_por === "spokesperson"
+      : rawRevBy === "porta_voz" || rawRevBy === "spokesperson"
         ? "spokesperson"
         : undefined;
 
+  const spName = r.spokesperson_name ?? r.porta_voz_nome ?? "";
+  const spHandle = r.spokesperson_handle ?? r.porta_voz_apelido ?? "";
+  const title = r.title ?? r.titulo ?? "";
+  const format = r.format ?? r.formato ?? ("short" as VideoFormat);
+  const tone = r.brief_tone ?? r.brief_tom ?? undefined;
+  const color = r.brief_color ?? r.brief_cor ?? undefined;
+  const font = r.brief_font ?? r.brief_fonte ?? undefined;
+  const refs = r.brief_refs ?? undefined;
+  const createdAt = new Date(r.created_at ?? r.criada_em ?? Date.now()).toISOString();
+  const reservedBy = r.reserved_by_handle ?? r.reservada_por_apelido ?? undefined;
+  const reservedAtVal = r.reserved_at ?? r.reservada_em;
+  const reservedAt = reservedAtVal ? new Date(reservedAtVal).toISOString() : undefined;
+  const rawVideo = r.raw_video_url ?? r.video_bruto_url ?? r.drive_link ?? undefined;
+  const deliveryVideo = r.delivery_video_url ?? r.video_entrega_url ?? undefined;
+  const delivery = r.delivery_link ?? r.entrega_link ?? undefined;
+  const inspectorNotes = r.inspector_notes ?? r.notas_inspetor ?? undefined;
+  const motivation = r.motivation ?? r.motivo ?? undefined;
+  const watermark = r.watermark ?? r.marca_dagua ?? undefined;
+  const campaignTaxId = r.campaign_tax_id ?? r.cnpj_campanha ?? undefined;
+  const voterId = r.voter_id ?? r.titulo_eleitor ?? undefined;
+
   return {
     id: `db-${r.id}`,
-    spokesperson: r.porta_voz_nome,
-    spokespersonHandle: r.porta_voz_apelido,
-    title: r.titulo,
-    format: r.formato,
+    spokesperson: spName,
+    spokespersonHandle: spHandle,
+    title,
+    format,
     brief: {
-      tone: r.brief_tom ?? undefined,
-      color: r.brief_cor ?? undefined,
-      font: r.brief_fonte ?? undefined,
-      refs: r.brief_refs ?? undefined,
-      tom: r.brief_tom ?? undefined,
-      cor: r.brief_cor ?? undefined,
-      fonte: r.brief_fonte ?? undefined,
+      tone,
+      color,
+      font,
+      refs,
+      tom: tone,
+      cor: color,
+      fonte: font,
     },
     status: r.status,
-    createdAt: new Date(r.criada_em).toISOString(),
-    reservedBy: r.reservada_por_apelido ?? undefined,
-    reservedAt: r.reservada_em ? new Date(r.reservada_em).toISOString() : undefined,
-    driveLink: r.drive_link ?? undefined,
+    createdAt,
+    reservedBy,
+    reservedAt,
+    driveLink: rawVideo,
     youtubeLink: r.youtube_link ?? undefined,
-    deliveryLink: r.entrega_link ?? undefined,
-    inspectorNotes: r.notas_inspetor ?? undefined,
+    deliveryLink: delivery,
+    inspectorNotes,
     extras: r.extras ?? undefined,
-    motivation: r.motivo ?? undefined,
+    motivation,
     desiredDeadline: desiredDeadlineStr,
     revisionRequestedBy: revBy,
-    rawVideoUrl: r.video_bruto_url ?? undefined,
-    deliveryVideoUrl: r.video_entrega_url ?? undefined,
-    watermark: r.marca_dagua ?? undefined,
-    campaignTaxId: r.cnpj_campanha ?? undefined,
+    rawVideoUrl: rawVideo,
+    deliveryVideoUrl: deliveryVideo,
+    watermark,
+    campaignTaxId,
     candidateNumber: r.candidate_number ?? undefined,
-    voterId: r.titulo_eleitor ?? undefined,
+    voterId,
     // compatibility aliases
-    portaVoz: r.porta_voz_nome,
-    portaVozApelido: r.porta_voz_apelido,
-    titulo: r.titulo,
-    formato: r.formato,
-    criadaEm: new Date(r.criada_em).toISOString(),
-    reservadaPor: r.reservada_por_apelido ?? undefined,
-    reservadaEm: r.reservada_em ? new Date(r.reservada_em).toISOString() : undefined,
-    entregaLink: r.entrega_link ?? undefined,
-    notasInspetor: r.notas_inspetor ?? undefined,
-    motivo: r.motivo ?? undefined,
+    portaVoz: spName,
+    portaVozApelido: spHandle,
+    titulo: title,
+    formato: format,
+    criadaEm: createdAt,
+    reservadaPor: reservedBy,
+    reservadaEm: reservedAt,
+    entregaLink: delivery,
+    notasInspetor: inspectorNotes,
+    motivo: motivation,
     prazoDesejado: desiredDeadlineStr,
-    reedicaoPedidaPor: r.reedicao_pedida_por ?? undefined,
-    videoBrutoUrl: r.video_bruto_url ?? undefined,
-    videoEntregaUrl: r.video_entrega_url ?? undefined,
-    marcaDagua: r.marca_dagua ?? undefined,
-    cnpjCampanha: r.cnpj_campanha ?? undefined,
+    reedicaoPedidaPor: rawRevBy ?? undefined,
+    videoBrutoUrl: rawVideo,
+    videoEntregaUrl: deliveryVideo,
+    marcaDagua: watermark,
+    cnpjCampanha: campaignTaxId,
     numeroEleitoral: r.candidate_number ?? undefined,
-    tituloEleitor: r.titulo_eleitor ?? undefined,
+    tituloEleitor: voterId,
   };
 }
 

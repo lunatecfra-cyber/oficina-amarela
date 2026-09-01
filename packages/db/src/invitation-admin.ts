@@ -48,25 +48,39 @@ type InvitationRow = {
   id: number;
   email: string;
   status: InvitationStatus;
-  criado_em: string;
-  expira_em: string;
-  usado_em: string | null;
-  revogado_em: string | null;
-  criado_por_nome: string;
-  usado_por_nome: string | null;
+  created_at?: string;
+  expires_at?: string;
+  used_at?: string | null;
+  revoked_at?: string | null;
+  created_by_name?: string;
+  used_by_name?: string | null;
+
+  criado_em?: string;
+  expira_em?: string;
+  usado_em?: string | null;
+  revogado_em?: string | null;
+  criado_por_nome?: string;
+  usado_por_nome?: string | null;
 };
 
 export function toInvitationSummary(row: InvitationRow): InvitationSummary {
+  const createdAt = row.created_at ?? row.criado_em ?? "";
+  const expiresAt = row.expires_at ?? row.expira_em ?? "";
+  const usedAt = row.used_at ?? row.usado_em ?? null;
+  const revokedAt = row.revoked_at ?? row.revogado_em ?? null;
+  const createdByName = row.created_by_name ?? row.criado_por_nome ?? "";
+  const usedByName = row.used_by_name ?? row.usado_por_nome ?? null;
+
   return {
     id: Number(row.id),
     email: row.email,
     status: row.status,
-    createdAt: new Date(row.criado_em).toISOString(),
-    expiresAt: new Date(row.expira_em).toISOString(),
-    usedAt: row.usado_em ? new Date(row.usado_em).toISOString() : null,
-    revokedAt: row.revogado_em ? new Date(row.revogado_em).toISOString() : null,
-    createdByName: row.criado_por_nome,
-    usedByName: row.usado_por_nome,
+    createdAt: new Date(createdAt).toISOString(),
+    expiresAt: new Date(expiresAt).toISOString(),
+    usedAt: usedAt ? new Date(usedAt).toISOString() : null,
+    revokedAt: revokedAt ? new Date(revokedAt).toISOString() : null,
+    createdByName,
+    usedByName,
   };
 }
 

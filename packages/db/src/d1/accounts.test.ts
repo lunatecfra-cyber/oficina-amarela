@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1Accounts } from "./accounts.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 /**
@@ -28,18 +28,16 @@ describe("paridade D1 da busca de conta", () => {
 
   before(async () => {
     db = (await miniflare.getD1Database("DB")) as unknown as D1DatabaseLike;
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db, schema);
+    await applyAllD1Migrations(db);
     accounts = createD1Accounts(db);
   });
 
   beforeEach(async () => {
     await db.prepare("DELETE FROM users").run();
     await db
-      .prepare("INSERT INTO users (apelido, nome, email, papel, senha_hash) VALUES (?, ?, ?, ?, ?)")
+      .prepare(
+        "INSERT INTO users (handle, name, email, role, password_hash) VALUES (?, ?, ?, ?, ?)",
+      )
       .bind("bombeiro.rafa", "Bombeiro Rafa", "rafa@oficina.local", "editor", "hash-qualquer")
       .run();
   });

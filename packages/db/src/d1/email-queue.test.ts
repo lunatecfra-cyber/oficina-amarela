@@ -8,7 +8,7 @@ import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { configureEmailQueueSource, drainEmailQueue, enqueueEmails } from "../email-queue.ts";
 import { createD1EmailQueueSource } from "./email-queue.ts";
-import { applyD1Schema } from "./schema.ts";
+import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 describe("paridade D1 da caixa de saída de e-mail", () => {
@@ -32,16 +32,12 @@ describe("paridade D1 da caixa de saída de e-mail", () => {
 
   before(async () => {
     db = await miniflare.getD1Database("DB");
-    const schema = await readFile(
-      new URL("../../d1/0001_mission_slice.sql", import.meta.url),
-      "utf8",
-    );
-    await applyD1Schema(db as unknown as D1DatabaseLike, schema);
+    await applyAllD1Migrations(db as unknown as D1DatabaseLike);
     configureEmailQueueSource(createD1EmailQueueSource(db as unknown as D1DatabaseLike, 5));
   });
 
   beforeEach(async () => {
-    await db.prepare("DELETE FROM fila_emails").run();
+    await db.prepare("DELETE FROM email_queue").run();
   });
 
   after(async () => {
@@ -59,7 +55,7 @@ describe("paridade D1 da caixa de saída de e-mail", () => {
 
     const delivered: string[] = [];
     const result = await drainEmailQueue(async (email) => {
-      delivered.push(email.destinatario);
+      delivered.push(email.recipient || email.destinatario);
       return true;
     });
 
@@ -77,11 +73,11 @@ describe("paridade D1 da caixa de saída de e-mail", () => {
     assert.deepEqual(result, { sent: 0, failed: 1 });
 
     const row = await db
-      .prepare("SELECT enviado_em, tentativas, erro FROM fila_emails WHERE chave = 'a'")
-      .first<{ enviado_em: string | null; tentativas: number; erro: string }>();
-    assert.equal(row?.enviado_em, null);
-    assert.equal(row?.tentativas, 1);
-    assert.match(row?.erro ?? "", /provedor fora do ar/);
+      .prepare("SELECT sent_at, attempts, error FROM email_queue WHERE key = 'a'")
+      .first<{ sent_at: string | null; attempts: number; error: string }>();
+    assert.equal(row?.sent_at, null);
+    assert.equal(row?.attempts, 1);
+    assert.match(row?.error ?? "", /provedor fora do ar/);
   });
 
   test("mensagem em recuo não é reivindicada antes da hora", async () => {
@@ -91,7 +87,7 @@ describe("paridade D1 da caixa de saída de e-mail", () => {
     assert.deepEqual(await drainEmailQueue(async () => true), { sent: 0, failed: 0 });
 
     await db
-      .prepare("UPDATE fila_emails SET processar_apos = ? WHERE chave = 'a'")
+      .prepare("UPDATE email_queue SET process_after = ? WHERE key = 'a'")
       .bind(new Date(Date.now() - 60_000).toISOString())
       .run();
     assert.deepEqual(await drainEmailQueue(async () => true), { sent: 1, failed: 0 });
@@ -100,7 +96,7 @@ describe("paridade D1 da caixa de saída de e-mail", () => {
   test("depois do teto de tentativas a mensagem para de ser tentada", async () => {
     await enqueueEmails([message("a")]);
     await db
-      .prepare("UPDATE fila_emails SET tentativas = 5, processar_apos = ? WHERE chave = 'a'")
+      .prepare("UPDATE email_queue SET attempts = 5, process_after = ? WHERE key = 'a'")
       .bind(new Date(Date.now() - 60_000).toISOString())
       .run();
 

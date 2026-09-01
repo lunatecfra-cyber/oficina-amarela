@@ -16,24 +16,24 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
   return {
     async readEditableProfile(userId) {
       const row = await db
-        .prepare("SELECT headline, bio, localizacao, whatsapp, senha_hash FROM users WHERE id = ?")
+        .prepare("SELECT headline, bio, location, whatsapp, password_hash FROM users WHERE id = ?")
         .bind(userId)
         .first<{
           headline: string | null;
           bio: string | null;
-          localizacao: string | null;
+          location: string | null;
           whatsapp: string | null;
-          senha_hash: string | null;
+          password_hash: string | null;
         }>();
       if (!row) return null;
       return {
         headline: normalizeList(row.headline),
         bio: row.bio ?? null,
-        location: row.localizacao ?? null,
+        location: row.location ?? null,
         whatsapp: row.whatsapp ?? null,
-        hasPassword: Boolean(row.senha_hash),
-        temSenha: Boolean(row.senha_hash),
-        localizacao: row.localizacao ?? null,
+        hasPassword: Boolean(row.password_hash),
+        temSenha: Boolean(row.password_hash),
+        localizacao: row.location ?? null,
       };
     },
 
@@ -43,7 +43,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         const headlineJson = data.headline ? JSON.stringify(limitList(data.headline, 5)) : null;
         await db
           .prepare(
-            "UPDATE users SET headline = ?, bio = ?, localizacao = ?, whatsapp = ? WHERE id = ?",
+            "UPDATE users SET headline = ?, bio = ?, location = ?, whatsapp = ? WHERE id = ?",
           )
           .bind(
             headlineJson,
@@ -68,59 +68,59 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
       try {
         const row = await db
           .prepare(
-            `SELECT nome, foto_url, localizacao, headline, bio, softwares, estilos, nivel_edicao,
-                    setup_pc, link_portfolio, whatsapp, nicho, disponibilidade, perfil_completo
+            `SELECT name, avatar_url, location, headline, bio, software_tools, editing_styles, editing_level,
+                    pc_setup, portfolio_link, whatsapp, niches, availability, profile_completed
              FROM users WHERE id = ?`,
           )
           .bind(userId)
           .first<{
-            nome: string | null;
-            foto_url: string | null;
-            localizacao: string | null;
+            name: string | null;
+            avatar_url: string | null;
+            location: string | null;
             headline: string | null;
             bio: string | null;
-            softwares: string | null;
-            estilos: string | null;
-            nivel_edicao: string | null;
-            setup_pc: string | null;
-            link_portfolio: string | null;
+            software_tools: string | null;
+            editing_styles: string | null;
+            editing_level: string | null;
+            pc_setup: string | null;
+            portfolio_link: string | null;
             whatsapp: string | null;
-            nicho: string | null;
-            disponibilidade: string | null;
-            perfil_completo: number | null;
+            niches: string | null;
+            availability: string | null;
+            profile_completed: number | null;
           }>();
         if (!row) return null;
         return {
-          name: row.nome ?? "",
-          avatarUrl: row.foto_url ?? "",
-          photoUrl: row.foto_url ?? "",
-          location: row.localizacao ?? "",
+          name: row.name ?? "",
+          avatarUrl: row.avatar_url ?? "",
+          photoUrl: row.avatar_url ?? "",
+          location: row.location ?? "",
           headline: normalizeList(row.headline),
           bio: row.bio ?? "",
-          softwareTools: normalizeList(row.softwares),
-          softwares: normalizeList(row.softwares),
-          editingStyles: normalizeList(row.estilos),
-          styles: normalizeList(row.estilos),
-          portfolioLink: row.link_portfolio ?? "",
+          softwareTools: normalizeList(row.software_tools),
+          softwares: normalizeList(row.software_tools),
+          editingStyles: normalizeList(row.editing_styles),
+          styles: normalizeList(row.editing_styles),
+          portfolioLink: row.portfolio_link ?? "",
           whatsapp: row.whatsapp ?? undefined,
-          availability: normalizeGrid(row.disponibilidade),
-          editingLevel: row.nivel_edicao ?? undefined,
-          pcSetup: row.setup_pc ?? undefined,
-          niches: normalizeList(row.nicho),
-          niche: normalizeList(row.nicho),
-          profileCompleted: Boolean(row.perfil_completo),
-          profileComplete: Boolean(row.perfil_completo),
+          availability: normalizeGrid(row.availability),
+          editingLevel: row.editing_level ?? undefined,
+          pcSetup: row.pc_setup ?? undefined,
+          niches: normalizeList(row.niches),
+          niche: normalizeList(row.niches),
+          profileCompleted: Boolean(row.profile_completed),
+          profileComplete: Boolean(row.profile_completed),
           // aliases
-          nome: row.nome ?? "",
-          fotoUrl: row.foto_url ?? "",
-          localizacao: row.localizacao ?? "",
-          estilos: normalizeList(row.estilos),
-          portfolio_link: row.link_portfolio ?? "",
-          disponibilidade: normalizeGrid(row.disponibilidade),
-          nivelEdicao: row.nivel_edicao ?? undefined,
-          setupPc: row.setup_pc ?? undefined,
-          nicho: normalizeList(row.nicho),
-          perfilCompleto: Boolean(row.perfil_completo),
+          nome: row.name ?? "",
+          fotoUrl: row.avatar_url ?? "",
+          localizacao: row.location ?? "",
+          estilos: normalizeList(row.editing_styles),
+          portfolio_link: row.portfolio_link ?? "",
+          disponibilidade: normalizeGrid(row.availability),
+          nivelEdicao: row.editing_level ?? undefined,
+          setupPc: row.pc_setup ?? undefined,
+          nicho: normalizeList(row.niches),
+          perfilCompleto: Boolean(row.profile_completed),
         };
       } catch {
         return null;
@@ -159,20 +159,20 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
       await db
         .prepare(
           `UPDATE users SET
-             nome = ?,
-             foto_url = ?,
-             localizacao = ?,
+             name = ?,
+             avatar_url = ?,
+             location = ?,
              headline = ?,
              bio = ?,
-             softwares = ?,
-             estilos = ?,
-             nivel_edicao = ?,
-             setup_pc = ?,
-             link_portfolio = ?,
+             software_tools = ?,
+             editing_styles = ?,
+             editing_level = ?,
+             pc_setup = ?,
+             portfolio_link = ?,
              whatsapp = ?,
-             nicho = ?,
-             disponibilidade = COALESCE(?, disponibilidade),
-             perfil_completo = 1
+             niches = ?,
+             availability = COALESCE(?, availability),
+             profile_completed = 1
            WHERE id = ?`,
         )
         .bind(
@@ -201,97 +201,97 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         const isNumeric = typeof handleOrId === "number";
         const accountQuery = isNumeric
           ? "SELECT * FROM users WHERE id = ?"
-          : "SELECT * FROM users WHERE lower(apelido) = lower(?)";
+          : "SELECT * FROM users WHERE lower(handle) = lower(?)";
 
         const account = await db
           .prepare(accountQuery)
           .bind(isNumeric ? handleOrId : String(handleOrId).trim())
           .first<{
             id: number;
-            apelido: string;
-            nome: string;
+            handle: string;
+            name: string;
             headline: string | null;
             bio: string | null;
-            localizacao: string | null;
-            criado_em: string;
-            entregues: number | null;
-            reputacao: number | null;
+            location: string | null;
+            created_at: string;
+            delivered_count: number | null;
+            reputation: number | null;
             streak: number | null;
-            nota: number | null;
-            nivel: string | null;
-            foto_url: string | null;
-            softwares: string | null;
-            estilos: string | null;
-            nicho: string | null;
-            nivel_edicao: string | null;
-            setup_pc: string | null;
+            rating: number | null;
+            tier: string | null;
+            avatar_url: string | null;
+            software_tools: string | null;
+            editing_styles: string | null;
+            niches: string | null;
+            editing_level: string | null;
+            pc_setup: string | null;
           }>();
         if (!account) return null;
 
         const [portfolioRes, achievementRes, deliveryRes] = await Promise.all([
           db
             .prepare(
-              "SELECT id, titulo, formato, porta_voz, tint, link_video FROM portfolio WHERE user_id = ? ORDER BY criado_em DESC",
+              "SELECT id, title, format, spokesperson, tint, video_link FROM portfolio WHERE user_id = ? ORDER BY created_at DESC",
             )
             .bind(account.id)
             .all<{
               id: number;
-              titulo: string;
-              formato: "short" | "longo";
-              porta_voz: string;
+              title: string;
+              format: "short" | "longo";
+              spokesperson: string;
               tint: string | null;
-              link_video: string | null;
+              video_link: string | null;
             }>(),
           db
             .prepare(
-              "SELECT nome, icone FROM conquistas WHERE user_id = ? ORDER BY conquistada_em DESC",
+              "SELECT name, icon FROM achievements WHERE user_id = ? ORDER BY earned_at DESC",
             )
             .bind(account.id)
-            .all<{ nome: string; icone: string | null }>(),
+            .all<{ name: string; icon: string | null }>(),
           db
             .prepare(
-              `SELECT p.id, p.titulo, p.status, p.criada_em, u.nome AS porta_voz
-               FROM pautas p
-               JOIN users u ON u.id = p.porta_voz_id
-               WHERE p.reservada_por_id = ?
+              `SELECT p.id, p.title, p.status, p.created_at, u.name AS spokesperson
+               FROM missions p
+               JOIN users u ON u.id = p.spokesperson_id
+               WHERE p.reserved_by_id = ?
                  AND p.status IN ('aprovada', 'finalizada', 'reedicao')
-               ORDER BY p.criada_em DESC`,
+               ORDER BY p.created_at DESC`,
             )
             .bind(account.id)
             .all<{
               id: number;
-              titulo: string;
+              title: string;
               status: string;
-              criada_em: string;
-              porta_voz: string;
+              created_at: string;
+              spokesperson: string;
             }>(),
         ]);
 
         const portfolio: PortfolioItem[] = portfolioRes.results.map((i) => ({
           id: `pf-${i.id}`,
-          title: i.titulo,
-          format: i.formato,
-          spokesperson: i.porta_voz,
+          title: i.title,
+          format: i.format,
+          spokesperson: i.spokesperson,
           tint: i.tint ?? "linear-gradient(135deg,#3a3a42,#12121a)",
-          titulo: i.titulo,
-          formato: i.formato,
-          portaVoz: i.porta_voz,
+          titulo: i.title,
+          formato: i.format,
+          portaVoz: i.spokesperson,
         }));
 
         const history: HistoryItem[] = deliveryRes.results.map((h) => {
           const res = h.status === "reedicao" ? "revision_requested" : "approved";
           return {
             id: `h-${h.id}`,
-            title: h.titulo,
-            spokesperson: h.porta_voz,
-            date: new Date(h.criada_em).toLocaleDateString("pt-BR", {
+            title: h.title,
+            spokesperson: h.spokesperson,
+            date: new Date(h.created_at).toLocaleDateString("pt-BR", {
               day: "2-digit",
               month: "short",
             }),
             result: res,
-            titulo: h.titulo,
-            portaVoz: h.porta_voz,
-            data: new Date(h.criada_em).toLocaleDateString("pt-BR", {
+            titulo: h.title,
+            portaVoz: h.spokesperson,
+            data: new Date(h.created_at).toLocaleDateString("pt-BR", {
               day: "2-digit",
               month: "short",
             }),
@@ -300,53 +300,53 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         });
 
         const achievements = achievementRes.results.map((m) => ({
-          icon: m.icone ?? "🏅",
-          name: m.nome,
-          icone: m.icone ?? "🏅",
-          nome: m.nome,
+          icon: m.icon ?? "🏅",
+          name: m.name,
+          icone: m.icon ?? "🏅",
+          nome: m.name,
         }));
 
         return {
-          handle: account.apelido,
-          name: account.nome,
+          handle: account.handle,
+          name: account.name,
           headline: normalizeList(account.headline),
-          location: account.localizacao ?? "",
-          since: new Date(account.criado_em).toLocaleDateString("pt-BR", {
+          location: account.location ?? "",
+          since: new Date(account.created_at).toLocaleDateString("pt-BR", {
             month: "long",
             year: "numeric",
           }),
           bio: account.bio ?? "",
-          photoUrl: account.foto_url ?? undefined,
-          softwares: normalizeList(account.softwares),
-          styles: normalizeList(account.estilos),
-          niche: normalizeList(account.nicho),
-          editingLevel: account.nivel_edicao ?? undefined,
-          pcSetup: account.setup_pc ?? undefined,
-          deliveries: Number(account.entregues ?? 0),
-          deliveredCount: Number(account.entregues ?? 0),
-          reputation: Number(account.reputacao ?? 0),
+          photoUrl: account.avatar_url ?? undefined,
+          softwares: normalizeList(account.software_tools),
+          styles: normalizeList(account.editing_styles),
+          niche: normalizeList(account.niches),
+          editingLevel: account.editing_level ?? undefined,
+          pcSetup: account.pc_setup ?? undefined,
+          deliveries: Number(account.delivered_count ?? 0),
+          deliveredCount: Number(account.delivered_count ?? 0),
+          reputation: Number(account.reputation ?? 0),
           streak: Number(account.streak ?? 0),
-          rating: account.nota !== null ? Number(account.nota) : null,
-          level: (account.nivel as Tier) ?? "Aprendiz",
-          tier: (account.nivel as Tier) ?? "Aprendiz",
+          rating: account.rating !== null ? Number(account.rating) : null,
+          level: (account.tier as Tier) ?? "Aprendiz",
+          tier: (account.tier as Tier) ?? "Aprendiz",
           portfolio,
           history,
           achievements,
           // aliases
-          apelido: account.apelido,
-          nome: account.nome,
-          local: account.localizacao ?? "",
-          desde: new Date(account.criado_em).toLocaleDateString("pt-BR", {
+          apelido: account.handle,
+          nome: account.name,
+          local: account.location ?? "",
+          desde: new Date(account.created_at).toLocaleDateString("pt-BR", {
             month: "long",
             year: "numeric",
           }),
-          fotoUrl: account.foto_url ?? undefined,
-          estilos: normalizeList(account.estilos),
-          nivelEdicao: account.nivel_edicao ?? undefined,
-          setupPc: account.setup_pc ?? undefined,
-          entregues: Number(account.entregues ?? 0),
-          reputacao: Number(account.reputacao ?? 0),
-          nota: account.nota !== null ? Number(account.nota) : null,
+          fotoUrl: account.avatar_url ?? undefined,
+          estilos: normalizeList(account.editing_styles),
+          nivelEdicao: account.editing_level ?? undefined,
+          setupPc: account.pc_setup ?? undefined,
+          entregues: Number(account.delivered_count ?? 0),
+          reputacao: Number(account.reputation ?? 0),
+          nota: account.rating !== null ? Number(account.rating) : null,
           conquistas: achievements,
           historico: history,
         };
@@ -359,36 +359,36 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
     async readEditorRanking(limit = 10) {
       const { results } = await db
         .prepare(
-          `SELECT id, apelido, nome, foto_url, entregues, reputacao, streak, nota, nivel
+          `SELECT id, handle, name, avatar_url, delivered_count, reputation, streak, rating, tier
            FROM users
-           WHERE papel = 'editor' AND perfil_completo = 1
-           ORDER BY entregues DESC, reputacao DESC, criado_em ASC
+           WHERE role = 'editor' AND profile_completed = 1
+           ORDER BY delivered_count DESC, reputation DESC, created_at ASC
            LIMIT ?`,
         )
         .bind(limit)
         .all<{
           id: number;
-          apelido: string;
-          nome: string;
-          foto_url: string | null;
-          entregues: number | null;
-          reputacao: number | null;
+          handle: string;
+          name: string;
+          avatar_url: string | null;
+          delivered_count: number | null;
+          reputation: number | null;
           streak: number | null;
-          nota: number | null;
-          nivel: string | null;
+          rating: number | null;
+          tier: string | null;
         }>();
       return results.map((r) => ({
         id: Number(r.id),
-        handle: r.apelido,
-        level: (r.nivel as Tier) ?? "Aprendiz",
-        deliveredCount: Number(r.entregues ?? 0),
-        reputation: Number(r.reputacao ?? 0),
+        handle: r.handle,
+        level: (r.tier as Tier) ?? "Aprendiz",
+        deliveredCount: Number(r.delivered_count ?? 0),
+        reputation: Number(r.reputation ?? 0),
         streak: Number(r.streak ?? 0),
         // aliases
-        apelido: r.apelido,
-        nivel: (r.nivel as Tier) ?? "Aprendiz",
-        entregues: Number(r.entregues ?? 0),
-        reputacao: Number(r.reputacao ?? 0),
+        apelido: r.handle,
+        nivel: (r.tier as Tier) ?? "Aprendiz",
+        entregues: Number(r.delivered_count ?? 0),
+        reputacao: Number(r.reputation ?? 0),
       }));
     },
 
@@ -407,7 +407,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
       }
 
       await db
-        .prepare("UPDATE users SET disponibilidade = ? WHERE id = ?")
+        .prepare("UPDATE users SET availability = ? WHERE id = ?")
         .bind(JSON.stringify(grid.map((l: unknown[]) => l.map(Boolean))), userId)
         .run();
       return { ok: true };
@@ -416,76 +416,74 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
     async readCandidateOnboarding(userId) {
       const l = await db
         .prepare(
-          `SELECT nome, foto_url, cargo, disputa_por, ano_eleicao, localizacao,
-                  bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  perfil_completo, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor, whatsapp
+          `SELECT name, avatar_url, political_office, running_for, election_year, location,
+                  campaign_flags, communication_tone, keywords, social_links, bio,
+                  profile_completed, watermark, campaign_tax_id, candidate_number, voter_id, whatsapp
            FROM users WHERE id = ?`,
         )
         .bind(userId)
         .first<{
-          nome: string | null;
-          foto_url: string | null;
-          cargo: string | null;
-          disputa_por: string | null;
-          ano_eleicao: string | null;
-          localizacao: string | null;
-          bandeiras: string | null;
-          tom_comunicacao: string | null;
-          palavras_chave: string | null;
-          redes_sociais: string | null;
+          name: string | null;
+          avatar_url: string | null;
+          political_office: string | null;
+          running_for: string | null;
+          election_year: string | null;
+          location: string | null;
+          campaign_flags: string | null;
+          communication_tone: string | null;
+          keywords: string | null;
+          social_links: string | null;
           bio: string | null;
-          perfil_completo: number | null;
-          marca_dagua: string | null;
-          cnpj_campanha: string | null;
+          profile_completed: number | null;
+          watermark: string | null;
+          campaign_tax_id: string | null;
           candidate_number: string | null;
-          titulo_eleitor: string | null;
+          voter_id: string | null;
           whatsapp: string | null;
         }>();
       if (!l) return null;
       return {
-        name: l.nome ?? "",
-        avatarUrl: l.foto_url ?? "",
-        photoUrl: l.foto_url ?? "",
-        role: l.cargo ?? "",
-        politicalOffice: l.cargo ?? "",
-        runningFor: l.disputa_por ?? "",
-        electionYear: l.ano_eleicao ?? "2026",
-        location: l.localizacao ?? "",
-        causes: normalizeList(l.bandeiras),
-        campaignFlags: normalizeList(l.bandeiras),
-        communicationTone: l.tom_comunicacao ?? "",
-        keywords: normalizeList(l.palavras_chave),
-        socialLinks: normalizeSocialLinks(l.redes_sociais),
+        name: l.name ?? "",
+        avatarUrl: l.avatar_url ?? "",
+        photoUrl: l.avatar_url ?? "",
+        role: l.political_office ?? "",
+        politicalOffice: l.political_office ?? "",
+        runningFor: l.running_for ?? "",
+        electionYear: l.election_year ?? "2026",
+        location: l.location ?? "",
+        causes: normalizeList(l.campaign_flags),
+        campaignFlags: normalizeList(l.campaign_flags),
+        communicationTone: l.communication_tone ?? "",
+        keywords: normalizeList(l.keywords),
+        socialLinks: normalizeSocialLinks(l.social_links),
         bio: l.bio ?? "",
-        profileComplete: Boolean(l.perfil_completo),
-        profileCompleted: Boolean(l.perfil_completo),
-        watermark: l.marca_dagua ?? undefined,
-        campaignTaxId: l.cnpj_campanha ?? undefined,
+        profileComplete: Boolean(l.profile_completed),
+        profileCompleted: Boolean(l.profile_completed),
+        watermark: l.watermark ?? undefined,
+        campaignTaxId: l.campaign_tax_id ?? undefined,
         candidateNumber: l.candidate_number ?? undefined,
         whatsapp: l.whatsapp ?? undefined,
-        voterId: l.titulo_eleitor ?? undefined,
+        voterId: l.voter_id ?? undefined,
         // aliases
-        nome: l.nome ?? "",
-        fotoUrl: l.foto_url ?? "",
-        cargo: l.cargo ?? "",
-        disputaPor: l.disputa_por ?? "",
-        anoEleicao: l.ano_eleicao ?? "2026",
-        localizacao: l.localizacao ?? "",
-        bandeiras: normalizeList(l.bandeiras),
-        tomComunicacao: l.tom_comunicacao ?? "",
-        palavrasChave: normalizeList(l.palavras_chave),
-        redes: normalizeSocialLinks(l.redes_sociais),
-        perfilCompleto: Boolean(l.perfil_completo),
-        marcaDagua: l.marca_dagua ?? undefined,
-        cnpjCampanha: l.cnpj_campanha ?? undefined,
+        nome: l.name ?? "",
+        fotoUrl: l.avatar_url ?? "",
+        cargo: l.political_office ?? "",
+        disputaPor: l.running_for ?? "",
+        anoEleicao: l.election_year ?? "2026",
+        localizacao: l.location ?? "",
+        bandeiras: normalizeList(l.campaign_flags),
+        tomComunicacao: l.communication_tone ?? "",
+        palavrasChave: normalizeList(l.keywords),
+        redes: normalizeSocialLinks(l.social_links),
+        perfilCompleto: Boolean(l.profile_completed),
+        marcaDagua: l.watermark ?? undefined,
+        cnpjCampanha: l.campaign_tax_id ?? undefined,
         numeroEleitoral: l.candidate_number ?? undefined,
-        tituloEleitor: l.titulo_eleitor ?? undefined,
+        tituloEleitor: l.voter_id ?? undefined,
       };
     },
 
     async saveCandidateOnboarding(userId, data) {
-      // Mesma regra do PostgreSQL: nome oficial, número na urna e CNPJ da
-      // campanha viram a tarja de propaganda, que é obrigação legal.
       const identity = validateCampaignIdentity({
         officialName: data.name ?? data.nome ?? "",
         candidateNumber: data.candidateNumber ?? data.numeroEleitoral ?? "",
@@ -530,23 +528,23 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
       await db
         .prepare(
           `UPDATE users SET
-             nome = ?,
-             foto_url = ?,
-             cargo = ?,
-             disputa_por = ?,
-             ano_eleicao = ?,
-             localizacao = ?,
-             bandeiras = ?,
-             tom_comunicacao = ?,
-             palavras_chave = ?,
-             redes_sociais = ?,
+             name = ?,
+             avatar_url = ?,
+             political_office = ?,
+             running_for = ?,
+             election_year = ?,
+             location = ?,
+             campaign_flags = ?,
+             communication_tone = ?,
+             keywords = ?,
+             social_links = ?,
              bio = ?,
-             marca_dagua = ?,
-             cnpj_campanha = ?,
+             watermark = ?,
+             campaign_tax_id = ?,
              candidate_number = ?,
              whatsapp = ?,
-             titulo_eleitor = ?,
-             perfil_completo = 1
+             voter_id = ?,
+             profile_completed = 1
            WHERE id = ?`,
         )
         .bind(
@@ -576,78 +574,78 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
     async readOwnCandidate(userId) {
       const l = await db
         .prepare(
-          `SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
-                  localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  criado_em, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
+          `SELECT id, handle, name, avatar_url, political_office, running_for, election_year,
+                  location, campaign_flags, communication_tone, keywords, social_links, bio,
+                  created_at, watermark, campaign_tax_id, candidate_number, voter_id
            FROM users
            WHERE id = ?`,
         )
         .bind(userId)
         .first<{
           id: number;
-          apelido: string;
-          nome: string;
-          foto_url: string | null;
-          cargo: string | null;
-          disputa_por: string | null;
-          ano_eleicao: string | null;
-          localizacao: string | null;
-          bandeiras: string | null;
-          tom_comunicacao: string | null;
-          palavras_chave: string | null;
-          redes_sociais: string | null;
+          handle: string;
+          name: string;
+          avatar_url: string | null;
+          political_office: string | null;
+          running_for: string | null;
+          election_year: string | null;
+          location: string | null;
+          campaign_flags: string | null;
+          communication_tone: string | null;
+          keywords: string | null;
+          social_links: string | null;
           bio: string | null;
-          criado_em: string;
-          marca_dagua: string | null;
-          cnpj_campanha: string | null;
+          created_at: string;
+          watermark: string | null;
+          campaign_tax_id: string | null;
           candidate_number: string | null;
-          titulo_eleitor: string | null;
+          voter_id: string | null;
         }>();
       if (!l) return null;
       return rowToCandidate({
         ...l,
-        bandeiras: normalizeList(l.bandeiras),
-        palavras_chave: normalizeList(l.palavras_chave),
-        redes_sociais: normalizeSocialLinks(l.redes_sociais),
+        campaign_flags: normalizeList(l.campaign_flags),
+        keywords: normalizeList(l.keywords),
+        social_links: normalizeSocialLinks(l.social_links),
       });
     },
 
     async readPublicCandidate(slug) {
       const l = await db
         .prepare(
-          `SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
-                  localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  criado_em, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
+          `SELECT id, handle, name, avatar_url, political_office, running_for, election_year,
+                  location, campaign_flags, communication_tone, keywords, social_links, bio,
+                  created_at, watermark, campaign_tax_id, candidate_number, voter_id
            FROM users
-           WHERE lower(apelido) = lower(?) AND papel IN ('voz', 'spokesperson') AND perfil_completo = 1 AND banido = 0`,
+           WHERE lower(handle) = lower(?) AND role IN ('voz', 'spokesperson') AND profile_completed = 1 AND is_banned = 0`,
         )
         .bind(slug.trim())
         .first<{
           id: number;
-          apelido: string;
-          nome: string;
-          foto_url: string | null;
-          cargo: string | null;
-          disputa_por: string | null;
-          ano_eleicao: string | null;
-          localizacao: string | null;
-          bandeiras: string | null;
-          tom_comunicacao: string | null;
-          palavras_chave: string | null;
-          redes_sociais: string | null;
+          handle: string;
+          name: string;
+          avatar_url: string | null;
+          political_office: string | null;
+          running_for: string | null;
+          election_year: string | null;
+          location: string | null;
+          campaign_flags: string | null;
+          communication_tone: string | null;
+          keywords: string | null;
+          social_links: string | null;
           bio: string | null;
-          criado_em: string;
-          marca_dagua: string | null;
-          cnpj_campanha: string | null;
+          created_at: string;
+          watermark: string | null;
+          campaign_tax_id: string | null;
           candidate_number: string | null;
-          titulo_eleitor: string | null;
+          voter_id: string | null;
         }>();
       if (!l) return null;
       return rowToCandidate({
         ...l,
-        bandeiras: normalizeList(l.bandeiras),
-        palavras_chave: normalizeList(l.palavras_chave),
-        redes_sociais: normalizeSocialLinks(l.redes_sociais),
+        campaign_flags: normalizeList(l.campaign_flags),
+        keywords: normalizeList(l.keywords),
+        social_links: normalizeSocialLinks(l.social_links),
       });
     },
 
@@ -656,43 +654,43 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
       const placeholders = handles.map(() => "?").join(",");
       const { results } = await db
         .prepare(
-          `SELECT id, apelido, nome, foto_url, cargo, disputa_por, ano_eleicao,
-                  localizacao, bandeiras, tom_comunicacao, palavras_chave, redes_sociais, bio,
-                  criado_em, marca_dagua, cnpj_campanha, candidate_number, titulo_eleitor
+          `SELECT id, handle, name, avatar_url, political_office, running_for, election_year,
+                  location, campaign_flags, communication_tone, keywords, social_links, bio,
+                  created_at, watermark, campaign_tax_id, candidate_number, voter_id
            FROM users
-           WHERE apelido IN (${placeholders})`,
+           WHERE handle IN (${placeholders})`,
         )
         .bind(...handles)
         .all<{
           id: number;
-          apelido: string;
-          nome: string;
-          foto_url: string | null;
-          cargo: string | null;
-          disputa_por: string | null;
-          ano_eleicao: string | null;
-          localizacao: string | null;
-          bandeiras: string | null;
-          tom_comunicacao: string | null;
-          palavras_chave: string | null;
-          redes_sociais: string | null;
+          handle: string;
+          name: string;
+          avatar_url: string | null;
+          political_office: string | null;
+          running_for: string | null;
+          election_year: string | null;
+          location: string | null;
+          campaign_flags: string | null;
+          communication_tone: string | null;
+          keywords: string | null;
+          social_links: string | null;
           bio: string | null;
-          criado_em: string;
-          marca_dagua: string | null;
-          cnpj_campanha: string | null;
+          created_at: string;
+          watermark: string | null;
+          campaign_tax_id: string | null;
           candidate_number: string | null;
-          titulo_eleitor: string | null;
+          voter_id: string | null;
         }>();
 
       const map = new Map<string, Candidate>();
       for (const r of results) {
         map.set(
-          r.apelido,
+          r.handle,
           rowToCandidate({
             ...r,
-            bandeiras: normalizeList(r.bandeiras),
-            palavras_chave: normalizeList(r.palavras_chave),
-            redes_sociais: normalizeSocialLinks(r.redes_sociais),
+            campaign_flags: normalizeList(r.campaign_flags),
+            keywords: normalizeList(r.keywords),
+            social_links: normalizeSocialLinks(r.social_links),
           }),
         );
       }

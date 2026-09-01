@@ -20,9 +20,12 @@ const RETRY_BACKOFF_MINUTES = 5;
 
 export type QueuedEmail = {
   id: number;
+  recipient: string;
+  subject: string;
+  html: string;
+  attempts: number;
   destinatario: string;
   assunto: string;
-  html: string;
   tentativas: number;
 };
 
