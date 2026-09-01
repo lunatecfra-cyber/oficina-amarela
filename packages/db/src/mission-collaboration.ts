@@ -152,7 +152,10 @@ export const postgresMissionCollaboration: MissionCollaborationRepository = {
       WHERE m.pauta_id = ANY(${missionIds})
       ORDER BY m.criada_em ASC, m.id ASC`;
     for (const row of rows as unknown as MessageRow[]) {
-      (messages[row.pauta_id] ??= []).push(rowToMessage(row));
+      if (!messages[row.pauta_id]) {
+        messages[row.pauta_id] = [];
+      }
+      messages[row.pauta_id].push(rowToMessage(row));
     }
     return { ok: true, messages };
   },

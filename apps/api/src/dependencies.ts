@@ -3,6 +3,7 @@ import { type AdminRepository, postgresAdmin } from "@oficina/db/admin";
 import { createD1Accounts } from "@oficina/db/d1/accounts";
 import { createD1Admin } from "@oficina/db/d1/admin";
 import { createD1Gamification } from "@oficina/db/d1/gamification";
+import { instrumentD1Database } from "@oficina/db/d1/instrumentation";
 import { createD1InvitationAdmin } from "@oficina/db/d1/invitation-admin";
 import { createD1InvitationRedemption } from "@oficina/db/d1/invitation-redemption";
 import { createD1MissionApproval } from "@oficina/db/d1/mission-approval";
@@ -105,7 +106,8 @@ export const postgresApiDependencies: ApiDependencies = {
  * D1, a gamificação somaria no PostgreSQL — e nenhum dos dois estaria certo.
  * Por isso a escolha é do conjunto inteiro, não de uma fatia por vez.
  */
-export function d1ApiDependencies(db: D1DatabaseLike): ApiDependencies {
+export function d1ApiDependencies(rawDb: D1DatabaseLike): ApiDependencies {
+  const db = instrumentD1Database(rawDb);
   const d1Gamification = createD1Gamification(db);
   return {
     accounts: createD1Accounts(db),

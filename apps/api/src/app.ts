@@ -1,5 +1,6 @@
 import { configureDatabaseUrl, withRequestDatabase } from "@oficina/db/client";
 import { createD1EmailQueueSource } from "@oficina/db/d1/email-queue";
+import { D1MetricsCollector, runWithD1Metrics } from "@oficina/db/d1/instrumentation";
 import { createD1SessionRevocationSource } from "@oficina/db/d1/session-revocation";
 import {
   configureEmailQueueSource,
@@ -23,6 +24,7 @@ import { createMissionLifecycleRoutes } from "./routes/mission-lifecycle.ts";
 import { createMissionsCrudRoutes } from "./routes/missions-crud.ts";
 import { createProfileRoutes } from "./routes/profiles.ts";
 import { createRankingRoutes } from "./routes/ranking.ts";
+import { type AnalyticsEngineDataset, recordApiTelemetry } from "./telemetry.ts";
 
 /**
  * Fronteira HTTP da API.
@@ -50,6 +52,9 @@ export type Bindings = {
     idFromName(name: string): unknown;
     get(id: unknown): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
   };
+  TELEMETRY?: AnalyticsEngineDataset;
+  ANALYTICS?: AnalyticsEngineDataset;
+  PUBLIC_ORIGIN?: string;
 };
 
 export type Variables = {
@@ -100,9 +105,23 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
     configureRuntimeBindings(c.env);
 
     const startedAt = Date.now();
-    // Cada requisição roda com o seu próprio cliente PostgreSQL: no workerd um
-    // socket não atravessa requisições. Ver withRequestDatabase.
-    await withRequestDatabase(() => next());
+    const collector = new D1MetricsCollector();
+
+    // Cada requisição roda com o seu próprio cliente PostgreSQL e coletor D1:
+    // no workerd um socket não atravessa requisições.
+    await runWithD1Metrics(collector, () => withRequestDatabase(() => next()));
+
+    const durationMs = Date.now() - startedAt;
+    const d1Summary = collector.getSummary();
+
+    if (d1Summary.queries > 0) {
+      c.header("x-d1-queries", String(d1Summary.queries));
+      c.header("x-d1-rows-read", String(d1Summary.rowsRead));
+      c.header("x-d1-rows-written", String(d1Summary.rowsWritten));
+      c.header("server-timing", `total;dur=${durationMs}, db;dur=${d1Summary.durationMs}`);
+    } else {
+      c.header("server-timing", `total;dur=${durationMs}`);
+    }
 
     console.log(
       JSON.stringify({
@@ -110,9 +129,19 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
         method: c.req.method,
         path: c.req.path,
         status: c.res.status,
-        durationMs: Date.now() - startedAt,
+        durationMs,
+        ...(d1Summary.queries > 0 ? { d1: d1Summary } : {}),
       }),
     );
+
+    recordApiTelemetry(c.env?.TELEMETRY ?? c.env?.ANALYTICS, {
+      requestId,
+      method: c.req.method,
+      path: c.req.path,
+      status: c.res.status,
+      durationMs,
+      d1: d1Summary,
+    });
   });
 
   app.get("/health", (c) => c.json({ ok: true, service: "oficina-amarela-api" }));

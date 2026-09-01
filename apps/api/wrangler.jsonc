@@ -70,7 +70,8 @@
         {
           "binding": "DB",
           "database_name": "oficina-amarela-staging",
-          "database_id": "b667d137-ff01-41a5-bd57-bb3399e9cc5a"
+          "database_id": "b667d137-ff01-41a5-bd57-bb3399e9cc5a",
+          "migrations_dir": "../../packages/db/d1"
         }
       ],
 
@@ -132,7 +133,8 @@
         {
           "binding": "DB",
           "database_name": "oficina-amarela",
-          "database_id": "a9ac89e5-38e9-4788-b8da-be8c79f40100"
+          "database_id": "a9ac89e5-38e9-4788-b8da-be8c79f40100",
+          "migrations_dir": "../../packages/db/d1"
         }
       ],
 

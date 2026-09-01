@@ -98,7 +98,10 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
           .bind(...chunk)
           .all<MessageRow>();
         for (const row of rows.results) {
-          (messages[row.pauta_id] ??= []).push(rowToMessage(row));
+          if (!messages[row.pauta_id]) {
+            messages[row.pauta_id] = [];
+          }
+          messages[row.pauta_id].push(rowToMessage(row));
         }
       }
       return { ok: true as const, messages };
