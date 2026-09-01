@@ -58,3 +58,7 @@ dist/
 # Segredos locais do Worker (wrangler dev). Nunca versionar.
 .dev.vars
 .dev.vars.*
+
+# Gerados pelo `next dev` a cada arranque (agentRules do next.config).
+apps/web/AGENTS.md
+apps/web/CLAUDE.md
