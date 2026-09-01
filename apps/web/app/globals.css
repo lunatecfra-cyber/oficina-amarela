@@ -340,12 +340,12 @@ body {
    A ordem é a de leitura: selo, marca, nome, frase, botão. */
 
 /* o selo desce de cima, curtinho — é a primeira coisa e não pode demorar */
-.entra-selo {
+.enter-seal {
   opacity: 0;
-  animation: selo-desce 0.55s var(--ease-guild) 0.05s forwards;
+  animation: seal-drop 0.55s var(--ease-guild) 0.05s forwards;
 }
 
-@keyframes selo-desce {
+@keyframes seal-drop {
   from {
     opacity: 0;
     transform: translateY(-10px);
@@ -358,12 +358,12 @@ body {
 
 /* A onça se materializa: vem menor e desfocada, como se ganhasse forma. O
    pequeno passo além de 1 no fim dá o peso de algo que assentou no lugar. */
-.entra-marca {
+.enter-brand {
   opacity: 0;
-  animation: marca-forma 1s var(--ease-guild) 0.15s forwards;
+  animation: brand-form 1s var(--ease-guild) 0.15s forwards;
 }
 
-@keyframes marca-forma {
+@keyframes brand-form {
   from {
     opacity: 0;
     transform: scale(0.84);
@@ -383,10 +383,10 @@ body {
 
 /* As duas linhas do nome entram em sequência, com um respiro entre elas: o
    olho lê OFICINA e AMARELA em vez de receber o bloco pronto. */
-.entra-linha {
+.enter-line {
   display: block;
   opacity: 0;
-  animation: linha-sobe 0.7s var(--ease-guild) forwards;
+  animation: line-rise 0.7s var(--ease-guild) forwards;
   animation-delay: var(--linha-atraso, 0ms);
 }
 
@@ -394,7 +394,7 @@ body {
    mesmo lugar, mas `translateY(0)` com `forwards` deixa uma matriz viva no
    elemento pra sempre, e com ela uma camada de composição que não serve pra
    nada depois que a animação acabou. */
-@keyframes linha-sobe {
+@keyframes line-rise {
   from {
     opacity: 0;
     transform: translateY(18px);
@@ -413,8 +413,8 @@ body {
    garante que nada quebra. */
 @supports (animation-timeline: scroll()) {
   @media (prefers-reduced-motion: no-preference) {
-    .profundidade {
-      animation: sobe-devagar linear both;
+    .depth {
+      animation: rise-slow linear both;
       /* `root`, e não o padrão: sem isso o navegador procura o container de
          rolagem mais próximo, não acha nenhum (quem rola aqui é a página) e a
          animação fica parada em zero — testado, o deslocamento não saía do
@@ -425,7 +425,7 @@ body {
   }
 }
 
-@keyframes sobe-devagar {
+@keyframes rise-slow {
   to {
     transform: translateY(-38px);
   }
@@ -433,11 +433,11 @@ body {
 
 /* A onça respira: escala quase imperceptível, bem devagar. É o que separa
    "logo colada na tela" de "marca viva" sem virar animação de banner. */
-.respira {
-  animation: respiro 7s ease-in-out infinite;
+.breathe {
+  animation: breath 7s ease-in-out infinite;
 }
 
-@keyframes respiro {
+@keyframes breath {
   0%,
   100% {
     transform: scale(1);
@@ -450,7 +450,7 @@ body {
 /* Brilho que atravessa o botão principal — só quando o mouse chega perto.
    Não é decoração solta: este é o único caminho da abertura, e o reflexo
    confirma que ele responde. */
-.btn-brilho::before {
+.btn-glint::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -466,7 +466,7 @@ body {
   pointer-events: none;
 }
 
-.btn-brilho:hover::before {
+.btn-glint:hover::before {
   transform: translateX(130%);
 }
 
@@ -520,46 +520,46 @@ body {
    Cartas de entrada — flip 3D + tilt no hover
    ──────────────────────────────────────────────────────────── */
 
-.carta-perspective {
+.card-perspective {
   perspective: 1200px;
   aspect-ratio: 3 / 4;
 }
 
-.carta {
+.card {
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.9s var(--ease-guild);
 }
 
-.carta.virada {
+.card.flipped {
   transform: rotateY(180deg);
 }
 
 /* hover 3D: inclinação dinâmica (CSS custom properties setadas via JS) */
-.carta.virada {
+.card.flipped {
   transition:
     transform 0.9s var(--ease-guild),
     box-shadow 0.35s var(--ease-guild);
 }
 
-.carta.virada:hover {
+.card.flipped:hover {
   transform: rotateY(calc(180deg + var(--ry, 0deg))) rotateX(var(--rx, 0deg));
 }
 
-.carta-frente,
-.carta-verso {
+.card-front,
+.card-back {
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 
-.carta-frente {
+.card-front {
   transform: rotateY(180deg);
 }
 
 /* borda ornamental decorativa (verso da carta) */
-.carta-borda {
+.card-border {
   position: relative;
   border: 1px solid var(--color-gold-lo);
   border-radius: 1rem;
@@ -570,8 +570,8 @@ body {
 }
 
 /* cantoneiras douradas decorativas */
-.carta-borda::before,
-.carta-borda::after {
+.card-border::before,
+.card-border::after {
   content: "";
   position: absolute;
   inset: 6px;
@@ -581,21 +581,21 @@ body {
 }
 
 /* selo central do verso — brilho pulsante */
-.carta-selo {
+.card-seal {
   position: relative;
 }
 
-.carta-selo::after {
+.card-seal::after {
   content: "";
   position: absolute;
   inset: -8px;
   border-radius: 50%;
   border: 1px solid rgba(244, 206, 31, 0.12);
-  animation: selo-pulse 2.5s var(--ease-guild) infinite;
+  animation: seal-pulse 2.5s var(--ease-guild) infinite;
 }
 
 /* linha decorativa vertical no verso (entre selo e texto) */
-.carta-verso-linha {
+.card-back-line {
   position: absolute;
   bottom: 20%;
   left: 50%;
@@ -606,7 +606,7 @@ body {
 }
 
 /* brilho que varre a carta ao hover (frente) */
-.carta-brilho {
+.card-glow {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -614,7 +614,7 @@ body {
   pointer-events: none;
 }
 
-.carta-brilho::after {
+.card-glow::after {
   content: "";
   position: absolute;
   inset: -60% -40%;
@@ -628,17 +628,17 @@ body {
   transition: transform 0.75s var(--ease-guild);
 }
 
-.carta.virada:hover .carta-brilho::after {
+.card.flipped:hover .card-glow::after {
   transform: translateX(140%);
 }
 
 /* glint sweep no botão CTA da carta */
-.carta-cta {
+.card-cta {
   position: relative;
   overflow: hidden;
 }
 
-.carta-cta::after {
+.card-cta::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -648,11 +648,11 @@ body {
   pointer-events: none;
 }
 
-.carta-cta:hover::after {
+.card-cta:hover::after {
   transform: translateX(100%);
 }
 
-@keyframes selo-pulse {
+@keyframes seal-pulse {
   0%,
   100% {
     transform: scale(1);
@@ -665,7 +665,7 @@ body {
 }
 
 /* micro-animação: itens de responsabilidade surgem após o flip */
-@keyframes carta-item-in {
+@keyframes card-item-in {
   from {
     opacity: 0;
     transform: translateY(6px);
@@ -676,9 +676,9 @@ body {
   }
 }
 
-.carta.virada .carta-item-stagger {
+.card.flipped .card-item-stagger {
   opacity: 0;
-  animation: carta-item-in 0.4s var(--ease-guild) forwards;
+  animation: card-item-in 0.4s var(--ease-guild) forwards;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -688,7 +688,7 @@ body {
 /* o recorte de luz: a sombra gigante escurece TUDO menos o retângulo do
    alvo. Um overlay com furo de verdade daria quatro divs e um bug de
    arredondamento em cada canto. */
-.guia-foco {
+.guide-focus {
   position: fixed;
   z-index: 60;
   border-radius: 14px;
@@ -704,13 +704,13 @@ body {
     height 0.32s var(--ease-guild);
 }
 
-.guia-balao {
+.guide-bubble {
   position: fixed;
   z-index: 61;
-  animation: guia-balao-in 0.28s var(--ease-guild) both;
+  animation: guide-bubble-in 0.28s var(--ease-guild) both;
 }
 
-@keyframes guia-balao-in {
+@keyframes guide-bubble-in {
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.98);
@@ -722,7 +722,7 @@ body {
 }
 
 /* a setinha que liga o balão ao alvo */
-.guia-bico {
+.guide-pointer {
   position: absolute;
   width: 12px;
   height: 12px;
@@ -731,13 +731,13 @@ body {
   border: 1px solid var(--color-gold-lo);
 }
 
-.guia-bico[data-lado="cima"] {
+.guide-pointer[data-side="top"] {
   bottom: -7px;
   border-top: 0;
   border-left: 0;
 }
 
-.guia-bico[data-lado="baixo"] {
+.guide-pointer[data-side="bottom"] {
   top: -7px;
   border-bottom: 0;
   border-right: 0;
@@ -761,14 +761,14 @@ body {
   background: #101014;
 }
 
-.cast-cena {
+.cast-scene {
   position: absolute;
   inset: 0;
   opacity: 0;
-  animation: cast-cena 15s linear infinite;
+  animation: cast-scene 15s linear infinite;
 }
 
-@keyframes cast-cena {
+@keyframes cast-scene {
   0%,
   0.5% {
     opacity: 0;
@@ -785,7 +785,7 @@ body {
 
 /* a janelinha do Drive: clara de propósito — quem olha tem que entender
    na hora que aquilo é o Google, não a Oficina */
-.cast-janela {
+.cast-window {
   position: absolute;
   /* a faixa de baixo é da legenda: com `inset: 10px` a janela cobria o texto
      e a explicação de cada passo ficava ilegível atrás do branco */
@@ -798,7 +798,7 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
-.cast-barra {
+.cast-bar {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -808,7 +808,7 @@ body {
   color: #444746;
 }
 
-.cast-linha {
+.cast-line {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -816,7 +816,7 @@ body {
   border-bottom: 1px solid #f1f1f3;
 }
 
-.cast-linha--alvo {
+.cast-line--target {
   background: #e8f0fe;
 }
 
@@ -833,12 +833,12 @@ body {
 }
 
 /* menus e diálogos entram um instante depois do clique */
-.cast-surge {
-  animation: cast-surge 15s linear infinite;
+.cast-emerge {
+  animation: cast-emerge 15s linear infinite;
   opacity: 0;
 }
 
-@keyframes cast-surge {
+@keyframes cast-emerge {
   0%,
   7% {
     opacity: 0;
@@ -856,7 +856,7 @@ body {
 }
 
 /* cena 2: o cursor desce até o arquivo */
-@keyframes cast-ate-arquivo {
+@keyframes cast-to-file {
   0% {
     left: 60%;
     top: 22%;
@@ -869,7 +869,7 @@ body {
 }
 
 /* cena 3: vai até o seletor de acesso */
-@keyframes cast-ate-acesso {
+@keyframes cast-to-access {
   0% {
     left: 30%;
     top: 30%;
@@ -882,7 +882,7 @@ body {
 }
 
 /* cena 4: vai até "Copiar link" */
-@keyframes cast-ate-copiar {
+@keyframes cast-to-copy {
   0% {
     left: 25%;
     top: 45%;
@@ -894,7 +894,7 @@ body {
   }
 }
 
-.cast-legenda {
+.cast-caption {
   position: absolute;
   left: 0;
   right: 0;
@@ -907,19 +907,19 @@ body {
   text-align: center;
 }
 
-.cast-legenda b {
+.cast-caption b {
   color: var(--color-gold);
   font-weight: 600;
 }
 
 /* a régua de progresso: cinco tracinhos, o da vez acende */
-.cast-regua {
+.cast-ruler {
   display: flex;
   gap: 4px;
   margin-top: 8px;
 }
 
-.cast-tic {
+.cast-tick {
   height: 3px;
   flex: 1;
   border-radius: 999px;
@@ -929,7 +929,7 @@ body {
 
 /* o preenchimento é um filho de verdade, não um ::after: o atraso de cada
    tracinho vem inline do componente, e pseudo-elemento não recebe style */
-.cast-tic > span {
+.cast-tick > span {
   display: block;
   height: 100%;
   width: 100%;
@@ -937,10 +937,10 @@ body {
   background: var(--color-gold);
   transform: scaleX(0);
   transform-origin: left;
-  animation: cast-tic 15s linear infinite;
+  animation: cast-tick 15s linear infinite;
 }
 
-@keyframes cast-tic {
+@keyframes cast-tick {
   0% {
     transform: scaleX(0);
   }
@@ -954,16 +954,16 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cast-cena,
+  .cast-scene,
   .cast-cursor,
-  .cast-surge,
-  .cast-tic > span {
+  .cast-emerge,
+  .cast-tick > span {
     animation: none !important;
   }
 
   /* sem movimento sobra a última cena, que é o resultado */
-  .cast-cena:last-of-type,
-  .cast-surge {
+  .cast-scene:last-of-type,
+  .cast-emerge {
     opacity: 1;
   }
 }
@@ -973,7 +973,7 @@ body {
    cena, é o MESMO keyframe com atraso negativo — a cena 2 entra no ciclo
    já rodado até o ponto dela. Menos CSS e nenhum risco de as cenas
    saírem de sincronia entre si. */
-.guia-palco {
+.guide-stage {
   position: relative;
   height: 116px;
   overflow: hidden;
@@ -982,7 +982,7 @@ body {
   background: linear-gradient(160deg, #101014, #08080a);
 }
 
-.guia-cena {
+.guide-scene {
   position: absolute;
   inset: 0;
   display: flex;
@@ -994,7 +994,7 @@ body {
   opacity: 0;
 }
 
-@keyframes guia-cena-4 {
+@keyframes guide-scene-4 {
   0%,
   1% {
     opacity: 0;
@@ -1012,7 +1012,7 @@ body {
   }
 }
 
-@keyframes guia-cena-3 {
+@keyframes guide-scene-3 {
   0%,
   1% {
     opacity: 0;
@@ -1030,20 +1030,20 @@ body {
   }
 }
 
-.guia-palco[data-cenas="4"] .guia-cena {
-  animation: guia-cena-4 9.6s linear infinite;
+.guide-stage[data-scenes="4"] .guide-scene {
+  animation: guide-scene-4 9.6s linear infinite;
 }
 
-.guia-palco[data-cenas="3"] .guia-cena {
-  animation: guia-cena-3 7.2s linear infinite;
+.guide-stage[data-scenes="3"] .guide-scene {
+  animation: guide-scene-3 7.2s linear infinite;
 }
 
 /* o dedo que toca o botão dentro da cena */
-.guia-toque {
-  animation: guia-toque 9.6s linear infinite;
+.guide-tap {
+  animation: guide-tap 9.6s linear infinite;
 }
 
-@keyframes guia-toque {
+@keyframes guide-tap {
   0%,
   8% {
     transform: translate(8px, 10px) scale(0.9);
@@ -1061,24 +1061,24 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .guia-foco {
+  .guide-focus {
     transition: none;
   }
 
-  .guia-balao {
+  .guide-bubble {
     animation: none;
   }
 
   /* sem movimento, a demonstração vira uma figura só: o resultado */
-  .guia-cena {
+  .guide-scene {
     animation: none !important;
   }
 
-  .guia-cena:last-child {
+  .guide-scene:last-child {
     opacity: 1;
   }
 
-  .guia-toque {
+  .guide-tap {
     animation: none;
     opacity: 1;
   }
@@ -1094,25 +1094,25 @@ body {
   }
 
   /* a onça fica parada */
-  .respira {
+  .breathe {
     animation: none;
   }
 
   /* a abertura aparece montada, sem a cena se armando */
-  .entra-selo,
-  .entra-marca,
-  .entra-linha {
+  .enter-seal,
+  .enter-brand,
+  .enter-line {
     animation: none;
     opacity: 1;
     transform: none;
     filter: none;
   }
 
-  .profundidade {
+  .depth {
     animation: none;
   }
 
-  .btn-brilho::before {
+  .btn-glint::before {
     display: none;
   }
 
@@ -1120,27 +1120,27 @@ body {
     transition: none;
   }
 
-  .carta {
+  .card {
     transition: none;
   }
 
-  .carta.virada {
+  .card.flipped {
     transition: none;
   }
 
-  .carta-selo::after {
+  .card-seal::after {
     animation: none;
   }
 
-  .carta-brilho::after {
+  .card-glow::after {
     transition: none;
   }
 
-  .carta-cta::after {
+  .card-cta::after {
     transition: none;
   }
 
-  .carta-item-stagger {
+  .card-item-stagger {
     animation: none;
     opacity: 1;
   }

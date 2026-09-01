@@ -14,7 +14,10 @@ function Scene({
   children: React.ReactNode;
 }) {
   return (
-    <div className="guia-cena" style={{ animationDelay: `${-(cycle - (cycle / total) * index)}s` }}>
+    <div
+      className="guide-scene"
+      style={{ animationDelay: `${-(cycle - (cycle / total) * index)}s` }}
+    >
       {children}
     </div>
   );
@@ -51,7 +54,7 @@ function FakeButton({ text, withFinger }: { text: string; withFinger?: boolean }
     <span className="relative inline-flex items-center rounded-lg bg-gradient-to-b from-gold-hi to-gold-lo px-3 py-1.5 text-[11px] font-semibold text-black/80">
       {text}
       {withFinger && (
-        <span aria-hidden="true" className="guia-toque absolute -bottom-3 -right-3 text-base">
+        <span aria-hidden="true" className="guide-tap absolute -bottom-3 -right-3 text-base">
           👆
         </span>
       )}
@@ -99,7 +102,7 @@ export function GuideDemo({
   if (effectiveType === "drive") {
     const c = CYCLE.drive;
     return (
-      <div className="guia-palco mt-3" data-cenas="4" aria-hidden="true">
+      <div className="guide-stage mt-3" data-scenes="4" aria-hidden="true">
         <Scene index={0} total={4} cycle={c}>
           <Folder label="Brutos da semana" />
           <Caption n={1}>Suba o vídeo na sua pasta do Drive</Caption>
@@ -122,7 +125,7 @@ export function GuideDemo({
 
   const c = CYCLE.delivery;
   return (
-    <div className="guia-palco mt-3" data-cenas="3" aria-hidden="true">
+    <div className="guide-stage mt-3" data-scenes="3" aria-hidden="true">
       <Scene index={0} total={3} cycle={c}>
         <Folder label="Meus vídeos prontos" />
         <Caption n={1}>O vídeo pronto sobe no SEU Drive</Caption>

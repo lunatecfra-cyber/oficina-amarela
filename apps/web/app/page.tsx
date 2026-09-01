@@ -1,4 +1,4 @@
-import { NOVIDADES, shortDate } from "@oficina/domain/news";
+import { NEWS_ARTICLES, shortDate } from "@oficina/domain/news";
 import Image from "next/image";
 import Link from "next/link";
 import { FestivalAwards } from "@/components/festival-awards";
@@ -76,7 +76,7 @@ export default async function Home() {
           title: n.title,
           text: n.text,
         }))
-      : NOVIDADES.slice(0, 4).map((n) => ({
+      : NEWS_ARTICLES.slice(0, 4).map((n) => ({
           date: n.data,
           title: n.titulo,
           text: n.texto,
@@ -97,7 +97,7 @@ export default async function Home() {
         <MouseGlow />
 
         <div className="relative mx-auto w-full max-w-5xl">
-          <span className="entra-selo mx-auto flex w-fit items-center gap-2 rounded-full border border-gold-lo/40 bg-gold/[0.07] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-gold-hi">
+          <span className="enter-seal mx-auto flex w-fit items-center gap-2 rounded-full border border-gold-lo/40 bg-gold/[0.07] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-gold-hi">
             <span aria-hidden="true" className="text-gold">
               ✦
             </span>
@@ -105,8 +105,8 @@ export default async function Home() {
           </span>
 
           <div className="mt-8 flex flex-col items-center gap-5 sm:flex-row sm:justify-center sm:gap-8 lg:gap-10">
-            <div className="profundidade relative flex-none">
-              <div className="respira" style={{ willChange: "transform" }}>
+            <div className="depth relative flex-none">
+              <div className="breathe" style={{ willChange: "transform" }}>
                 <div
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-0 -m-8"
@@ -122,7 +122,7 @@ export default async function Home() {
                   width={365}
                   height={365}
                   priority
-                  className="entra-marca relative w-36 select-none sm:w-44 lg:w-60"
+                  className="enter-brand relative w-36 select-none sm:w-44 lg:w-60"
                 />
               </div>
             </div>
@@ -135,13 +135,13 @@ export default async function Home() {
                   ocupava o espaço, herdava o preenchimento transparente e nunca
                   era pintado. Recorte e texto precisam morar no mesmo elemento. */}
               <span
-                className="entra-linha text-gold-grad"
+                className="enter-line text-gold-grad"
                 style={{ "--linha-atraso": "340ms" } as React.CSSProperties}
               >
                 OFICINA
               </span>
               <span
-                className="entra-linha text-gold-grad"
+                className="enter-line text-gold-grad"
                 style={{ "--linha-atraso": "460ms" } as React.CSSProperties}
               >
                 AMARELA
@@ -163,7 +163,7 @@ export default async function Home() {
           >
             <Link
               href="/criar-conta"
-              className="btn-gold btn-brilho w-full overflow-hidden text-center text-lg flex items-center justify-center"
+              className="btn-gold btn-glint w-full overflow-hidden text-center text-lg flex items-center justify-center"
             >
               Criar minha conta
             </Link>

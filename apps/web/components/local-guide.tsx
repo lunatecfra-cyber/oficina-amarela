@@ -1,6 +1,11 @@
 "use client";
 
-import { type GuideStep, getRouteGuide, type RouteScript, seenKey } from "@oficina/domain/guide";
+import {
+  type GuideStep,
+  getRouteGuide,
+  type RouteScript,
+  viewedGuideKey,
+} from "@oficina/domain/guide";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -54,7 +59,7 @@ export function LocalGuide() {
     setPos(null);
     if (script) {
       try {
-        localStorage.setItem(seenKey(script), "1");
+        localStorage.setItem(viewedGuideKey(script), "1");
       } catch {
         // storage blocked
       }
@@ -65,7 +70,7 @@ export function LocalGuide() {
     if (!script) return;
     let seen = true;
     try {
-      seen = localStorage.getItem(seenKey(script)) === "1";
+      seen = localStorage.getItem(viewedGuideKey(script)) === "1";
     } catch {
       // storage blocked
     }
@@ -172,7 +177,7 @@ export function LocalGuide() {
 
             {box && (
               <div
-                className="guia-foco"
+                className="guide-focus"
                 style={{
                   top: box.top,
                   left: box.left,
@@ -185,7 +190,7 @@ export function LocalGuide() {
             <div
               ref={balloonRef}
               tabIndex={-1}
-              className="guia-balao max-h-[calc(100dvh-24px)] overflow-y-auto rounded-2xl border border-gold-lo/60 bg-surface-2 p-4 shadow-2xl outline-none"
+              className="guide-bubble max-h-[calc(100dvh-24px)] overflow-y-auto rounded-2xl border border-gold-lo/60 bg-surface-2 p-4 shadow-2xl outline-none"
               style={{
                 top: pos?.top ?? -9999,
                 left: pos?.left ?? -9999,
@@ -195,8 +200,8 @@ export function LocalGuide() {
               {pos && (
                 <span
                   aria-hidden="true"
-                  className="guia-bico"
-                  data-lado={pos.side === "bottom" ? "baixo" : "cima"}
+                  className="guide-pointer"
+                  data-side={pos.side}
                   style={{ left: pos.beak }}
                 />
               )}

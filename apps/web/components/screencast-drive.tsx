@@ -5,7 +5,7 @@ const delay = (k: number) => `${-(CYCLE - (CYCLE / SCENES) * k)}s`;
 
 function Scene({ k, children }: { k: number; children: React.ReactNode }) {
   return (
-    <div className="cast-cena" style={{ animationDelay: delay(k) }}>
+    <div className="cast-scene" style={{ animationDelay: delay(k) }}>
       {children}
     </div>
   );
@@ -26,7 +26,7 @@ function Cursor({ path, k }: { path: string; k: number }) {
 
 function Caption({ n, children }: { n: number; children: React.ReactNode }) {
   return (
-    <p className="cast-legenda">
+    <p className="cast-caption">
       <b>{n}.</b> {children}
     </p>
   );
@@ -34,8 +34,8 @@ function Caption({ n, children }: { n: number; children: React.ReactNode }) {
 
 function Window({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="cast-janela">
-      <div className="cast-barra">
+    <div className="cast-window">
+      <div className="cast-bar">
         <span aria-hidden="true">📁</span>
         {title}
       </div>
@@ -46,7 +46,7 @@ function Window({ title, children }: { title: string; children: React.ReactNode 
 
 function FileItem({ name, target }: { name: string; target?: boolean }) {
   return (
-    <div className={`cast-linha${target ? " cast-linha--alvo" : ""}`}>
+    <div className={`cast-line${target ? " cast-line--target" : ""}`}>
       <span aria-hidden="true">🎬</span>
       <span className="truncate">{name}</span>
     </div>
@@ -62,7 +62,7 @@ export function ScreencastDrive() {
           <Window title="Brutos da semana">
             <FileItem name="bairro-01.mp4" />
             <FileItem name="bairro-02.mp4" />
-            <div className="cast-linha" style={{ color: "#5f6368" }}>
+            <div className="cast-line" style={{ color: "#5f6368" }}>
               <span aria-hidden="true">⬆</span>
               <span>enviando…</span>
             </div>
@@ -76,7 +76,7 @@ export function ScreencastDrive() {
             <FileItem name="bairro-01.mp4" />
             <FileItem name="bairro-02.mp4" target />
             <div
-              className="cast-surge"
+              className="cast-emerge"
               style={{
                 animationDelay: delay(1),
                 position: "absolute",
@@ -104,22 +104,22 @@ export function ScreencastDrive() {
               <div style={{ padding: "5px 9px", color: "#5f6368" }}>Renomear</div>
             </div>
           </Window>
-          <Cursor path="cast-ate-arquivo" k={1} />
+          <Cursor path="cast-to-file" k={1} />
           <Caption n={2}>Toque no arquivo e escolha Compartilhar</Caption>
         </Scene>
 
         {/* 3 */}
         <Scene k={2}>
-          <div className="cast-janela">
-            <div className="cast-barra">Compartilhar “bairro-02.mp4”</div>
+          <div className="cast-window">
+            <div className="cast-bar">Compartilhar “bairro-02.mp4”</div>
             <div style={{ padding: "8px 9px", color: "#5f6368" }}>Acesso geral</div>
-            <div className="cast-linha" style={{ gap: 6 }}>
+            <div className="cast-line" style={{ gap: 6 }}>
               <span aria-hidden="true">🔒</span>
               <span style={{ textDecoration: "line-through", color: "#80868b" }}>Restrito</span>
               <span style={{ color: "#1967d2" }}>▾</span>
             </div>
             <div
-              className="cast-surge"
+              className="cast-emerge"
               style={{
                 animationDelay: delay(2),
                 margin: "0 9px",
@@ -143,15 +143,15 @@ export function ScreencastDrive() {
               </div>
             </div>
           </div>
-          <Cursor path="cast-ate-acesso" k={2} />
+          <Cursor path="cast-to-access" k={2} />
           <Caption n={3}>Troque de “Restrito” para “qualquer pessoa com o link”</Caption>
         </Scene>
 
         {/* 4 */}
         <Scene k={3}>
-          <div className="cast-janela">
-            <div className="cast-barra">Compartilhar “bairro-02.mp4”</div>
-            <div className="cast-linha" style={{ gap: 6 }}>
+          <div className="cast-window">
+            <div className="cast-bar">Compartilhar “bairro-02.mp4”</div>
+            <div className="cast-line" style={{ gap: 6 }}>
               <span aria-hidden="true">🔗</span>
               <span style={{ color: "#137333", fontWeight: 600 }}>Qualquer pessoa com o link</span>
             </div>
@@ -169,7 +169,7 @@ export function ScreencastDrive() {
               </span>
             </div>
             <div
-              className="cast-surge"
+              className="cast-emerge"
               style={{
                 animationDelay: delay(3),
                 margin: "0 9px",
@@ -182,7 +182,7 @@ export function ScreencastDrive() {
               ✓ Link copiado
             </div>
           </div>
-          <Cursor path="cast-ate-copiar" k={3} />
+          <Cursor path="cast-to-copy" k={3} />
           <Caption n={4}>Copie o link</Caption>
         </Scene>
 
@@ -214,9 +214,9 @@ export function ScreencastDrive() {
         </Scene>
       </div>
 
-      <div className="cast-regua" aria-hidden="true">
+      <div className="cast-ruler" aria-hidden="true">
         {Array.from({ length: SCENES }, (_, k) => (
-          <span key={k} className="cast-tic">
+          <span key={k} className="cast-tick">
             <span style={{ animationDelay: delay(k) }} />
           </span>
         ))}
