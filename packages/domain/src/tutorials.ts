@@ -39,9 +39,6 @@ export function getEmbedUrl(link: string): string | null {
   return null;
 }
 
-export const embedUrl = getEmbedUrl;
-export const urlDeEmbutir = getEmbedUrl;
-
 function isValidYouTubeId(id: string) {
   return /^[A-Za-z0-9_-]{11}$/.test(id);
 }

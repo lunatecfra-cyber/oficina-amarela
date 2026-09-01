@@ -1,8 +1,4 @@
-import {
-  ELECTORAL_AWARDS,
-  type ElectoralAward,
-  type PremioEleitoral,
-} from "@oficina/domain/electoral-ranking";
+import { ELECTORAL_AWARDS, type ElectoralAward } from "@oficina/domain/electoral-ranking";
 
 function TicketIcon({ className }: { className?: string }) {
   return (
@@ -108,18 +104,14 @@ const AWARD_ICONS: Record<ElectoralAward, (p: { className?: string }) => React.R
  * All public text is preserved in Portuguese (PT-BR).
  */
 export function ElectoralAwards({
-  unlockedAwards,
-  premiosLiberados,
-  highestActiveCount,
-  maiorNumeroDeAtivos,
+  unlockedAwards = [],
+  highestActiveCount = 0,
 }: {
   unlockedAwards?: readonly ElectoralAward[];
-  premiosLiberados?: readonly PremioEleitoral[];
   highestActiveCount?: number;
-  maiorNumeroDeAtivos?: number;
 }) {
-  const awardsList = unlockedAwards ?? premiosLiberados ?? [];
-  const activeMilestone = highestActiveCount ?? maiorNumeroDeAtivos ?? 0;
+  const awardsList = unlockedAwards;
+  const activeMilestone = highestActiveCount;
   const nextAward = ELECTORAL_AWARDS.find((p) => !awardsList.includes(p.key));
 
   return (
@@ -199,5 +191,3 @@ export function ElectoralAwards({
     </ol>
   );
 }
-
-export const PremiosEleitorais = ElectoralAwards;

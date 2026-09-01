@@ -1,7 +1,7 @@
 import type { AccountsRepository } from "@oficina/db/accounts";
 import type { InvitationRedemptionRepository } from "@oficina/db/invitation-redemption";
 import { hashInvitation } from "@oficina/domain/invitations";
-import { ROLE_LIMITS } from "@oficina/domain/limits";
+import { SLOTS } from "@oficina/domain/limits";
 import type { Role } from "@oficina/domain/roles";
 
 /**
@@ -100,7 +100,7 @@ export async function registerAccount(
       : null;
 
   const enrolled = await accounts.countByRole(role);
-  const cap = role === "spokesperson" ? ROLE_LIMITS.spokesperson : ROLE_LIMITS.editor;
+  const cap = role === "spokesperson" ? SLOTS.spokesperson : SLOTS.editor;
   if (enrolled >= cap) {
     return {
       ok: false,

@@ -1,7 +1,7 @@
 import { getCandidate } from "@oficina/domain/candidates";
 import {
-  MISSIONS,
-  STATUS_LABELS,
+  DEMO_MISSIONS,
+  STATUS_LABEL,
   spokespersonBucket,
   spokespersonStatusMessage,
   waitingOnSpokesperson,
@@ -42,7 +42,7 @@ export default async function SpokespersonProfilePage() {
 
   const demo =
     process.env.NODE_ENV !== "production"
-      ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === session.name)
+      ? DEMO_MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === session.name)
       : [];
   const myMissions = [...realMine, ...demo];
 
@@ -153,7 +153,7 @@ export default async function SpokespersonProfilePage() {
                       {title}
                     </span>
                     <span className={`mt-0.5 block text-xs ${msg.color}`}>
-                      {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? status}
+                      {STATUS_LABEL[status as keyof typeof STATUS_LABEL] ?? status}
                     </span>
                     <span className="mt-0.5 block text-xs text-muted-2">
                       {reservedBy ? `${reservedBy} · ` : ""}

@@ -3,14 +3,14 @@
 import { DEFAULT_TINT, initials } from "@oficina/domain/candidates";
 import {
   EDITING_LEVELS,
+  EDITING_STYLES,
   HEADLINES,
   MAX_HEADLINES,
   MAX_STYLES,
   NICHES,
   type OptionWithPhrase,
   PC_SETUPS,
-  SOFTWARES,
-  STYLES,
+  SOFTWARE_TOOLS,
 } from "@oficina/domain/profile";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -482,7 +482,7 @@ export function CreateEditorProfileForm({
             </h2>
             <p className="mt-1 text-sm text-muted">Onde você edita. Pode marcar mais de um.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {SOFTWARES.map((s) => (
+              {SOFTWARE_TOOLS.map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -504,7 +504,7 @@ export function CreateEditorProfileForm({
               Até {MAX_STYLES}. É o que casa você com o tom da pauta na hora do match.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {STYLES.map((e: string) => {
+              {EDITING_STYLES.map((e: string) => {
                 const active = styles.includes(e);
                 const blocked = !active && styles.length >= MAX_STYLES;
                 return (

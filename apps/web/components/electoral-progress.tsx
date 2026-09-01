@@ -1,18 +1,10 @@
 export type ElectoralWeek = {
-  semana: string;
-  meta: number;
-  quantidade: number;
-  cumpriu: boolean;
-  salvo?: boolean;
-  // English aliases
-  week?: string;
-  goal?: number;
-  count?: number;
-  completed?: boolean;
+  week: string;
+  goal: number;
+  count: number;
+  completed: boolean;
   saved?: boolean;
 };
-
-export type SemanaEleitoral = ElectoralWeek;
 
 // Displays short date in Brazilian format ("DD/MMM" in UTC)
 function formatShortDate(ymd: string) {
@@ -61,36 +53,28 @@ function ShieldIcon({ className }: { className?: string }) {
  * All public text is preserved in Portuguese (PT-BR).
  */
 export function ElectoralProgress({
-  semanas,
-  sequencia,
-  bloqueios,
-  elegivelAoSorteio,
-  weeks,
-  sequence,
-  shields,
-  eligibleForDraw,
+  weeks = [],
+  sequence = 0,
+  shields = 0,
+  eligibleForDraw = false,
 }: {
-  semanas?: ElectoralWeek[];
-  sequencia?: number;
-  bloqueios?: number;
-  elegivelAoSorteio?: boolean;
   weeks?: ElectoralWeek[];
   sequence?: number;
   shields?: number;
   eligibleForDraw?: boolean;
 }) {
-  const weekList = weeks ?? semanas ?? [];
-  const currentStreak = sequence ?? sequencia ?? 0;
-  const currentShields = shields ?? bloqueios ?? 0;
-  const isEligible = eligibleForDraw ?? elegivelAoSorteio ?? false;
+  const weekList = weeks;
+  const currentStreak = sequence;
+  const currentShields = shields;
+  const isEligible = eligibleForDraw;
 
   const currentWeek = weekList.length > 0 ? weekList[weekList.length - 1] : null;
   const pastWeeks = weekList.slice(0, -1);
-  const remaining = currentWeek ? Math.max(0, currentWeek.meta - currentWeek.quantidade) : 0;
+  const remaining = currentWeek ? Math.max(0, currentWeek.goal - currentWeek.count) : 0;
   const progressPct = currentWeek
-    ? Math.min(100, Math.round((currentWeek.quantidade / currentWeek.meta) * 100))
+    ? Math.min(100, Math.round((currentWeek.count / currentWeek.goal) * 100))
     : 0;
-  const savedByShield = weekList.filter((s) => !s.cumpriu && s.salvo).length;
+  const savedByShield = weekList.filter((s) => !s.completed && s.saved).length;
   const MAX_SHIELDS = 2;
 
   return (
@@ -103,24 +87,24 @@ export function ElectoralProgress({
               Esta semana
             </span>
             <span className="font-[family-name:var(--font-display)] text-sm font-semibold text-text">
-              <span className={currentWeek.cumpriu ? "text-gold-hi" : "text-text"}>
-                {currentWeek.quantidade}
+              <span className={currentWeek.completed ? "text-gold-hi" : "text-text"}>
+                {currentWeek.count}
               </span>
-              <span className="text-muted-2">/{currentWeek.meta}</span>
+              <span className="text-muted-2">/{currentWeek.goal}</span>
             </span>
           </div>
 
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-line">
             <div
               className={`h-full rounded-full ${
-                currentWeek.cumpriu ? "bg-gradient-to-r from-gold-lo to-gold-hi" : "bg-gold/70"
+                currentWeek.completed ? "bg-gradient-to-r from-gold-lo to-gold-hi" : "bg-gold/70"
               }`}
               style={{ width: `${progressPct}%` }}
             />
           </div>
 
           <p className="mt-1.5 text-xs text-muted">
-            {currentWeek.cumpriu
+            {currentWeek.completed
               ? "Meta da semana cumprida."
               : remaining === 1
                 ? "Falta 1 vídeo aprovado pra fechar a semana."
@@ -178,22 +162,22 @@ export function ElectoralProgress({
           </p>
           <ul className="flex flex-wrap gap-1.5">
             {pastWeeks.map((s) => {
-              const salva = !s.cumpriu && s.salvo;
+              const salva = !s.completed && s.saved;
               return (
                 <li
-                  key={s.semana}
-                  title={`Semana de ${formatShortDate(s.semana)}: ${s.quantidade}/${s.meta} — ${
-                    s.cumpriu ? "cumprida" : salva ? "salva por bloqueio" : "não cumprida"
+                  key={s.week}
+                  title={`Semana de ${formatShortDate(s.week)}: ${s.count}/${s.goal} — ${
+                    s.completed ? "cumprida" : salva ? "salva por bloqueio" : "não cumprida"
                   }`}
                   className={`rounded-md border px-2 py-1 text-[11px] font-medium ${
-                    s.cumpriu
+                    s.completed
                       ? "border-gold-lo/50 bg-gold/10 text-gold-hi"
                       : salva
                         ? "border-silver-lo/50 bg-surface-2 text-silver"
                         : "border-line text-muted-2"
                   }`}
                 >
-                  {formatShortDate(s.semana)} · {s.quantidade}/{s.meta}
+                  {formatShortDate(s.week)} · {s.count}/{s.goal}
                   {salva && <span className="ml-1.5 text-silver-lo">· salva</span>}
                 </li>
               );
@@ -239,5 +223,3 @@ export function ElectoralProgress({
     </div>
   );
 }
-
-export const ProgressoEleitoral = ElectoralProgress;

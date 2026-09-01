@@ -2,7 +2,7 @@
 
 import { FORMAT_LABEL } from "@oficina/domain/missions";
 import type { TaskOnDesk } from "@oficina/domain/schedule";
-import { looksLikeDriveLink, looksLikeYoutubeLink } from "@oficina/domain/validators";
+import { isDriveUrl, isYouTubeUrl } from "@oficina/domain/validators";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -198,7 +198,7 @@ export function ActiveDesk({
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
-              {driveLink && looksLikeDriveLink(driveLink) && (
+              {driveLink && isDriveUrl(driveLink) && (
                 <a
                   href={driveLink}
                   target="_blank"
@@ -208,7 +208,7 @@ export function ActiveDesk({
                   📁 Abrir bruto no Drive
                 </a>
               )}
-              {youtubeLink && looksLikeYoutubeLink(youtubeLink) && (
+              {youtubeLink && isYouTubeUrl(youtubeLink) && (
                 <a
                   href={youtubeLink}
                   target="_blank"

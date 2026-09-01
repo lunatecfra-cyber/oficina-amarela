@@ -1,7 +1,7 @@
 "use client";
 
 import { FORMAT_LABEL, type Mission } from "@oficina/domain/missions";
-import { looksLikeDriveLink, looksLikeYoutubeLink } from "@oficina/domain/validators";
+import { isDriveUrl, isYouTubeUrl } from "@oficina/domain/validators";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -270,7 +270,7 @@ export function MissionOffer({
           >
             Passar
           </button>
-          {driveLink && looksLikeDriveLink(driveLink) && (
+          {driveLink && isDriveUrl(driveLink) && (
             <a
               href={driveLink}
               target="_blank"
@@ -280,7 +280,7 @@ export function MissionOffer({
               Ver o bruto
             </a>
           )}
-          {youtubeLink && looksLikeYoutubeLink(youtubeLink) && (
+          {youtubeLink && isYouTubeUrl(youtubeLink) && (
             <a
               href={youtubeLink}
               target="_blank"

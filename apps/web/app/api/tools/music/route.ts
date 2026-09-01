@@ -1,4 +1,4 @@
-import { limitList, limitString } from "@oficina/domain/limits";
+import { limitList, limitStr } from "@oficina/domain/limits";
 import { NextResponse } from "next/server";
 import { addMusicTrack, allMusicTags, listMusicTracks } from "@/lib/music-db";
 import { generatePresignedUploadUrl } from "@/lib/r2";
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const title = limitString((formData.get("title") ?? formData.get("nome")) as string | null, 120);
+  const title = limitStr((formData.get("title") ?? formData.get("nome")) as string | null, 120);
   if (!title) {
     return NextResponse.json(
       { error: "Please provide a track title.", erro: "Track title required." },

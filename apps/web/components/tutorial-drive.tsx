@@ -1,6 +1,11 @@
 "use client";
 
-import { embedUrl, type TipoTutorial, type TutorialType, VIDEOS } from "@oficina/domain/tutorials";
+import {
+  getEmbedUrl,
+  type TipoTutorial,
+  type TutorialType,
+  VIDEOS,
+} from "@oficina/domain/tutorials";
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GuideDemo } from "@/components/guide-demo";
@@ -134,7 +139,7 @@ export function TutorialDrive({
 
   if (!effectiveOpen) return null;
 
-  const video = embedUrl(VIDEOS[effectiveType as keyof typeof VIDEOS]);
+  const video = getEmbedUrl(VIDEOS[effectiveType as keyof typeof VIDEOS]);
   const stepsList = STEPS[effectiveType] ?? STEPS.drive;
   const titleText = TITLE[effectiveType] ?? TITLE.drive;
 

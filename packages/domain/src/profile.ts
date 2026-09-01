@@ -11,7 +11,6 @@ export const SOFTWARE_TOOLS = [
   "Final Cut",
   "Photoshop",
 ] as const;
-export const SOFTWARES = SOFTWARE_TOOLS;
 
 export const EDITING_STYLES = [
   "Reels dinâmico",
@@ -21,8 +20,6 @@ export const EDITING_STYLES = [
   "Motion / gráfico",
   "Corte de live",
 ] as const;
-export const ESTILOS = EDITING_STYLES;
-export const STYLES = EDITING_STYLES;
 export const MAX_STYLES = 3;
 export const MAX_ESTILOS = 3;
 
@@ -90,7 +87,6 @@ export const HEADLINES: { category: string; categoria: string; tags: readonly st
 ];
 
 export const ALL_HEADLINES = HEADLINES.flatMap((g) => g.tags);
-export const TODAS_HEADLINES = ALL_HEADLINES;
 
 export const MAX_HEADLINES = 5;
 
@@ -117,7 +113,6 @@ export const EDITING_LEVELS: OptionWithPhrase[] = [
     frase: "Dominador das ferramentas, edito de olhos fechados",
   },
 ];
-export const NIVEIS_EDICAO = EDITING_LEVELS;
 
 export const PC_SETUPS: OptionWithPhrase[] = [
   {
@@ -145,7 +140,6 @@ export const PC_SETUPS: OptionWithPhrase[] = [
     frase: "Renderiza 4K liso sem reclamar",
   },
 ];
-export const SETUPS_PC = PC_SETUPS;
 
 export const NICHES: OptionWithPhrase[] = [
   {
@@ -161,7 +155,6 @@ export const NICHES: OptionWithPhrase[] = [
     frase: "Documentários, vídeos de canal e institucionais sóbrios",
   },
 ];
-export const NICHOS = NICHES;
 
 export const TIERS: { name: Tier; nome: Tier; minimum: number; minimo: number }[] = [
   { name: "Aprendiz", nome: "Aprendiz", minimum: 0, minimo: 0 },
@@ -169,7 +162,6 @@ export const TIERS: { name: Tier; nome: Tier; minimum: number; minimo: number }[
   { name: "Artífice", nome: "Artífice", minimum: 30, minimo: 30 },
   { name: "Mestre-Artesão", nome: "Mestre-Artesão", minimum: 60, minimo: 60 },
 ];
-export const NIVEIS = TIERS;
 
 export function levelProgress(deliveredCount: number) {
   let current = TIERS[0];
@@ -204,7 +196,6 @@ export function levelProgress(deliveredCount: number) {
     faltam: remaining,
   };
 }
-export const progressoNivel = levelProgress;
 
 export type PortfolioItem = {
   id: string;
@@ -366,7 +357,6 @@ export const DEFAULT_EDITOR_PROFILE: EditorProfile = {
     { icon: "🔥", name: "Ritmo de 5 dias seguidos", icone: "🔥", nome: "Ritmo de 5 dias seguidos" },
   ],
 };
-export const PERFIL_EDITOR = DEFAULT_EDITOR_PROFILE;
 
 export type EditorRanking = {
   id: number;

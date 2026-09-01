@@ -20,16 +20,10 @@ export const SLOTS = {
   voz: 80,
 } as const;
 
-export const ROLE_LIMITS = SLOTS;
-export const LIMITES_PAPEL = SLOTS;
-
 export function limitStr(value: string | null | undefined, max: number): string {
   if (typeof value !== "string") return "";
   return value.trim().slice(0, max);
 }
-
-export const limitString = limitStr;
-export const limitarTexto = limitStr;
 
 export function limitOrNull(value: string | null | undefined, max: number): string | null {
   const t = limitStr(value, max);

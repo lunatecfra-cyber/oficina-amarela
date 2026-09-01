@@ -190,13 +190,8 @@ export function getRouteGuide(route: string): GuideScript | null {
   };
 }
 
-export const guiaDaRota = getRouteGuide;
-
 export function viewedGuideKey(script: GuideScript): string {
   const key = script.key ?? script.chave;
   const ver = script.version ?? script.versao;
   return `oa-guia:${key}:v${ver}`;
 }
-
-export const seenKey = viewedGuideKey;
-export const chaveVisto = viewedGuideKey;

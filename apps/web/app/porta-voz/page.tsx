@@ -1,9 +1,9 @@
 import {
-  FORMAT_LABELS,
-  MISSIONS,
+  DEMO_MISSIONS,
+  FORMAT_LABEL,
   type MissionStatus,
   type SpokespersonBucket,
-  STATUS_LABELS,
+  STATUS_LABEL,
   spokespersonBucket,
   spokespersonStatusMessage,
   waitingOnSpokesperson,
@@ -82,12 +82,12 @@ export default async function SpokespersonHome() {
   const isIncompleteProfile = onboarding ? !onboarding.profileComplete : true;
 
   const demoMine = DEMO_MODE
-    ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === session?.name)
+    ? DEMO_MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === session?.name)
     : [];
   const myMissions = [...realMine, ...demoMine];
 
   const demoAvailable = DEMO_MODE
-    ? MISSIONS.filter((p) => p.status === "available" || (p as any).status === "disponivel")
+    ? DEMO_MISSIONS.filter((p) => p.status === "available" || (p as any).status === "disponivel")
     : [];
   const generalQueue = [...realAvailable, ...demoAvailable].sort((a, b) => {
     const aDate = a.createdAt ?? (a as any).criadaEm ?? "";
@@ -188,9 +188,9 @@ export default async function SpokespersonHome() {
                   <p className={`mt-1.5 text-sm font-medium ${msg.color}`}>{msg.text}</p>
 
                   <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-2">
-                    <span>{FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}</span>
+                    <span>{FORMAT_LABEL[format as keyof typeof FORMAT_LABEL] ?? format}</span>
                     <span aria-hidden="true">·</span>
-                    <span>{STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? status}</span>
+                    <span>{STATUS_LABEL[status as keyof typeof STATUS_LABEL] ?? status}</span>
                     {desiredDeadline && (
                       <>
                         <span aria-hidden="true">·</span>

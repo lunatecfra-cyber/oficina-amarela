@@ -77,19 +77,13 @@ test("invitation requires email match, valid expiration and no prior usage", () 
 test("shield automatically saves a missed week", () => {
   assert.deepEqual(calculateConsistency([true, true, false, true], 1), {
     sequence: 4,
-    sequencia: 4,
     consumedShields: 1,
-    bloqueiosConsumidos: 1,
     eligibleForDraw: true,
-    elegivelAoSorteio: true,
   });
   assert.deepEqual(calculateConsistency([true, true, false, true], 0), {
     sequence: 1,
-    sequencia: 1,
     consumedShields: 0,
-    bloqueiosConsumidos: 0,
     eligibleForDraw: false,
-    elegivelAoSorteio: false,
   });
 });
 

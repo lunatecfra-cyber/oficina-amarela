@@ -1,8 +1,8 @@
 "use client";
 
 import { type Candidate, type Candidato, initials } from "@oficina/domain/candidates";
-import { FORMAT_LABELS, MISSIONS, type Mission, type Pauta } from "@oficina/domain/missions";
-import { looksLikeLink } from "@oficina/domain/validators";
+import { DEMO_MISSIONS, FORMAT_LABEL, type Mission, type Pauta } from "@oficina/domain/missions";
+import { isLikelyUrl } from "@oficina/domain/validators";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -35,7 +35,7 @@ export function InspectorQueue({
 
   // Componente cliente: só NODE_ENV chega aqui, e o build de produção o fixa
   // em "production". Ver lib/dev-mode.ts para as telas servidas pelo servidor.
-  const demo = process.env.NODE_ENV !== "production" ? MISSIONS : [];
+  const demo = process.env.NODE_ENV !== "production" ? DEMO_MISSIONS : [];
   const [missions, setMissions] = useState<Mission[]>([...realList, ...demo]);
   const [error, setError] = useState("");
 
@@ -200,7 +200,7 @@ function ReviewCard({
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
             <span className="rounded-md border border-line bg-ink-2 px-2 py-0.5 text-muted">
-              {FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}
+              {FORMAT_LABEL[format as keyof typeof FORMAT_LABEL] ?? format}
             </span>
             {tone && <Chip k="tom" v={tone} />}
             {color && <Chip k="cor" v={color} />}
@@ -209,7 +209,7 @@ function ReviewCard({
           </div>
           <p className="mt-2 text-xs text-muted">
             Entregue por <span className="text-text">{reservedBy}</span>
-            {deliveryLink && looksLikeLink(deliveryLink) && (
+            {deliveryLink && isLikelyUrl(deliveryLink) && (
               <>
                 {" "}
                 ·{" "}

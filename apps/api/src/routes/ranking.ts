@@ -1,5 +1,5 @@
 import type { UserSession } from "@oficina/auth/session";
-import { ROLE_LIMITS } from "@oficina/domain/limits";
+import { SLOTS } from "@oficina/domain/limits";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
@@ -35,9 +35,9 @@ export function createRankingRoutes(dependencies: ApiDependencies) {
       free: Math.max(0, total - enrolled),
       livres: Math.max(0, total - enrolled),
     });
-    const spokesperson = slot(ROLE_LIMITS.spokesperson, spokespersons);
+    const spokesperson = slot(SLOTS.spokesperson, spokespersons);
     return c.json({
-      editor: slot(ROLE_LIMITS.editor, editors),
+      editor: slot(SLOTS.editor, editors),
       spokesperson,
       voz: spokesperson,
     });

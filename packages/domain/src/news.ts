@@ -58,8 +58,6 @@ export const NEWS_ARTICLES: NewsArticle[] = [
   },
 ];
 
-export const NOVIDADES = NEWS_ARTICLES;
-
 export function shortDate(iso: string): string {
   const [, month, day] = iso.split("-").map(Number);
   const months = [
@@ -78,5 +76,3 @@ export function shortDate(iso: string): string {
   ];
   return `${day} ${months[month - 1]}`;
 }
-
-export const dataCurta = shortDate;

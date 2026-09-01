@@ -1,7 +1,7 @@
 "use client";
 
 import { FORMAT_LABEL, type Mission } from "@oficina/domain/missions";
-import { looksLikeDriveLink, looksLikeYoutubeLink } from "@oficina/domain/validators";
+import { isDriveUrl, isYouTubeUrl } from "@oficina/domain/validators";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MissionChat } from "@/components/mission-chat";
@@ -210,8 +210,8 @@ export function ActiveMissionCard({
       )}
 
       {(rawVideoUrl ||
-        (driveLink && looksLikeDriveLink(driveLink)) ||
-        (youtubeLink && looksLikeYoutubeLink(youtubeLink))) && (
+        (driveLink && isDriveUrl(driveLink)) ||
+        (youtubeLink && isYouTubeUrl(youtubeLink))) && (
         <div className="mt-5 rounded-2xl border border-gold/30 bg-gradient-to-r from-gold/[0.08] to-gold/[0.03] p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-gold">
             Acesso ao bruto
@@ -236,7 +236,7 @@ export function ActiveMissionCard({
                 Baixar Vídeo
               </a>
             )}
-            {driveLink && looksLikeDriveLink(driveLink) && (
+            {driveLink && isDriveUrl(driveLink) && (
               <a
                 href={driveLink}
                 target="_blank"
@@ -256,7 +256,7 @@ export function ActiveMissionCard({
                 Abrir pasta no Drive
               </a>
             )}
-            {youtubeLink && looksLikeYoutubeLink(youtubeLink) && (
+            {youtubeLink && isYouTubeUrl(youtubeLink) && (
               <a
                 href={youtubeLink}
                 target="_blank"

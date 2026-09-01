@@ -150,7 +150,7 @@ export default async function RankingPage() {
                     return (
                       <div
                         key={String(e.id)}
-                        className={`linha-ranking relative flex items-center gap-2 border-t border-line-soft px-3 py-2.5 ${
+                        className={`ranking-row relative flex items-center gap-2 border-t border-line-soft px-3 py-2.5 ${
                           level === "ouro"
                             ? "linha-ouro bg-gradient-to-r from-gold/[0.16] via-gold/[0.05] to-transparent"
                             : level === "prata"
@@ -179,7 +179,7 @@ export default async function RankingPage() {
                         </span>
 
                         <span className="flex-1 truncate text-sm text-text">
-                          {eu ? "Você" : `@${String(e.apelido ?? e.handle)}`}
+                          {eu ? "Você" : `@${String(e.handle)}`}
                         </span>
 
                         <span
@@ -195,14 +195,14 @@ export default async function RankingPage() {
                                     : "text-muted"
                           }`}
                         >
-                          {Number(e.quantidade ?? e.count)}
+                          {Number(e.count)}
                         </span>
                       </div>
                     );
                   })}
 
                   <style>{`
-                    .linha-ranking { overflow: hidden; }
+                    .ranking-row { overflow: hidden; }
                     .linha-ouro { animation: linha-ouro-pulso 3.2s ease-in-out infinite; }
                     .linha-ouro::after {
                       content: "";

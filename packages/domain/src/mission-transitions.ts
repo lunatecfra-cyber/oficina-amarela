@@ -72,6 +72,3 @@ export function canPerformAction(rawStatus: string, rawRole: string, rawAction: 
 
   return false;
 }
-
-export const canExecuteAction = canPerformAction;
-export const podeExecutarAcao = canPerformAction;

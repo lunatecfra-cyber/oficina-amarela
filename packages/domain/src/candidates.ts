@@ -52,7 +52,6 @@ export type Candidate = {
 export type Candidato = Candidate;
 
 export const DEFAULT_TINT = "linear-gradient(135deg,#3a3a42,#12121a)";
-export const TINT_PADRAO = DEFAULT_TINT;
 
 export const POLITICAL_ROLES = [
   "Deputado Estadual",
@@ -62,8 +61,6 @@ export const POLITICAL_ROLES = [
   "Prefeito",
   "Vereador",
 ] as const;
-export const POLITICAL_OFFICES = POLITICAL_ROLES;
-export const CARGOS_POLITICOS = POLITICAL_ROLES;
 
 export const COMMUNICATION_TONES = [
   "Direto e firme",
@@ -72,7 +69,6 @@ export const COMMUNICATION_TONES = [
   "Ágil",
   "Leve",
 ] as const;
-export const TONS_COMUNICACAO = COMMUNICATION_TONES;
 
 export const TONE_EXAMPLES: Record<(typeof COMMUNICATION_TONES)[number], string> = {
   "Direto e firme": "Chega de enrolação: o problema é esse, e é assim que a gente resolve.",
@@ -81,10 +77,8 @@ export const TONE_EXAMPLES: Record<(typeof COMMUNICATION_TONES)[number], string>
   Ágil: "Rápido: gravou hoje de manhã, já foi ao ar à tarde.",
   Leve: "Sem drama, sem discurso pronto — só a real, do nosso jeito.",
 };
-export const EXEMPLOS_TOM = TONE_EXAMPLES;
 
 export const ELECTION_YEARS = ["2026", "2028", "2030", "2032", "2034"] as const;
-export const ANOS_ELEICAO = ELECTION_YEARS;
 
 export const THEME_FLAGS = [
   "Segurança",
@@ -100,8 +94,6 @@ export const THEME_FLAGS = [
   "Assistência Social",
   "Tecnologia",
 ] as const;
-export const CAMPAIGN_FLAGS = THEME_FLAGS;
-export const BANDEIRAS_TEMAS = THEME_FLAGS;
 
 export const SUGGESTED_KEYWORDS = [
   "Transparente",
@@ -113,7 +105,6 @@ export const SUGGESTED_KEYWORDS = [
   "Persistente",
   "Acessível",
 ] as const;
-export const PALAVRAS_CHAVE_SUGERIDAS = SUGGESTED_KEYWORDS;
 
 const BIO_CLOSING_BY_TONE: Record<(typeof COMMUNICATION_TONES)[number], string> = {
   "Direto e firme": "Fala clara, sem rodeio — resultado é o que importa.",
@@ -154,15 +145,8 @@ export function generateSuggestedBio(data: {
 
   return [opening, themes, closing].filter(Boolean).join(" ");
 }
-export const gerarBioSugerida = generateSuggestedBio;
 
-export {
-  BRAZIL_STATES,
-  BRAZILIAN_STATES,
-  CIDADES_POR_UF,
-  CITIES_BY_STATE,
-  ESTADOS_BRASIL,
-} from "./cities.ts";
+export { BRAZIL_STATES, CITIES_BY_STATE } from "./cities.ts";
 
 export const DEMO_CANDIDATES: Record<string, Candidate> = {
   Busnelo: {
@@ -214,8 +198,6 @@ export const DEMO_CANDIDATES: Record<string, Candidate> = {
     desde: "fevereiro de 2026",
   },
 };
-export const CANDIDATOS = DEMO_CANDIDATES;
-export const CANDIDATES = DEMO_CANDIDATES;
 
 export function getCandidate(name: string): Candidate {
   return (
@@ -235,13 +217,11 @@ export function getCandidate(name: string): Candidate {
     }
   );
 }
-export const getCandidato = getCandidate;
 
 export function getCandidateBySlug(slug: string): Candidate | null {
   const cand = Object.values(DEMO_CANDIDATES).find((c) => c.slug === slug);
   return cand ?? null;
 }
-export const getCandidatoPorSlug = getCandidateBySlug;
 
 export function initials(name: string): string {
   return name
@@ -251,9 +231,7 @@ export function initials(name: string): string {
     .map((s) => s[0]?.toUpperCase() ?? "")
     .join("");
 }
-export const iniciais = initials;
 
 export function proximityColor(p: number): string {
   return p >= 0.8 ? "text-gold-hi" : p >= 0.5 ? "text-gold-lo" : "text-muted-2";
 }
-export const corProximidade = proximityColor;

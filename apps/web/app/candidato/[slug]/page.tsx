@@ -1,6 +1,6 @@
 import { isDemoContentEnabled } from "@oficina/config/dev-mode";
 import { type Candidate, getCandidateBySlug } from "@oficina/domain/candidates";
-import { FORMAT_LABELS, MISSIONS, type Mission, STATUS_LABELS } from "@oficina/domain/missions";
+import { DEMO_MISSIONS, FORMAT_LABEL, type Mission, STATUS_LABEL } from "@oficina/domain/missions";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -42,7 +42,7 @@ export default async function CandidateDetailPage({
   const name = cand.name ?? (cand as any).nome;
 
   const missions: Mission[] = DEMO_MODE
-    ? MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === name)
+    ? DEMO_MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === name)
     : await publicCandidateMissions(slug);
 
   const inQueue = missions.filter(
@@ -140,12 +140,12 @@ export default async function CandidateDetailPage({
                           {title}
                         </h3>
                         <p className="mt-0.5 text-xs text-muted-2">
-                          {FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}
+                          {FORMAT_LABEL[format as keyof typeof FORMAT_LABEL] ?? format}
                         </p>
                       </div>
                       <span className="rounded-full border border-line bg-ink-2 px-3 py-1 text-xs text-muted">
-                        {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ??
-                          (STATUS_LABELS as any)[status] ??
+                        {STATUS_LABEL[status as keyof typeof STATUS_LABEL] ??
+                          (STATUS_LABEL as any)[status] ??
                           status}
                       </span>
                     </li>

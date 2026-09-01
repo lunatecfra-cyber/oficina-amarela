@@ -107,14 +107,10 @@ export const CURRENT_EDITOR: Editor = {
   nota: 4.8,
 };
 
-export const EDITOR_ATUAL = CURRENT_EDITOR;
-
 export const CURRENT_INSPECTOR = {
   handle: "coronel.reis",
   apelido: "coronel.reis",
 };
-
-export const INSPETOR_ATUAL = CURRENT_INSPECTOR;
 
 export const DEMO_MISSIONS: Mission[] = [
   {
@@ -223,9 +219,6 @@ export const DEMO_MISSIONS: Mission[] = [
   },
 ];
 
-export const PAUTAS = DEMO_MISSIONS;
-export const MISSIONS = DEMO_MISSIONS;
-
 export const STATUS_LABEL: Record<string, string> = {
   available: "na fila",
   disponivel: "na fila",
@@ -248,17 +241,11 @@ export const STATUS_LABEL: Record<string, string> = {
   finalizada: "finalizada",
 };
 
-export const ROTULO_STATUS = STATUS_LABEL;
-export const STATUS_LABELS = STATUS_LABEL;
-
 export const FORMAT_LABEL: Record<string, string> = {
   short: "Vídeo curto (9:16 · até 90s)",
   long: "Vídeo longo (16:9 · no YouTube)",
   longo: "Vídeo longo (16:9 · no YouTube)",
 };
-
-export const ROTULO_FORMATO = FORMAT_LABEL;
-export const FORMAT_LABELS = FORMAT_LABEL;
 
 export function spokespersonStatusMessage(status: string): {
   text: string;
@@ -330,8 +317,6 @@ export function spokespersonStatusMessage(status: string): {
   }
 }
 
-export const mensagemStatusPortaVoz = spokespersonStatusMessage;
-
 export const MISSION_STAGES = [
   "Criada",
   "Na fila",
@@ -340,8 +325,6 @@ export const MISSION_STAGES = [
   "Pronta",
   "Finalizada",
 ] as const;
-
-export const ETAPAS_MISSAO = MISSION_STAGES;
 
 export function currentStage(status: string): number {
   switch (status) {
@@ -373,8 +356,6 @@ export function currentStage(status: string): number {
       return 0;
   }
 }
-
-export const etapaAtual = currentStage;
 
 /**
  * Os quatro grupos que o porta-voz vê no resumo da tela inicial.

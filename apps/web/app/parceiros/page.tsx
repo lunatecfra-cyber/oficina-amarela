@@ -1,4 +1,4 @@
-import { partnersHeaderRole, partnersReturnPath } from "@oficina/domain/navigation";
+import { partnersHeader, partnersReturnPath } from "@oficina/domain/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
@@ -29,7 +29,7 @@ const PARTNERS = [
 
 export default async function PartnersPage() {
   const session = await readSession();
-  const headerVariant = partnersHeaderRole(session?.role);
+  const headerVariant = partnersHeader(session?.role);
   const returnPath = partnersReturnPath(session?.role);
 
   return (

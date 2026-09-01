@@ -1,7 +1,12 @@
 import { initials } from "@oficina/domain/candidates";
-import { FORMAT_LABELS } from "@oficina/domain/missions";
+import { FORMAT_LABEL } from "@oficina/domain/missions";
 import { DEFAULT_EDITOR_PROFILE, levelProgress } from "@oficina/domain/profile";
-import { DAYS, DEFAULT_AVAILABILITY, PERIODS, workFromMission } from "@oficina/domain/schedule";
+import {
+  activeWorkFromMission,
+  DAYS,
+  DEFAULT_AVAILABILITY,
+  PERIODS,
+} from "@oficina/domain/schedule";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,7 +40,7 @@ export default async function ProfilePage() {
   const grid = onboarding?.availability?.length ? onboarding.availability : DEFAULT_AVAILABILITY;
   const freeSlots = grid.flat().filter(Boolean).length;
 
-  const onDesk = workFromMission(reserved);
+  const onDesk = activeWorkFromMission(reserved);
 
   const softwares = p.softwares ?? [];
   const styles = p.styles ?? (p as any).estilos ?? [];
@@ -172,8 +177,8 @@ export default async function ProfilePage() {
                           <path d="M8 5v14l11-7z" />
                         </svg>
                         <span className="absolute left-2 top-2 rounded bg-black/45 px-1.5 py-0.5 text-[10px] font-medium text-white/90">
-                          {FORMAT_LABELS[v.format as keyof typeof FORMAT_LABELS] ??
-                            (FORMAT_LABELS as any)[v.formato] ??
+                          {FORMAT_LABEL[v.format as keyof typeof FORMAT_LABEL] ??
+                            (FORMAT_LABEL as any)[v.formato] ??
                             v.format}
                         </span>
                       </div>
@@ -223,10 +228,10 @@ export default async function ProfilePage() {
             <aside className="flex flex-col gap-6">
               <Card title="Meta eleitoral" delay={0.08}>
                 <ElectoralProgress
-                  semanas={electoralProgress.semanas}
-                  sequencia={electoralProgress.sequence}
-                  bloqueios={electoralProgress.shields}
-                  elegivelAoSorteio={electoralProgress.eligibleForDraw}
+                  weeks={electoralProgress.weeks}
+                  sequence={electoralProgress.sequence}
+                  shields={electoralProgress.shields}
+                  eligibleForDraw={electoralProgress.eligibleForDraw}
                 />
 
                 <Link

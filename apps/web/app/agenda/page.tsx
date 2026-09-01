@@ -1,4 +1,4 @@
-import { taskFromMission } from "@oficina/domain/schedule";
+import { activeWorkFromMission } from "@oficina/domain/schedule";
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
 import { ScheduleView } from "@/components/schedule-view";
@@ -16,7 +16,7 @@ export default async function SchedulePage() {
     <>
       <AppHeader />
       <main className="flex-1">
-        <ScheduleView onDesk={taskFromMission(reserved)} />
+        <ScheduleView onDesk={activeWorkFromMission(reserved)} />
       </main>
     </>
   );

@@ -2,7 +2,7 @@
 
 import { validateCampaignIdentity } from "@oficina/domain/campaign-identity";
 import {
-  BRAZILIAN_STATES,
+  BRAZIL_STATES,
   COMMUNICATION_TONES,
   DEFAULT_TINT,
   ELECTION_YEARS,
@@ -366,7 +366,7 @@ export function EditCandidateProfileForm({
               onChange={(e) => setRunningFor(e.target.value)}
             >
               <option value="">Selecione…</option>
-              {BRAZILIAN_STATES.map((e: { uf: string; nome: string }) => (
+              {BRAZIL_STATES.map((e: { uf: string; nome: string }) => (
                 <option key={e.uf} value={e.nome}>
                   {e.nome}
                 </option>

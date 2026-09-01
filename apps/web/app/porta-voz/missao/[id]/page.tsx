@@ -1,14 +1,10 @@
 import {
   currentStage,
-  FORMAT_LABELS,
+  FORMAT_LABEL,
   MISSION_STAGES,
   spokespersonStatusMessage,
 } from "@oficina/domain/missions";
-import {
-  looksLikeDriveLink,
-  looksLikeLink,
-  looksLikeYoutubeLink,
-} from "@oficina/domain/validators";
+import { isDriveUrl, isLikelyUrl, isYouTubeUrl } from "@oficina/domain/validators";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -117,8 +113,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
   const needsMyDecision = isInReview || isApproved;
 
   const hasRawVideo =
-    (driveLink && looksLikeDriveLink(driveLink)) ||
-    (youtubeLink && looksLikeYoutubeLink(youtubeLink));
+    (driveLink && isDriveUrl(driveLink)) || (youtubeLink && isYouTubeUrl(youtubeLink));
 
   return (
     <div className="mx-auto w-full max-w-2xl px-5 pb-16 lg:px-8">
@@ -149,7 +144,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
             {title}
           </h1>
           <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-2">
-            <span>{FORMAT_LABELS[format as keyof typeof FORMAT_LABELS] ?? format}</span>
+            <span>{FORMAT_LABEL[format as keyof typeof FORMAT_LABEL] ?? format}</span>
             <span aria-hidden="true">·</span>
             <span>criada {timeSince(createdAt)}</span>
             {desiredDeadline && (
@@ -208,7 +203,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
 
       {/* Assistir vem antes de decidir: sem ver o vídeo, o botão de aprovar não
           significa nada. */}
-      {deliveryLink && looksLikeLink(deliveryLink) && (
+      {deliveryLink && isLikelyUrl(deliveryLink) && (
         <a
           href={deliveryLink}
           target="_blank"
@@ -250,7 +245,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
         <section className="mt-8">
           <BlockTitle>Vídeo bruto que você mandou</BlockTitle>
           <div className="flex flex-col gap-2 sm:flex-row">
-            {driveLink && looksLikeDriveLink(driveLink) && (
+            {driveLink && isDriveUrl(driveLink) && (
               <a
                 href={driveLink}
                 target="_blank"
@@ -260,7 +255,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
                 📁 Abrir no Google Drive
               </a>
             )}
-            {youtubeLink && looksLikeYoutubeLink(youtubeLink) && (
+            {youtubeLink && isYouTubeUrl(youtubeLink) && (
               <a
                 href={youtubeLink}
                 target="_blank"

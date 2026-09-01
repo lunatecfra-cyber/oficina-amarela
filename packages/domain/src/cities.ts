@@ -5656,7 +5656,3 @@ export const CITIES_BY_STATE: Record<string, readonly string[]> = {
     "Xambioá",
   ],
 };
-
-export const ESTADOS_BRASIL = BRAZIL_STATES;
-export const CIDADES_POR_UF = CITIES_BY_STATE;
-export const BRAZILIAN_STATES = BRAZIL_STATES;

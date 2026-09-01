@@ -1,5 +1,5 @@
 import { PENDING_COOKIE_NAME, verifyPendingIdentity } from "@oficina/auth/session";
-import { ROLE_LIMITS } from "@oficina/domain/limits";
+import { SLOTS } from "@oficina/domain/limits";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -28,16 +28,16 @@ export default async function ChooseRolePage() {
 
   const slots = {
     editor: slotData?.editor ?? {
-      total: ROLE_LIMITS.editor,
-      livres: ROLE_LIMITS.editor,
+      total: SLOTS.editor,
+      livres: SLOTS.editor,
     },
     spokesperson: slotData?.spokesperson ?? {
-      total: ROLE_LIMITS.spokesperson,
-      livres: ROLE_LIMITS.spokesperson,
+      total: SLOTS.spokesperson,
+      livres: SLOTS.spokesperson,
     },
     voz: slotData?.voz ?? {
-      total: ROLE_LIMITS.spokesperson,
-      livres: ROLE_LIMITS.spokesperson,
+      total: SLOTS.spokesperson,
+      livres: SLOTS.spokesperson,
     },
   };
 

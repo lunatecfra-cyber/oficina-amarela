@@ -1,11 +1,7 @@
 "use client";
 
 import type { Format, Formato } from "@oficina/domain/missions";
-import {
-  looksLikeDriveLink,
-  looksLikeLink,
-  looksLikeYoutubeLink,
-} from "@oficina/domain/validators";
+import { isDriveUrl, isLikelyUrl, isYouTubeUrl } from "@oficina/domain/validators";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LegalNotice } from "@/components/legal-notice";
@@ -188,11 +184,11 @@ export function NewMissionForm({
       const hasUpload = data.rawVideoUrl.trim().length > 0;
       if (!hasDrive && !hasYoutube && !hasUpload)
         return "Faça o upload do vídeo ou cole um link do Drive/YouTube.";
-      if (hasDrive && !looksLikeLink(data.driveLink))
+      if (hasDrive && !isLikelyUrl(data.driveLink))
         return "O link do Drive não parece um link válido. Confere?";
-      if (hasDrive && !looksLikeDriveLink(data.driveLink))
+      if (hasDrive && !isDriveUrl(data.driveLink))
         return "Isso não parece um link do Google Drive. Cole o link de compartilhamento (drive.google.com).";
-      if (hasYoutube && !looksLikeYoutubeLink(data.youtubeLink))
+      if (hasYoutube && !isYouTubeUrl(data.youtubeLink))
         return "Isso não parece um link do YouTube. Cole o link (youtube.com ou youtu.be).";
     }
     if (p === 4 && !data.format) return "Escolha o formato.";

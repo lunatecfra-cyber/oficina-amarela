@@ -84,10 +84,6 @@ export function activeWorkFromMission(m: Mission | null): ActiveWork[] {
   ];
 }
 
-export const taskFromMission = activeWorkFromMission;
-export const workFromMission = activeWorkFromMission;
-export const trabalhoDaPauta = activeWorkFromMission;
-
 export function currentGridBlock(d = new Date()): {
   period: number;
   day: number;
@@ -100,18 +96,12 @@ export function currentGridBlock(d = new Date()): {
   return { period, day, periodo: period, dia: day };
 }
 
-export const blocoAtual = currentGridBlock;
-
 export const DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-export const DIAS = DAYS;
 
 export const PERIODS = ["Manhã", "Tarde", "Noite"];
-export const PERIODOS = PERIODS;
 
 export const DEFAULT_AVAILABILITY: boolean[][] = [
   [false, true, false, true, false, false, false],
   [true, true, true, true, true, false, false],
   [true, false, true, false, true, true, false],
 ];
-
-export const DISPONIBILIDADE_PADRAO = DEFAULT_AVAILABILITY;

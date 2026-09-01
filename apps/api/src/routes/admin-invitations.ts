@@ -68,7 +68,6 @@ export function createAdminInvitationRoutes(dependencies: ApiDependencies) {
       email: issued.email,
       token,
       expiresAt: issued.expiresAt,
-      expiraEm: issued.expiresAt,
       link: `${origin}/criar-conta?convite=${encodeURIComponent(token)}`,
     });
   });

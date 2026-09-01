@@ -62,15 +62,10 @@ export async function editorProgress(
   if (!cycle) {
     return {
       weeks: [] as EditorWeek[],
-      semanas: [] as EditorWeek[],
       shields: 0,
-      bloqueios: 0,
       referralCode: null as string | null,
-      codigo_indicacao: null as string | null,
       sequence: 0,
-      sequencia: 0,
       eligibleForDraw: false,
-      elegivelAoSorteio: false,
     };
   }
 
@@ -93,16 +88,11 @@ export async function editorProgress(
     const key = weekKey(week);
     return {
       week: key,
-      semana: key,
       goal: week.goal,
-      meta: week.goal,
       count: counts[index],
-      quantidade: counts[index],
       completed: counts[index] >= week.goal,
-      cumpriu: counts[index] >= week.goal,
       saved: saved.has(key),
-      salvo: saved.has(key),
-    } as EditorWeek;
+    };
   });
 
   const consistency = calculateConsistency(
@@ -117,15 +107,10 @@ export async function editorProgress(
 
   return {
     weeks: detailed,
-    semanas: detailed,
     shields,
-    bloqueios: shields,
     referralCode,
-    codigo_indicacao: referralCode,
-    sequence: consistency.sequence ?? consistency.sequencia ?? 0,
-    sequencia: consistency.sequence ?? consistency.sequencia ?? 0,
-    eligibleForDraw: Boolean(consistency.eligibleForDraw ?? consistency.elegivelAoSorteio),
-    elegivelAoSorteio: Boolean(consistency.eligibleForDraw ?? consistency.elegivelAoSorteio),
+    sequence: consistency.sequence,
+    eligibleForDraw: consistency.eligibleForDraw,
   };
 }
 
@@ -135,17 +120,11 @@ export async function electoralRanking(ranking: RankingRepository, now = new Dat
   if (!cycle) {
     return {
       items: [],
-      itens: [],
       cycle: null,
-      ciclo: null,
       activeEditors: 0,
-      editoresAtivos: 0,
       highestActiveCount: 0,
-      maiorNumeroDeAtivos: 0,
       awards: [],
-      premios: [],
       eligibleForDraw: [],
-      elegiveisSorteio: [],
     };
   }
 
@@ -184,16 +163,10 @@ export async function electoralRanking(ranking: RankingRepository, now = new Dat
 
   return {
     items,
-    itens: items,
     cycle,
-    ciclo: cycle,
     activeEditors: activeCount,
-    editoresAtivos: activeCount,
     highestActiveCount: milestone,
-    maiorNumeroDeAtivos: milestone,
     awards,
-    premios: awards,
     eligibleForDraw,
-    elegiveisSorteio: eligibleForDraw,
   };
 }
