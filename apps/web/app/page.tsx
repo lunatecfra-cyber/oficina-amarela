@@ -6,7 +6,7 @@ import { MouseGlow } from "@/components/mouse-glow";
 import { NextStep } from "@/components/next-step";
 import { OnAppear } from "@/components/on-appear";
 import { Supporters } from "@/components/supporters";
-import { publishedNews } from "@/lib/news-db";
+import { getPublishedNews } from "@/lib/news-db";
 
 export const revalidate = 300;
 
@@ -68,7 +68,7 @@ const TARGET_AUDIENCE = [
 ];
 
 export default async function Home() {
-  const fromDb = await publishedNews(4).catch(() => []);
+  const fromDb = await getPublishedNews(4).catch(() => []);
   const news =
     fromDb.length > 0
       ? fromDb.map((n) => ({

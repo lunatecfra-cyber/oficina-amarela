@@ -563,5 +563,3 @@ function OperationForm({
     </form>
   );
 }
-
-export const SegurancaRankingPainel = RankingSecurityPanel;

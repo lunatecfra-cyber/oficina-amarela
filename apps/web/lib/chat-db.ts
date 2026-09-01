@@ -60,14 +60,3 @@ export async function postChatMessage(
   const body = (await res.json()) as { message?: MissionMessage };
   return body.message ?? null;
 }
-
-export const missionMessages = getMissionMessages;
-export const messagesOfMission = getMissionMessages;
-export const mensagensDaPauta = getMissionMessages;
-export const messagesOfMissionAfter = getMissionMessagesAfter;
-export const mensagensDaPautaApos = getMissionMessagesAfter;
-export const missionsMessages = getMissionsMessages;
-export const mensagensDePautas = getMissionsMessages;
-export const sendMessage = postChatMessage;
-export const postarMensagem = postChatMessage;
-export const enviarMensagem = postChatMessage;

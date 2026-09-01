@@ -58,8 +58,6 @@ export async function createSessionToken(user: UserSession) {
     .sign(getKey());
 }
 
-export const criarTokenSessao = createSessionToken;
-
 export async function verifySessionToken(token: string): Promise<UserSession | null> {
   try {
     const { payload } = await jwtVerify(token, getKey());
@@ -93,10 +91,7 @@ export async function verifySessionToken(token: string): Promise<UserSession | n
   }
 }
 
-export const verificarTokenSessao = verifySessionToken;
-
 export const STATE_COOKIE_NAME = "confraria_oauth_estado";
-export const NOME_COOKIE_ESTADO = STATE_COOKIE_NAME;
 
 export const STATE_COOKIE_OPTS = {
   httpOnly: true,
@@ -105,7 +100,6 @@ export const STATE_COOKIE_OPTS = {
   path: "/",
   maxAge: 60 * 10,
 };
-export const COOKIE_ESTADO_OPTS = STATE_COOKIE_OPTS;
 
 export async function createSignedState(nonce: string) {
   return new SignJWT({ usage: "oauth-state", uso: "oauth-estado", nonce })
@@ -114,7 +108,6 @@ export async function createSignedState(nonce: string) {
     .setExpirationTime("10m")
     .sign(getKey());
 }
-export const criarEstadoAssinado = createSignedState;
 
 export async function verifySignedState(
   token: string,
@@ -133,14 +126,10 @@ export async function verifySignedState(
     return false;
   }
 }
-export const verificarEstadoAssinado = verifySignedState;
 
 export const PENDING_COOKIE_NAME = "confraria_google_pendente";
-export const NOME_COOKIE_PENDENTE = PENDING_COOKIE_NAME;
 export const INVITATION_COOKIE_NAME = "confraria_convite_porta_voz";
-export const NOME_COOKIE_CONVITE = INVITATION_COOKIE_NAME;
 export const REFERRAL_COOKIE_NAME = "confraria_indicacao_editor";
-export const NOME_COOKIE_INDICACAO = REFERRAL_COOKIE_NAME;
 
 export type PendingGoogleIdentity = {
   googleId: string;
@@ -168,7 +157,6 @@ export async function createPendingIdentity(data: PendingGoogleIdentity) {
     .setExpirationTime("10m")
     .sign(getKey());
 }
-export const criarIdentidadePendente = createPendingIdentity;
 
 export async function verifyPendingIdentity(token: string): Promise<PendingGoogleIdentity | null> {
   try {
@@ -191,7 +179,6 @@ export async function verifyPendingIdentity(token: string): Promise<PendingGoogl
     return null;
   }
 }
-export const verificarIdentidadePendente = verifyPendingIdentity;
 
 export async function createRecoveryToken(userId: number) {
   return new SignJWT({ usage: "password-recovery", userId })
@@ -200,7 +187,6 @@ export async function createRecoveryToken(userId: number) {
     .setExpirationTime("30m")
     .sign(getKey());
 }
-export const criarTokenRecuperacao = createRecoveryToken;
 
 export async function verifyRecoveryToken(
   token: string,
@@ -219,4 +205,3 @@ export async function verifyRecoveryToken(
     return null;
   }
 }
-export const verificarTokenRecuperacao = verifyRecoveryToken;

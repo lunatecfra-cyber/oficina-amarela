@@ -11,8 +11,8 @@ import { notFound } from "next/navigation";
 import { MissionActions } from "@/components/mission-actions";
 import { MissionChat } from "@/components/mission-chat";
 import { ReportButton } from "@/components/report-button";
-import { missionMessages } from "@/lib/chat-db";
-import { missionByIdOfSpokesperson, queuePosition, totalInQueue } from "@/lib/missions-db";
+import { getMissionMessages } from "@/lib/chat-db";
+import { getQueuePosition, getSpokespersonMissionById, getTotalInQueue } from "@/lib/missions-db";
 import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Missão — Oficina Amarela" };
@@ -77,10 +77,10 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
   if (!Number.isInteger(numId)) notFound();
 
   const [mission, position, total, messages] = await Promise.all([
-    missionByIdOfSpokesperson(numId, session.id),
-    queuePosition(numId),
-    totalInQueue(),
-    missionMessages(numId),
+    getSpokespersonMissionById(numId, session.id),
+    getQueuePosition(numId),
+    getTotalInQueue(),
+    getMissionMessages(numId),
   ]);
   if (!mission) notFound();
 

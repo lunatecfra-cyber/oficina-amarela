@@ -92,5 +92,3 @@ export function EditorInvitation({ code, codigo }: { code?: string; codigo?: str
     </div>
   );
 }
-
-export const ConviteEditor = EditorInvitation;

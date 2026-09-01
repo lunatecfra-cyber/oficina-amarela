@@ -45,14 +45,8 @@ export async function getSession(): Promise<UserSession | null> {
   return session;
 }
 
-export const lerSessao = getSession;
-
 export async function requireSession(): Promise<UserSession> {
   const session = await getSession();
   if (!session) redirect("/login");
   return session;
 }
-
-export const exigirSessao = requireSession;
-export const readSession = getSession;
-export const getServerSession = getSession;

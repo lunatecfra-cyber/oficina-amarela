@@ -7,12 +7,12 @@ import {
 } from "@oficina/auth/session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { buildGoogleAuthUrl, isGoogleOAuthConfigured } from "@/lib/oauth-google";
+import { buildAuthorizationUrl, isGoogleConfigured } from "@/lib/oauth-google";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
 
-  if (!isGoogleOAuthConfigured()) {
+  if (!isGoogleConfigured()) {
     return NextResponse.json(
       {
         error:
@@ -39,5 +39,5 @@ export async function GET(request: Request) {
   if (referral) cookieStore.set(REFERRAL_COOKIE_NAME, referral, STATE_COOKIE_OPTS);
   else cookieStore.delete(REFERRAL_COOKIE_NAME);
 
-  return NextResponse.redirect(buildGoogleAuthUrl(redirectUri, state));
+  return NextResponse.redirect(buildAuthorizationUrl(redirectUri, state));
 }

@@ -15,7 +15,7 @@ import { CandidateName } from "@/components/candidate-name";
 import { EmptyState } from "@/components/empty-state";
 import { MissionCounters } from "@/components/mission-counters";
 import { readOwnCandidate } from "@/lib/candidate-db";
-import { spokespersonMissions } from "@/lib/missions-db";
+import { getSpokespersonMissions } from "@/lib/missions-db";
 import { requireSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Meu Perfil — Oficina Amarela" };
@@ -36,7 +36,7 @@ export default async function SpokespersonProfilePage() {
 
   const [candOpt, realMine] = await Promise.all([
     readOwnCandidate(session.id),
-    spokespersonMissions(session.id),
+    getSpokespersonMissions(session.id),
   ]);
   const cand = candOpt ?? getCandidate(session.name);
 

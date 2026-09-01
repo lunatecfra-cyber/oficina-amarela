@@ -9,7 +9,6 @@ export async function readCandidateOnboarding(
 ): Promise<import("@oficina/db/profiles").CandidateOnboarding | null> {
   return fetchApiJson<import("@oficina/db/profiles").CandidateOnboarding>("/spokesperson/profile");
 }
-export const lerOnboardingCandidato = readCandidateOnboarding;
 
 export async function saveCandidateOnboarding(
   _userId: number,
@@ -31,17 +30,14 @@ export async function saveCandidateOnboarding(
   }
   return { ok: true };
 }
-export const salvarOnboardingCandidato = saveCandidateOnboarding;
 
 export async function readOwnCandidate(_userId?: number): Promise<Candidate | null> {
   return fetchApiJson<Candidate>("/spokesperson/own");
 }
-export const lerCandidatoProprio = readOwnCandidate;
 
 export async function readPublicCandidate(slug: string): Promise<Candidate | null> {
   return fetchApiJson<Candidate>(`/candidates/${slug}`);
 }
-export const lerCandidatoPublico = readPublicCandidate;
 
 export async function readCandidatesByHandles(handles: string[]): Promise<Map<string, Candidate>> {
   if (handles.length === 0) return new Map();
@@ -58,4 +54,3 @@ export async function readCandidatesByHandles(handles: string[]): Promise<Map<st
   }
   return map;
 }
-export const lerCandidatosPorApelidos = readCandidatesByHandles;

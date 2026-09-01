@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchApi } from "@/lib/internal-api";
-import { generatePresignedUploadUrl } from "@/lib/r2";
-import { readSession } from "@/lib/server-session";
+import { generatePresignedUrl } from "@/lib/r2";
+import { getSession } from "@/lib/server-session";
 
 const ACCEPTED_MIME_TYPES = new Set([
   "video/mp4",
@@ -18,7 +18,7 @@ const MAX_PER_HOUR = 10;
 const uploadKey = (userId: number) => `presign:${userId}`;
 
 export async function POST(request: Request) {
-  const session = await readSession();
+  const session = await getSession();
   if (!session) {
     return NextResponse.json(
       { error: "Please log in first.", erro: "Please log in first." },
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   const key = `uploads/${session.id}/${timestamp}-${safeFilename}`;
 
   try {
-    const urls = await generatePresignedUploadUrl(key, contentType, sizeBytes);
+    const urls = await generatePresignedUrl(key, contentType, sizeBytes);
     return NextResponse.json(urls);
   } catch (error) {
     console.error("R2 presign error:", error);

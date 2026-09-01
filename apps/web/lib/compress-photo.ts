@@ -113,5 +113,3 @@ export async function compressPhoto(file: File): Promise<PhotoResult> {
     erro: "Não deu pra reduzir essa imagem. Tenta outra foto.",
   };
 }
-
-export const comprimirFoto = compressPhoto;

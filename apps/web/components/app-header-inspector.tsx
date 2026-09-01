@@ -2,10 +2,10 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { InspectorNav } from "@/components/inspector-nav";
 import { LocalGuide } from "@/components/local-guide";
-import { readSession } from "@/lib/server-session";
+import { getSession } from "@/lib/server-session";
 
 export async function AppHeaderInspector() {
-  const session = await readSession();
+  const session = await getSession();
   if (session?.role !== "admin") return null;
 
   return (

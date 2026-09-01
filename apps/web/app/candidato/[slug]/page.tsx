@@ -11,8 +11,8 @@ import { CandidateData } from "@/components/candidate-data";
 import { CandidateName } from "@/components/candidate-name";
 import { Stat } from "@/components/stat";
 import { readPublicCandidate } from "@/lib/candidate-db";
-import { publicCandidateMissions } from "@/lib/missions-db";
-import { readSession } from "@/lib/server-session";
+import { getPublicCandidateMissions } from "@/lib/missions-db";
+import { getSession } from "@/lib/server-session";
 
 async function fetchCandidate(slug: string): Promise<Candidate | null> {
   return getCandidateBySlug(slug) ?? (await readPublicCandidate(slug));
@@ -35,7 +35,7 @@ export default async function CandidateDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [cand, session] = await Promise.all([fetchCandidate(slug), readSession()]);
+  const [cand, session] = await Promise.all([fetchCandidate(slug), getSession()]);
   if (!cand) notFound();
 
   const DEMO_MODE = isDemoContentEnabled();
@@ -43,7 +43,7 @@ export default async function CandidateDetailPage({
 
   const missions: Mission[] = DEMO_MODE
     ? DEMO_MISSIONS.filter((p) => (p.spokesperson ?? (p as any).portaVoz) === name)
-    : await publicCandidateMissions(slug);
+    : await getPublicCandidateMissions(slug);
 
   const inQueue = missions.filter(
     (p) => p.status === "available" || (p as any).status === "disponivel",

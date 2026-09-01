@@ -5,10 +5,10 @@ import { EditorNav } from "@/components/editor-nav";
 import { LocalGuide } from "@/components/local-guide";
 import { LogoutButton } from "@/components/logout-button";
 import { readEditorProfile } from "@/lib/profile-db";
-import { readSession } from "@/lib/server-session";
+import { getSession } from "@/lib/server-session";
 
 export async function AppHeader() {
-  const session = await readSession();
+  const session = await getSession();
   const profile = session ? await readEditorProfile(session.id) : null;
 
   if (!session) {

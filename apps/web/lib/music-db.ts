@@ -9,7 +9,6 @@ export async function listMusicTracks(filterTag?: string): Promise<MusicTrack[]>
   const list = await fetchApiJson<MusicTrack[]>(path);
   return list ?? [];
 }
-export const listarMusicas = listMusicTracks;
 
 export async function addMusicTrack(
   name: string,
@@ -24,11 +23,8 @@ export async function addMusicTrack(
     body: JSON.stringify({ name, tags, url, size }),
   });
 }
-export const adicionarMusica = addMusicTrack;
 
 export async function getAllMusicTags(): Promise<string[]> {
   const list = await fetchApiJson<string[]>("/tools/music/tags");
   return list ?? [];
 }
-export const allMusicTags = getAllMusicTags;
-export const todasAsTags = getAllMusicTags;

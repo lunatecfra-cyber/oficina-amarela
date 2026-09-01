@@ -26,14 +26,11 @@ export async function createReport(
   }
   return { ok: true };
 }
-export const criarDenuncia = createReport;
-export const createModerationReport = createReport;
 
 export async function reportsForInspector(): Promise<Report[]> {
   const reports = await fetchApiJson<Report[]>("/admin/reports");
   return reports ?? [];
 }
-export const denunciasParaInspetor = reportsForInspector;
 
 export async function resolveReport(
   id: number,
@@ -55,5 +52,3 @@ export async function resolveReport(
   }
   return { ok: true };
 }
-export const resolverDenuncia = resolveReport;
-export const resolveModerationReport = resolveReport;

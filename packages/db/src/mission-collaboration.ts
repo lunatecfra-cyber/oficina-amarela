@@ -235,14 +235,6 @@ export async function getMissionsMessages(
   return messages;
 }
 
-export const missionMessages = getMissionMessages;
-export const messagesOfMission = getMissionMessages;
-export const mensagensDaPauta = getMissionMessages;
-export const messagesOfMissionAfter = getMissionMessagesAfter;
-export const mensagensDaPautaApos = getMissionMessagesAfter;
-export const missionsMessages = getMissionsMessages;
-export const mensagensDePautas = getMissionsMessages;
-
 export async function postChatMessage(
   missionId: number,
   actor: MissionActor,
@@ -261,7 +253,3 @@ export async function postChatMessage(
         : "Mensagem vazia.";
   return { ok: false, error, erro: error };
 }
-
-export const sendMessage = postChatMessage;
-export const postarMensagem = postChatMessage;
-export const enviarMensagem = postChatMessage;

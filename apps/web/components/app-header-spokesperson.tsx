@@ -2,10 +2,10 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { LocalGuide } from "@/components/local-guide";
 import { LogoutButton } from "@/components/logout-button";
-import { readSession } from "@/lib/server-session";
+import { getSession } from "@/lib/server-session";
 
 export async function AppHeaderSpokesperson() {
-  const session = await readSession();
+  const session = await getSession();
 
   if (!session) return null;
 

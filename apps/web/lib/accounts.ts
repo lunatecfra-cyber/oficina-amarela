@@ -16,7 +16,6 @@ export type ContaUsuario = UserAccount;
 export function isValidHandle(handle: string) {
   return /^[a-z0-9._]{3,24}$/i.test(handle.trim());
 }
-export const apelidoValido = isValidHandle;
 
 export async function isRateLocked(key: string): Promise<{ locked: boolean; minutes: number }> {
   const res = await fetchApi("/auth/rate-limit/check", {
@@ -47,4 +46,3 @@ export async function accountHasPassword(_userId?: number): Promise<boolean> {
   const data = await fetchApiJson<{ hasPassword: boolean }>("/account");
   return Boolean(data?.hasPassword);
 }
-export const contaTemSenha = accountHasPassword;

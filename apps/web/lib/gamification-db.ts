@@ -14,10 +14,8 @@ export async function recordDailyLogin(_userId?: number) {
   if (!res.ok) return { recorded: false, xp: 0, registrado: false };
   return (await res.json()) as { recorded: boolean; xp: number; registrado?: boolean };
 }
-export const registrarEntradaDiaria = recordDailyLogin;
 
 export async function listDailyChallenges(_userId?: number): Promise<DayChallenge[]> {
   const challenges = await fetchApiJson<DayChallenge[]>("/editor/challenges");
   return challenges ?? [];
 }
-export const listarDesafiosDoDia = listDailyChallenges;

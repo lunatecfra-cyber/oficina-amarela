@@ -1,8 +1,8 @@
 import { limitList, limitStr } from "@oficina/domain/limits";
 import { NextResponse } from "next/server";
-import { addMusicTrack, allMusicTags, listMusicTracks } from "@/lib/music-db";
-import { generatePresignedUploadUrl } from "@/lib/r2";
-import { readSession } from "@/lib/server-session";
+import { addMusicTrack, getAllMusicTags, listMusicTracks } from "@/lib/music-db";
+import { generatePresignedUrl } from "@/lib/r2";
+import { getSession } from "@/lib/server-session";
 
 const MAX_BYTES = 4 * 1024 * 1024; // 4MB
 const PERMITTED_AUDIO_TYPES = new Set([
@@ -15,7 +15,7 @@ const PERMITTED_AUDIO_TYPES = new Set([
 ]);
 
 export async function GET(request: Request) {
-  const session = await readSession();
+  const session = await getSession();
   if (!session) {
     return NextResponse.json(
       { error: "Please log in first.", erro: "Please log in first." },
@@ -26,13 +26,13 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tag = searchParams.get("tag") || undefined;
 
-  const [tracks, tags] = await Promise.all([listMusicTracks(tag), allMusicTags()]);
+  const [tracks, tags] = await Promise.all([listMusicTracks(tag), getAllMusicTags()]);
 
   return NextResponse.json({ ok: true, tracks, musicas: tracks, tags });
 }
 
 export async function POST(request: Request) {
-  const session = await readSession();
+  const session = await getSession();
   if (!session) {
     return NextResponse.json(
       { error: "Please log in first.", erro: "Please log in first." },
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
   let uploadUrl: string;
   let readUrl: string | null;
   try {
-    ({ uploadUrl, readUrl } = await generatePresignedUploadUrl(
+    ({ uploadUrl, readUrl } = await generatePresignedUrl(
       `music/${crypto.randomUUID()}-${safeName}`,
       contentType,
       file.size,

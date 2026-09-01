@@ -9,13 +9,10 @@ export async function searchUsers(term: string): Promise<UserListItem[]> {
   const users = await fetchApiJson<UserListItem[]>(`/admin/users?q=${encodeURIComponent(term)}`);
   return users ?? [];
 }
-export const buscarUsuarios = searchUsers;
 
 export async function viewUserDetails(userId: number): Promise<UserDetail | null> {
   return fetchApiJson<UserDetail>(`/admin/users/${userId}`);
 }
-export const verDetalhesUsuario = viewUserDetails;
-export const viewUserDetail = viewUserDetails;
 
 export async function banUser(
   userId: number,
@@ -37,7 +34,6 @@ export async function banUser(
   }
   return { ok: true };
 }
-export const banirUsuario = banUser;
 
 export async function unbanUser(
   userId: number,
@@ -54,7 +50,6 @@ export async function unbanUser(
   }
   return { ok: true };
 }
-export const desbanirUsuario = unbanUser;
 
 export async function removeUser(
   userId: number,
@@ -79,4 +74,3 @@ export async function removeUser(
     apelido: body.handle ?? body.apelido ?? "",
   };
 }
-export const removerUsuario = removeUser;

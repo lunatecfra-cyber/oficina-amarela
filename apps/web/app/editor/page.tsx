@@ -4,9 +4,9 @@ import { AppHeader } from "@/components/app-header";
 import { DailyChallenges } from "@/components/daily-challenges";
 import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 import { MissionOffer } from "@/components/mission-offer";
-import { missionMessages } from "@/lib/chat-db";
+import { getMissionMessages } from "@/lib/chat-db";
 import { listDailyChallenges, recordDailyLogin } from "@/lib/gamification-db";
-import { reservedMissionBy } from "@/lib/missions-db";
+import { getReservedMission } from "@/lib/missions-db";
 import { readEditorOnboarding } from "@/lib/profile-db";
 import { requireSession } from "@/lib/server-session";
 
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function EditorPage() {
   const session = await requireSession();
   const [currentMission, onboarding] = await Promise.all([
-    reservedMissionBy(session.id),
+    getReservedMission(session.id),
     readEditorOnboarding(session.id),
   ]);
   try {
@@ -27,7 +27,7 @@ export default async function EditorPage() {
   const challenges = await listDailyChallenges(session.id);
   const isIncompleteProfile = onboarding ? !onboarding.profileComplete : true;
   const messages = currentMission
-    ? await missionMessages(Number(currentMission.id.replace(/^db-/, "")))
+    ? await getMissionMessages(Number(currentMission.id.replace(/^db-/, "")))
     : [];
 
   return (

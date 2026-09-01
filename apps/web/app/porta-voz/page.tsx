@@ -14,8 +14,8 @@ import { EmptyState } from "@/components/empty-state";
 import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 import { MissionCounters } from "@/components/mission-counters";
 import { readCandidateOnboarding } from "@/lib/candidate-db";
-import { availableMissions, spokespersonMissions } from "@/lib/missions-db";
-import { readSession } from "@/lib/server-session";
+import { getAvailableMissions, getSpokespersonMissions } from "@/lib/missions-db";
+import { getSession } from "@/lib/server-session";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Minhas Missões — Oficina Amarela" };
@@ -71,12 +71,12 @@ const BUCKET_ORDER: Record<SpokespersonBucket, number> = {
 };
 
 export default async function SpokespersonHome() {
-  const session = await readSession();
+  const session = await getSession();
   const DEMO_MODE = process.env.NODE_ENV !== "production";
 
   const [realMine, realAvailable, onboarding] = await Promise.all([
-    session ? spokespersonMissions(session.id) : Promise.resolve([]),
-    availableMissions(),
+    session ? getSpokespersonMissions(session.id) : Promise.resolve([]),
+    getAvailableMissions(),
     session ? readCandidateOnboarding(session.id) : Promise.resolve(null),
   ]);
   const isIncompleteProfile = onboarding ? !onboarding.profileComplete : true;

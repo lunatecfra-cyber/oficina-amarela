@@ -24,7 +24,6 @@ export async function readEditableProfile(
 ): Promise<import("@oficina/db/profiles").EditableProfile | null> {
   return fetchApiJson<import("@oficina/db/profiles").EditableProfile>("/profile");
 }
-export const lerPerfilEditavel = readEditableProfile;
 
 export async function saveEditableProfile(
   _userId: number,
@@ -46,14 +45,12 @@ export async function saveEditableProfile(
   }
   return { ok: true };
 }
-export const salvarPerfilEditavel = saveEditableProfile;
 
 export async function readEditorOnboarding(
   _userId?: number,
 ): Promise<import("@oficina/db/profiles").EditorOnboarding | null> {
   return fetchApiJson<import("@oficina/db/profiles").EditorOnboarding>("/editor/profile");
 }
-export const lerOnboardingEditor = readEditorOnboarding;
 
 export async function saveEditorOnboarding(
   _userId: number,
@@ -75,23 +72,19 @@ export async function saveEditorOnboarding(
   }
   return { ok: true };
 }
-export const salvarOnboardingEditor = saveEditorOnboarding;
 
 export async function readEditorProfile(
   handleOrId: string | number,
 ): Promise<EditorProfile | null> {
   return fetchApiJson<EditorProfile>(`/editor/profile/${handleOrId}`);
 }
-export const lerPerfilEditor = readEditorProfile;
 
 export async function readEditorRanking(limit = 10): Promise<EditorRanking[]> {
   const list = await fetchApiJson<EditorRanking[]>(`/editor/ranking?limit=${limit}`);
   return list ?? [];
 }
-export const rankingEditores = readEditorRanking;
 
 export async function accountHasPassword(_userId?: number): Promise<boolean> {
   const data = await fetchApiJson<{ hasPassword: boolean }>("/account");
   return Boolean(data?.hasPassword);
 }
-export const contaTemSenha = accountHasPassword;

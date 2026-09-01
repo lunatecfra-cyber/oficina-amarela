@@ -13,8 +13,6 @@ export function isGoogleConfigured() {
   return credentials() !== null;
 }
 
-export const googleConfigurado = isGoogleConfigured;
-
 export function buildAuthorizationUrl(redirectUri: string, state: string) {
   const c = credentials();
   if (!c) throw new Error("GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are not configured (.env.local)");
@@ -30,8 +28,6 @@ export function buildAuthorizationUrl(redirectUri: string, state: string) {
   });
   return `${AUTHORIZE_URL}?${params.toString()}`;
 }
-
-export const montarUrlAutorizacao = buildAuthorizationUrl;
 
 export type GoogleProfile = {
   googleId: string;
@@ -90,8 +86,3 @@ export async function exchangeCodeForProfile(
     foto: profile.picture,
   };
 }
-
-export const trocarCodigoPorPerfil = exchangeCodeForProfile;
-
-export const isGoogleOAuthConfigured = isGoogleConfigured;
-export const buildGoogleAuthUrl = buildAuthorizationUrl;

@@ -10,15 +10,11 @@ export async function getPublishedNews(limit = 4): Promise<DbNews[]> {
   const list = await fetchPublicApiJson<DbNews[]>(`/news?limit=${limit}`);
   return list ?? [];
 }
-export const publishedNews = getPublishedNews;
-export const novidadesPublicadas = getPublishedNews;
 
 export async function getAllNews(): Promise<DbNews[]> {
   const list = await fetchApiJson<DbNews[]>("/admin/news");
   return list ?? [];
 }
-export const allNews = getAllNews;
-export const todasNovidades = getAllNews;
 
 export async function createNews(
   _authorId: number,
@@ -43,8 +39,6 @@ export async function createNews(
   }
   return { ok: true, id: Number(body.id) };
 }
-export const criarNovidade = createNews;
-export const createNewsArticle = createNews;
 
 export async function toggleNewsPublication(
   id: number,
@@ -72,7 +66,6 @@ export async function toggleNewsPublication(
     publicada: Boolean(body.isPublished),
   };
 }
-export const alternarPublicacao = toggleNewsPublication;
 
 export async function deleteNews(
   id: number,
@@ -89,5 +82,3 @@ export async function deleteNews(
   }
   return { ok: true };
 }
-export const apagarNovidade = deleteNews;
-export const deleteNewsArticle = deleteNews;

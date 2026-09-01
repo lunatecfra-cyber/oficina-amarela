@@ -46,5 +46,3 @@ export async function generatePresignedUrl(key: string, contentType: string, siz
 
   return { uploadUrl: url, readUrl };
 }
-
-export const generatePresignedUploadUrl = generatePresignedUrl;

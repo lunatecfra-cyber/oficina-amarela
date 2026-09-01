@@ -3,6 +3,3 @@ export function getRequestIp(request: Request): string {
   if (forwarded) return forwarded.split(",")[0].trim();
   return request.headers.get("x-real-ip")?.trim() || "local";
 }
-
-export const requestIpAddress = getRequestIp;
-export const ipDaRequisicao = getRequestIp;

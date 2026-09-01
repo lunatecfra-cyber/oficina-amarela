@@ -53,5 +53,3 @@ export function MouseGlow() {
     />
   );
 }
-
-export const BrilhoDoMouse = MouseGlow;

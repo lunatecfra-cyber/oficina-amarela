@@ -38,24 +38,16 @@ export async function getSystemOverview(): Promise<SystemOverview> {
     }
   );
 }
-export const systemSummary = getSystemOverview;
-export const resumoDoSistema = getSystemOverview;
-export const systemOverviewSummary = getSystemOverview;
-export const systemOverview = getSystemOverview;
 
 export async function getEditingQueue(): Promise<QueueItem[]> {
   const data = await fetchApiJson<QueueItem[]>("/admin/queue");
   return data ?? [];
 }
-export const editingQueue = getEditingQueue;
-export const filaDeEdicao = getEditingQueue;
 
 export async function getMissionsInFlight(): Promise<MissionInFlight[]> {
   const data = await fetchApiJson<MissionInFlight[]>("/admin/in-flight");
   return data ?? [];
 }
-export const missionsInFlight = getMissionsInFlight;
-export const missoesEmVoo = getMissionsInFlight;
 
 export async function moveInQueue(
   missionId: number,
@@ -77,8 +69,6 @@ export async function moveInQueue(
   }
   return { ok: true };
 }
-export const moveQueue = moveInQueue;
-export const moverNaFila = moveInQueue;
 
 export async function getActiveEditorEmails(): Promise<
   { name: string; email: string; nome?: string }[]
@@ -88,9 +78,6 @@ export async function getActiveEditorEmails(): Promise<
   );
   return data?.editors ?? [];
 }
-export const emailsDosEditores = getActiveEditorEmails;
-export const editorNotificationEmails = getActiveEditorEmails;
-export const editorEmails = getActiveEditorEmails;
 
 export async function getActiveSpokespersonEmails(): Promise<
   { name: string; email: string; nome?: string }[]
@@ -100,7 +87,3 @@ export async function getActiveSpokespersonEmails(): Promise<
   );
   return data?.spokespersons ?? [];
 }
-export const emailsDosCandidatos = getActiveSpokespersonEmails;
-export const candidateNotificationEmails = getActiveSpokespersonEmails;
-export const candidateEmails = getActiveSpokespersonEmails;
-export const spokespersonEmails = getActiveSpokespersonEmails;

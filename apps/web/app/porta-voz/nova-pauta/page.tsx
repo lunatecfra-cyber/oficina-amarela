@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { NewMissionForm } from "@/components/new-mission-form";
 import { readOwnCandidate } from "@/lib/candidate-db";
-import { readSession } from "@/lib/server-session";
+import { getSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Nova Missão — Oficina Amarela" };
 
 export default async function NewMissionPage() {
-  const session = await readSession();
+  const session = await getSession();
   let candidate = null;
 
   if (String(session?.role) === "spokesperson" || String(session?.role) === "voz") {

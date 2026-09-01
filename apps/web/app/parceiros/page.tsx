@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { AppHeaderInspector } from "@/components/app-header-inspector";
 import { AppHeaderSpokesperson } from "@/components/app-header-spokesperson";
-import { readSession } from "@/lib/server-session";
+import { getSession } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Parceiros — Oficina Amarela" };
 
@@ -28,7 +28,7 @@ const PARTNERS = [
 ];
 
 export default async function PartnersPage() {
-  const session = await readSession();
+  const session = await getSession();
   const headerVariant = partnersHeader(session?.role);
   const returnPath = partnersReturnPath(session?.role);
 

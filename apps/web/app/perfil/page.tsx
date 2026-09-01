@@ -18,7 +18,7 @@ import { EditorInvitation } from "@/components/editor-invitation";
 import { ElectoralProgress } from "@/components/electoral-progress";
 import { Stat } from "@/components/stat";
 import { getEditorProgress } from "@/lib/electoral-ranking-db";
-import { reservedMissionBy } from "@/lib/missions-db";
+import { getReservedMission } from "@/lib/missions-db";
 import { readEditorOnboarding, readEditorProfile } from "@/lib/profile-db";
 import { requireSession } from "@/lib/server-session";
 
@@ -30,7 +30,7 @@ export default async function ProfilePage() {
   const [dbProfile, onboarding, reserved, electoralProgress] = await Promise.all([
     readEditorProfile(session.id),
     readEditorOnboarding(session.id),
-    reservedMissionBy(session.id),
+    getReservedMission(session.id),
     getEditorProgress(session.id),
   ]);
 

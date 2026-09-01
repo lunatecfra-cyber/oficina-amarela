@@ -51,5 +51,3 @@ export function OnAppear({
     </div>
   );
 }
-
-export const AoAparecer = OnAppear;
