@@ -122,7 +122,7 @@ export async function registerAccount(
       return { ok: false, status: 400, error: "Convite especial obrigatório para porta-voz." };
     }
     const redeemed = await invitations.redeemInvitation({
-      tokenHash: hashInvitation(invitation),
+      tokenHash: await hashInvitation(invitation),
       email,
       handle,
       name,

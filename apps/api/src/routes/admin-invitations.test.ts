@@ -107,7 +107,7 @@ describe("administração de convites na API", {
         SELECT email, token_hash, criado_por FROM convites_porta_voz
       `;
     assert.equal(invitation.email, "alvo@exemplo.com");
-    assert.equal(invitation.token_hash, hashInvitation(body.token));
+    assert.equal(invitation.token_hash, await hashInvitation(body.token));
     assert.notEqual(invitation.token_hash, body.token);
     assert.equal(invitation.criado_por, adminId);
 

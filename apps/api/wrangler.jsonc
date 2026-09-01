@@ -3,8 +3,10 @@
   "name": "oficina-amarela-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-30",
-  // node:crypto é usado pelo domínio (hash de convite); nodejs_compat cobre isso
-  // e o que mais vier de lib/ quando as rotas migrarem.
+  // nodejs_compat cobre node:async_hooks — o AsyncLocalStorage que dá a cada
+  // requisição o seu cliente de banco e o seu coletor de métricas do D1 — e o
+  // driver `postgres`. O domínio já não precisa dele: o hash de convite saiu de
+  // node:crypto para a Web Crypto.
   "compatibility_flags": ["nodejs_compat"],
 
   "observability": {

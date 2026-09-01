@@ -53,7 +53,7 @@ export function createAdminInvitationRoutes(dependencies: ApiDependencies) {
     const token = generateInvitationToken();
     const issued = await dependencies.invitationAdmin.issueInvitation({
       email,
-      tokenHash: hashInvitation(token),
+      tokenHash: await hashInvitation(token),
       adminId: session.id,
       validityDays: INVITATION_VALIDITY_DAYS,
     });
