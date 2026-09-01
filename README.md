@@ -38,24 +38,41 @@ de royalties e algumas aulas curtas.
 
 ## Tecnologias
 
-- **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Turbopack, React 19)
-- **Linguagem**: [TypeScript](https://www.typescriptlang.org/)
-- **Estilização**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Banco de Dados**: [PostgreSQL](https://www.postgresql.org/) (Supabase) gerenciado via driver nativo `postgres`
-- **Autenticação**:
-  - Google OAuth 2.0 (com fluxo pós-login para escolha de papel)
-  - Autenticação tradicional com senhas hasheadas em `bcryptjs`
-  - Sessões em cookies seguros assinados com `jose` (JWT)
-- **Armazenamento de Objetos (Storage)**: [Cloudflare R2](https://www.cloudflare.com/products/r2/) via `@aws-sdk/client-s3`
-- **E-mails Transacionais**: [Resend](https://resend.com/)
-- **Observabilidade**: [Sentry](https://sentry.io/)
+Monorepo Turborepo, com Biome fazendo lint e formatação.
+
+- **Web**: [Next.js 16](https://nextjs.org/) (App Router, React 19) em
+  [TypeScript](https://www.typescriptlang.org/), estilizado com
+  [Tailwind CSS v4](https://tailwindcss.com/) e publicado como Worker da
+  Cloudflare por `vinext` e `@vinext/cloudflare`.
+- **API**: [Hono](https://hono.dev/) num Worker separado. O web chega nele por
+  Service Binding, sem sair para a internet. Em desenvolvimento e nos testes a
+  mesma aplicação roda em processo, então a troca entre os dois é uma
+  atribuição.
+- **Banco**: [Cloudflare D1](https://developers.cloudflare.com/d1/) quando o
+  binding `DB` existe, e [PostgreSQL](https://www.postgresql.org/) (Supabase)
+  pelo driver `postgres` quando não existe. A escolha vale para o conjunto
+  inteiro de repositórios, nunca fatia a fatia. Os testes de D1 rodam em
+  `miniflare`.
+- **Coordenação e trabalho de fundo**: um Durable Object (`MissionCoordinator`)
+  resolve a disputa de dois editores pela mesma missão. Uma Cloudflare Queue
+  com fila de descarte e um Cron de um minuto cuidam da manutenção e drenam a
+  caixa de saída de e-mail.
+- **Autenticação**: Google OAuth 2.0, com escolha de papel depois do login;
+  senha com hash em `bcryptjs`; sessão em cookie assinado com `jose` (JWT).
+- **Arquivos**: [Cloudflare R2](https://www.cloudflare.com/products/r2/) por URL
+  pré-assinada, via `@aws-sdk/client-s3`.
+- **E-mail**: [Resend](https://resend.com/), atrás de uma caixa de saída no
+  banco — enfileirar é uma escrita, e não depende do provedor estar de pé.
+- **Observabilidade**: [Sentry](https://sentry.io/).
 
 ## Como rodar localmente
 
 ### Pré-requisitos
-- **Node.js**: v20.x ou v22.x+
-- **npm** ou **bun**
-- Instância do **PostgreSQL** ou projeto no **Supabase**
+- Node.js v20.x ou v22.x+
+- npm ou bun
+- Um banco: PostgreSQL (ou projeto no Supabase), ou o D1 local que o wrangler
+  cria na primeira aplicação de schema. Para só abrir as telas, nenhum dos dois
+  é necessário: `DATABASE_STUB=1` faz toda consulta devolver lista vazia.
 
 ### 1. Clonar o repositório
 ```bash
@@ -122,9 +139,18 @@ O código usa `env.HYPERDRIVE.connectionString` no Worker e continua aceitando
 etapa.
 
 ### 4. Executar o schema / migrações do banco
+
+No PostgreSQL:
+
 ```bash
 node --env-file=apps/web/.env.local scripts/migrar.mjs
 node --env-file=apps/web/.env.local scripts/migrar-dados-anteriores.mjs
+```
+
+No D1 (`local`, `staging` ou `production`):
+
+```bash
+node scripts/aplicar-schema-d1.mjs local
 ```
 
 ### 5. Iniciar o servidor de desenvolvimento
