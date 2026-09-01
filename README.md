@@ -1,18 +1,15 @@
 # Oficina Amarela
 
-> Plataforma colaborativa de produção e edição de vídeo para comunicação política, conectando candidatos/porta-vozes, editores parceiros e inspetores de qualidade.
+Plataforma de produção e edição de vídeo para comunicação política. Liga
+porta-vozes que precisam de vídeo editado a editores parceiros, com inspetores
+cuidando da qualidade.
 
----
+O trabalho é organizado em missões: o porta-voz abre uma com o briefing, a
+missão entra numa fila, um editor pega, entrega, e o porta-voz aprova. Em volta
+disso ficam o controle de qualidade, a conformidade eleitoral (TSE/CNPJ) e o
+ranking de constância dos editores.
 
-## 📌 Sobre o Projeto
-
-A **Oficina Amarela** é uma plataforma desenhada para acelerar e profissionalizar o fluxo de edição de vídeos curtos (Reels/Shorts/TikTok) e longos (YouTube) para campanhas e lideranças políticas. 
-
-O sistema organiza a demanda em **missões de edição**, distribuídas de forma justa e inteligente para editores qualificados, com controle de qualidade em tempo real, proteção de conformidade eleitoral (TSE/CNPJ) e um sistema de **ranking eleitoral e constância com gamificação**.
-
----
-
-## 👥 Papéis no Sistema
+## Papéis
 
 | Papel | Acesso | Principais Funcionalidades |
 |---|---|---|
@@ -20,26 +17,26 @@ O sistema organiza a demanda em **missões de edição**, distribuídas de forma
 | **Editor de Vídeo** | `/editor` | • Fila de missões oferecidas sob demanda<br>• Mesa de trabalho ativa com controle de prazos<br>• Conquista de XP, reputação, níveis (Aprendiz ➔ Oficial ➔ Artífice ➔ Mestre-Artesão)<br>• Ranking eleitoral com metas semanais e proteção por bloqueios de constância<br>• Código de indicação de novos editores |
 | **Inspetor (Administrador / Qualidade)** | `/inspetor` | • Panorama geral em tempo real de missões e editores<br>• Moderação de fila, denúncias e contas de usuários<br>• Emissão e revogação de convites exclusivos para porta-vozes<br>• Concessão de bloqueios de constância e auditoria de ações administrativas<br>• Disparo de avisos (broadcast) e publicação de novidades |
 
----
+## O que o sistema faz
 
-## ✨ Principais Funcionalidades
+A fila de missões distribui trabalho para os editores disponíveis, um de cada
+vez, em vez de deixar todo mundo disputar a mesma pauta.
 
-- **Fila Inteligente de Missões**: Distribuição automatizada de missões para editores disponíveis, sem disputas desordenadas.
-- **Ranking Eleitoral 2026**:
-  - Metas semanais dinâmicas de entregas aprovadas.
-  - **Bloqueios de Constância (Shields)**: Protege a sequência do editor em semanas atípicas.
-  - **Vitrine de Prêmios Coletivos**: Desbloqueio progressivo de recompensas conforme a comunidade de editores ativos cresce.
-  - **Sorteio por Constância**: Elegibilidade automática para editores com 4+ semanas consecutivas de metas batidas.
-- **Programa de Indicação de Editores**: Link personalizado por editor; gera reputação bônus quando o indicado tem 2 entregas aprovadas.
-- **Convites Exclusivos de Porta-Voz**: Onboarding restrito com tokens criptografados e controle de expiração.
-- **Chat Integrado por Missão**: Canal contextualizado entre porta-voz, editor e inspetor sem necessidade de WhatsApp.
-- **Upload Direto em Nuvem**: URLs pré-assinadas com upload direto para o **Cloudflare R2**.
-- **Notificações por E-mail**: Avisos automáticos em cada mudança de estado da missão via **Resend**.
-- **Ferramentas e Aulas**: Biblioteca de trilhas sonoras livres de royalties e guias rápidos para editores e candidatos.
+O ranking eleitoral de 2026 cobra uma meta semanal de entregas aprovadas, que
+diminui quando a semana é encurtada pelo fim do ciclo. Um editor tem bloqueios
+de constância para cobrir uma semana que não deu, e quem fecha quatro semanas
+seguidas entra no sorteio. A vitrine de prêmios abre por faixa: 10 editores
+ativos liberam o primeiro, 20 o segundo, e assim por diante. Editor que indica
+outro ganha reputação quando o indicado tem duas entregas aprovadas.
 
----
+Porta-voz só entra por convite, com token guardado em hash e prazo de validade.
+Dentro da missão há um chat entre porta-voz, editor e inspetor, então a conversa
+não precisa migrar para o WhatsApp. O vídeo bruto sobe direto para o Cloudflare
+R2 por URL pré-assinada, e cada mudança de estado da missão dispara um e-mail
+pelo Resend. Editores e candidatos também têm uma biblioteca de trilhas livres
+de royalties e algumas aulas curtas.
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias
 
 - **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Turbopack, React 19)
 - **Linguagem**: [TypeScript](https://www.typescriptlang.org/)
@@ -53,9 +50,7 @@ O sistema organiza a demanda em **missões de edição**, distribuídas de forma
 - **E-mails Transacionais**: [Resend](https://resend.com/)
 - **Observabilidade**: [Sentry](https://sentry.io/)
 
----
-
-## 🚀 Como Executar Localmente
+## Como rodar localmente
 
 ### Pré-requisitos
 - **Node.js**: v20.x ou v22.x+
@@ -137,7 +132,7 @@ node --env-file=apps/web/.env.local scripts/migrar-dados-anteriores.mjs
 npm run dev
 ```
 
-## 🗂️ Estrutura do repositório
+## Estrutura do repositório
 
 O projeto é um monorepo Turborepo:
 
@@ -170,59 +165,13 @@ TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test
 
 Acesse [http://localhost:3000](http://localhost:3000) no seu navegador.
 
----
+## Convenções
 
-## 🧪 Testes e Validações
+Identificador é em inglês: nome de variável, função, tipo, classe de CSS e
+coluna de banco. Texto que alguém lê é em português: rótulo de tela, mensagem
+de erro, e-mail e mensagem de commit, esta última no padrão Conventional
+Commits.
 
-O projeto inclui testes de unidade para regras eleitorais, consistência, metas e convites:
+## Licença
 
-```bash
-# Executar suíte de testes
-npm test
-
-# Checagem estática de tipos
-npx tsc --noEmit
-
-# Build de produção
-npm run build
-```
-
----
-
-## 📁 Estrutura de Diretórios
-
-```
-oficina-amarela/
-├── app/                  # Rotas e páginas (Next.js App Router)
-│   ├── api/              # Endpoints HTTP REST (autenticação, missões, ranking, admin)
-│   ├── editor/           # Painel e telas do editor de vídeo
-│   ├── porta-voz/        # Painel, nova pauta e tela de missão do porta-voz
-│   ├── inspetor/         # Painel administrativo, auditoria, denúncias e panorama
-│   ├── ranking/          # Visualização pública do ranking eleitoral
-│   └── ...
-├── components/           # Componentes visuais e interativos (React)
-├── lib/                  # Camada de domínio, regras de negócio e acesso ao banco (SQL)
-│   ├── accounts.ts       # Gestão de contas, autenticação e slots
-│   ├── missions-db.ts    # Transições de estado e consultas de pautas
-│   ├── electoral-ranking-db.ts # Ranking eleitoral, constância e bloqueios
-│   ├── profile-db.ts     # Perfis e histórico de editores
-│   ├── session.ts        # Sessões JWT seguras
-│   └── ...
-├── scripts/              # Scripts utilitários e migrações de banco
-├── supabase/             # Schema canônico e migrações SQL
-└── public/               # Ativos estáticos, fontes e imagens
-```
-
----
-
-## 📄 Convenções e Boas Práticas
-
-- **Nomenclatura da Codebase**: Código, tipos, funções e nomes de variáveis padronizados em inglês internamente.
-- **Interface e Mensagens**: Textos públicos, rótulos de tela, mensagens de erro e e-mails permanecem integralmente em **Português do Brasil (PT-BR)**.
-- **Commits**: Mensagens de commit descritivas no padrão Conventional Commits em **Português do Brasil (PT-BR)**.
-
----
-
-## 📜 Licença
-
-Propriedade privada da **Oficina Amarela / Pacto da Concórdia**. Todos os direitos reservados.
+Propriedade privada da Oficina Amarela / Pacto da Concórdia. Todos os direitos reservados.
