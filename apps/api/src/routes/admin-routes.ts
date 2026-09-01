@@ -1,9 +1,31 @@
 import type { UserSession } from "@oficina/auth/session";
-import { drainEmailQueueNow, queueBroadcastEmail } from "@oficina/email/dispatch";
+import { drainEmailQueueNow, queueNoticeEmail } from "@oficina/email/dispatch";
+import { buildEditorsQueueEmail, buildFreeEditorsEmail } from "@oficina/email/messages";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
 import { requireAdmin } from "../session.ts";
+
+export type BroadcastAudience = "editors" | "spokespersons";
+
+/**
+ * O painel de panorama manda `{ type }`, não assunto e mensagem.
+ *
+ * O contrato tinha derivado: a rota exigia `subject`/`message` e devolvia 400
+ * em todo clique dos botões "avisar editores" e "avisar porta-vozes". Resolver
+ * o público num ponto só é o que deixa a divergência aparecer num teste em vez
+ * de aparecer no botão.
+ */
+export function resolveBroadcastAudience(
+  body: Record<string, unknown> | null,
+): BroadcastAudience | null {
+  const raw = String(body?.type ?? body?.tipo ?? "");
+  if (raw === "editors" || raw === "editores") return "editors";
+  if (raw === "candidates" || raw === "candidatos" || raw === "spokespersons") {
+    return "spokespersons";
+  }
+  return null;
+}
 
 type AdminEnv = {
   Bindings: Bindings;
@@ -136,47 +158,39 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
 
   routes.post("/broadcast", async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-    const subject = String(body?.subject ?? body?.assunto ?? "").trim();
-    const message = String(body?.message ?? body?.mensagem ?? "").trim();
-    const audience = String(body?.audience ?? body?.publico ?? "all");
+    const audience = resolveBroadcastAudience(body);
+    if (!audience) return c.json({ error: "Público inválido." }, 400);
 
-    if (!subject)
-      return c.json({ error: "Assunto obrigatório.", erro: "Assunto obrigatório." }, 400);
-    if (!message)
-      return c.json({ error: "Mensagem obrigatória.", erro: "Mensagem obrigatória." }, 400);
+    const overview = await dependencies.admin.getSystemOverview();
+    // O aviso sai com o link do site público, e não com o do Worker da API:
+    // a requisição chega repassada pelo web, que preserva a origem original.
+    const origin = new URL(c.req.url).origin;
 
-    const recipients: { name: string; email: string }[] = [];
-    if (
-      audience === "editors" ||
-      audience === "editores" ||
-      audience === "all" ||
-      audience === "todos"
-    ) {
-      recipients.push(...(await dependencies.admin.getActiveEditorEmails()));
+    const notice =
+      audience === "editors"
+        ? {
+            reason: overview.inQueue === 0 ? "Não tem missão esperando na fila." : null,
+            recipients: () => dependencies.admin.getActiveEditorEmails(),
+            content: (name: string) =>
+              buildEditorsQueueEmail(name, overview.inQueue, `${origin}/editor`),
+          }
+        : {
+            reason: overview.freeEditors === 0 ? "Nenhum editor está livre agora." : null,
+            recipients: () => dependencies.admin.getActiveSpokespersonEmails(),
+            content: (name: string) =>
+              buildFreeEditorsEmail(name, overview.freeEditors, `${origin}/porta-voz/nova-pauta`),
+          };
+
+    if (notice.reason) return c.json({ error: notice.reason }, 400);
+
+    const recipients = await notice.recipients();
+    for (const person of recipients) {
+      await queueNoticeEmail(audience, person.email, notice.content(person.name));
     }
-    if (
-      audience === "spokespersons" ||
-      audience === "candidatos" ||
-      audience === "voz" ||
-      audience === "all" ||
-      audience === "todos"
-    ) {
-      recipients.push(...(await dependencies.admin.getActiveSpokespersonEmails()));
-    }
+    // Drenar sem nada na caixa é uma ida ao banco à toa.
+    if (recipients.length > 0) await drainEmailQueueNow();
 
-    const unique = new Map<string, string>();
-    for (const r of recipients) {
-      if (r.email && !unique.has(r.email.toLowerCase())) {
-        unique.set(r.email.toLowerCase(), r.name);
-      }
-    }
-
-    for (const [email, name] of unique) {
-      await queueBroadcastEmail(email, name, subject, message);
-    }
-    await drainEmailQueueNow();
-
-    return c.json({ ok: true, sent: unique.size, total: unique.size });
+    return c.json({ ok: true, sent: recipients.length });
   });
 
   return routes;

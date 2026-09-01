@@ -15,8 +15,6 @@ export function isEmailConfigured(): boolean {
   return key.length >= 20;
 }
 
-export const emailConfigurado = isEmailConfigured;
-
 export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -33,8 +31,6 @@ const SENDER =
 export function isTestSender(): boolean {
   return SENDER.includes("resend.dev");
 }
-
-export const remetenteEhDeTeste = isTestSender;
 
 export type EmailContent = { subject: string; html: string };
 
@@ -56,18 +52,6 @@ export function buildPasswordRecoveryEmail(name: string, link: string): EmailCon
     `,
   };
 }
-
-export async function sendPasswordRecoveryEmail(
-  to: string,
-  name: string,
-  link: string,
-): Promise<boolean> {
-  const { subject, html } = buildPasswordRecoveryEmail(name, link);
-  return deliverEmail(to, subject, html);
-}
-
-export const enviarEmailRecuperacao = sendPasswordRecoveryEmail;
-
 const CORPO = `font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1c1c22;`;
 const TITULO = `font-size: 20px; color: #a9840e; margin: 0 0 16px;`;
 const BOTAO = `display: inline-block; background: #f4ce1f; color: #1a1405; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;`;
@@ -84,23 +68,6 @@ function moldura(titulo: string, miolo: string, link?: { url: string; texto: str
     </div>
   `;
 }
-
-async function sendNotification(destination: string, subject: string, html: string): Promise<void> {
-  if (!isEmailConfigured() || isTestSender() || !destination) return;
-  try {
-    const { error } = await getClient().emails.send({
-      from: SENDER,
-      to: destination,
-      subject,
-      html,
-    });
-    if (error) console.error("[email] falha ao avisar:", subject, error);
-  } catch (e) {
-    console.error("[email] exceção ao avisar:", subject, e);
-  }
-}
-
-export const avisar = sendNotification;
 
 /**
  * Entrega uma mensagem já pronta. Devolve true quando o provedor aceitou.
@@ -139,18 +106,6 @@ export function buildMissionAcceptedEmail(
   };
 }
 
-export function notifyMissionAccepted(
-  destination: string,
-  name: string,
-  title: string,
-  editor: string,
-  url: string,
-) {
-  const { subject, html } = buildMissionAcceptedEmail(name, title, editor, url);
-  return sendNotification(destination, subject, html);
-}
-export const avisarMissaoAceita = notifyMissionAccepted;
-
 export function buildDeliveryReadyEmail(name: string, title: string, url: string): EmailContent {
   return {
     subject: `Seu vídeo está pronto: "${title}"`,
@@ -162,12 +117,6 @@ export function buildDeliveryReadyEmail(name: string, title: string, url: string
     ),
   };
 }
-
-export function notifyDeliveryReady(destination: string, name: string, title: string, url: string) {
-  const { subject, html } = buildDeliveryReadyEmail(name, title, url);
-  return sendNotification(destination, subject, html);
-}
-export const avisarEntregaPronta = notifyDeliveryReady;
 
 export function buildApprovedDeliveryEmail(
   name: string,
@@ -187,18 +136,6 @@ export function buildApprovedDeliveryEmail(
   };
 }
 
-export function notifyApprovedDelivery(
-  destination: string,
-  name: string,
-  title: string,
-  rating: number | undefined,
-  url: string,
-) {
-  const { subject, html } = buildApprovedDeliveryEmail(name, title, rating, url);
-  return sendNotification(destination, subject, html);
-}
-export const avisarEntregaAprovada = notifyApprovedDelivery;
-
 export function buildReEditRequestedEmail(
   name: string,
   title: string,
@@ -217,18 +154,6 @@ export function buildReEditRequestedEmail(
   };
 }
 
-export function notifyReEditRequested(
-  destination: string,
-  name: string,
-  title: string,
-  notes: string,
-  url: string,
-) {
-  const { subject, html } = buildReEditRequestedEmail(name, title, notes, url);
-  return sendNotification(destination, subject, html);
-}
-export const avisarReedicaoPedida = notifyReEditRequested;
-
 export function buildEditorsQueueEmail(name: string, inQueue: number, url: string): EmailContent {
   return {
     subject: `Tem ${inQueue} miss${inQueue === 1 ? "ão" : "ões"} esperando editor`,
@@ -240,17 +165,6 @@ export function buildEditorsQueueEmail(name: string, inQueue: number, url: strin
     ),
   };
 }
-
-export function notifyEditorsQueue(
-  destination: string,
-  name: string,
-  inQueue: number,
-  url: string,
-) {
-  const { subject, html } = buildEditorsQueueEmail(name, inQueue, url);
-  return sendNotification(destination, subject, html);
-}
-export const avisarEditoresFila = notifyEditorsQueue;
 
 export function buildFreeEditorsEmail(
   name: string,
@@ -267,17 +181,3 @@ export function buildFreeEditorsEmail(
     ),
   };
 }
-
-export function notifySpokespersonsFreeEditors(
-  destination: string,
-  name: string,
-  freeEditors: number,
-  url: string,
-) {
-  const { subject, html } = buildFreeEditorsEmail(name, freeEditors, url);
-  return sendNotification(destination, subject, html);
-}
-export const avisarCandidatosEditoresLivres = notifySpokespersonsFreeEditors;
-
-export const notifyEditorsOfQueueMissions = notifyEditorsQueue;
-export const notifySpokespersonsOfAvailableEditors = notifySpokespersonsFreeEditors;

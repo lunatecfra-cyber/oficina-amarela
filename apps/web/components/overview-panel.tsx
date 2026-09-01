@@ -148,14 +148,14 @@ export function OverviewPanel({
     const resp = await fetch("/api/admin/broadcast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, tipo: type === "editors" ? "editores" : "candidatos" }),
+      body: JSON.stringify({ type }),
     });
     if (!resp.ok) {
       const d = await resp.json().catch(() => null);
-      setWarning(d?.error ?? d?.erro ?? "Não deu pra enviar.");
+      setWarning(d?.error ?? "Não deu pra enviar.");
     } else {
       const d = await resp.json().catch(() => null);
-      const n = d?.sent ?? d?.enviados ?? "?";
+      const n = d?.sent ?? "?";
       setNotifiedMsg(`${n} e-mail${n !== 1 ? "s" : ""} enviado${n !== 1 ? "s" : ""}.`);
       setTimeout(() => setNotifiedMsg(""), 4000);
     }

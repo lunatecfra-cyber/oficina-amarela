@@ -1,10 +1,5 @@
 import { type DrainResult, drainEmailQueue, enqueueEmails } from "@oficina/db/email-queue";
-import {
-  buildPasswordRecoveryEmail,
-  deliverEmail,
-  type EmailContent,
-  escapeHtml,
-} from "./messages.ts";
+import { buildPasswordRecoveryEmail, deliverEmail, type EmailContent } from "./messages.ts";
 
 /**
  * Liga a caixa de saída ao provedor de e-mail.
@@ -52,32 +47,23 @@ export async function queueMissionNotification(
 }
 
 /**
- * O nome vem do cadastro do usuário e o texto do inspetor. Os dois entram
- * escapados: era o único molde de e-mail que interpolava HTML cru, e um nome
- * com marcação quebraria a mensagem que a própria pessoa recebe.
+ * Enfileira um aviso em massa disparado pelo inspetor.
+ *
+ * A chave usa o minuto pelo mesmo motivo do aviso de missão: clicar duas vezes
+ * no botão dentro do minuto não manda dois e-mails para a mesma pessoa.
  */
-export async function queueBroadcastEmail(
+export async function queueNoticeEmail(
+  notice: string,
   to: string,
-  name: string,
-  subject: string,
-  message: string,
+  content: EmailContent,
 ): Promise<void> {
   const minute = new Date().toISOString().slice(0, 16);
   await enqueueEmails([
     {
-      key: `broadcast:${to.toLowerCase()}:${minute}`,
+      key: `notice:${notice}:${to.toLowerCase()}:${minute}`,
       to,
-      subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1c1c22;">
-          <h1 style="font-size: 20px; color: #a9840e;">Oficina Amarela</h1>
-          <p>Oi, ${escapeHtml(name)}.</p>
-          <p>${escapeHtml(message)}</p>
-          <p style="font-size: 12px; color: #888; margin-top: 28px; border-top: 1px solid #eee; padding-top: 12px;">
-            Você recebe este comunicado da administração da Oficina Amarela.
-          </p>
-        </div>
-      `,
+      subject: content.subject,
+      html: content.html,
     },
   ]);
 }
