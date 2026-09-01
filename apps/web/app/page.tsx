@@ -267,7 +267,7 @@ export default async function Home() {
               <OnAppear key={q.title} delay={i * 120} className="flex">
                 <Link
                   href={q.href}
-                  className="role-card vidro group flex flex-1 flex-col rounded-2xl p-6 transition-[transform,border-color,box-shadow] duration-[550ms] ease-[var(--ease-spring)] hover:-translate-y-1 hover:border-gold/40 hover:shadow-[0_1px_0_rgba(255,255,255,0.07)_inset,0_14px_32px_rgba(0,0,0,0.46),0_32px_70px_rgba(0,0,0,0.34)] active:translate-y-0 active:scale-[0.995] lg:p-8"
+                  className="role-card glass group flex flex-1 flex-col rounded-2xl p-6 transition-[transform,border-color,box-shadow] duration-[550ms] ease-[var(--ease-spring)] hover:-translate-y-1 hover:border-gold/40 hover:shadow-[0_1px_0_rgba(255,255,255,0.07)_inset,0_14px_32px_rgba(0,0,0,0.46),0_32px_70px_rgba(0,0,0,0.34)] active:translate-y-0 active:scale-[0.995] lg:p-8"
                 >
                   <span className="inline-grid h-11 w-11 place-items-center rounded-xl border border-line bg-ink-2 text-silver transition-all duration-500 ease-[var(--ease-spring)] group-hover:scale-105 group-hover:border-gold/50 group-hover:text-gold">
                     <svg

@@ -23,7 +23,7 @@ export default function PrivacyPage() {
         com um advogado antes de publicar de verdade — isso aqui não é aconselhamento jurídico.
       </div>
 
-      <div className="prose-conf mt-8 flex flex-col gap-6 text-[15px] leading-relaxed text-muted">
+      <div className="mt-8 flex flex-col gap-6 text-[15px] leading-relaxed text-muted">
         <section>
           <h2 className="mb-2 font-[family-name:var(--font-display)] text-xl font-semibold text-text">
             1. O que é a Oficina Amarela

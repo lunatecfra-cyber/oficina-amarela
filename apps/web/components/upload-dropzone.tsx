@@ -156,7 +156,7 @@ export function UploadDropzone({
 
       {state === "idle" && (
         <>
-          <div className="mb-4 rounded-full bg-surface-hi p-4">
+          <div className="mb-4 rounded-full bg-surface-2 p-4">
             <svg
               className="h-8 w-8 text-gold"
               fill="none"
