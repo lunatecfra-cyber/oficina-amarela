@@ -12,7 +12,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { runBackgroundTask } from "./background.ts";
+import { MAINTENANCE_TASKS, runBackgroundTask } from "./background.ts";
 
 const dependencies = {
   missionQueue: {
@@ -57,6 +57,50 @@ describe("configuração da fila de manutenção", () => {
       assert.equal(producer.queue, consumer.queue, "produtor e consumidor na mesma fila");
     });
   }
+
+  /**
+   * O piso de manutenção precisa caber na cota diária da CONTA.
+   *
+   * Em 2026-09-02 os dois ambientes rodavam "* * * * *" publicando 2 mensagens
+   * por tique: 2 × 2 × 1440 × 3 = 17.280 operações/dia contra um limite de
+   * 10.000 — 172,8%. A cota é da conta inteira, não de cada ambiente, então
+   * staging e produção somam. A conta estourava às ~13h53 UTC todo dia e ficava
+   * 10 horas sem manutenção nenhuma.
+   *
+   * Nenhum painel pega isso: é erro de configuração, visível na revisão. Este
+   * teste é o que pega. Ver docs/infra/cloudflare-queues-incident-2026-09-02.md.
+   */
+  test("o piso de manutenção cabe na cota diária de operações da conta", async () => {
+    const DAILY_ALLOWANCE = 10_000; // Workers Free, por conta, zera 00:00 UTC
+    const OPERATIONS_PER_MESSAGE = 3; // escrita + leitura + remoção
+    const BUDGET = 0.25; // manutenção não passa de 1/4 da cota
+
+    const config = await wranglerConfig();
+    let operations = 0;
+    const breakdown: string[] = [];
+
+    for (const environment of ["staging", "production"]) {
+      for (const cron of config.env[environment].triggers?.crons ?? []) {
+        const [minute] = cron.split(" ");
+        const match = /^\*\/(\d+)$/.exec(minute);
+        const periodMinutes = match ? Number(match[1]) : minute === "*" ? 1 : 0;
+        assert.ok(
+          periodMinutes > 0,
+          `${environment}: "${cron}" não é um período reconhecido — some do cálculo de cota sem ninguém ver`,
+        );
+
+        const perDay = (1440 / periodMinutes) * MAINTENANCE_TASKS.length * OPERATIONS_PER_MESSAGE;
+        operations += perDay;
+        breakdown.push(`${environment} ${cron} → ${perDay}`);
+      }
+    }
+
+    assert.ok(
+      operations <= DAILY_ALLOWANCE * BUDGET,
+      `manutenção gasta ${operations} operações/dia (${((operations / DAILY_ALLOWANCE) * 100).toFixed(1)}% da cota); ` +
+        `o teto é ${DAILY_ALLOWANCE * BUDGET}. Detalhe: ${breakdown.join(", ")}`,
+    );
+  });
 
   test("mensagem desconhecida faz o consumidor falhar", async () => {
     // É esta exceção que a Cloudflare enxerga para retentar e, no fim, mandar

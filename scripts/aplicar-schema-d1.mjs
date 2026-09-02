@@ -16,7 +16,9 @@
 // instrução vai sozinha e "duplicate column name" conta como já aplicada.
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -91,6 +93,22 @@ for (const patch of patches) {
   }
 
   for (const statement of statements) {
+    // CREATE TRIGGER vai por arquivo, não por --command.
+    //
+    // O `--command` do wrangler corta a instrução no primeiro ";", e o corpo de
+    // um gatilho é cheio deles: a API recebe só até o primeiro e responde
+    // "incomplete input: SQLITE_ERROR". Como os DROP TRIGGER rodam antes, o
+    // banco ficava SEM nenhum gatilho — foi o que aconteceu no ensaio em
+    // staging (2026-09-02), que perdeu as cinco travas de concorrência.
+    // `--file` manda o conteúdo inteiro e respeita o corpo do gatilho.
+    const isTrigger = statement.startsWith("CREATE TRIGGER");
+    let triggerFile;
+    if (isTrigger) {
+      triggerFile = path.join(tmpdir(), `oficina-trigger-${randomUUID()}.sql`);
+      writeFileSync(triggerFile, `${statement}\n`);
+    }
+    const how = isTrigger ? ["--file", triggerFile] : ["--command", statement];
+
     // Uma instrução por chamada significa uma autenticação por instrução, e a
     // API responde "Authentication error [code: 10000]" quando elas vêm em
     // rajada. É transitório: a mesma instrução passa segundos depois. Sem a
@@ -110,8 +128,7 @@ for (const patch of patches) {
           "--config",
           config,
           ...envFlag,
-          "--command",
-          statement,
+          ...how,
           "--yes",
         ],
         { cwd: root, encoding: "utf8", env: process.env },
@@ -125,6 +142,8 @@ for (const patch of patches) {
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, wait);
     }
 
+    if (triggerFile) rmSync(triggerFile, { force: true });
+
     if (applied.status === 0) {
       console.log(`  ok: ${statement}`);
       continue;
@@ -133,7 +152,17 @@ for (const patch of patches) {
     // a coluna já existe (ADD repetido), a coluna antiga não existe mais
     // (RENAME num banco que já nasceu com o nome novo), a tabela já foi
     // renomeada (no such table para a tabela antiga) ou já existe.
-    if (/duplicate column name|no such column|no such table|already exists/i.test(output)) {
+    //
+    // "there is already another table or index with this name" é o que o SQLite
+    // responde a `ALTER TABLE pautas RENAME TO missions` quando missions já
+    // existe — reexecução depois de uma migração completa. Sem este caso o
+    // script não era reexecutável, e reexecutar é justamente o que se faz
+    // quando a primeira tentativa para no meio.
+    if (
+      /duplicate column name|no such column|no such table|already exists|there is already another table or index with this name/i.test(
+        output,
+      )
+    ) {
       console.log(`  já aplicado: ${statement}`);
       continue;
     }
