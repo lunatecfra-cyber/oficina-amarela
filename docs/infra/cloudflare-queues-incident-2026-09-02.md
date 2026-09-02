@@ -1,9 +1,11 @@
 # Cloudflare Queues Incident — 2026-09-02
 
-**Status:** root cause confirmed. No remediation applied — investigation was read-only.
+**Status:** root cause confirmed; remediation applied and verified in production on
+2026-09-02 — see [Remediation record](#remediation-record--applied-2026-09-02) at
+the end. The investigation below is the read-only forensic pass, kept as written.
 **Account:** `casamarela` (`53878b12fbc280f03fc30b5875f3522f`)
 **Branch:** `infra/cloudflare-scale`
-**Investigated:** 2026-09-02 ~14:20 UTC
+**Investigated:** 2026-09-02 ~14:20 UTC · **Remediated:** 2026-09-02 19:57–20:56 UTC
 
 ---
 
@@ -774,3 +776,108 @@ misconfiguration at review time; an assertion does.
 queue purges, no production data modified, no plan changes. Every number is
 reproducible from the Cloudflare GraphQL Analytics API and the read-only `wrangler`
 commands listed under [Evidence](#evidence).*
+
+---
+
+# Remediation record — applied 2026-09-02
+
+Executed in two isolated phases. Commit `b2dd16b`.
+
+## Phase 1 — Cron hotfix (19:56–19:57 UTC), no code deployed
+
+Applied with `wrangler triggers deploy`, which updates triggers **without
+re-uploading Worker code**. Both Workers had zero routes configured (verified via
+the routes API) and the repo declares none, so no route was affected.
+
+| worker | before | after | active version |
+|---|---|---|---|
+| `oficina-amarela-api` | `* * * * *` | `*/5 * * * *` | `0e19ac6b…` **unchanged** |
+| `oficina-amarela-api-staging` | `* * * * *` | `*/15 * * * *` | `a49a52c6…` **unchanged** |
+
+Verified remotely: schedules via the schedules API; active version IDs identical
+before and after; production D1 table list byte-identical to the pre-change
+baseline; `/health` 200 and `/news` 200. Cron invocation rate fell from ~60/hour
+to 12/hour (production) and 4/hour (staging), observed in `workersInvocationsAdaptive`.
+
+## Phase 2 — D1 migration and full deploy
+
+Rehearsed on staging first (58 rows of real data). **The rehearsal caught a defect
+that would have silently damaged production.**
+
+### Two defects found in `scripts/aplicar-schema-d1.mjs`
+
+1. **`CREATE TRIGGER` was sent via `--command`, which wrangler splits at the first
+   `;`.** Every trigger failed with `incomplete input: SQLITE_ERROR`. Because the
+   `DROP TRIGGER` statements run first, the database was left with **zero
+   triggers** — losing all five concurrency invariants
+   (`claim_mission_on_pending_offer`, `reserve_mission_on_offer_accept`,
+   `release_mission_on_offer_close`, `apply_mission_approval`,
+   `apply_invitation_redemption`) while the schema still *looked* correct.
+   Fixed: trigger statements now go through a temporary `--file`.
+
+2. **Not re-runnable.** SQLite answers a repeated `ALTER TABLE pautas RENAME TO
+   missions` with `there is already another table or index with this name`, which
+   the "already applied" tolerance list did not match, so re-running a completed
+   migration failed. Re-running is exactly what happens when a first attempt stops
+   partway. Fixed by adding that phrasing.
+
+### Production migration result
+
+189 statements applied, 8 already-applied, **0 failures**, 18 table renames,
+161 column renames, 5 triggers recreated. Verified remotely afterwards:
+22 application tables in English, 5 triggers, 23 indexes, and the 2 pre-existing
+`login_attempts` rows preserved. Smoke queries using the real application SQL
+(mission dispatch, offer expiry, offer insert shape, editor queue join, email
+outbox claim, news, ranking, admin audit) all returned `success: true`.
+
+### Deployed
+
+| worker | version | schedule |
+|---|---|---|
+| `oficina-amarela-api` | `27970af4-d062-43cf-b761-d37e2ce9af89` | `*/5 * * * *` |
+| `oficina-amarela-api-staging` | `3183e3a4-bb52-4982-acfb-b99b64265054` | `*/15 * * * *` |
+
+## Runtime proof of the fallback
+
+Today's allowance was already spent before the fix landed, so the first ticks on
+the new code ran against a genuinely exhausted queue — the exact condition that
+caused the outage:
+
+```
+"*/5 * * * *" @ 20:45:34Z - Ok
+  (error) [cron-enqueue-error] publicando falhou, executando em linha
+          Error: You have exceeded the daily write operations limit in Queues free tier
+  (log) {"event":"cron-executed","durationMs":585,"success":true, ...}
+```
+
+Three consecutive production ticks (20:45, 20:50, 20:55) and the staging tick at
+20:45: **status `Ok`, inline fallback used, maintenance completed, zero
+exceptions.** Before the fix this condition produced `scriptThrewException` and no
+maintenance at all, for ten hours a day.
+
+## Burn rate
+
+| | operations/day | % of 10,000 |
+|---|---:|---:|
+| Before | 17,280 | 172.8% |
+| After (`*/5` + `*/15`, one message per tick) | 1,152 | 11.5% |
+
+Reduction 93.3%. The 1,152/day figure is arithmetic from the deployed schedules;
+it becomes directly observable after the 00:00 UTC reset, since today's counter
+was already exhausted at 13:00 UTC by the old configuration.
+
+## Known gap, not fixed
+
+`requestMissionDispatch` (`apps/api/src/background.ts:95`) still has no inline
+fallback: when the queue rejects a send, the caller in `missions-crud.ts` catches
+and logs, so a mission created during an outage is not dispatched immediately. It
+is picked up by the next Cron tick, so the degradation is bounded at ~5 minutes
+rather than lost work. Fixing it would mirror the Cron pattern exactly, but it was
+outside the validated change set for this deployment.
+
+## Cosmetic
+
+Index names kept their Portuguese spelling (`idx_pautas_fila` now sits on
+`missions`) because SQLite's `ALTER TABLE … RENAME TO` retargets indexes without
+renaming them. Functionality is unaffected; a database created fresh from `0001`
+would differ only in these labels.
