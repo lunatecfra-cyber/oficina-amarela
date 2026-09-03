@@ -1,6 +1,6 @@
 {
   "name": "@oficina/web",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,24 +19,24 @@
     "deploy:production": "vinext-cloudflare deploy --env production"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1121.0",
-    "@aws-sdk/s3-request-presigner": "^3.1121.0",
+    "@aws-sdk/client-s3": "^3.1125.0",
+    "@aws-sdk/s3-request-presigner": "^3.1125.0",
     "@oficina/api": "*",
     "@oficina/auth": "*",
     "@oficina/config": "*",
     "@oficina/db": "*",
     "@oficina/domain": "*",
     "@oficina/email": "*",
-    "@sentry/nextjs": "^10.72.0",
-    "@vinext/cloudflare": "^1.0.0-beta.6",
+    "@sentry/nextjs": "^10.73.0",
+    "@vinext/cloudflare": "^1.0.0-beta.7",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.10",
-    "next": "16.3.3",
+    "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.54.2",
+    "@cloudflare/vite-plugin": "^1.54.3",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^26",
@@ -47,8 +47,8 @@
     "react-server-dom-webpack": "^19.2.8",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vinext": "^1.0.0-beta.8",
+    "vinext": "^1.0.0-beta.9",
     "vite": "^8.2.2",
-    "wrangler": "^4.127.1"
+    "wrangler": "^4.128.0"
   }
 }

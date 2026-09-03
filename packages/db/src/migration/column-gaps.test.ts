@@ -34,8 +34,12 @@ const plan: MigrationTable[] = [{ table: "users" }, { table: "pautas" }];
 
 describe("colunas que a origem não tem", () => {
   test("origem em dia não acusa nada", async () => {
-    const columns = { users: ["id", "nome", "whatsapp"], pautas: ["id", "titulo"] };
-    const gaps = await findColumnGaps(fakeSql(columns), fakeD1(columns), plan);
+    // D1 fala inglês (name, title), origem fala português (nome, titulo).
+    const gaps = await findColumnGaps(
+      fakeSql({ users: ["id", "nome", "whatsapp"], pautas: ["id", "titulo"] }),
+      fakeD1({ users: ["id", "name", "whatsapp"], missions: ["id", "title"] }),
+      plan,
+    );
     assert.deepEqual(gaps, []);
   });
 
@@ -43,8 +47,8 @@ describe("colunas que a origem não tem", () => {
     const gaps = await findColumnGaps(
       fakeSql({ users: ["id", "nome"], pautas: ["id", "titulo"] }),
       fakeD1({
-        users: ["id", "nome", "whatsapp", "candidate_number"],
-        pautas: ["id", "titulo", "candidate_number"],
+        users: ["id", "name", "whatsapp", "candidate_number"],
+        missions: ["id", "title", "candidate_number"],
       }),
       plan,
     );
@@ -59,7 +63,7 @@ describe("colunas que a origem não tem", () => {
   test("coluna a mais na origem não é problema", async () => {
     const gaps = await findColumnGaps(
       fakeSql({ users: ["id", "nome", "coluna_que_o_d1_nao_tem"], pautas: ["id"] }),
-      fakeD1({ users: ["id", "nome"], pautas: ["id"] }),
+      fakeD1({ users: ["id", "name"], missions: ["id"] }),
       plan,
     );
     assert.deepEqual(gaps, []);
@@ -68,9 +72,20 @@ describe("colunas que a origem não tem", () => {
   test("respeita o nome de origem quando a tabela é renomeada no caminho", async () => {
     const gaps = await findColumnGaps(
       fakeSql({ pautas_antigas: ["id", "titulo"] }),
-      fakeD1({ pautas: ["id", "titulo"] }),
+      fakeD1({ missions: ["id", "title"] }),
       [{ table: "pautas", source: "pautas_antigas" }],
     );
     assert.deepEqual(gaps, []);
+  });
+
+  test("traduz a lacuna de volta: destino em inglês, origem em português", async () => {
+    // D1 quer `handle`, a origem tem `apelido` — não é lacuna. Só `whatsapp`
+    // (igual nas duas) falta de verdade.
+    const gaps = await findColumnGaps(
+      fakeSql({ users: ["id", "apelido"] }),
+      fakeD1({ users: ["id", "handle", "whatsapp"] }),
+      [{ table: "users" }],
+    );
+    assert.deepEqual(gaps, [{ table: "users", missing: ["whatsapp"] }]);
   });
 });

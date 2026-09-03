@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import { after, before, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 
@@ -10,7 +9,6 @@ describe("ensaio de migração PostgreSQL → D1", {
   skip: TEST_DATABASE_URL ? false : "TEST_DATABASE_URL não configurado",
 }, async () => {
   const { sql } = await import("../client.ts");
-  const { applyD1Tables, applyD1Triggers } = await import("../d1/schema.ts");
   const { backfillD1EventTables, migrateToD1, toSqliteValue } = await import("./pg-to-d1.ts");
   const { validateMigration } = await import("./validate.ts");
   type D1 = import("../d1/types.ts").D1DatabaseLike;
@@ -24,7 +22,6 @@ describe("ensaio de migração PostgreSQL → D1", {
     }),
   );
   let db: D1;
-  let schema: string;
   let spokespersonId: number;
   let editorId: number;
   let adminId: number;
@@ -47,7 +44,6 @@ describe("ensaio de migração PostgreSQL → D1", {
 
   before(async () => {
     db = (await miniflare.getD1Database("DB")) as unknown as D1;
-    schema = await readFile(new URL("../../d1/0001_mission_slice.sql", import.meta.url), "utf8");
 
     await cleanupPostgres();
     const [spokesperson] = await sql`
@@ -97,7 +93,8 @@ describe("ensaio de migração PostgreSQL → D1", {
   });
 
   test("ensaio a seco não escreve nada e ainda assim conta a origem", async () => {
-    await applyD1Tables(db, schema);
+    const { applyAllD1Migrations } = await import("../d1/schema.ts");
+    await applyAllD1Migrations(db);
     const report = await migrateToD1(sql as never, db, { dryRun: true });
     assert.equal(report.dryRun, true);
 
@@ -114,14 +111,17 @@ describe("ensaio de migração PostgreSQL → D1", {
   });
 
   test("carga leva as linhas, resolve a auto-referência e liga os gatilhos depois", async () => {
+    const { applyD1Triggers } = await import("../d1/schema.ts");
+    const { readFile } = await import("node:fs/promises");
     const report = await migrateToD1(sql as never, db);
     assert.equal(report.dryRun, false);
     assert.ok((report.tables.find((entry) => entry.table === "users")?.loaded ?? 0) >= 3);
 
+    // Destino fala inglês após a 0003: handle, referred_by_id, delivered_count.
     const editor = await db
-      .prepare("SELECT indicado_por_id FROM users WHERE apelido = 'ed.ensaio'")
-      .first<{ indicado_por_id: number }>();
-    assert.equal(Number(editor?.indicado_por_id), spokespersonId);
+      .prepare("SELECT referred_by_id FROM users WHERE handle = 'ed.ensaio'")
+      .first<{ referred_by_id: number }>();
+    assert.equal(Number(editor?.referred_by_id), spokespersonId);
 
     const events = await backfillD1EventTables(sql as never, db);
     assert.equal(events.find((entry) => entry.table === "mission_approvals")?.loaded, 1);
@@ -130,11 +130,16 @@ describe("ensaio de migração PostgreSQL → D1", {
     // Antes dos gatilhos, o backfill não pode ter reaplicado efeito nenhum:
     // o editor continua com a entrega única que já tinha no PostgreSQL.
     const scored = await db
-      .prepare("SELECT entregues FROM users WHERE apelido = 'ed.ensaio'")
-      .first<{ entregues: number }>();
-    assert.equal(Number(scored?.entregues), 1, "o backfill não pode pontuar de novo");
+      .prepare("SELECT delivered_count FROM users WHERE handle = 'ed.ensaio'")
+      .first<{ delivered_count: number }>();
+    assert.equal(Number(scored?.delivered_count), 1, "o backfill não pode pontuar de novo");
 
-    await applyD1Triggers(db, schema);
+    const fullSchema = [
+      await readFile(new URL("../../d1/0001_mission_slice.sql", import.meta.url), "utf8"),
+      await readFile(new URL("../../d1/0002_electoral_compliance.sql", import.meta.url), "utf8"),
+      await readFile(new URL("../../d1/0003_rename_to_english.sql", import.meta.url), "utf8"),
+    ].join("\n");
+    await applyD1Triggers(db, fullSchema);
   });
 
   test("com gatilho ligado, o backfill se recusa em vez de contar duas vezes", async () => {
@@ -164,8 +169,8 @@ describe("ensaio de migração PostgreSQL → D1", {
   });
 
   test("a conferência acusa linha que ficou para trás", async () => {
-    await db.prepare("DELETE FROM mensagens").run();
-    await db.prepare("DELETE FROM pautas WHERE id = ?").bind(missionId).run();
+    await db.prepare("DELETE FROM messages").run();
+    await db.prepare("DELETE FROM missions WHERE id = ?").bind(missionId).run();
 
     const discrepancies = await validateMigration(sql as never, db);
     const counted = discrepancies.find(
@@ -179,7 +184,8 @@ describe("ensaio de migração PostgreSQL → D1", {
     assert.match(missing.detail, new RegExp(String(missionId)));
   });
 
-  test("a conversão de tipo respeita o que o SQLite guarda", () => {
+  test("a conversão de tipo respeita o que o SQLite guarda", async () => {
+    const { targetTableName, sourceColumnName } = await import("./pg-to-d1.ts");
     assert.equal(toSqliteValue(new Date("2026-08-30T12:00:00.000Z")), "2026-08-30T12:00:00.000Z");
     assert.equal(toSqliteValue(true), 1);
     assert.equal(toSqliteValue(false), 0);
@@ -187,5 +193,13 @@ describe("ensaio de migração PostgreSQL → D1", {
     assert.equal(toSqliteValue(undefined), null);
     assert.equal(toSqliteValue({ motivo: "x" }), '{"motivo":"x"}');
     assert.equal(toSqliteValue(7), 7);
+    // Pooler devolve timestamptz como string com espaço: normaliza para ISO.
+    assert.equal(toSqliteValue("2026-08-30 12:00:00+00"), "2026-08-30T12:00:00.000Z");
+    assert.equal(toSqliteValue("2026-08-30T12:00:00.000Z"), "2026-08-30T12:00:00.000Z");
+    // Tradução PT→EN da passagem.
+    assert.equal(targetTableName("pautas"), "missions");
+    assert.equal(targetTableName("users"), "users");
+    assert.equal(sourceColumnName("pautas", "spokesperson_id"), "porta_voz_id");
+    assert.equal(sourceColumnName("users", "handle"), "apelido");
   });
 });

@@ -1,4 +1,5 @@
 import type { D1DatabaseLike } from "../d1/types.ts";
+import { legacyColumnOf, renamedTable } from "./legacy-names.ts";
 import {
   type Discrepancy,
   MIGRATION_PLAN,
@@ -19,6 +20,9 @@ import {
  */
 
 const IDENTITY_KEYS: Record<string, string> = {
+  // Chave de identidade na ORIGEM (português). O destino é traduzido via
+  // legacyColumnOf na hora de ler — a conferência compara o mesmo conceito
+  // nos dois vocabulários.
   users: "id",
   pautas: "id",
   mensagens: "id",
@@ -33,65 +37,70 @@ const IDENTITY_KEYS: Record<string, string> = {
   gamificacao_eventos: "id",
   auditoria_admin: "id",
   fila_emails: "id",
+  portfolio: "id",
+  conquistas: "id",
+  musicas: "id",
+  novidades: "id",
+  gamificacao_regras: "id",
 };
 
-/** Invariantes que o PostgreSQL guarda em índice único parcial. */
+/** Invariantes que o PostgreSQL guarda em índice único parcial (vocabulário do D1, inglês). */
 const BUSINESS_CHECKS: Array<{ name: string; table: string; query: string; detail: string }> = [
   {
     name: "convite_aberto_duplicado",
-    table: "convites_porta_voz",
-    query: `SELECT lower(email) AS chave, count(*) AS total FROM convites_porta_voz
-            WHERE usado_em IS NULL AND revogado_em IS NULL
+    table: "spokesperson_invitations",
+    query: `SELECT lower(email) AS chave, count(*) AS total FROM spokesperson_invitations
+            WHERE used_at IS NULL AND revoked_at IS NULL
             GROUP BY lower(email) HAVING count(*) > 1`,
     detail: "e-mail com mais de um convite aberto",
   },
   {
     name: "missao_ativa_duplicada",
-    table: "pautas",
-    query: `SELECT reservada_por_id AS chave, count(*) AS total FROM pautas
-            WHERE reservada_por_id IS NOT NULL
+    table: "missions",
+    query: `SELECT reserved_by_id AS chave, count(*) AS total FROM missions
+            WHERE reserved_by_id IS NOT NULL
               AND status IN ('reservada', 'em_edicao', 'em_revisao', 'reedicao')
-            GROUP BY reservada_por_id HAVING count(*) > 1`,
+            GROUP BY reserved_by_id HAVING count(*) > 1`,
     detail: "editor com mais de uma missão ativa",
   },
   {
     name: "aprovacao_duplicada",
-    table: "ranking_aprovacoes",
-    query: `SELECT pauta_id AS chave, count(*) AS total FROM ranking_aprovacoes
-            WHERE anulado_em IS NULL
-            GROUP BY pauta_id HAVING count(*) > 1`,
+    table: "ranking_approvals",
+    query: `SELECT mission_id AS chave, count(*) AS total FROM ranking_approvals
+            WHERE voided_at IS NULL
+            GROUP BY mission_id HAVING count(*) > 1`,
     detail: "missão pontuada mais de uma vez no ranking",
   },
   {
     name: "indicacao_duplicada",
-    table: "indicacoes_recompensas",
-    query: `SELECT convidado_id AS chave, count(*) AS total FROM indicacoes_recompensas
-            WHERE revogado_em IS NULL
-            GROUP BY convidado_id HAVING count(*) > 1`,
+    table: "referral_rewards",
+    query: `SELECT invitee_id AS chave, count(*) AS total FROM referral_rewards
+            WHERE revoked_at IS NULL
+            GROUP BY invitee_id HAVING count(*) > 1`,
     detail: "convidado premiado mais de uma vez",
   },
   {
     name: "evento_gamificacao_duplicado",
-    table: "gamificacao_eventos",
-    query: `SELECT user_id || '/' || regra_id || '/' || referencia AS chave, count(*) AS total
-            FROM gamificacao_eventos
-            GROUP BY user_id, regra_id, referencia HAVING count(*) > 1`,
+    table: "gamification_events",
+    query: `SELECT user_id || '/' || rule_id || '/' || reference AS chave, count(*) AS total
+            FROM gamification_events
+            GROUP BY user_id, rule_id, reference HAVING count(*) > 1`,
     detail: "mesmo evento pontuado mais de uma vez",
   },
   {
     name: "bloqueios_acima_do_limite",
-    table: "bloqueios_constancia",
-    query: `SELECT editor_id AS chave, count(*) AS total FROM bloqueios_constancia
-            WHERE consumido_em IS NULL
+    table: "consistency_shields",
+    query: `SELECT editor_id AS chave, count(*) AS total FROM consistency_shields
+            WHERE consumed_at IS NULL
             GROUP BY editor_id HAVING count(*) > 2`,
     detail: "editor com mais bloqueios disponíveis do que o máximo de dois",
   },
   {
     name: "pontuacao_sem_aprovacao",
-    table: "pautas",
-    query: `SELECT p.id AS chave, 1 AS total FROM pautas p
-            WHERE p.pontuada = 1
-              AND NOT EXISTS (SELECT 1 FROM ranking_aprovacoes a WHERE a.pauta_id = p.id)`,
+    table: "missions",
+    query: `SELECT m.id AS chave, 1 AS total FROM missions m
+            WHERE m.is_scored = 1
+              AND NOT EXISTS (SELECT 1 FROM ranking_approvals a WHERE a.mission_id = m.id)`,
     detail: "missão marcada como pontuada sem aprovação no ranking",
   },
 ];
@@ -135,10 +144,11 @@ export async function validateMigration(
   for (const entry of plan) {
     const table = entry.table;
     const source = entry.source ?? table;
+    const target = renamedTable(table);
 
     const [expected, actual] = await Promise.all([
       sourceCount(sql, source),
-      targetCount(db, table),
+      targetCount(db, target),
     ]);
     if (expected !== actual) {
       discrepancies.push({
@@ -148,11 +158,16 @@ export async function validateMigration(
       });
     }
 
-    const key = IDENTITY_KEYS[table];
-    if (key) {
+    const legacyKey = IDENTITY_KEYS[table];
+    if (legacyKey) {
+      // A chave é declarada em PT (origem); o destino pode tê-la renomeada
+      // (ex.: pauta_id → mission_id). Traduz antes de ler o D1.
+      const destCols = await targetColumns(db, target);
+      const targetKey =
+        destCols.find((candidate) => legacyColumnOf(table, candidate) === legacyKey) ?? legacyKey;
       const [fromSource, fromTarget] = await Promise.all([
-        sourceIds(sql, source, key),
-        targetIds(db, table, key),
+        sourceIds(sql, source, legacyKey),
+        targetIds(db, target, targetKey),
       ]);
       const missing = [...fromSource].filter((id) => !fromTarget.has(id));
       const extra = [...fromTarget].filter((id) => !fromSource.has(id));
@@ -160,24 +175,25 @@ export async function validateMigration(
         discrepancies.push({
           kind: "ausente",
           table,
-          detail: `${missing.length} ${key} não chegaram (ex.: ${sample(missing)})`,
+          detail: `${missing.length} ${legacyKey} não chegaram (ex.: ${sample(missing)})`,
         });
       }
       if (extra.length) {
         discrepancies.push({
           kind: "excedente",
           table,
-          detail: `${extra.length} ${key} existem só no destino (ex.: ${sample(extra)})`,
+          detail: `${extra.length} ${legacyKey} existem só no destino (ex.: ${sample(extra)})`,
         });
       }
     }
 
     // Colunas: o destino é um recorte, mas toda coluna dele precisa existir na
-    // origem — se não existir, a carga estava copiando outra coisa.
-    const columns = await targetColumns(db, table);
+    // origem — traduzida de volta (EN→PT), senão toda coluna renomeada vira
+    // falso positivo.
+    const columns = await targetColumns(db, target);
     const [sourceRow] = await sql(rawQuery(`SELECT * FROM "${source}" LIMIT 1`));
     if (sourceRow) {
-      const absent = columns.filter((column) => !(column in sourceRow));
+      const absent = columns.filter((column) => !(legacyColumnOf(table, column) in sourceRow));
       if (absent.length) {
         discrepancies.push({
           kind: "coluna",

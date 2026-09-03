@@ -1,6 +1,6 @@
 {
   "name": "@oficina/api",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,14 +16,14 @@
     "@oficina/domain": "*",
     "@oficina/email": "*",
     "bcryptjs": "^3.0.3",
-    "hono": "^4.11.7"
+    "hono": "^4.13.5"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260101.0",
+    "@cloudflare/workers-types": "^4.20260702.1",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^26",
     "typescript": "^5",
-    "wrangler": "^4.48.4"
+    "wrangler": "^4.128.0"
   },
   "exports": {
     "./*": "./src/*.ts"

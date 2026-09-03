@@ -1,4 +1,5 @@
 import type { D1DatabaseLike } from "../d1/types.ts";
+import { legacyColumnOf, renamedTable } from "./legacy-names.ts";
 
 /**
  * Ensaio de migração PostgreSQL → D1.
@@ -23,13 +24,28 @@ import type { D1DatabaseLike } from "../d1/types.ts";
  */
 
 export type MigrationTable = {
-  /** Nome da tabela nas duas pontas. */
+  /** Nome da tabela na ORIGEM (PostgreSQL, português). O destino é `renamedTable(table)`. */
   table: string;
   /** De onde as linhas saem no PostgreSQL. Padrão: a tabela de mesmo nome. */
   source?: string;
-  /** Colunas zeradas na primeira passada e preenchidas depois (auto-referência). */
+  /** Colunas zeradas na primeira passada e preenchidas depois (auto-referência, em nome de ORIGEM). */
   deferredColumns?: string[];
 };
+
+/**
+ * Nome da tabela no DESTINO (D1, inglês após a 0003). A origem em produção
+ * NÃO foi renomeada — renomear coluna de um banco que atende a aplicação no
+ * ar quebraria a aplicação no ar — então a tradução acontece aqui, na
+ * passagem. Ver packages/db/src/migration/legacy-names.ts.
+ */
+export function targetTableName(legacyTable: string): string {
+  return renamedTable(legacyTable);
+}
+
+/** Nome da coluna na origem (PT), dado o nome no destino (EN). */
+export function sourceColumnName(legacyTable: string, targetColumn: string): string {
+  return legacyColumnOf(legacyTable, targetColumn);
+}
 
 /**
  * Ordem de carga: uma tabela só entra depois de quem ela referencia.
@@ -137,9 +153,15 @@ export async function findColumnGaps(
 ): Promise<ColumnGap[]> {
   const gaps: ColumnGap[] = [];
   for (const entry of plan) {
-    const expected = await targetColumns(db, entry.table);
+    const target = targetTableName(entry.table);
+    const expected = await targetColumns(db, target);
     const available = await sourceColumns(sql, entry.source ?? entry.table);
-    const missing = expected.filter((column) => !available.has(column));
+    // O destino fala inglês, a origem fala português: cada coluna esperada é
+    // traduzida de volta antes de procurar na origem. Sem isso, toda coluna
+    // renomeada (handle, missions, ...) vira "lacuna" fantasma.
+    const missing = expected.filter(
+      (column) => !available.has(sourceColumnName(entry.table, column)),
+    );
     if (missing.length) gaps.push({ table: entry.table, missing });
   }
   return gaps;
@@ -149,14 +171,33 @@ export async function findColumnGaps(
  * PostgreSQL devolve Date, boolean e objeto; o SQLite guarda texto, inteiro e
  * número. A conversão fica num lugar só para as duas pontas concordarem sobre
  * o que é "a mesma linha" na hora de conferir.
+ *
+ * Datas chegam de dois jeitos: o driver devolve Date para TIMESTAMPTZ quando
+ * está em modo nativo, mas devolve string ("2026-08-30 12:00:00+00") quando a
+ * coluna vem de pooler (Supabase/Neon) ou de `SELECT *` com parsing desligado.
+ * O D1 guarda ISO-8601 UTC ordenável — então toda string que parece data é
+ * normalizada para ISO, em vez de entrar no formato com espaço do Postgres.
  */
+const PG_DATETIME =
+  /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?\s*(Z|[+-]\d{2}:?\d{2})?$/;
+
 export function toSqliteValue(value: unknown): string | number | null {
   if (value === null || value === undefined) return null;
-  if (value instanceof Date) return value.toISOString();
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value.toISOString();
   if (typeof value === "boolean") return value ? 1 : 0;
   if (typeof value === "number") return value;
   if (typeof value === "bigint") return Number(value);
-  if (typeof value === "string") return value;
+  if (typeof value === "string") {
+    const match = PG_DATETIME.exec(value.trim());
+    if (match) {
+      const [, y, mo, d, h, mi, s, frac = "", tz = "Z"] = match;
+      const millis = `${frac}000`.slice(0, 3);
+      const isoLike = `${y}-${mo}-${d}T${h}:${mi}:${s}.${millis}${tz === "Z" ? "Z" : tz.includes(":") ? tz : `${tz.slice(0, 3)}:${tz.slice(3)}`}`;
+      const parsed = new Date(isoLike);
+      if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+    }
+    return value;
+  }
   return JSON.stringify(value);
 }
 
@@ -186,23 +227,54 @@ async function countIn(db: D1DatabaseLike, table: string): Promise<number> {
 /**
  * Carrega uma tabela. `INSERT OR IGNORE` faz a operação ser idempotente: rodar
  * de novo não duplica nem levanta erro em linha que já chegou.
+ *
+ * Tradução PT→EN: `columns` são os nomes no DESTINO (inglês, do PRAGMA do D1);
+ * cada um é traduzido de volta para o nome na ORIGEM (português) na hora do
+ * SELECT, e o INSERT escreve no nome em inglês. `deferredColumns` continuam
+ * declaradas em português (vocabulário da origem) e são mapeadas aqui.
  */
 async function loadTable(
   sql: SqlClient,
   db: D1DatabaseLike,
   plan: MigrationTable,
-  options: { dryRun: boolean; batchSize: number; gaps?: ColumnGap[] },
+  options: {
+    dryRun: boolean;
+    batchSize: number;
+    gaps?: ColumnGap[];
+    onProgress?: (table: string, done: number, total: number) => void;
+  },
 ): Promise<{ report: TableReport; deferred: Record<string, unknown>[] }> {
+  const target = targetTableName(plan.table);
   const absent = new Set(options.gaps?.find((gap) => gap.table === plan.table)?.missing ?? []);
-  const columns = (await targetColumns(db, plan.table)).filter((column) => !absent.has(column));
-  const deferred = new Set(plan.deferredColumns ?? []);
-  const insertColumns = columns.filter((column) => !deferred.has(column));
+  // `absent` guarda nomes de DESTINO (o que findColumnGaps reporta).
+  const targetCols = (await targetColumns(db, target)).filter((column) => !absent.has(column));
+  const deferredLegacy = new Set(plan.deferredColumns ?? []);
+  const deferredTargets = new Set(
+    [...deferredLegacy].map((col) => {
+      // deferredColumns vêm em PT; o INSERT/UPDATE fala EN. Mapeia achando o
+      // nome novo cuja tradução de volta é a coluna declarada.
+      for (const t of targetCols) {
+        if (sourceColumnName(plan.table, t) === col) return t;
+      }
+      return col;
+    }),
+  );
+  const insertTargets = targetCols.filter((column) => !deferredTargets.has(column));
   const source = plan.source ?? plan.table;
 
-  const selected = [...columns].map(quoteIdentifier).join(", ");
-  const rows = await sql(rawQuery(`SELECT ${selected} FROM ${quoteIdentifier(source)} ORDER BY 1`));
+  // SELECT na origem em PT, com alias para o nome EN: a linha resultante já
+  // fala o vocabulário do destino, e o resto do código não precisa traduzir.
+  const selectList = targetCols
+    .map(
+      (targetCol) =>
+        `${quoteIdentifier(sourceColumnName(plan.table, targetCol))} AS ${quoteIdentifier(targetCol)}`,
+    )
+    .join(", ");
+  const rows = await sql(
+    rawQuery(`SELECT ${selectList} FROM ${quoteIdentifier(source)} ORDER BY 1`),
+  );
 
-  const before = await countIn(db, plan.table);
+  const before = await countIn(db, target);
   if (options.dryRun) {
     return {
       report: {
@@ -217,22 +289,37 @@ async function loadTable(
     };
   }
 
-  const placeholders = `(${insertColumns.map(() => "?").join(", ")})`;
-  const statement = `INSERT OR IGNORE INTO ${quoteIdentifier(plan.table)} (${insertColumns
+  const placeholders = `(${insertTargets.map(() => "?").join(", ")})`;
+  const statement = `INSERT OR IGNORE INTO ${quoteIdentifier(target)} (${insertTargets
     .map(quoteIdentifier)
     .join(", ")}) VALUES ${placeholders}`;
 
+  // Lote via db.batch() quando o destino oferece (Miniflare/D1 local): uma
+  // ida ao banco por lote em vez de uma por linha. Destino remoto (wrangler)
+  // não tem batch de verdade — o run() acumula e descarrega em arquivo — então
+  // cai no caminho por linha, que é o que o acumulador espera.
+  const batchFn = db.batch?.bind(db);
+  const canBatch = typeof batchFn === "function" && options.batchSize > 1;
   for (let start = 0; start < rows.length; start += options.batchSize) {
     const batch = rows.slice(start, start + options.batchSize);
-    for (const row of batch) {
-      await db
-        .prepare(statement)
-        .bind(...insertColumns.map((column) => toSqliteValue(row[column])))
-        .run();
+    if (canBatch && batchFn) {
+      await batchFn(
+        batch.map((row) =>
+          db.prepare(statement).bind(...insertTargets.map((column) => toSqliteValue(row[column]))),
+        ),
+      );
+    } else {
+      for (const row of batch) {
+        await db
+          .prepare(statement)
+          .bind(...insertTargets.map((column) => toSqliteValue(row[column])))
+          .run();
+      }
     }
+    options.onProgress?.(plan.table, Math.min(start + batch.length, rows.length), rows.length);
   }
 
-  const after = await countIn(db, plan.table);
+  const after = await countIn(db, target);
   return {
     report: {
       table: plan.table,
@@ -241,7 +328,7 @@ async function loadTable(
       target: after,
       skipped: rows.length - (after - before),
     },
-    deferred: deferred.size ? rows : [],
+    deferred: deferredTargets.size ? rows : [],
   };
 }
 
@@ -251,14 +338,22 @@ async function applyDeferred(
   plan: MigrationTable,
   rows: Record<string, unknown>[],
 ): Promise<void> {
-  const columns = plan.deferredColumns ?? [];
-  if (columns.length === 0 || rows.length === 0) return;
-  const assignments = columns.map((column) => `${quoteIdentifier(column)} = ?`).join(", ");
+  const legacyColumns = plan.deferredColumns ?? [];
+  if (legacyColumns.length === 0 || rows.length === 0) return;
+  const target = targetTableName(plan.table);
+  // Mapeia PT→EN para o UPDATE no destino.
+  const targetCols = legacyColumns.map((legacy) => {
+    for (const candidate of Object.keys(rows[0] ?? {})) {
+      if (sourceColumnName(plan.table, candidate) === legacy) return candidate;
+    }
+    return legacy;
+  });
+  const assignments = targetCols.map((column) => `${quoteIdentifier(column)} = ?`).join(", ");
   for (const row of rows) {
-    if (columns.every((column) => row[column] === null || row[column] === undefined)) continue;
+    if (targetCols.every((column) => row[column] === null || row[column] === undefined)) continue;
     await db
-      .prepare(`UPDATE ${quoteIdentifier(plan.table)} SET ${assignments} WHERE id = ?`)
-      .bind(...columns.map((column) => toSqliteValue(row[column])), toSqliteValue(row.id))
+      .prepare(`UPDATE ${quoteIdentifier(target)} SET ${assignments} WHERE id = ?`)
+      .bind(...targetCols.map((column) => toSqliteValue(row[column])), toSqliteValue(row.id))
       .run();
   }
 }
@@ -273,6 +368,8 @@ export type MigrateOptions = {
    * carga para e manda aplicar as migrações na origem.
    */
   allowMissingColumns?: boolean;
+  /** Chamado a cada lote para destinos remotos não parecerem travados. */
+  onProgress?: (table: string, done: number, total: number) => void;
 };
 
 export async function migrateToD1(
@@ -299,7 +396,12 @@ export async function migrateToD1(
   const pending: Array<{ plan: MigrationTable; rows: Record<string, unknown>[] }> = [];
 
   for (const entry of plan) {
-    const { report, deferred } = await loadTable(sql, db, entry, { dryRun, batchSize, gaps });
+    const { report, deferred } = await loadTable(sql, db, entry, {
+      dryRun,
+      batchSize,
+      gaps,
+      onProgress: options.onProgress,
+    });
     tables.push(report);
     if (deferred.length) pending.push({ plan: entry, rows: deferred });
   }
@@ -353,12 +455,14 @@ export async function backfillD1EventTables(
      WHERE a.anulado_em IS NULL AND p.status IN ('aprovada', 'finalizada')`),
   );
 
-  let approvalsLoaded = 0;
+  // O destino já fala inglês (0003): mission_id, approved_by, approved_at,
+  // rating, comment. A origem continua em português — a tradução é aqui.
+  const approvalsBefore = await countIn(db, "mission_approvals").catch(() => 0);
   for (const row of approvals) {
-    const result = await db
+    await db
       .prepare(
         `INSERT OR IGNORE INTO mission_approvals (
-           pauta_id, editor_id, aprovado_por, status_final, nota, comentario, aprovado_em
+           mission_id, editor_id, approved_by, status_final, rating, comment, approved_at
          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
@@ -371,8 +475,12 @@ export async function backfillD1EventTables(
         toSqliteValue(row.aprovado_em),
       )
       .run();
-    approvalsLoaded += result.meta.changes;
   }
+  // Destino remoto acumula escritas e reporta changes:0 por linha (ver
+  // remote-d1.ts): a contagem honesta é antes-depois, com descarga forçada.
+  await (db as { flush?: () => Promise<void> }).flush?.();
+  const approvalsAfter = await countIn(db, "mission_approvals").catch(() => approvalsBefore);
+  const approvalsLoaded = approvalsAfter - approvalsBefore;
 
   const redemptions = await sql(
     rawQuery(`SELECT c.token_hash, c.email, c.usado_em, u.apelido, u.nome, u.senha_hash,
@@ -383,12 +491,13 @@ export async function backfillD1EventTables(
   );
 
   let redemptionsLoaded = 0;
+  const redemptionsBefore = await countIn(db, "invitation_redemptions").catch(() => 0);
   for (const row of redemptions) {
-    const result = await db
+    await db
       .prepare(
         `INSERT OR IGNORE INTO invitation_redemptions (
-           token_hash, email, apelido, nome, senha_hash, google_id, foto_url,
-           codigo_indicacao, resgatado_em
+           token_hash, email, handle, name, password_hash, google_id, avatar_url,
+           referral_code, redeemed_at
          ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
       )
       .bind(
@@ -402,8 +511,12 @@ export async function backfillD1EventTables(
         toSqliteValue(row.usado_em),
       )
       .run();
-    redemptionsLoaded += result.meta.changes;
   }
+  await (db as { flush?: () => Promise<void> }).flush?.();
+  const redemptionsAfter = await countIn(db, "invitation_redemptions").catch(
+    () => redemptionsBefore,
+  );
+  redemptionsLoaded = redemptionsAfter - redemptionsBefore;
 
   return [
     {

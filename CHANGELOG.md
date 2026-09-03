@@ -7,6 +7,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.2.1] - 2026-09-03
+
+### Corrigido
+- A migração PostgreSQL→D1 traduz o vocabulário na passagem: a origem continua em português e o D1 já fala inglês, mas a carga, a conferência de colunas e o backfill de eventos assumiam nomes iguais nas duas pontas — contra o D1 de produção a migração quebrava com tabela ausente. O ensaio agora aplica o esquema completo (0001+0002+0003) em vez de só o 0001, então o que passa no ensaio passa na produção.
+- Datas vindas do pooler (Supabase/Neon) chegavam como texto com espaço (`2026-08-30 12:00:00+00`) e entravam no D1 fora do ISO-8601 ordenável. A conversão agora normaliza toda data para ISO UTC.
+- O relatório do backfill de eventos mentia no destino remoto (sempre zero linhas carregadas), porque o D1 remoto acumula escritas e responde `changes: 0` por linha. A contagem agora é antes-depois, com descarga forçada.
+- A fila de manutenção cabia na cota diária da conta: staging e produção varrendo a cada minuto gastavam 172,8% das 10.000 operações/dia de Queue, e todo dia por volta das 13h53 UTC a manutenção parava até a meia-noite. Cron espaçado (produção a cada 5 min, staging a cada 15), um tique vira uma mensagem só, e com a fila indisponível a manutenção roda em linha em vez de estourar.
+- O script de aplicação do esquema D1 mandava gatilho por `--command`, que o wrangler corta no primeiro `;` — o ensaio em staging perdeu as cinco travas de concorrência e ficou sem gatilho nenhum. Gatilho agora vai por `--file`, com repetição em erro transitório de autenticação.
+
+### Modificado
+- Carga no D1 local usa `batch()` (um roundtrip por lote em vez de um por linha); no remoto o caminho por linha continua, que é o que o acumulador espera.
+- Ensaio de migração aceita `--tabelas a,b` para carregar só as tabelas pedidas, mostra progresso no destino remoto e religa os gatilhos se for interrompido no meio.
+- Dependências atualizadas (Next 16.3.4, Hono 4.13, Wrangler 4.128, Sentry, Vinext, Turbo 2.10, AWS SDK, Miniflare).
+
 ## [0.2.0] - 2026-09-01
 
 ### Adicionado

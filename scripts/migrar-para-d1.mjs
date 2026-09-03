@@ -38,10 +38,10 @@ import postgres from "postgres";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
 
-const { applyD1Tables, applyD1Triggers, dropD1Triggers } = await import(
+const { applyAllD1Migrations, applyD1Triggers, dropD1Triggers } = await import(
   path.join(root, "packages/db/src/d1/schema.ts")
 );
-const { backfillD1EventTables, findColumnGaps, migrateToD1 } = await import(
+const { backfillD1EventTables, findColumnGaps, migrateToD1, MIGRATION_PLAN } = await import(
   path.join(root, "packages/db/src/migration/pg-to-d1.ts")
 );
 const { validateMigration } = await import(
@@ -63,6 +63,14 @@ const remoteTarget = option("destino-remoto");
 const dryRun = hasFlag("a-seco");
 const validateOnly = hasFlag("so-conferir");
 const allowMissingColumns = hasFlag("aceitar-colunas-ausentes");
+// Ensaio focado: --tabelas users,pautas carrega só essas (e pula backfill e
+// conferência das demais). Útil para depurar tradução PT→EN sem varrer o banco.
+const onlyTables = option("tabelas")
+  ? option("tabelas")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+  : null;
 
 if (!source || (!target && !remoteTarget)) {
   console.error(
@@ -70,6 +78,7 @@ if (!source || (!target && !remoteTarget)) {
       "     --origem <postgres://...> --destino-remoto <nome do banco D1>\n" +
       "     [--a-seco] só lê e relata; [--so-conferir] pula a carga e confere.\n" +
       "     [--aceitar-colunas-ausentes] carrega mesmo faltando coluna na origem.\n" +
+      "     [--tabelas a,b] ensaia só essas tabelas (nomes de ORIGEM, ex.: pautas).\n" +
       "Origem e destino são obrigatórios de propósito.",
   );
   process.exit(2);
@@ -108,25 +117,54 @@ function printTable(rows) {
 
 let exitCode = 0;
 let db;
+let triggersDropped = false;
+const restoreTriggers = async () => {
+  if (!triggersDropped || dryRun || !db) return;
+  try {
+    await applyD1Triggers(db, fullSchema);
+    console.log("\nGatilhos religados após interrupção.");
+  } catch {
+    console.error("\nATENÇÃO: os gatilhos foram desligados e NÃO puderam ser religados.");
+    console.error("Rode o script de novo em destino limpo ou aplique os triggers à mão.");
+  }
+  triggersDropped = false;
+};
+process.on("SIGINT", async () => {
+  console.error("\nInterrompido — religando gatilhos antes de sair...");
+  await restoreTriggers();
+  process.exit(130);
+});
 try {
   db = remoteTarget ? createRemoteD1(remoteTarget) : await miniflare.getD1Database("DB");
-  const schema = await readFile(path.join(root, "packages/db/d1/0001_mission_slice.sql"), "utf8");
+  // Esquema COMPLETO (0001+0002+0003), não só o 0001: o D1 de produção já fala
+  // inglês, e ensaiar contra o português antigo dava falsa confiança — a carga
+  // passava no ensaio e quebrava na produção com "tabela ausente".
+  const d1Dir = path.join(root, "packages/db/d1");
+  const fullSchema = [
+    await readFile(path.join(d1Dir, "0001_mission_slice.sql"), "utf8"),
+    await readFile(path.join(d1Dir, "0002_electoral_compliance.sql"), "utf8"),
+    await readFile(path.join(d1Dir, "0003_rename_to_english.sql"), "utf8"),
+  ].join("\n");
 
   console.log(`origem : ${source.replace(/:\/\/[^@]*@/, "://***@")}`);
   console.log(`destino: ${remoteTarget ? `D1 remoto ${remoteTarget}` : path.resolve(target)}`);
   console.log(dryRun ? "modo   : a seco (não grava nada)\n" : "modo   : carga\n");
+  if (onlyTables) console.log(`tabelas: só ${onlyTables.join(", ")} (nomes de origem)\n`);
+  const plan = onlyTables ? MIGRATION_PLAN.filter((e) => onlyTables.includes(e.table)) : undefined;
+  if (onlyTables && plan.length === 0) {
+    throw new Error(`--tabelas não bateu com nenhuma tabela do plano: ${onlyTables.join(", ")}`);
+  }
 
   if (!validateOnly) {
     // As tabelas primeiro; os gatilhos só depois da carga, para o histórico
     // não reaplicar pontuação, reputação, ranking e auditoria.
-    await applyD1Tables(db, schema).catch((error) => {
-      if (!/already exists/i.test(String(error))) throw error;
-    });
+    // applyAllD1Migrations é idempotente: reaplicar depois de falha parcial é seguro.
+    await applyAllD1Migrations(db);
 
     // Conferir colunas ANTES de desligar gatilho. Parar aqui é seguro: nada foi
     // escrito e o destino continua com os gatilhos que tinha. Parar depois
     // deixaria um D1 sem gatilho nenhum, que é pior que não ter migrado.
-    const gaps = await findColumnGaps(sql, db);
+    const gaps = await findColumnGaps(sql, db, plan);
     if (gaps.length) {
       const detail = gaps.map(({ table, missing }) => `  ${table}: ${missing.join(", ")}`);
       if (!allowMissingColumns) {
@@ -143,11 +181,21 @@ try {
     // histórico com eles ligados reaplicaria pontuação, reputação, ranking e
     // auditoria. Desliga antes, religa no fim.
     if (!dryRun) {
-      const dropped = await dropD1Triggers(db, schema);
+      const dropped = await dropD1Triggers(db, fullSchema);
+      triggersDropped = dropped > 0;
       console.log(`Gatilhos desligados para a carga: ${dropped}\n`);
     }
 
-    const report = await migrateToD1(sql, db, { dryRun, allowMissingColumns });
+    const report = await migrateToD1(sql, db, {
+      dryRun,
+      allowMissingColumns,
+      plan,
+      onProgress: (table, done, total) => {
+        if (remoteTarget && (done % 1000 === 0 || done === total)) {
+          console.log(`  ${table}: ${done}/${total}`);
+        }
+      },
+    });
     console.log("Tabelas:");
     printTable(report.tables);
 
@@ -156,9 +204,11 @@ try {
       // retomada eles já estão ligados: aí o passo é pulado, e é dito em voz
       // alta — histórico que apareceu depois pede um ensaio em destino limpo.
       try {
-        const events = await backfillD1EventTables(sql, db);
-        console.log("\nTabelas de evento (backfill sem gatilho):");
-        printTable(events);
+        if (!onlyTables || onlyTables.includes("ranking_aprovacoes")) {
+          const events = await backfillD1EventTables(sql, db);
+          console.log("\nTabelas de evento (backfill sem gatilho):");
+          printTable(events);
+        }
       } catch (error) {
         if (!/gatilhos de evento já estão ligados/.test(String(error))) throw error;
         console.log(
@@ -168,9 +218,10 @@ try {
         );
       }
 
-      await applyD1Triggers(db, schema).catch((error) => {
+      await applyD1Triggers(db, fullSchema).catch((error) => {
         if (!/already exists/i.test(String(error))) throw error;
       });
+      triggersDropped = false;
       console.log("\nGatilhos ligados.");
     }
   }
@@ -178,7 +229,7 @@ try {
   if (dryRun) {
     console.log("\nA seco: nada foi gravado, e por isso não há o que conferir.");
   } else {
-    const discrepancies = await validateMigration(sql, db);
+    const discrepancies = await validateMigration(sql, db, plan);
     if (discrepancies.length === 0) {
       console.log("\nConferência: sem divergência.");
     } else {

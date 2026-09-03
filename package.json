@@ -1,6 +1,6 @@
 {
   "name": "oficina-amarela",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -20,10 +20,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.11",
-    "turbo": "^2.6.1"
+    "turbo": "^2.10.12"
   },
   "allowScripts": {
     "esbuild@0.28.1": true,
-    "workerd@1.20260828.1": true
+    "workerd@1.20260831.1": true
   }
 }
