@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test, { describe } from "node:test";
 import { createApp } from "./app.ts";
+import { postgresApiDependencies } from "./dependencies.ts";
 
 describe("fronteira da API", () => {
   const app = createApp();
@@ -49,5 +50,19 @@ describe("fronteira da API", () => {
     const body = (await res.json()) as { error: string };
     assert.equal(body.error, "Algo deu errado por aqui. Tente de novo.");
     assert.doesNotMatch(JSON.stringify(body), /segredo interno/);
+  });
+
+  test("total da fila não é capturado pela rota genérica da missão", async () => {
+    const app = createApp({
+      ...postgresApiDependencies,
+      missions: {
+        ...postgresApiDependencies.missions,
+        getTotalInQueue: async () => 7,
+      },
+    });
+
+    const res = await app.request("/missions/queue-total");
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { total: 7 });
   });
 });

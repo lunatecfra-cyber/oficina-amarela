@@ -152,11 +152,14 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
   app.route("/admin", createAdminManagementRoutes(dependencies));
   app.route("/auth", createAuthRoutes(dependencies));
   app.route("/editor/queue", createEditorQueue(dependencies));
-  app.route("/missions", createMissionCollaborationRoutes(dependencies));
-  app.route("/missions", createMissionLifecycleRoutes(dependencies));
   app.route("/", createRankingRoutes(dependencies));
   app.route("/", createProfileRoutes(dependencies));
+  // Rotas estáticas precisam vir antes de /missions/:id. Caso contrário,
+  // "queue-total" é interpretada como id de missão e recebe a autenticação
+  // da colaboração antes de chegar à consulta pública.
   app.route("/", createMissionsCrudRoutes(dependencies));
+  app.route("/missions", createMissionCollaborationRoutes(dependencies));
+  app.route("/missions", createMissionLifecycleRoutes(dependencies));
 
   app.notFound((c) =>
     c.json({ error: "Rota não encontrada.", requestId: c.get("requestId") }, 404),
