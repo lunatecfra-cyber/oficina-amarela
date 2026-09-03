@@ -44,9 +44,10 @@ describe("escolha de banco", () => {
     const offenders: string[] = [];
 
     for (const file of await sourceFiles(SOURCE)) {
-      if (ALLOWED.has(path.relative(SOURCE, file))) continue;
+      const relative = path.relative(SOURCE, file).replaceAll("\\", "/");
+      if (ALLOWED.has(relative)) continue;
       const contents = await readFile(file, "utf8");
-      if (FORBIDDEN.test(contents)) offenders.push(path.relative(SOURCE, file));
+      if (FORBIDDEN.test(contents)) offenders.push(relative);
     }
 
     assert.deepEqual(
