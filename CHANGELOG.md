@@ -7,6 +7,12 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.2.2] - 2026-09-03
+
+### Adicionado
+- Cobertura que faltava do trabalho de ranking eleitoral: e-mails do backend agora têm teste próprio garantindo que só linkam página pública em PT-BR (`/porta-voz/missao/db-…`, `/porta-voz/nova-pauta`) — a conferência de links do web só enxerga o que navega, e corpo de e-mail nunca navega.
+- Regras de produto trancadas junto das migrações: R2 nas tabelas de produção em português, coluna legada antes da função eleitoral, funções privadas com `SECURITY INVOKER` e revogadas do público, proporções de XP (25/100), evento registrado na entrega e texto do painel diário.
+
 ## [0.2.1] - 2026-09-03
 
 ### Corrigido

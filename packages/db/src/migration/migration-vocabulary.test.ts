@@ -99,3 +99,86 @@ describe("vocabulário das migrações", () => {
     assert.deepEqual(offenders, []);
   });
 });
+
+/**
+ * Regras de produto que as migrações sustentam.
+ *
+ * Trazido do `lib/database-migrations.test.ts` do trabalho de ranking
+ * eleitoral: três migrações já saíram com o vocabulário errado (uma alterava
+ * `missions`, que não existe em produção, e parava a fila inteira) e os
+ * valores de XP já foram aprovados com proporção fixa — nada disso pode andar
+ * em silêncio de novo.
+ */
+
+const R2 = "20260818_add_r2_and_compliance_columns.sql";
+const TSE = "20260818_add_r2_and_tse_columns.sql";
+const GAMIFICATION = "20260827_add_gamification_events.sql";
+const ELECTORAL = "20260829_add_electoral_ranking.sql";
+
+function migration(name: string): string {
+  return readFileSync(path.join(MIGRATIONS, name), "utf8");
+}
+
+describe("regras de produto nas migrações", () => {
+  test("R2 mexe nas tabelas de produção, em português", () => {
+    for (const name of [R2, TSE]) {
+      const sql = migration(name);
+      assert.match(sql, /ALTER TABLE pautas/i);
+      assert.doesNotMatch(sql, /ALTER TABLE missions/i);
+    }
+    assert.match(migration(R2), /ADD COLUMN IF NOT EXISTS video_bruto_url/i);
+  });
+
+  test("migração eleitoral prepara a coluna legada antes da função usar", () => {
+    const sql = migration(ELECTORAL);
+    const referralColumn = sql.indexOf("ADD COLUMN IF NOT EXISTS codigo_indicacao");
+    const functionStart = sql.indexOf("CREATE OR REPLACE FUNCTION oficina_private.aprovar_edicao");
+    assert.ok(referralColumn >= 0 && referralColumn < functionStart);
+    assert.doesNotMatch(sql, /\b(?:missions|reviews)\b/i);
+  });
+
+  test("gamificação usa os nomes de produção, sem tabela paralela em inglês", () => {
+    const sql = migration(GAMIFICATION);
+    assert.match(sql, /CREATE TABLE IF NOT EXISTS gamificacao_regras/i);
+    assert.match(sql, /CREATE TABLE IF NOT EXISTS gamificacao_eventos/i);
+    assert.doesNotMatch(sql, /CREATE TABLE IF NOT EXISTS gamification_/i);
+  });
+
+  test("funções eleitorais privadas não abrem para as roles públicas", () => {
+    const sql = migration(ELECTORAL);
+    assert.match(sql, /SECURITY INVOKER/i);
+    assert.match(
+      sql,
+      /REVOKE ALL ON FUNCTION oficina_private\.aprovar_edicao\(INT, INT, TEXT, INT, TEXT\) FROM PUBLIC;/,
+    );
+  });
+
+  test("proporções de XP seguem a regra aprovada do produto", () => {
+    const gamification = migration(GAMIFICATION);
+    const electoral = migration(ELECTORAL);
+    assert.match(gamification, /'entrada_diaria'[^\n]+25/i);
+    assert.match(gamification, /'missao_entregue'[^\n]+100/i);
+    assert.match(electoral, /DEFAULT 100 CHECK \(pontos = 100\)/i);
+    assert.doesNotMatch(
+      electoral,
+      /reputacao = reputacao \+ COALESCE\(\(SELECT xp FROM novo_evento\), 0\)/i,
+    );
+  });
+
+  test("entregar missão registra o evento de gamificação", () => {
+    const lifecycle = readFileSync(
+      path.join(ROOT, "apps/api/src/routes/mission-lifecycle.ts"),
+      "utf8",
+    );
+    assert.match(
+      lifecycle,
+      /action === "deliver"[\s\S]{0,500}recordGamificationEvent\(session\.id, "mission_delivered"/,
+    );
+  });
+
+  test("painel diário não vende XP de vídeo como recompensa única", () => {
+    const panel = readFileSync(path.join(ROOT, "apps/web/components/daily-challenges.tsx"), "utf8");
+    assert.match(panel, /Cada vídeo entregue soma 100 XP/i);
+    assert.doesNotMatch(panel, /XP extra por manter o ritmo\. Independe da missão/i);
+  });
+});
