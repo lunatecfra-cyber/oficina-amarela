@@ -7,6 +7,14 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.3.0] - 2026-09-04
+
+### Adicionado
+- Webmail serverless open-source implantado em `mail.oficinaamarela.com.br` integrado ao Cloudflare Email Routing e Email Sending (`apps/mail`).
+- Identidade visual customizada com a marca da Oficina Amarela / Casa Amarela (paleta escura, acentos dourados, emblema oficial e tipografia Cinzel e Sora).
+- Sistema de internacionalização (i18n) completo com tradução para Português do Brasil (PT-BR) por padrão e alternador dinâmico de idiomas no cabeçalho e configurações.
+- Roteamento ativo de entrada e caixas postais para os endereços da equipe (`contato@`, `thiago@`, `vitor@`, `admin@`, `suporte@`, `ola@`, `info@`) com armazenamento em Cloudflare R2 e Durable Objects (SQLite).
+
 ## [0.2.3] - 2026-09-04
 
 ### Modificado

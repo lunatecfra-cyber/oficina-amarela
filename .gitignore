@@ -35,6 +35,8 @@ yarn-error.log*
 # local database
 yellow.db
 yellow.db-*
+*.db
+data/
 
 # vercel
 .vercel

@@ -1,0 +1,49 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "email-explorer",
+  "compatibility_date": "2025-11-28",
+  "main": "src/index.ts",
+  "upload_source_maps": true,
+  "observability": {
+    "enabled": true
+  },
+  "compatibility_flags": ["nodejs_compat", "enable_email_sending_queuing"],
+  "assets": {
+    "directory": "dashboard/dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/docs", "/openapi.json"]
+  },
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "email-explorer"
+    }
+  ],
+  "send_email": [
+    {
+      "name": "SEND_EMAIL"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "MAILBOX",
+        "class_name": "MailboxDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["MailboxDO"]
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "mail.oficinaamarela.com.br",
+      "custom_domain": true
+    }
+  ]
+}

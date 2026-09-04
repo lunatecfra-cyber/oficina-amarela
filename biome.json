@@ -9,6 +9,7 @@
     "ignoreUnknown": false,
     "includes": [
       "apps/**/*",
+      "!apps/mail/dashboard/**/*",
       "packages/**/*",
       "scripts/**/*",
       "*.ts",
