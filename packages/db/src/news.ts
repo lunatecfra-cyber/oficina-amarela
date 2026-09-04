@@ -107,6 +107,13 @@ export const postgresNews: NewsRepository = {
       VALUES (${t}, ${c}, ${authorId}, ${isPublished})
       RETURNING id
     `;
+    if (!row) {
+      return {
+        ok: false,
+        error: "Não foi possível criar a novidade. Tente de novo.",
+        erro: "Não foi possível criar a novidade. Tente de novo.",
+      };
+    }
     return { ok: true, id: Number(row.id) };
   },
 

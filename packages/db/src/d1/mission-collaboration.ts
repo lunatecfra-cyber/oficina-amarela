@@ -134,6 +134,7 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
         )
         .bind(missionId, actor.id, text)
         .first<Omit<MessageRow, "name" | "role">>();
+      if (!row) return { ok: false, reason: "write_failed" };
       return {
         ok: true,
         message: rowToMessage({ ...row, name: actor.name, role: actor.role } as MessageRow),

@@ -124,7 +124,14 @@ export function createD1News(db: D1DatabaseLike): NewsRepository {
         .bind(t, c, authorId, isPublished ? 1 : 0)
         .first<{ id: number }>();
 
-      return { ok: true, id: Number(row?.id) };
+      if (!row) {
+        return {
+          ok: false,
+          error: "Não foi possível criar a novidade. Tente de novo.",
+          erro: "Não foi possível criar a novidade. Tente de novo.",
+        };
+      }
+      return { ok: true, id: Number(row.id) };
     },
 
     async toggleNewsPublication(id: number) {

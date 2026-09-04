@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1Missions } from "./missions.ts";
@@ -86,27 +85,125 @@ describe("paridade D1 de missões e consultas", () => {
   test("missão guarda a conformidade eleitoral no D1", async () => {
     const sp = await db
       .prepare(
-        "INSERT INTO users (handle, name, email, role, profile_completed) VALUES (?, ?, ?, ?, 1) RETURNING id",
+        `INSERT INTO users (
+           handle, name, email, role, profile_completed,
+           watermark, campaign_tax_id, candidate_number
+         ) VALUES (?, ?, ?, ?, 1, ?, ?, ?) RETURNING id`,
       )
-      .bind("candidato9", "Candidato Nove", "cand9@teste.local", "voz")
+      .bind(
+        "candidato9",
+        "Candidato Nove",
+        "cand9@teste.local",
+        "voz",
+        "Marca oficial",
+        "12.345.678/0001-90",
+        "5510",
+      )
       .first<{ id: number }>();
 
     const created = await repo.createMission({
       spokespersonId: Number(sp?.id),
       title: "Vídeo com tarja",
       format: "short",
-      watermark: "Marca d'água",
-      campaignTaxId: "12.345.678/0001-90",
-      candidateNumber: "5510",
       voterId: "123456789012",
     });
     assert.equal(created.ok, true);
     if (!created.ok) return;
 
     const mission = await repo.getMissionById(created.id);
-    assert.equal(mission?.watermark, "Marca d'água");
+    assert.equal(mission?.watermark, "Marca oficial");
     assert.equal(mission?.campaignTaxId, "12.345.678/0001-90");
     assert.equal(mission?.candidateNumber, "5510");
     assert.equal(mission?.voterId, "123456789012");
+  });
+
+  test("missão guarda vários vídeos brutos e mantém o primeiro como compatibilidade", async () => {
+    const sp = await db
+      .prepare(
+        "INSERT INTO users (handle, name, email, role, profile_completed) VALUES (?, ?, ?, ?, 1) RETURNING id",
+      )
+      .bind("candidato-clipes", "Candidato Clipes", "clipes@teste.local", "voz")
+      .first<{ id: number }>();
+
+    const rawVideoUrls = [
+      "https://media.oficinaamarela.com.br/uploads/1/clipe-1.mp4",
+      "https://media.oficinaamarela.com.br/uploads/1/clipe-2.mp4",
+    ];
+    const created = await repo.createMission({
+      spokespersonId: Number(sp?.id),
+      title: "Missão com vários clipes",
+      format: "short",
+      rawVideoUrls,
+    });
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+
+    const mission = await repo.getMissionById(created.id);
+    assert.deepEqual(mission?.rawVideoUrls, rawVideoUrls);
+    assert.equal(mission?.rawVideoUrl, rawVideoUrls[0]);
+    assert.equal(mission?.videoBrutoUrl, rawVideoUrls[0]);
+  });
+
+  test("missão guarda vídeos e fotos brutos com tipo, nome e tamanho", async () => {
+    const sp = await db
+      .prepare(
+        "INSERT INTO users (handle, name, email, role, profile_completed) VALUES (?, ?, ?, ?, 1) RETURNING id",
+      )
+      .bind("candidato-midia", "Candidato Mídia", "midia@teste.local", "voz")
+      .first<{ id: number }>();
+
+    const rawMedia = [
+      { url: "https://media.oficinaamarela.com.br/uploads/1/fala.mp4", kind: "video" as const, name: "fala.mp4", sizeBytes: 1200 },
+      { url: "https://media.oficinaamarela.com.br/uploads/1/comicio.jpg", kind: "image" as const, name: "comicio.jpg", sizeBytes: 800 },
+    ];
+    const created = await repo.createMission({
+      spokespersonId: Number(sp?.id),
+      title: "Missão com mídia mista",
+      format: "short",
+      rawMedia,
+      campaignTaxId: "12.345.678/0001-90",
+      candidateNumber: "13",
+    });
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+
+    const mission = await repo.getMissionById(created.id);
+    assert.deepEqual(mission?.rawMedia, rawMedia);
+    assert.deepEqual(mission?.rawVideoUrls, [rawMedia[0].url]);
+    assert.equal(mission?.campaignTaxId, "12.345.678/0001-90");
+    assert.equal(mission?.candidateNumber, "13");
+  });
+
+  test("não declara sucesso quando INSERT RETURNING não devolve a missão", async () => {
+    const emptyReturningDb = {
+      prepare() {
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            return null;
+          },
+          async all() {
+            return { results: [] };
+          },
+          async run() {
+            return { meta: { changes: 0 } };
+          },
+        };
+      },
+    } as D1DatabaseLike;
+
+    const result = await createD1Missions(emptyReturningDb).createMission({
+      spokespersonId: 1,
+      title: "Missão sem retorno do banco",
+      format: "short",
+    });
+
+    assert.deepEqual(result, {
+      ok: false,
+      error: "Não foi possível criar a missão. Tente de novo.",
+      erro: "Não foi possível criar a missão. Tente de novo.",
+    });
   });
 });

@@ -47,6 +47,11 @@
 
     "production": {
       "name": "oficina-amarela-web",
+      "vars": {
+        "R2_ACCOUNT_ID": "53878b12fbc280f03fc30b5875f3522f",
+        "R2_BUCKET": "oficina-amarela-midia",
+        "R2_PUBLIC_BASE_URL": "https://pub-451404b3cac349fd9a27c46af9a89b63.r2.dev"
+      },
       "observability": { "enabled": true },
       "services": [
         {

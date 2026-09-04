@@ -40,14 +40,21 @@ export function SignupForm({
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slots, setSlots] = useState<SlotsInfo | null>(null);
+  const [slotsError, setSlotsError] = useState(false);
 
   const isDev = devMode || modoDev;
 
   useEffect(() => {
     fetch("/api/slots")
-      .then((r) => r.json())
-      .then((d: SlotsInfo) => setSlots(d))
-      .catch(() => {});
+      .then((r) => {
+        if (!r.ok) throw new Error("Falha ao consultar vagas");
+        return r.json();
+      })
+      .then((d: SlotsInfo) => {
+        setSlots(d);
+        setSlotsError(false);
+      })
+      .catch(() => setSlotsError(true));
   }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -130,7 +137,9 @@ export function SignupForm({
         Continuar com Google
       </a>
       <p className="mt-2 text-center text-xs text-muted-2">
-        Editor ou porta-voz — você escolhe na próxima tela.
+        {convite
+          ? "Seu convite de porta-voz será validado depois que você entrar."
+          : "Editor entra normalmente. Porta-voz precisa de convite."}
       </p>
 
       <div className="my-6 flex items-center gap-4">
@@ -139,27 +148,33 @@ export function SignupForm({
         <span className="h-px flex-1 bg-line" />
       </div>
 
-      <div className="mb-6 flex items-center gap-1 rounded-xl border border-line bg-surface-2 p-1">
-        <button
-          type="button"
-          onClick={() => setRole("spokesperson")}
-          disabled={!convite}
-          className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            role === "spokesperson" ? "bg-gold/10 text-gold-hi" : "text-muted hover:text-text"
-          } disabled:cursor-not-allowed disabled:opacity-50`}
-        >
-          {convite ? "Sou porta-voz" : "Porta-voz: só por convite"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setRole("editor")}
-          className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            role === "editor" ? "bg-gold/10 text-gold-hi" : "text-muted hover:text-text"
-          }`}
-        >
-          Sou editor
-        </button>
-      </div>
+      {convite ? (
+        <div className="mb-6 flex items-center gap-1 rounded-xl border border-line bg-surface-2 p-1">
+          <button
+            type="button"
+            onClick={() => setRole("spokesperson")}
+            className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              role === "spokesperson" ? "bg-gold/10 text-gold-hi" : "text-muted hover:text-text"
+            }`}
+          >
+            Sou porta-voz
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole("editor")}
+            className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              role === "editor" ? "bg-gold/10 text-gold-hi" : "text-muted hover:text-text"
+            }`}
+          >
+            Sou editor
+          </button>
+        </div>
+      ) : (
+        <div className="mb-6 border-y border-line py-3">
+          <p className="text-sm font-medium text-silver-hi">Cadastro de editor</p>
+          <p className="mt-1 text-xs text-muted-2">Porta-voz entra por convite especial.</p>
+        </div>
+      )}
 
       {isDev && (
         <div className="mb-6 rounded-xl border border-gold-lo/30 bg-gold/[0.05] p-4">
@@ -206,6 +221,12 @@ export function SignupForm({
               </span>
             </>
           )}
+        </p>
+      )}
+
+      {slotsError && (
+        <p role="status" className="mb-4 text-center text-xs text-muted-2">
+          Não foi possível consultar as vagas agora. Você ainda pode tentar criar sua conta.
         </p>
       )}
 

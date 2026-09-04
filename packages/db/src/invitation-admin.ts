@@ -34,7 +34,7 @@ export type IssueInvitationInput = {
 
 export type IssueInvitationResult =
   | { ok: true; id: number; email: string; expiresAt: string }
-  | { ok: false; reason: "issue_conflict" };
+  | { ok: false; reason: "issue_conflict" | "issue_failed" };
 
 export type RevokeInvitationResult = { ok: true } | { ok: false; reason: "invitation_unavailable" };
 
@@ -122,6 +122,7 @@ export const postgresInvitationAdmin: InvitationAdminRepository = {
           )
           RETURNING id, email, expira_em
         `;
+        if (!invitation) return { ok: false as const, reason: "issue_failed" as const };
         await transaction`
           INSERT INTO auditoria_admin (ator_id, acao, entidade, entidade_id, detalhes)
           VALUES (

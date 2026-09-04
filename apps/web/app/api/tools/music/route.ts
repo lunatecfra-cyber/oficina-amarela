@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json(
-      { error: "Please log in first.", erro: "Please log in first." },
+      { error: "Faça login para continuar.", erro: "Faça login para continuar." },
       { status: 401 },
     );
   }
@@ -35,13 +35,13 @@ export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json(
-      { error: "Please log in first.", erro: "Please log in first." },
+      { error: "Faça login para continuar.", erro: "Faça login para continuar." },
       { status: 401 },
     );
   }
   if (session.role !== "editor" && session.role !== "admin") {
     return NextResponse.json(
-      { error: "Only video editors may upload audio tracks.", erro: "Unauthorized." },
+      { error: "Somente editores podem enviar faixas de áudio.", erro: "Sem permissão." },
       { status: 403 },
     );
   }
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   const formData = await request.formData().catch(() => null);
   if (!formData) {
     return NextResponse.json(
-      { error: "Invalid form payload.", erro: "Invalid payload." },
+      { error: "Os dados enviados são inválidos.", erro: "Dados inválidos." },
       { status: 400 },
     );
   }
@@ -57,21 +57,21 @@ export async function POST(request: Request) {
   const file = formData.get("file") ?? formData.get("arquivo");
   if (!(file instanceof File)) {
     return NextResponse.json(
-      { error: "Please upload an audio file.", erro: "No audio file." },
+      { error: "Envie um arquivo de áudio.", erro: "Arquivo de áudio não informado." },
       { status: 400 },
     );
   }
 
   if (!PERMITTED_AUDIO_TYPES.has(file.type) && !file.name.match(/\.(mp3|wav|ogg)$/i)) {
     return NextResponse.json(
-      { error: "Unsupported audio format. Use MP3, WAV, or OGG.", erro: "Unsupported format." },
+      { error: "Formato não aceito. Use MP3, WAV ou OGG.", erro: "Formato não aceito." },
       { status: 400 },
     );
   }
 
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "File exceeds 4 MB maximum upload limit.", erro: "File too large." },
+      { error: "O arquivo ultrapassa o limite de 4 MB.", erro: "Arquivo muito grande." },
       { status: 400 },
     );
   }
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
   const title = limitStr((formData.get("title") ?? formData.get("nome")) as string | null, 120);
   if (!title) {
     return NextResponse.json(
-      { error: "Please provide a track title.", erro: "Track title required." },
+      { error: "Informe o título da faixa.", erro: "Título obrigatório." },
       { status: 400 },
     );
   }

@@ -66,10 +66,12 @@ export function ReportsPanel({
     try {
       const normAction =
         action === "resolver" ? "resolve" : action === "ignorar" ? "ignore" : action;
-      const resp = await fetch("/api/admin/reports", {
+      const resp = await fetch(`/api/admin/reports/${reportId}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reportId, action: normAction, denunciaId: reportId, acao: action }),
+        body: JSON.stringify({
+          status: normAction === "resolve" ? "resolved" : "ignored",
+        }),
       });
       if (!resp.ok) {
         const data = await resp.json().catch(() => null);

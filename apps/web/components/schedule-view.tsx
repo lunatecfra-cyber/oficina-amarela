@@ -1,6 +1,7 @@
 "use client";
 
 import { type TaskOnDesk, type TrabalhoEmMaos } from "@oficina/domain/schedule";
+import Link from "next/link";
 import { ActiveDesk } from "@/components/active-desk";
 
 export function ScheduleView({
@@ -26,9 +27,12 @@ export function ScheduleView({
           Na sua mesa agora
         </h2>
         {list.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
-            Nada em andamento. Pegue uma missão na fila.
-          </p>
+          <div className="border-y border-line py-6 text-center">
+            <p className="text-sm text-muted">Nada em andamento.</p>
+            <Link href="/editor" className="btn-gold mt-4 w-auto px-5">
+              Ver missões disponíveis
+            </Link>
+          </div>
         ) : (
           <ActiveDesk tasks={list} variant="cards" />
         )}

@@ -5,6 +5,22 @@ import { fetchApi, fetchApiJson } from "@/lib/internal-api";
 export type { Report };
 export type Denuncia = Report;
 
+type ReportsResponse = {
+  reports?: Report[];
+  denuncias?: Report[];
+  items?: Report[];
+};
+
+export function unwrapReportsResponse(value: unknown): Report[] {
+  if (Array.isArray(value)) return value as Report[];
+  if (!value || typeof value !== "object") return [];
+  const envelope = value as ReportsResponse;
+  if (Array.isArray(envelope.reports)) return envelope.reports;
+  if (Array.isArray(envelope.denuncias)) return envelope.denuncias;
+  if (Array.isArray(envelope.items)) return envelope.items;
+  return [];
+}
+
 export async function createReport(
   missionId: number,
   _session: UserSession,
@@ -28,8 +44,8 @@ export async function createReport(
 }
 
 export async function reportsForInspector(): Promise<Report[]> {
-  const reports = await fetchApiJson<Report[]>("/admin/reports");
-  return reports ?? [];
+  const response = await fetchApiJson<ReportsResponse | Report[]>("/admin/reports");
+  return unwrapReportsResponse(response);
 }
 
 export async function resolveReport(

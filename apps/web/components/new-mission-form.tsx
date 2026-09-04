@@ -21,6 +21,7 @@ type FormData = {
   format: Format | Formato | "";
   deadline: string;
   rawVideoUrl: string;
+  rawVideoUrls: string[];
   watermark: string;
   campaignTaxId: string;
   candidateNumber: string;
@@ -40,6 +41,7 @@ const EMPTY_FORM: FormData = {
   format: "short",
   deadline: "",
   rawVideoUrl: "",
+  rawVideoUrls: [],
   watermark: "",
   campaignTaxId: "",
   candidateNumber: "",
@@ -181,7 +183,7 @@ export function NewMissionForm({
       if (!data.title.trim()) return "Dê um título pra missão.";
       const hasDrive = data.driveLink.trim().length > 0;
       const hasYoutube = data.youtubeLink.trim().length > 0;
-      const hasUpload = data.rawVideoUrl.trim().length > 0;
+      const hasUpload = data.rawVideoUrls.length > 0 || data.rawVideoUrl.trim().length > 0;
       if (!hasDrive && !hasYoutube && !hasUpload)
         return "Faça o upload do vídeo ou cole um link do Drive/YouTube.";
       if (hasDrive && !isLikelyUrl(data.driveLink))
@@ -232,6 +234,7 @@ export function NewMissionForm({
         reason: data.reason,
         deadline: data.deadline,
         rawVideoUrl: data.rawVideoUrl,
+        rawVideoUrls: data.rawVideoUrls,
         watermark: data.watermark,
         campaignTaxId: data.campaignTaxId,
         candidateNumber: data.candidateNumber,
@@ -245,6 +248,7 @@ export function NewMissionForm({
         motivo: data.reason,
         prazo: data.deadline,
         videoBrutoUrl: data.rawVideoUrl,
+        videosBrutosUrls: data.rawVideoUrls,
         marcaDagua: data.watermark,
         cnpjCampanha: data.campaignTaxId,
         numeroEleitoral: data.candidateNumber,
@@ -364,7 +368,45 @@ export function NewMissionForm({
             />
           </FieldWrapper>
 
-          <UploadDropzone onUploadSuccess={(url) => setField("rawVideoUrl", url)} />
+          <UploadDropzone
+            multiple
+            label="Vídeos brutos"
+            onUploadSuccess={(url) =>
+              setData((current) => ({
+                ...current,
+                rawVideoUrl: current.rawVideoUrl || url,
+                rawVideoUrls: current.rawVideoUrls.includes(url)
+                  ? current.rawVideoUrls
+                  : [...current.rawVideoUrls, url],
+              }))
+            }
+          />
+          {data.rawVideoUrls.length > 0 && (
+            <ul className="space-y-2" aria-label="Vídeos enviados">
+              {data.rawVideoUrls.map((url, index) => (
+                <li
+                  key={url}
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-line px-4 py-2 text-sm"
+                >
+                  <span className="truncate text-text">Clipe {index + 1} enviado</span>
+                  <button
+                    type="button"
+                    className="min-h-11 shrink-0 text-danger"
+                    onClick={() => {
+                      const urls = data.rawVideoUrls.filter((item) => item !== url);
+                      setData((current) => ({
+                        ...current,
+                        rawVideoUrls: urls,
+                        rawVideoUrl: urls[0] ?? "",
+                      }));
+                    }}
+                  >
+                    Remover
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-line" />

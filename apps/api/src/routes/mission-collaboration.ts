@@ -25,6 +25,9 @@ function failure(reason: MissionCollaborationFailure) {
   if (reason === "empty_message") {
     return { status: 400 as const, error: "A mensagem não pode ficar em branco." };
   }
+  if (reason === "write_failed") {
+    return { status: 500 as const, error: "Não foi possível enviar a mensagem. Tente de novo." };
+  }
   return { status: 400 as const, error: "Descreva o problema na denúncia." };
 }
 

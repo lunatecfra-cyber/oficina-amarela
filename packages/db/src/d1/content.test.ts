@@ -61,6 +61,35 @@ describe("paridade D1 de novidades e músicas", () => {
     assert.deepEqual(deleted, { ok: true });
   });
 
+  test("não declara novidade criada quando INSERT RETURNING não devolve linha", async () => {
+    const emptyReturningDb = {
+      prepare() {
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            return null;
+          },
+          async all() {
+            return { results: [] };
+          },
+          async run() {
+            return { meta: { changes: 0 } };
+          },
+        };
+      },
+    } as D1DatabaseLike;
+
+    const result = await createD1News(emptyReturningDb).createNews(1, "Título", "Texto");
+
+    assert.deepEqual(result, {
+      ok: false,
+      error: "Não foi possível criar a novidade. Tente de novo.",
+      erro: "Não foi possível criar a novidade. Tente de novo.",
+    });
+  });
+
   test("músicas e filtragem por tags", async () => {
     const u = await db
       .prepare("INSERT INTO users (handle, name, email, role) VALUES (?, ?, ?, ?) RETURNING id")

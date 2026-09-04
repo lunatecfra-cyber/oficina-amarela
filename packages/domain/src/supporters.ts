@@ -23,11 +23,5 @@ export type Supporter = {
   instagram?: string;
 };
 
-export const SUPPORTERS: Supporter[] = [
-  { name: "Bombeiro Rafa", role: "Porta-voz fundador" },
-  { name: "Isa", role: "Editora" },
-  { name: "Esther", role: "Editora · Time Rio" },
-  { name: "Igor", role: "Editor · Time Rio" },
-  { name: "Marcia Lima", role: "Porta-voz" },
-  { name: "Busnelo", role: "Porta-voz" },
-];
+// O mural só entra no ar quando houver autorização explícita de cada pessoa.
+export const SUPPORTERS: Supporter[] = [];

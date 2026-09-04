@@ -24,8 +24,7 @@ export default function SignupPage() {
           Criar sua conta
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Escolha como quer participar — <span className="text-silver">porta-voz</span> posta
-          missões e <span className="text-silver">editor</span> entrega edições.
+          Cadastre-se para participar da Oficina Amarela.
         </p>
       </div>
 

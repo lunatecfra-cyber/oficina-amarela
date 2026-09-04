@@ -9,13 +9,15 @@ interface UploadDropzoneProps {
   onUploadSuccess: (url: string) => void;
   accept?: string;
   maxSizeMB?: number;
+  multiple?: boolean;
 }
 
 export function UploadDropzone({
   label = "Vídeo bruto",
   onUploadSuccess,
-  accept = "video/mp4,video/quicktime,video/x-msvideo",
+  accept = "video/mp4,video/quicktime,video/x-msvideo,video/webm",
   maxSizeMB = 2000,
+  multiple = false,
 }: UploadDropzoneProps) {
   const [state, setState] = useState<UploadState>("idle");
   const [progress, setProgress] = useState(0);
@@ -93,11 +95,20 @@ export function UploadDropzone({
 
       setState("success");
       onUploadSuccess(readUrl);
+      if (multiple) {
+        setState("idle");
+        setFileName("");
+        setProgress(0);
+      }
     } catch (err: unknown) {
       console.error(err);
       setState("error");
       setErrorMessage(err instanceof Error ? err.message : "Ocorreu um erro no upload");
     }
+  };
+
+  const handleFiles = async (files: FileList | File[]) => {
+    for (const file of Array.from(files)) await handleFile(file);
   };
 
   const onDragOver = (e: React.DragEvent) => {
@@ -113,7 +124,7 @@ export function UploadDropzone({
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFile(e.dataTransfer.files[0]);
+      void handleFiles(multiple ? e.dataTransfer.files : [e.dataTransfer.files[0]]);
     }
   };
 
@@ -135,7 +146,13 @@ export function UploadDropzone({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onClick={() => {
-        if (state !== "uploading" && state !== "success") {
+        if (state !== "uploading" && (state !== "success" || multiple)) {
+          fileInputRef.current?.click();
+        }
+      }}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && state !== "uploading") {
+          e.preventDefault();
           fileInputRef.current?.click();
         }
       }}
@@ -147,9 +164,11 @@ export function UploadDropzone({
         ref={fileInputRef}
         className="hidden"
         accept={accept}
+        multiple={multiple}
         onChange={(e) => {
           if (e.target.files && e.target.files.length > 0) {
-            handleFile(e.target.files[0]);
+            void handleFiles(e.target.files);
+            e.target.value = "";
           }
         }}
       />
@@ -172,10 +191,12 @@ export function UploadDropzone({
             </svg>
           </div>
           <p className="text-lg font-medium text-text">{label}</p>
-          <p className="mt-1 text-sm text-muted">Arraste o vídeo aqui ou clique para escolher</p>
+          <p className="mt-1 text-sm text-muted">
+            Arraste {multiple ? "os vídeos" : "o vídeo"} aqui ou clique para escolher
+          </p>
           <p className="mt-2 text-xs text-silver-lo">
             Máx. {maxSizeMB > 1000 ? `${(maxSizeMB / 1000).toFixed(1)} GB` : `${maxSizeMB} MB`}{" "}
-            &middot; MP4, MOV, AVI, etc.
+            por arquivo &middot; MP4, MOV, AVI, WebM
           </p>
         </>
       )}

@@ -1,5 +1,5 @@
 import { LIMITS, limitOrNull, limitStr } from "@oficina/domain/limits";
-import type { Mission, MissionStatus, VideoFormat } from "@oficina/domain/missions";
+import type { Mission, MissionStatus, RawMedia, VideoFormat } from "@oficina/domain/missions";
 import { sql } from "./client.ts";
 
 export type CreateMissionInput = {
@@ -17,6 +17,8 @@ export type CreateMissionInput = {
   desiredDeadline?: string | null;
   deadline?: string | null;
   rawVideoUrl?: string | null;
+  rawVideoUrls?: string[] | null;
+  rawMedia?: RawMedia[] | null;
   rawFootageUrl?: string | null;
   watermark?: string | null;
   watermarkUrl?: string | null;
@@ -35,6 +37,7 @@ export type CreateMissionInput = {
   prazo?: string | null;
   prazoDesejado?: string | null;
   videoBrutoUrl?: string | null;
+  videosBrutosUrls?: string[] | null;
   marcaDagua?: string | null;
   cnpjCampanha?: string | null;
   numeroEleitoral?: string | null;
@@ -53,6 +56,8 @@ export type MissionRow = {
   brief_font?: string | null;
   brief_refs?: string | null;
   raw_video_url?: string | null;
+  raw_video_urls?: string | null;
+  raw_media?: string | null;
   youtube_link?: string | null;
   status: MissionStatus;
   reserved_by_handle?: string | null;
@@ -122,7 +127,38 @@ export function rowToMission(r: MissionRow): Mission {
   const reservedBy = r.reserved_by_handle ?? r.reservada_por_apelido ?? undefined;
   const reservedAtVal = r.reserved_at ?? r.reservada_em;
   const reservedAt = reservedAtVal ? new Date(reservedAtVal).toISOString() : undefined;
+  const reservedUntil = r.reserved_until
+    ? new Date(r.reserved_until).toISOString()
+    : undefined;
   const rawVideo = r.raw_video_url ?? r.video_bruto_url ?? r.drive_link ?? undefined;
+  let rawVideoUrls: string[] = [];
+  if (r.raw_video_urls) {
+    try {
+      const parsed = JSON.parse(r.raw_video_urls);
+      if (Array.isArray(parsed)) rawVideoUrls = parsed.filter((url): url is string => typeof url === "string");
+    } catch {
+      rawVideoUrls = [];
+    }
+  }
+  if (rawVideo && !rawVideoUrls.includes(rawVideo)) rawVideoUrls.unshift(rawVideo);
+  let rawMedia: RawMedia[] = [];
+  if (r.raw_media) {
+    try {
+      const parsed = JSON.parse(r.raw_media);
+      if (Array.isArray(parsed)) {
+        rawMedia = parsed.filter(
+          (item): item is RawMedia =>
+            Boolean(item) &&
+            typeof item.url === "string" &&
+            (item.kind === "video" || item.kind === "image"),
+        );
+      }
+    } catch {
+      rawMedia = [];
+    }
+  }
+  if (!rawMedia.length) rawMedia = rawVideoUrls.map((url) => ({ url, kind: "video" }));
+  rawVideoUrls = rawMedia.filter((item) => item.kind === "video").map((item) => item.url);
   const deliveryVideo = r.delivery_video_url ?? r.video_entrega_url ?? undefined;
   const delivery = r.delivery_link ?? r.entrega_link ?? undefined;
   const inspectorNotes = r.inspector_notes ?? r.notas_inspetor ?? undefined;
@@ -150,6 +186,7 @@ export function rowToMission(r: MissionRow): Mission {
     createdAt,
     reservedBy,
     reservedAt,
+    reservedUntil,
     driveLink: rawVideo,
     youtubeLink: r.youtube_link ?? undefined,
     deliveryLink: delivery,
@@ -159,6 +196,8 @@ export function rowToMission(r: MissionRow): Mission {
     desiredDeadline: desiredDeadlineStr,
     revisionRequestedBy: revBy,
     rawVideoUrl: rawVideo,
+    rawVideoUrls,
+    rawMedia,
     deliveryVideoUrl: deliveryVideo,
     watermark,
     campaignTaxId,
@@ -172,12 +211,14 @@ export function rowToMission(r: MissionRow): Mission {
     criadaEm: createdAt,
     reservadaPor: reservedBy,
     reservadaEm: reservedAt,
+    reservadaAte: reservedUntil,
     entregaLink: delivery,
     notasInspetor: inspectorNotes,
     motivo: motivation,
     prazoDesejado: desiredDeadlineStr,
     reedicaoPedidaPor: rawRevBy ?? undefined,
     videoBrutoUrl: rawVideo,
+    videosBrutosUrls: rawVideoUrls,
     videoEntregaUrl: deliveryVideo,
     marcaDagua: watermark,
     cnpjCampanha: campaignTaxId,
@@ -291,6 +332,13 @@ export const postgresMissions: MissionsRepository = {
               ${brief.voterId})
       RETURNING id
     `;
+    if (!row) {
+      return {
+        ok: false,
+        error: "Não foi possível criar a missão. Tente de novo.",
+        erro: "Não foi possível criar a missão. Tente de novo.",
+      };
+    }
     return { ok: true, id: row.id };
   },
 

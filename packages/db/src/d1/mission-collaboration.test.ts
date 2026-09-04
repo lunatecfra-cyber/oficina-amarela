@@ -119,4 +119,36 @@ describe("paridade D1 da colaboração de missão", () => {
       { ok: false, reason: "empty_report" },
     );
   });
+
+  test("não declara mensagem enviada quando INSERT RETURNING não devolve linha", async () => {
+    const emptyReturningDb = {
+      prepare(query: string) {
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            if (query.startsWith("SELECT spokesperson_id")) {
+              return { spokesperson_id: 10, reserved_by_id: 20 };
+            }
+            return null;
+          },
+          async all() {
+            return { results: [] };
+          },
+          async run() {
+            return { meta: { changes: 0 } };
+          },
+        };
+      },
+    } as D1DatabaseLike;
+
+    const result = await createD1MissionCollaboration(emptyReturningDb).sendMessage(
+      1,
+      { id: 20, name: "Editor", role: "editor" },
+      "Mensagem que não voltou do banco",
+    );
+
+    assert.deepEqual(result, { ok: false, reason: "write_failed" });
+  });
 });

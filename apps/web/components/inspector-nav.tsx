@@ -10,7 +10,7 @@ const TABS = [
   { href: "/inspetor/denuncias", label: "Denúncias", rotulo: "Denúncias" },
   { href: "/inspetor/novidades", label: "Novidades", rotulo: "Novidades" },
   { href: "/inspetor/seguranca", label: "Segurança", rotulo: "Segurança" },
-  { href: "/parceiros", label: "Parceiros", rotulo: "Parceiros" },
+  { href: "/parceiros?source=admin", label: "Parceiros", rotulo: "Parceiros" },
 ];
 
 export function InspectorNav() {
@@ -25,7 +25,8 @@ export function InspectorNav() {
         ← Porta-voz
       </Link>
       {TABS.map((tab) => {
-        const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        const path = tab.href.split("?")[0];
+        const active = pathname === path || pathname.startsWith(`${path}/`);
         return (
           <Link
             key={tab.href}

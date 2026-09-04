@@ -24,6 +24,12 @@ describe("cabeçalho da página de parceiros", () => {
     assert.equal(partnersHeader(null), "editor");
     assert.equal(partnersHeader(undefined), "editor");
   });
+
+  test("sem sessão preserva a área informada pelo link", () => {
+    assert.equal(partnersHeader(null, "spokesperson"), "spokesperson");
+    assert.equal(partnersHeader(null, "admin"), "inspector");
+    assert.equal(partnersHeader(null, "editor"), "editor");
+  });
 });
 
 describe("caminho de volta da página de parceiros", () => {
@@ -36,5 +42,11 @@ describe("caminho de volta da página de parceiros", () => {
   test("sem sessão volta para a home", () => {
     assert.equal(partnersReturnPath(null), "/");
     assert.equal(partnersReturnPath(undefined), "/");
+  });
+
+  test("sem sessão volta para a área informada pelo link", () => {
+    assert.equal(partnersReturnPath(null, "spokesperson"), "/porta-voz");
+    assert.equal(partnersReturnPath(null, "admin"), "/inspetor");
+    assert.equal(partnersReturnPath(null, "editor"), "/editor");
   });
 });

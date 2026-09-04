@@ -95,7 +95,7 @@ export async function applyD1Schema(db: D1DatabaseLike, schema: string): Promise
   await run(db, triggers);
 }
 
-/** Aplica todas as migrações D1 (0001, 0002, 0003) na ordem correta com tolerância a idempotência. */
+/** Aplica todas as migrações D1 na ordem correta com tolerância a idempotência. */
 export async function applyAllD1Migrations(db: D1DatabaseLike): Promise<void> {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const migrationsDir = path.resolve(here, "../../d1");
@@ -103,6 +103,8 @@ export async function applyAllD1Migrations(db: D1DatabaseLike): Promise<void> {
     "0001_mission_slice.sql",
     "0002_electoral_compliance.sql",
     "0003_rename_to_english.sql",
+    "0004_multiple_raw_videos.sql",
+    "0005_mixed_raw_media.sql",
   ];
   for (const file of files) {
     const content = await readFile(path.join(migrationsDir, file), "utf8");

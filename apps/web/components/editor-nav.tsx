@@ -9,7 +9,7 @@ const TABS = [
   { href: "/aulas", label: "Aulas", rotulo: "Aulas" },
   { href: "/ferramentas", label: "Ferramentas", rotulo: "Ferramentas" },
   { href: "/ranking", label: "Ranking", rotulo: "Ranking" },
-  { href: "/parceiros", label: "Parceiros", rotulo: "Parceiros" },
+  { href: "/parceiros?source=editor", label: "Parceiros", rotulo: "Parceiros" },
 ];
 
 export function EditorNav() {
@@ -18,7 +18,8 @@ export function EditorNav() {
   return (
     <nav className="flex w-full min-w-0 items-center gap-1 text-[11px] sm:w-auto sm:text-sm">
       {TABS.map((tab) => {
-        const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        const path = tab.href.split("?")[0];
+        const active = pathname === path || pathname.startsWith(`${path}/`);
         return (
           <Link
             key={tab.href}

@@ -54,6 +54,7 @@ export function activeWorkFromMission(m: Mission | null): ActiveWork[] {
   const font = brief.font ?? (brief as any).fonte;
   const refs = brief.refs;
   const desiredDeadline = m.desiredDeadline ?? (m as any).prazoDesejado;
+  const deadlineIso = m.reservedUntil ?? (m as any).reservadaAte;
 
   return [
     {
@@ -62,6 +63,7 @@ export function activeWorkFromMission(m: Mission | null): ActiveWork[] {
       spokesperson,
       format,
       startIso: start,
+      deadlineIso,
       stage: STAGE_BY_STATUS[m.status] ?? "With you",
       tone,
       color,
@@ -75,6 +77,7 @@ export function activeWorkFromMission(m: Mission | null): ActiveWork[] {
       portaVoz: spokesperson,
       formato: format,
       inicioIso: start,
+      prazoIso: deadlineIso,
       etapa: STAGE_BY_STATUS[m.status] ?? "With you",
       tom: tone,
       cor: color,

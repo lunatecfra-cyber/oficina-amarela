@@ -27,7 +27,8 @@ export type MissionCollaborationFailure =
   | "mission_not_found"
   | "forbidden"
   | "empty_message"
-  | "empty_report";
+  | "empty_report"
+  | "write_failed";
 
 export type MissionMessagesByMissionResult =
   | { ok: true; messages: Record<number, MissionMessage[]> }
@@ -171,6 +172,7 @@ export const postgresMissionCollaboration: MissionCollaborationRepository = {
       VALUES (${missionId}, ${actor.id}, ${text})
       RETURNING id, pauta_id, autor_id, texto, criada_em
     `;
+    if (!inserted) return { ok: false, reason: "write_failed" };
     return {
       ok: true,
       message: rowToMessage({

@@ -38,7 +38,7 @@ export async function AppHeaderSpokesperson() {
             </Link>
 
             <Link
-              href="/parceiros"
+              href="/parceiros?source=spokesperson"
               className="tap-target hidden text-sm text-muted hover:text-text sm:inline-flex"
             >
               Parceiros
@@ -72,7 +72,7 @@ export async function AppHeaderSpokesperson() {
             Perfil
           </Link>
           <Link
-            href="/parceiros"
+            href="/parceiros?source=spokesperson"
             className="tap-target flex-none whitespace-nowrap text-sm text-muted hover:text-text"
           >
             Parceiros

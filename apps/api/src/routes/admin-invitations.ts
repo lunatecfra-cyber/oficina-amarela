@@ -58,6 +58,9 @@ export function createAdminInvitationRoutes(dependencies: ApiDependencies) {
       validityDays: INVITATION_VALIDITY_DAYS,
     });
     if (!issued.ok) {
+      if (issued.reason === "issue_failed") {
+        return c.json({ error: "Não foi possível gerar o convite. Tente de novo." }, 500);
+      }
       return c.json({ error: "Outro convite para este e-mail acabou de sair. Recarregue." }, 409);
     }
 

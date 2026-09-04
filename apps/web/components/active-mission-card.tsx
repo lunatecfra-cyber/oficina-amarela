@@ -66,6 +66,11 @@ export function ActiveMissionCard({
   const format = currentMission.format ?? currentMission.formato ?? "short";
   const status = currentMission.status;
   const rawVideoUrl = currentMission.rawVideoUrl ?? currentMission.videoBrutoUrl;
+  const rawVideoUrls = currentMission.rawVideoUrls?.length
+    ? currentMission.rawVideoUrls
+    : rawVideoUrl
+      ? [rawVideoUrl]
+      : [];
   const driveLink = currentMission.driveLink;
   const youtubeLink = currentMission.youtubeLink;
   const deliveredVideoUrl =
@@ -209,7 +214,7 @@ export function ActiveMissionCard({
         </div>
       )}
 
-      {(rawVideoUrl ||
+      {(rawVideoUrls.length > 0 ||
         (driveLink && isDriveUrl(driveLink)) ||
         (youtubeLink && isYouTubeUrl(youtubeLink))) && (
         <div className="mt-5 rounded-2xl border border-gold/30 bg-gradient-to-r from-gold/[0.08] to-gold/[0.03] p-5">
@@ -217,9 +222,10 @@ export function ActiveMissionCard({
             Acesso ao bruto
           </p>
           <p className="mt-3 flex flex-wrap items-center gap-2" data-guia="abrir-bruto">
-            {rawVideoUrl && (
+            {rawVideoUrls.map((url, index) => (
               <a
-                href={rawVideoUrl}
+                key={url}
+                href={url}
                 target="_blank"
                 rel="noopener noreferrer"
                 download
@@ -233,9 +239,9 @@ export function ActiveMissionCard({
                   />
                   <path d="M4 16a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" />
                 </svg>
-                Baixar Vídeo
+                Baixar clipe {index + 1}
               </a>
-            )}
+            ))}
             {driveLink && isDriveUrl(driveLink) && (
               <a
                 href={driveLink}

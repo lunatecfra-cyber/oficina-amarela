@@ -67,6 +67,36 @@ describe("paridade D1 da administração de convites", () => {
     });
   });
 
+  test("não declara convite emitido quando INSERT RETURNING não devolve linha", async () => {
+    const emptyReturningDb = {
+      prepare() {
+        return {
+          bind() {
+            return this;
+          },
+          async first() {
+            return null;
+          },
+          async all() {
+            return { results: [] };
+          },
+          async run() {
+            return { meta: { changes: 0 } };
+          },
+        };
+      },
+    } as D1DatabaseLike;
+
+    const result = await createD1InvitationAdmin(emptyReturningDb).issueInvitation({
+      email: "voz@teste.local",
+      tokenHash: "a".repeat(64),
+      adminId: 1,
+      validityDays: 7,
+    });
+
+    assert.deepEqual(result, { ok: false, reason: "issue_failed" });
+  });
+
   test("reemitir revoga o convite aberto e mantém um só válido", async () => {
     await issue("voz.d1@teste.local", "a".repeat(64));
     const reissued = await issue("voz.d1@teste.local", "c".repeat(64));

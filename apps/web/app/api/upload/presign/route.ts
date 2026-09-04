@@ -2,18 +2,10 @@ import { NextResponse } from "next/server";
 import { fetchApi } from "@/lib/internal-api";
 import { generatePresignedUrl } from "@/lib/r2";
 import { getSession } from "@/lib/server-session";
-
-const ACCEPTED_MIME_TYPES = new Set([
-  "video/mp4",
-  "video/quicktime",
-  "video/x-msvideo",
-  "video/webm",
-]);
-
-const MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
+import { uploadErrorMessage, validateRawMediaUpload } from "@/lib/upload-policy";
 
 const WINDOW_MINUTES = 60;
-const MAX_PER_HOUR = 10;
+const MAX_PER_HOUR = 20;
 
 const uploadKey = (userId: number) => `presign:${userId}`;
 
@@ -21,7 +13,7 @@ export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json(
-      { error: "Please log in first.", erro: "Please log in first." },
+      { error: uploadErrorMessage(401), erro: uploadErrorMessage(401) },
       { status: 401 },
     );
   }
@@ -50,45 +42,19 @@ export async function POST(request: Request) {
 
   if (!filename || !contentType) {
     return NextResponse.json(
-      { error: "Missing filename or contentType parameter.", erro: "Missing parameters." },
+      { error: uploadErrorMessage(400), erro: uploadErrorMessage(400) },
       { status: 400 },
-    );
-  }
-
-  if (!ACCEPTED_MIME_TYPES.has(contentType)) {
-    return NextResponse.json(
-      {
-        error: "Only video media formats are accepted (MP4, MOV, AVI, WebM).",
-        erro: "Unsupported format.",
-      },
-      { status: 415 },
     );
   }
 
   const sizeBytes = Number(size);
-  if (!Number.isInteger(sizeBytes) || sizeBytes <= 0) {
+  const policy = validateRawMediaUpload(contentType, sizeBytes);
+  if (!policy.ok) {
     return NextResponse.json(
-      { error: "Missing or invalid file byte size.", erro: "Invalid size." },
-      { status: 400 },
+      { error: policy.error, erro: policy.error },
+      { status: policy.status },
     );
   }
-  if (sizeBytes > MAX_BYTES) {
-    return NextResponse.json(
-      { error: "File exceeds max 2 GB limit.", erro: "File too large." },
-      { status: 413 },
-    );
-  }
-
-  await fetchApi("/auth/rate-limit/record", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      key: uploadKey(session.id),
-      max: MAX_PER_HOUR,
-      windowMinutes: WINDOW_MINUTES,
-      lockMinutes: WINDOW_MINUTES,
-    }),
-  });
 
   const timestamp = Date.now();
   const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
@@ -96,11 +62,21 @@ export async function POST(request: Request) {
 
   try {
     const urls = await generatePresignedUrl(key, contentType, sizeBytes);
-    return NextResponse.json(urls);
+    await fetchApi("/auth/rate-limit/record", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        key: uploadKey(session.id),
+        max: MAX_PER_HOUR,
+        windowMinutes: WINDOW_MINUTES,
+        lockMinutes: WINDOW_MINUTES,
+      }),
+    });
+    return NextResponse.json({ ...urls, kind: policy.kind });
   } catch (error) {
     console.error("R2 presign error:", error);
     return NextResponse.json(
-      { error: "Failed to generate presigned upload URL.", erro: "Presign failure." },
+      { error: uploadErrorMessage(500), erro: uploadErrorMessage(500) },
       { status: 500 },
     );
   }

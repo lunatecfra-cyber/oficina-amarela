@@ -27,10 +27,19 @@ const PARTNERS = [
   },
 ];
 
-export default async function PartnersPage() {
+export default async function PartnersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ source?: string }>;
+}) {
   const session = await getSession();
-  const headerVariant = partnersHeader(session?.role);
-  const returnPath = partnersReturnPath(session?.role);
+  const { source: rawSource } = await searchParams;
+  const source =
+    rawSource === "spokesperson" || rawSource === "editor" || rawSource === "admin"
+      ? rawSource
+      : null;
+  const headerVariant = partnersHeader(session?.role, source);
+  const returnPath = partnersReturnPath(session?.role, source);
 
   return (
     <>

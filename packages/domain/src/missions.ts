@@ -25,6 +25,13 @@ export type VideoFormat = "short" | "long" | "longo";
 export type Formato = VideoFormat;
 export type Format = VideoFormat;
 
+export type RawMedia = {
+  url: string;
+  kind: "video" | "image";
+  name?: string;
+  sizeBytes?: number;
+};
+
 export type Mission = {
   id: string;
   spokesperson: string;
@@ -43,6 +50,7 @@ export type Mission = {
   status: MissionStatus;
   createdAt: string;
   reservedAt?: string;
+  reservedUntil?: string;
   reservedBy?: string;
   driveLink?: string;
   youtubeLink?: string;
@@ -53,6 +61,8 @@ export type Mission = {
   reason?: string;
   desiredDeadline?: string;
   rawVideoUrl?: string;
+  rawVideoUrls?: string[];
+  rawMedia?: RawMedia[];
   deliveryVideoUrl?: string;
   watermark?: string;
   campaignTaxId?: string;
@@ -67,12 +77,14 @@ export type Mission = {
   formato?: VideoFormat;
   criadaEm?: string;
   reservadaEm?: string;
+  reservadaAte?: string;
   reservadaPor?: string;
   entregaLink?: string;
   notasInspetor?: string;
   motivo?: string;
   prazoDesejado?: string;
   videoBrutoUrl?: string;
+  videosBrutosUrls?: string[];
   videoEntregaUrl?: string;
   marcaDagua?: string;
   cnpjCampanha?: string;

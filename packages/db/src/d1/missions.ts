@@ -14,7 +14,7 @@ const BASE_QUERY = `
          p.drive_link, p.youtube_link, p.status, p.reserved_until, p.reserved_at, p.delivery_link,
          p.inspector_notes, p.created_at,
          p.extras, p.motivation, p.desired_deadline, p.revision_requested_by,
-         p.drive_link AS raw_video_url, p.delivery_video_url,
+         p.drive_link AS raw_video_url, p.raw_video_urls, p.raw_media, p.delivery_video_url,
          p.watermark, p.campaign_tax_id, p.candidate_number, p.voter_id,
          e.handle AS reserved_by_handle
   FROM missions p
@@ -44,6 +44,17 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
         return { ok: false, error: "Escolha o formato.", erro: "Escolha o formato." };
       }
 
+      const campaignIdentity = await db
+        .prepare(
+          "SELECT watermark, campaign_tax_id, candidate_number FROM users WHERE id = ?",
+        )
+        .bind(spokespersonId)
+        .first<{
+          watermark: string | null;
+          campaign_tax_id: string | null;
+          candidate_number: string | null;
+        }>();
+
       const brief = {
         tone: limitOrNull(data.tone ?? data.tom, LIMITS.briefField),
         color: limitOrNull(data.color ?? data.cor, LIMITS.briefField),
@@ -54,10 +65,26 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
         driveLink: limitOrNull(
           data.driveLink ??
             data.rawVideoUrl ??
+            data.rawVideoUrls?.[0] ??
             ((data as Record<string, unknown>).rawFootageUrl as string | undefined) ??
-            data.videoBrutoUrl,
+            data.videoBrutoUrl ??
+            data.videosBrutosUrls?.[0],
           LIMITS.link,
         ),
+        rawVideoUrls: (data.rawVideoUrls ?? data.videosBrutosUrls ?? [])
+          .map((url) => limitOrNull(url, LIMITS.link))
+          .filter((url): url is string => Boolean(url)),
+        rawMedia: (data.rawMedia ?? [])
+          .filter((item) => item.kind === "video" || item.kind === "image")
+          .map((item) => ({
+            url: limitOrNull(item.url, LIMITS.link),
+            kind: item.kind,
+            name: limitOrNull(item.name, LIMITS.briefField) ?? undefined,
+            sizeBytes: Number.isInteger(item.sizeBytes) && Number(item.sizeBytes) > 0
+              ? Number(item.sizeBytes)
+              : undefined,
+          }))
+          .filter((item): item is typeof item & { url: string } => Boolean(item.url)),
         youtubeLink: limitOrNull(
           data.youtubeLink ??
             ((data as Record<string, unknown>).publishedYoutubeUrl as string | undefined),
@@ -68,12 +95,15 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
           10,
         ),
         watermark: limitOrNull(
-          data.watermark ?? data.watermarkUrl ?? data.marcaDagua,
+          campaignIdentity?.watermark ?? data.watermark ?? data.watermarkUrl ?? data.marcaDagua,
           LIMITS.briefField,
         ),
-        campaignTaxId: limitOrNull(data.campaignTaxId ?? data.cnpjCampanha, LIMITS.briefField),
+        campaignTaxId: limitOrNull(
+          campaignIdentity?.campaign_tax_id ?? data.campaignTaxId ?? data.cnpjCampanha,
+          LIMITS.briefField,
+        ),
         candidateNumber: limitOrNull(
-          data.candidateNumber ?? data.numeroEleitoral,
+          campaignIdentity?.candidate_number ?? data.candidateNumber ?? data.numeroEleitoral,
           LIMITS.briefField,
         ),
         voterId: limitOrNull(
@@ -89,9 +119,9 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
           `INSERT INTO missions (
              spokesperson_id, title, format, drive_link, youtube_link,
              brief_tone, brief_color, brief_font, brief_refs,
-             extras, motivation, desired_deadline,
+             extras, motivation, desired_deadline, raw_video_urls, raw_media,
              watermark, campaign_tax_id, candidate_number, voter_id
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING id`,
         )
         .bind(
@@ -107,6 +137,8 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
           brief.extras,
           brief.motivation,
           brief.deadline,
+          brief.rawVideoUrls.length ? JSON.stringify(brief.rawVideoUrls) : null,
+          brief.rawMedia.length ? JSON.stringify(brief.rawMedia) : null,
           brief.watermark,
           brief.campaignTaxId,
           brief.candidateNumber,
@@ -114,7 +146,14 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
         )
         .first<{ id: number }>();
 
-      return { ok: true, id: Number(row?.id) };
+      if (!row) {
+        return {
+          ok: false,
+          error: "Não foi possível criar a missão. Tente de novo.",
+          erro: "Não foi possível criar a missão. Tente de novo.",
+        };
+      }
+      return { ok: true, id: Number(row.id) };
     },
 
     async getMissionById(id: number): Promise<Mission | null> {

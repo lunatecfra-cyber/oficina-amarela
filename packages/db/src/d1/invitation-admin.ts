@@ -64,7 +64,7 @@ export function createD1InvitationAdmin(db: D1DatabaseLike): InvitationAdminRepo
           )
           .bind(input.email, input.tokenHash, input.adminId, createdAt, expiresAt)
           .first<{ id: number; email: string; expires_at: string; expira_em?: string }>();
-        if (!invitation) return { ok: false, reason: "issue_conflict" };
+        if (!invitation) return { ok: false, reason: "issue_failed" };
 
         await db
           .prepare(
