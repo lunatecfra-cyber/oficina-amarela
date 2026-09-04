@@ -314,8 +314,7 @@ function DetailPanel({
         }),
       });
       if (!resp.ok) {
-        const data = await resp.json().catch(() => null);
-        setWarning(data?.error ?? data?.erro ?? "Não deu pra concluir.");
+        setWarning(mensagemDeErro(resp.status, "Não deu pra concluir."));
         return;
       }
 

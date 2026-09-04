@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 function LoginFormContent() {
   const router = useRouter();
@@ -38,7 +39,13 @@ function LoginFormContent() {
     const data = await resp.json();
 
     if (!resp.ok) {
-      setError(data.error ?? data.erro ?? "Não deu pra entrar.");
+      // 401 no login é senha errada — não "sessão expirada", que é o que o
+      // helper diria. Por isso o caso vem antes.
+      setError(
+        resp.status === 401
+          ? "Apelido ou senha não conferem. Confira e tente de novo."
+          : mensagemDeErro(resp.status, "Não deu pra entrar."),
+      );
       setIsSubmitting(false);
       return;
     }

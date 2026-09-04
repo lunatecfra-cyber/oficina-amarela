@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -37,11 +38,10 @@ function ResetPasswordContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, password, senha: password }),
     });
-    const data = await resp.json();
     setIsSubmitting(false);
 
     if (!resp.ok) {
-      setError(data.error ?? data.erro ?? "Não deu pra redefinir. Tenta pedir o link de novo.");
+      setError(mensagemDeErro(resp.status, "Não deu pra redefinir. Tenta pedir o link de novo."));
       return;
     }
     setIsSuccess(true);

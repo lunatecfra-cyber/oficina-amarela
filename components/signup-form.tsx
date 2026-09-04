@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 type SlotsInfo = {
   editor: { total: number; enrolled?: number; inscritos?: number; free?: number; livres?: number };
@@ -75,10 +76,13 @@ export function SignupForm({
         papel: role === "spokesperson" ? "voz" : "editor",
       }),
     });
-    const data = await resp.json();
 
     if (!resp.ok) {
-      setError(data.error ?? data.erro ?? "Não deu pra criar a conta.");
+      setError(
+        resp.status === 409
+          ? "Já existe conta com esse apelido ou e-mail."
+          : mensagemDeErro(resp.status, "Não deu pra criar a conta. Confira os campos."),
+      );
       setIsSubmitting(false);
       return;
     }

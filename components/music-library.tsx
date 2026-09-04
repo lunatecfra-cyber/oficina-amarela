@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 interface Music {
   id: string;
@@ -47,7 +48,7 @@ export function MusicLibrary() {
       const q = tag ? `?tag=${encodeURIComponent(tag)}` : "";
       const res = await fetch(`/api/tools/music${q}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.erro || "Erro ao carregar.");
+      if (!res.ok) throw new Error(mensagemDeErro(res.status, "Não deu pra carregar as músicas."));
       setMusics(data.musics ?? data.musicas ?? []);
       setAllTags(data.tags ?? []);
     } catch (e) {
@@ -74,8 +75,8 @@ export function MusicLibrary() {
     const fd = new FormData(e.currentTarget);
     try {
       const res = await fetch("/api/tools/music", { method: "POST", body: fd });
+      if (!res.ok) throw new Error(mensagemDeErro(res.status, "Não deu pra enviar a música."));
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.erro || "Erro ao enviar.");
       formRef.current?.reset();
       load(activeTag || undefined);
     } catch (err) {

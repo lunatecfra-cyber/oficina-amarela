@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 export function RecoverForm() {
   const [email, setEmail] = useState("");
@@ -22,11 +23,10 @@ export function RecoverForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
     });
-    const data = await resp.json();
     setIsSubmitting(false);
 
     if (!resp.ok) {
-      setError(data.error ?? data.erro ?? "Não deu pra enviar. Tenta de novo.");
+      setError(mensagemDeErro(resp.status, "Não deu pra enviar. Tenta de novo."));
       return;
     }
     setIsSent(true);

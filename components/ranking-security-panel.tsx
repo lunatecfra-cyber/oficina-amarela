@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 type View = "invitations" | "ranking" | "audit";
 type Notice = { tone: "success" | "error"; text: string } | null;
@@ -89,7 +90,7 @@ export function RankingSecurityPanel() {
     try {
       const res = await fetch("/api/admin/invitations");
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? data.erro ?? "Não foi possível carregar os convites.");
+      if (!res.ok) throw new Error(mensagemDeErro(res.status, "Não foi possível carregar os convites."));
       setInvitations(data.invitations ?? data.convites ?? []);
     } catch (error) {
       setInvitationError(error instanceof Error ? error.message : "Não foi possível carregar os convites.");
@@ -104,7 +105,7 @@ export function RankingSecurityPanel() {
     try {
       const res = await fetch("/api/admin/ranking");
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? data.erro ?? "Não foi possível carregar a auditoria.");
+      if (!res.ok) throw new Error(mensagemDeErro(res.status, "Não foi possível carregar a auditoria."));
       setAuditLogs(data.audit ?? data.auditoria ?? []);
     } catch (error) {
       setAuditError(error instanceof Error ? error.message : "Não foi possível carregar a auditoria.");
@@ -134,7 +135,7 @@ export function RankingSecurityPanel() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setNotice({ tone: "error", text: data.error ?? data.erro ?? "Não foi possível concluir a ação." });
+        setNotice({ tone: "error", text: mensagemDeErro(res.status, "Não foi possível concluir a ação.") });
         return { ok: false, data };
       }
       setNotice({ tone: "success", text: "Ação concluída e registrada na auditoria." });

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { initials } from "@/lib/candidates";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 const ROLE_OPTIONS = [
   {
@@ -65,7 +66,7 @@ export function ChooseRoleForm({
     const data = await resp.json();
 
     if (!resp.ok) {
-      setError(data.error ?? data.erro ?? "Não deu pra criar a conta. Tenta de novo.");
+      setError(mensagemDeErro(resp.status, "Não deu pra criar a conta. Tenta de novo."));
       setSubmittingRole(null);
       return;
     }

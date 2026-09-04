@@ -35,7 +35,6 @@ export function SetPassword({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ newPassword: password, novaSenha: password }),
     });
-    const data = await resp.json().catch(() => null);
     setIsSaving(false);
 
     if (!resp.ok) {
