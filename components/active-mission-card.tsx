@@ -9,6 +9,7 @@ import { TutorialButton, TutorialDrive } from "@/components/tutorial-drive";
 import { UploadDropzone } from "@/components/upload-dropzone";
 import type { ChatMessage } from "@/lib/chat-db";
 import { ReportButton } from "@/components/report-button";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 function Chip({ k, v }: { k: string; v: string }) {
   return (
@@ -90,8 +91,7 @@ export function ActiveMissionCard({
     setIsProcessing(false);
 
     if (!resp.ok) {
-      const data = await resp.json().catch(() => null);
-      setNotice(data?.error ?? data?.erro ?? "Não deu pra concluir. Tenta de novo.");
+      setNotice(mensagemDeErro(resp.status, "Não deu pra concluir. Tenta de novo."));
       return;
     }
     setDeliveryLink("");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 export function SetPassword({
   hasPassword,
@@ -38,7 +39,7 @@ export function SetPassword({
     setIsSaving(false);
 
     if (!resp.ok) {
-      setNotice(data?.error ?? data?.erro ?? "Não deu pra salvar. Tenta de novo.");
+      setNotice(mensagemDeErro(resp.status, "Não deu pra salvar. Tenta de novo."));
       return;
     }
 

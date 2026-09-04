@@ -18,6 +18,7 @@ import type { EditorOnboarding } from "@/lib/profile-db";
 import { SelectLocation } from "@/components/select-location";
 import { WhatsappField, onlyDigits } from "@/components/whatsapp-field";
 import { compressPhoto } from "@/lib/compress-photo";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 function parseLocation(value: string): { state: string; city: string } {
   if (!value) return { state: "", city: "" };
@@ -227,8 +228,7 @@ export function CreateEditorProfileForm({
     setIsSaving(false);
 
     if (!resp.ok) {
-      const respData = await resp.json().catch(() => null);
-      setError(respData?.error ?? respData?.erro ?? "Não deu pra salvar. Tenta de novo.");
+      setError(mensagemDeErro(resp.status, "Não deu pra salvar. Tenta de novo."));
       return;
     }
 

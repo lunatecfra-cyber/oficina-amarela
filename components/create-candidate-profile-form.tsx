@@ -24,6 +24,7 @@ import { CampaignIdentity } from "@/components/campaign-identity";
 import { WhatsappField, onlyDigits } from "@/components/whatsapp-field";
 import { validateCampaignIdentity } from "@/lib/campaign-identity";
 import { LegalNotice } from "@/components/legal-notice";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 function parseLocation(value: string): { state: string; city: string } {
   if (!value) return { state: "", city: "" };
@@ -278,8 +279,7 @@ export function CreateCandidateProfileForm({
     setIsSaving(false);
 
     if (!resp.ok) {
-      const respData = await resp.json().catch(() => null);
-      setError(respData?.error ?? respData?.erro ?? "Não deu pra salvar. Tenta de novo.");
+      setError(mensagemDeErro(resp.status, "Não deu pra salvar. Tenta de novo."));
       return;
     }
 

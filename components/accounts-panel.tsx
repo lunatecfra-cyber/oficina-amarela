@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { initials } from "@/lib/candidates";
 import type { Role, Papel } from "@/lib/session";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 type UserListItem = {
   id: number;
@@ -79,8 +80,7 @@ export function AccountsPanel() {
     try {
       const resp = await fetch(`/api/admin/users?q=${encodeURIComponent(term)}`);
       if (!resp.ok) {
-        const data = await resp.json().catch(() => null);
-        setError(data?.error ?? data?.erro ?? "Busca falhou.");
+        setError(mensagemDeErro(resp.status, "Busca falhou."));
         return;
       }
       const data = await resp.json();
@@ -189,8 +189,7 @@ async function openDetail(
   try {
     const resp = await fetch(`/api/admin/users/${id}`);
     if (!resp.ok) {
-      const data = await resp.json().catch(() => null);
-      setError(data?.error ?? data?.erro ?? "Não deu pra abrir a conta.");
+      setError(mensagemDeErro(resp.status, "Não deu pra abrir a conta."));
       return;
     }
     const data = await resp.json();

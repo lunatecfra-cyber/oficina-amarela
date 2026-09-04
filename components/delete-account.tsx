@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 export function DeleteAccount({
   hasPassword,
@@ -32,8 +33,7 @@ export function DeleteAccount({
     });
 
     if (!resp.ok) {
-      const data = await resp.json().catch(() => null);
-      setNotice(data?.error ?? data?.erro ?? "Não deu pra apagar. Tenta de novo.");
+      setNotice(mensagemDeErro(resp.status, "Não deu pra apagar. Tenta de novo."));
       setIsDeleting(false);
       return;
     }

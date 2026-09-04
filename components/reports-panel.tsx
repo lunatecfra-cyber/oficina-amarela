@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { initials } from "@/lib/candidates";
 import type { Report, Denuncia } from "@/lib/reports-db";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 const STATUS_LABELS: Record<string, { txt: string; cls: string }> = {
   open: { txt: "aberta", cls: "border-danger/40 bg-danger/10 text-danger" },
@@ -66,8 +67,7 @@ export function ReportsPanel({
         body: JSON.stringify({ reportId, action: normAction, denunciaId: reportId, acao: action }),
       });
       if (!resp.ok) {
-        const data = await resp.json().catch(() => null);
-        setError(data?.error ?? data?.erro ?? "Não deu pra concluir.");
+        setError(mensagemDeErro(resp.status, "Não deu pra concluir."));
         return;
       }
       router.refresh();

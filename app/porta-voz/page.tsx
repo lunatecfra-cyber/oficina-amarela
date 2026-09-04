@@ -20,13 +20,6 @@ import { EmptyState } from "@/components/empty-state";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Minhas Missões — Oficina Amarela" };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "short",
-  });
-}
-
 function formatDeadline(ymd: string) {
   return new Date(ymd).toLocaleDateString("pt-BR", {
     day: "2-digit",

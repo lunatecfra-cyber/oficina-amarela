@@ -6,6 +6,7 @@ import Link from "next/link";
 import { HEADLINES, MAX_HEADLINES } from "@/lib/profile";
 import type { EditableProfile, PerfilEditavel } from "@/lib/profile-db";
 import { WhatsappField, onlyDigits } from "@/components/whatsapp-field";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 function chip(active: boolean, blocked = false) {
   return `rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -54,8 +55,7 @@ export function EditProfileForm({
     setIsSaving(false);
 
     if (!resp.ok) {
-      const respData = await resp.json().catch(() => null);
-      setError(respData?.error ?? respData?.erro ?? "Não deu pra salvar. Tenta de novo.");
+      setError(mensagemDeErro(resp.status, "Não deu pra salvar. Tenta de novo."));
       return;
     }
 

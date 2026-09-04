@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FORMAT_LABEL, type Mission, type Pauta } from "@/lib/missions";
 import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 import { IconClap, IconPlay } from "@/components/action-icons";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 type Offer = { mission?: Mission; pauta?: Mission; expiresAt?: string; expiraEm?: string; order?: number; ordem?: number };
 
@@ -93,8 +94,7 @@ export function MissionOffer({
     lastId.current = null;
 
     if (!resp.ok) {
-      const data = await resp.json().catch(() => null);
-      setNotice(data?.error ?? data?.erro ?? "Não deu pra responder. Tenta de novo.");
+      setNotice(mensagemDeErro(resp.status, "Não deu pra responder. Tenta de novo."));
       fetchNext();
       return;
     }

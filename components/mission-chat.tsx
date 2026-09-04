@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ChatMessage, Mensagem } from "@/lib/chat-db";
 import { LIMITS } from "@/lib/limits";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 const ROLE_LABEL: Record<string, string> = {
   spokesperson: "Candidato",
@@ -144,8 +145,7 @@ export function MissionChat({
         body: JSON.stringify({ action: "message", text: t, acao: "mensagem", texto: t }),
       });
       if (!resp.ok) {
-        const data = await resp.json().catch(() => null);
-        setError(data?.error ?? data?.erro ?? "Não deu pra enviar.");
+        setError(mensagemDeErro(resp.status, "Não deu pra enviar."));
         return;
       }
       setText("");
