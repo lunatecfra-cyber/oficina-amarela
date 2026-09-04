@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.2.3] - 2026-09-04
+
+### Modificado
+- A branch `codex/ranking-eleitoral` está formalmente registrada como incorporada: todo o conteúdo dela (área do porta-voz, identidade de campanha, alvos de toque de 44px e rótulos de acessibilidade) já tinha sido adaptado para o monorepo em inglês e publicado nas versões 0.2.0–0.2.2. Nenhuma mudança de código nesta versão.
+
 ## [0.2.2] - 2026-09-03
 
 ### Adicionado
