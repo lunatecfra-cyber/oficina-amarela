@@ -7,6 +7,7 @@ import { TutorialButton, TutorialDrive } from "@/components/tutorial-drive";
 import { looksLikeLink, looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
 import { UploadDropzone } from "@/components/upload-dropzone";
 import { LegalNotice } from "@/components/legal-notice";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 type FormData = {
   title: string;
@@ -247,7 +248,7 @@ export function NewMissionForm({
     setIsSubmitting(false);
 
     if (!resp.ok) {
-      setError(body?.error ?? body?.erro ?? "Não deu pra criar a missão. Tenta de novo.");
+      setError(mensagemDeErro(resp.status, body?.erro));
       return;
     }
     clearDraft();

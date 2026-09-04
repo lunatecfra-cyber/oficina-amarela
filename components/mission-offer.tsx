@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FORMAT_LABEL, type Mission, type Pauta } from "@/lib/missions";
 import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
+import { IconClap, IconPlay } from "@/components/action-icons";
 
 type Offer = { mission?: Mission; pauta?: Mission; expiresAt?: string; expiraEm?: string; order?: number; ordem?: number };
 
@@ -128,7 +129,8 @@ export function MissionOffer({
           Clique abaixo quando estiver pronto para receber missões. Sem pressa e sem cronômetro.
         </p>
         <button className="btn-gold mx-auto px-8" onClick={() => setIsInQueue(true)}>
-          ▶ Entrar na fila
+          <IconPlay className="h-[18px] w-[18px]" />
+          Entrar na fila
         </button>
       </section>
     );
@@ -200,7 +202,8 @@ export function MissionOffer({
       <div className="p-6 lg:p-7 relative">
         <div className="flex flex-wrap items-center justify-between gap-3 pr-24">
           <span className="text-xs uppercase tracking-[0.15em] text-gold-hi">
-            🎬 Nova missão pra você
+            <IconClap className="h-[18px] w-[18px]" />
+            Nova missão pra você
           </span>
         </div>
 

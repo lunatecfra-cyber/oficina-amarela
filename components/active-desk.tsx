@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { TaskOnDesk } from "@/lib/schedule";
 import { FORMAT_LABEL } from "@/lib/missions";
 import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
+import { IconPlay, IconFolder } from "@/components/action-icons";
 
 function fmtRemaining(ms: number) {
   if (ms <= 0) return "prazo vencido";
@@ -196,7 +197,8 @@ export function ActiveDesk({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
                 >
-                  📁 Abrir bruto no Drive
+                  <IconFolder className="h-4 w-4" />
+                  Abrir bruto no Drive
                 </a>
               )}
               {youtubeLink && looksLikeYoutubeLink(youtubeLink) && (
@@ -206,7 +208,8 @@ export function ActiveDesk({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
                 >
-                  ▶ Abrir no YouTube
+                  <IconPlay className="h-4 w-4" />
+                  Abrir no YouTube
                 </a>
               )}
               <Link

@@ -35,7 +35,7 @@ function Caption({ n, children }: { n: number; children: React.ReactNode }) {
 function Folder({ label }: { label: string }) {
   return (
     <div className="w-[150px] rounded-lg border border-line bg-surface/80 p-2">
-      <p className="mb-1.5 truncate text-[10px] text-muted-2">📁 {label}</p>
+      <p className="mb-1.5 truncate text-[10px] text-muted-2"><span aria-hidden="true">📁</span> {label}</p>
       <div className="flex flex-col gap-1">
         {[100, 74, 88].map((w, i) => (
           <span

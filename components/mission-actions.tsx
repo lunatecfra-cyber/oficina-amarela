@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { IconCheck, IconChat } from "@/components/action-icons";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 export function MissionActions({
   id,
@@ -44,7 +46,7 @@ export function MissionActions({
 
     if (!resp.ok) {
       const data = await resp.json().catch(() => null);
-      setNotice(data?.error ?? data?.erro ?? "Não deu pra concluir. Tenta de novo.");
+      setNotice(mensagemDeErro(resp.status, data?.erro));
       setProcessingAction(null);
       return;
     }
@@ -129,7 +131,7 @@ export function MissionActions({
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <button
-              className="btn-gold sm:flex-1"
+              className="btn-gold gap-2 sm:flex-1"
               onClick={() => send("revision")}
               disabled={processingAction !== null}
             >
@@ -157,22 +159,24 @@ export function MissionActions({
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row" data-guia="aprovar-missao">
             <button
-              className="btn-gold sm:flex-1"
+              className="btn-gold gap-2 sm:flex-1"
               onClick={() => send(effectiveInReview ? "approve" : "accept")}
               disabled={processingAction !== null}
             >
+              {processingAction !== "accept" && <IconCheck className="h-[18px] w-[18px]" />}
               {processingAction === "accept"
                 ? "Fechando…"
                 : effectiveInReview
-                  ? "✅ Aprovar e fechar"
-                  : "✅ Aceitar e postar"}
+                  ? "Aprovar e fechar"
+                  : "Aceitar e postar"}
             </button>
             <button
-              className="btn-ghost sm:w-48"
+              className="btn-ghost gap-2 sm:w-48"
               onClick={() => setIsOpeningRevision(true)}
               disabled={processingAction !== null}
             >
-              💬 Pedir ajuste
+              <IconChat className="h-[18px] w-[18px]" />
+              Pedir ajuste
             </button>
           </div>
         </>

@@ -11,6 +11,22 @@ interface UploadDropzoneProps {
   maxSizeMB?: number;
 }
 
+
+/**
+ * O servidor responde em inglês ("File exceeds max 2 GB limit.", "Too many
+ * uploads in the past hour."). Quem sobe vídeo aqui fala português, e a falha
+ * de upload é o pior momento pra ler outra língua — então traduzimos pelo
+ * CÓDIGO, que não muda, em vez de repassar o texto de lá.
+ */
+function mensagemDoServidor(status: number): string {
+  if (status === 413) return "Vídeo grande demais. Comprima antes (tem o Handbrake em Ferramentas) e tente de novo.";
+  if (status === 429) return "Você subiu muitos vídeos na última hora. Espere um pouco e tente de novo.";
+  if (status === 401 || status === 403) return "Sua sessão expirou ou você não tem acesso. Entre de novo.";
+  if (status === 415) return "Formato não aceito. Mande MP4, MOV ou AVI.";
+  if (status >= 500) return "O servidor de vídeo falhou. Tente de novo em alguns minutos.";
+  return "Não deu pra preparar o envio. Tente de novo.";
+}
+
 export function UploadDropzone({
   label = "Vídeo bruto",
   onUploadSuccess,
@@ -59,12 +75,16 @@ export function UploadDropzone({
       });
 
       if (!presignRes.ok) {
-        const body = await presignRes.json().catch(() => null);
-        throw new Error(body?.error || body?.erro || "Erro ao preparar upload");
+        throw new Error(mensagemDoServidor(presignRes.status));
       }
       const { uploadUrl, readUrl } = await presignRes.json();
       if (!readUrl) {
-        throw new Error("Upload sem URL pública configurada no servidor (R2_PUBLIC_BASE_URL).");
+        // Era "R2_PUBLIC_BASE_URL" na tela. Nome de variável de ambiente não
+        // diz nada pra quem só quer mandar um vídeo — e não há o que ela faça.
+        console.error("R2_PUBLIC_BASE_URL ausente no servidor");
+        throw new Error(
+          "O servidor de vídeo está fora do ar. Avise o inspetor — não é problema seu.",
+        );
       }
 
       await new Promise<void>((resolve, reject) => {
@@ -83,11 +103,11 @@ export function UploadDropzone({
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve();
           } else {
-            reject(new Error(`Falha no upload: ${xhr.status}`));
+            reject(new Error(mensagemDoServidor(xhr.status)));
           }
         };
 
-        xhr.onerror = () => reject(new Error("Erro de rede no upload"));
+        xhr.onerror = () => reject(new Error("A conexão caiu no meio do envio. Tente de novo."));
         xhr.send(file);
       });
 
@@ -219,7 +239,7 @@ export function UploadDropzone({
           <svg className="mb-2 h-8 w-8 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-danger">{errorMessage}</p>
+          <p role="alert" className="text-danger">{errorMessage}</p>
           <button
             onClick={(e) => {
               e.stopPropagation();

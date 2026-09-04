@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { IconFlag } from "@/components/action-icons";
 import { LIMITS } from "@/lib/limits";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 export function ReportButton({
   missionId,
@@ -32,7 +34,7 @@ export function ReportButton({
       });
       if (!resp.ok) {
         const data = await resp.json().catch(() => null);
-        setError(data?.error ?? data?.erro ?? "Não deu pra denunciar.");
+        setError(mensagemDeErro(resp.status, data?.erro));
         return;
       }
       setIsSent(true);
@@ -59,10 +61,11 @@ export function ReportButton({
       {!isOpen ? (
         <button
           /* link-toque: continua discreto, mas o alvo sai de 16px pra 44 */
-          className="link-toque -ml-3 text-xs uppercase tracking-[0.12em] text-muted-2 hover:text-danger"
+          className="link-toque -ml-3 gap-1.5 text-xs uppercase tracking-[0.12em] text-muted-2 hover:text-danger"
           onClick={() => setIsOpen(true)}
         >
-          🚩 Denunciar esta missão
+          <IconFlag className="h-3.5 w-3.5" />
+          Denunciar esta missão
         </button>
       ) : (
         <div className="rounded-xl border border-danger/30 bg-danger/[0.04] p-3">

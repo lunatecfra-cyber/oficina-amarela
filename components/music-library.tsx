@@ -136,7 +136,7 @@ export function MusicLibrary() {
       )}
 
       {errorMessage && (
-        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/[0.06] px-4 py-3 text-sm text-red-400">
+        <div role="alert" className="mb-4 rounded-xl border border-red-500/30 bg-red-500/[0.06] px-4 py-3 text-sm text-red-400">
           {errorMessage}
         </div>
       )}

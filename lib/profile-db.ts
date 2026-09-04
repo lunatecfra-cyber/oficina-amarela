@@ -188,8 +188,8 @@ export async function saveEditorOnboarding(
   const rawTools = data.softwareTools ?? data.softwares;
   const rawStyles = data.editingStyles ?? data.styles ?? data.estilos;
   const rawPortLink = data.portfolioLink ?? data.portfolio_link;
-  const rawAvail = data.availability ?? data.disponibilidade ?? [];
-  const rawEditLevel = data.editingLevel ?? data.nivelEdicao;
+  const rawAvail = data.availability ?? data.availabilitySchedule ?? data.disponibilidade ?? [];
+  const rawEditLevel = data.editingLevel ?? data.editingExperienceLevel ?? data.nivelEdicao;
   const rawPcSetup = data.pcSetup ?? data.setupPc;
   const rawNiches = data.niches ?? data.niche ?? data.nicho;
 

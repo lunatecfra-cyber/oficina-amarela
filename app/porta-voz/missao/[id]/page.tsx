@@ -14,6 +14,7 @@ import { MissionActions } from "@/components/mission-actions";
 import { MissionChat } from "@/components/mission-chat";
 import { ReportButton } from "@/components/report-button";
 import { missionMessages } from "@/lib/chat-db";
+import { IconPlay, IconFolder } from "@/components/action-icons";
 
 export const metadata: Metadata = { title: "Missão — Oficina Amarela" };
 export const dynamic = "force-dynamic";
@@ -217,10 +218,11 @@ export default async function MissionDetailPage({
           href={deliveryLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn-gold mt-5"
+          className="btn-gold mt-5 gap-2"
           data-guia="ver-entrega"
         >
-          ▶ Assistir ao vídeo entregue
+          <IconPlay className="h-[18px] w-[18px]" />
+          Assistir ao vídeo entregue
         </a>
       )}
 
@@ -261,7 +263,8 @@ export default async function MissionDetailPage({
                 rel="noopener noreferrer"
                 className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
               >
-                📁 Abrir no Google Drive
+                <IconFolder className="h-4 w-4" />
+                Abrir no Google Drive
               </a>
             )}
             {youtubeLink && looksLikeYoutubeLink(youtubeLink) && (
@@ -271,7 +274,8 @@ export default async function MissionDetailPage({
                 rel="noopener noreferrer"
                 className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
               >
-                ▶ Abrir no YouTube
+                <IconPlay className="h-4 w-4" />
+                Abrir no YouTube
               </a>
             )}
           </div>

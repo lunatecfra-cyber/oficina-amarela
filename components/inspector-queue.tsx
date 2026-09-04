@@ -10,6 +10,8 @@ import { Badge, Chip, candidateOfMission } from "@/components/mission-ui";
 import { MissionChat } from "@/components/mission-chat";
 import type { Message, Mensagem } from "@/lib/chat-db";
 import { looksLikeLink } from "@/lib/validators";
+import { IconChat } from "@/components/action-icons";
+import { mensagemDeErro } from "@/lib/api-errors";
 
 export function InspectorQueue({
   realMissions = [],
@@ -49,7 +51,7 @@ export function InspectorQueue({
     });
     if (!resp.ok) {
       const data = await resp.json().catch(() => null);
-      setError(data?.error ?? data?.erro ?? "Não deu pra concluir. Tenta de novo.");
+      setError(mensagemDeErro(resp.status, data?.erro));
       return false;
     }
     setError("");
@@ -207,7 +209,7 @@ function ReviewCard({
                   href={deliveryLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="link-toque -mx-3 font-medium text-gold-hi hover:underline"
+                  className="link-toque -mx-3 gap-1.5 font-medium text-gold-hi hover:underline"
                 >
                   Abrir vídeo entregue
                 </a>
@@ -217,9 +219,10 @@ function ReviewCard({
             <button
               type="button"
               onClick={() => setIsChatOpen((v) => !v)}
-              className="link-toque -mx-3 font-medium text-gold-hi hover:underline"
+              className="link-toque -mx-3 gap-1.5 font-medium text-gold-hi hover:underline"
             >
-              💬 Conversa ({messages.length})
+              <IconChat className="h-4 w-4" />
+              Conversa ({messages.length})
             </button>
           </p>
         </div>

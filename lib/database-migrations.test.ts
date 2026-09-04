@@ -39,6 +39,23 @@ test("private electoral functions are not executable through public API roles", 
   assert.match(sql, /SECURITY INVOKER/i);
 });
 
+test("candidate number is wired from APIs through persistence and migration", () => {
+  const migration = readMigration("20260830_add_candidate_number.sql");
+  const profileRoute = readFileSync(new URL("../app/api/spokesperson/profile/route.ts", import.meta.url), "utf8");
+  const missionRoute = readFileSync(new URL("../app/api/missions/route.ts", import.meta.url), "utf8");
+  const candidateDb = readFileSync(new URL("./candidate-db.ts", import.meta.url), "utf8");
+  const missionsDb = readFileSync(new URL("./missions-db.ts", import.meta.url), "utf8");
+
+  assert.match(profileRoute, /candidateNumber:\s*toStringOpt\(body\?\.candidateNumber \?\? body\?\.numeroEleitoral\)/);
+  assert.match(candidateDb, /candidate_number\s*=\s*\$\{candidateNumber\}/);
+  assert.match(candidateDb, /candidateNumber:\s*l\.candidate_number/);
+  assert.match(missionRoute, /body\?\.candidateNumber \?\? body\?\.numeroEleitoral/);
+  assert.match(missionsDb, /INSERT INTO missions[\s\S]{0,500}candidate_number/);
+  assert.match(missionsDb, /candidateNumber:\s*r\.candidate_number/);
+  assert.match(migration, /ALTER TABLE IF EXISTS users[\s\S]{0,100}candidate_number/i);
+  assert.match(migration, /ALTER TABLE IF EXISTS missions[\s\S]{0,100}candidate_number/i);
+});
+
 test("XP proportions match the approved product rules", () => {
   const gamification = readMigration("20260827_add_gamification_events.sql");
   const electoral = readMigration("20260829_add_electoral_ranking.sql");

@@ -163,16 +163,16 @@ export async function createMission(data: {
     color: limitOrNull(data.color ?? data.cor, LIMITS.briefField),
     font: limitOrNull(data.font ?? data.fonte, LIMITS.briefField),
     refs: limitOrNull(data.refs, LIMITS.briefField),
-    extras: limitOrNull(data.extras, LIMITS.longText),
-    motivation: limitOrNull(data.motivation ?? data.motivo, LIMITS.longText),
+    extras: limitOrNull(data.extras ?? data.extraInstructions, LIMITS.longText),
+    motivation: limitOrNull(data.motivation ?? data.rationale ?? data.motivo, LIMITS.longText),
     driveLink: limitOrNull(data.driveLink, LIMITS.link),
-    youtubeLink: limitOrNull(data.youtubeLink, LIMITS.link),
-    deadline: limitOrNull(data.deadline ?? data.prazo, 10),
-    rawVideoUrl: limitOrNull(data.rawVideoUrl ?? data.videoBrutoUrl, LIMITS.link),
-    watermark: limitOrNull(data.watermark ?? data.marcaDagua, LIMITS.briefField),
+    youtubeLink: limitOrNull(data.youtubeLink ?? data.publishedYoutubeUrl, LIMITS.link),
+    deadline: limitOrNull(data.desiredDeadline ?? data.deadline ?? data.prazo, 10),
+    rawVideoUrl: limitOrNull(data.rawVideoUrl ?? data.rawFootageUrl ?? data.videoBrutoUrl, LIMITS.link),
+    watermark: limitOrNull(data.watermark ?? data.watermarkUrl ?? data.marcaDagua, LIMITS.briefField),
     campaignTaxId: limitOrNull(data.campaignTaxId ?? data.cnpjCampanha, LIMITS.briefField),
     candidateNumber: limitOrNull(data.candidateNumber ?? data.numeroEleitoral, 5),
-    voterId: limitOrNull(data.voterId ?? data.tituloEleitor, LIMITS.briefField),
+    voterId: limitOrNull(data.voterId ?? data.voterRegistrationId ?? data.tituloEleitor, LIMITS.briefField),
   };
 
   const [row] = await sql`

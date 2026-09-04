@@ -153,15 +153,15 @@ export async function saveCandidateOnboarding(
   const running = data.runningFor ?? data.disputaPor;
   const year = data.electionYear ?? data.anoEleicao ?? "2026";
   const loc = data.location ?? data.localizacao;
-  const flags = data.campaignFlags ?? data.causes ?? data.bandeiras;
+  const flags = data.campaignFlags ?? data.policyFlags ?? data.causes ?? data.bandeiras;
   const tone = data.communicationTone ?? data.tomComunicacao;
   const kw = data.keywords ?? data.palavrasChave;
   const links = data.socialLinks ?? data.redes ?? {};
   const bio = data.bio;
-  const watermark = data.watermark ?? data.marcaDagua;
+  const watermark = data.watermark ?? data.watermarkUrl ?? data.marcaDagua;
   const campaignTaxId = identity.value.campaignTaxId;
   const candidateNumber = identity.value.candidateNumber;
-  const voterId = data.voterId ?? data.tituloEleitor;
+  const voterId = data.voterId ?? data.voterRegistrationId ?? data.tituloEleitor;
 
   await sql`
     UPDATE users SET
