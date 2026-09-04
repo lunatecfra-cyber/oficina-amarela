@@ -96,3 +96,14 @@ export {
   IconMail as IconeEmail,
   IconClap as IconeClaquete,
 };
+
+/** sair da fila — era o emoji ⏹, que some no nome do botão */
+export function IconStop({ className }: IconProps) {
+  return (
+    <svg {...base(className)}>
+      <rect x="5.5" y="5.5" width="9" height="9" rx="1.4" />
+    </svg>
+  );
+}
+
+export { IconStop as IconeParar };

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FORMAT_LABEL, type Mission, type Pauta } from "@/lib/missions";
 import { looksLikeDriveLink, looksLikeYoutubeLink } from "@/lib/validators";
-import { IconClap, IconPlay } from "@/components/action-icons";
+import { IconClap, IconPlay, IconStop } from "@/components/action-icons";
 import { mensagemDeErro } from "@/lib/api-errors";
 
 type Offer = { mission?: Mission; pauta?: Mission; expiresAt?: string; expiraEm?: string; order?: number; ordem?: number };
@@ -141,9 +141,10 @@ export function MissionOffer({
       <section className="mb-8 rounded-2xl border border-line bg-surface/40 px-6 py-10 text-center relative">
         <button
           onClick={leaveQueue}
-          className="absolute top-4 right-4 text-xs font-medium text-muted hover:text-text"
+          className="link-toque absolute top-1 right-1 gap-1.5 text-xs font-medium text-muted hover:text-text"
         >
-          ⏹ Sair da fila
+          <IconStop className="h-3.5 w-3.5" />
+          Sair da fila
         </button>
         <span className="relative mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-gold-lo/40 bg-gold/[0.06] text-2xl">
           <span
@@ -151,7 +152,7 @@ export function MissionOffer({
             className="absolute inset-0 animate-ping rounded-2xl border border-gold-lo/30"
             style={{ animationDuration: "2.6s" }}
           />
-          <span className="relative">🐆</span>
+          <span aria-hidden="true" className="relative">🐆</span>
         </span>
 
         <p className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
@@ -187,9 +188,10 @@ export function MissionOffer({
     <section className="mb-8 overflow-hidden rounded-2xl border border-gold-lo/60 bg-gradient-to-b from-gold/[0.09] to-transparent relative">
       <button
         onClick={leaveQueue}
-        className="absolute top-6 right-6 text-xs font-medium text-muted hover:text-text z-10"
+        className="link-toque absolute top-3 right-3 z-10 gap-1.5 text-xs font-medium text-muted hover:text-text"
       >
-        ⏹ Sair da fila
+        <IconStop className="h-3.5 w-3.5" />
+        Sair da fila
       </button>
       <div
         className="h-1 w-full"
