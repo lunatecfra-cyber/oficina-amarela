@@ -16,7 +16,9 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "test": "turbo run test --concurrency=1",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "d1s": "npx d1s --dir packages/db",
+    "db:studio": "npx d1s --dir packages/db"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.11",

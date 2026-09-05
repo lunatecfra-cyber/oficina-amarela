@@ -8,6 +8,7 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
+    "studio": "npx d1s",
     "test": "node --test --test-concurrency=1 \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
