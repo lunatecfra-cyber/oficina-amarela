@@ -7,6 +7,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.3.1] - 2026-09-05
+
+### Adicionado
+- Atalho e configuração do D1 Studio (`npm run d1s` / `npm run db:studio`) no monorepo para visualização e gerenciamento das bases staging e produção.
+- Exibição de caixas de correio acessíveis por usuário no painel administrativo do webmail com ação de revogação direta.
+- Suíte de testes E2E em produção (`scripts/testar-e2e-producao.mjs`) cobrindo ciclo de vida de missões com limpeza automática.
+- Script SQL para sincronização de gatilhos do D1 (`scripts/atualizar-gatilhos-d1.sql`).
+
+### Modificado
+- Cursor interativo (`cursor: pointer`) aplicado globalmente em todas as superfícies acionáveis (`button`, `[role="button"]`, inputs interativos, selects, rótulos, `summary`, dropzone e cards), corrigindo o cursor estático do Tailwind v4.
+
 ## [0.3.0] - 2026-09-04
 
 ### Adicionado

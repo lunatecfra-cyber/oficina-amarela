@@ -130,7 +130,9 @@ export function UploadDropzone({
 
   return (
     <div
-      className={`relative mt-2 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-200 
+      className={`relative mt-2 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-200 ${
+        state === "uploading" ? "cursor-not-allowed" : "cursor-pointer"
+      }
         ${
           state === "uploading"
             ? "border-gold/50 bg-gold/5"
@@ -195,8 +197,8 @@ export function UploadDropzone({
             Arraste {multiple ? "os vídeos" : "o vídeo"} aqui ou clique para escolher
           </p>
           <p className="mt-2 text-xs text-silver-lo">
-            Máx. {maxSizeMB > 1000 ? `${(maxSizeMB / 1000).toFixed(1)} GB` : `${maxSizeMB} MB`}{" "}
-            por arquivo &middot; MP4, MOV, AVI, WebM
+            Máx. {maxSizeMB > 1000 ? `${(maxSizeMB / 1000).toFixed(1)} GB` : `${maxSizeMB} MB`} por
+            arquivo &middot; MP4, MOV, AVI, WebM
           </p>
         </>
       )}
