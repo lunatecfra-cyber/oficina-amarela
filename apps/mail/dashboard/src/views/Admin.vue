@@ -95,6 +95,7 @@
             <tr>
               <th class="px-4 py-3 text-left text-[11px] font-bold text-[#6e6e78] uppercase tracking-wider">{{ $t('auth.email') }}</th>
               <th class="px-4 py-3 text-left text-[11px] font-bold text-[#6e6e78] uppercase tracking-wider">{{ $t('admin.role') }}</th>
+              <th class="px-4 py-3 text-left text-[11px] font-bold text-[#6e6e78] uppercase tracking-wider">{{ $t('admin.mailboxes_access') }}</th>
               <th class="px-4 py-3 text-left text-[11px] font-bold text-[#6e6e78] uppercase tracking-wider">Criado em</th>
               <th class="px-4 py-3 text-left text-[11px] font-bold text-[#6e6e78] uppercase tracking-wider">{{ $t('admin.actions') }}</th>
             </tr>
@@ -109,6 +110,31 @@
                 <span v-else class="px-2.5 py-0.5 text-[10px] font-medium text-[#b9b9c4] bg-[#2a2a32] rounded-full">
                   {{ $t('admin.role_user') }}
                 </span>
+              </td>
+              <td class="px-4 py-3 text-xs">
+                <div v-if="user.isAdmin">
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-[#f4ce1f] bg-[#f4ce1f]/10 border border-[#f4ce1f]/30 rounded-lg tracking-wide">
+                    <svg class="w-3.5 h-3.5 text-[#f4ce1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {{ $t('admin.all_mailboxes_admin') }}
+                  </span>
+                </div>
+                <div v-else-if="user.mailboxes && user.mailboxes.length > 0" class="flex flex-wrap gap-1.5 max-w-sm">
+                  <span
+                    v-for="mb in user.mailboxes"
+                    :key="mb.mailboxId"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-mono text-[#f4f4f6] bg-[#1c1c22] border border-[#2a2a32] rounded-md"
+                  >
+                    <span>{{ mb.mailboxId }}</span>
+                    <span class="text-[10px] text-[#f4ce1f] font-sans font-semibold">({{ mb.role }})</span>
+                  </span>
+                </div>
+                <div v-else>
+                  <span class="text-[11px] text-[#6e6e78] italic">
+                    {{ $t('admin.no_mailboxes_assigned') }}
+                  </span>
+                </div>
               </td>
               <td class="px-4 py-3 text-xs text-[#6e6e78] font-mono">
                 {{ formatDate(user.createdAt) }}
@@ -151,8 +177,60 @@
         </div>
 
         <div class="p-6">
-          <div class="mb-6">
-            <h4 class="text-sm font-semibold text-[#f4f4f6] mb-3">{{ $t('admin.grant_access') }}</h4>
+          <!-- Info for Admin Users -->
+          <div v-if="selectedUser.isAdmin" class="mb-6 p-4 rounded-xl bg-[#1c1c22] border border-[#f4ce1f]/30 flex items-start gap-3">
+            <svg class="w-5 h-5 text-[#f4ce1f] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p class="text-xs font-semibold text-[#f4ce1f] uppercase tracking-wider mb-1">Acesso de Administrador</p>
+              <p class="text-xs text-[#b9b9c4] leading-relaxed">
+                {{ $t('admin.all_mailboxes_info') }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Assigned Mailboxes for Non-Admins -->
+          <div v-else class="mb-6">
+            <h4 class="text-xs font-bold text-[#f4ce1f] uppercase tracking-wider mb-3">
+              {{ $t('admin.assigned_mailboxes') }}
+            </h4>
+            <div v-if="selectedUser.mailboxes && selectedUser.mailboxes.length > 0" class="space-y-2">
+              <div
+                v-for="mb in selectedUser.mailboxes"
+                :key="mb.mailboxId"
+                class="flex items-center justify-between p-3 rounded-xl bg-[#0e0e12] border border-[#2a2a32]"
+              >
+                <div class="flex items-center gap-2.5">
+                  <svg class="w-4 h-4 text-[#f4ce1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span class="text-xs font-mono text-[#f4f4f6]">{{ mb.mailboxId }}</span>
+                  <span class="px-2 py-0.5 text-[10px] font-semibold text-[#f4ce1f] bg-[#f4ce1f]/10 rounded-full border border-[#f4ce1f]/30">
+                    {{ mb.role }}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  @click="handleRevokeSpecific(mb.mailboxId)"
+                  :disabled="accessLoading"
+                  class="px-2.5 py-1 text-[11px] font-semibold text-red-400 hover:text-red-300 hover:bg-red-950/40 rounded-lg border border-red-900/40 transition-colors flex items-center gap-1"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  {{ $t('admin.revoke_access') }}
+                </button>
+              </div>
+            </div>
+            <div v-else class="p-4 rounded-xl bg-[#0e0e12] border border-[#2a2a32] text-xs text-[#6e6e78] text-center">
+              {{ $t('admin.no_mailboxes_assigned') }}
+            </div>
+          </div>
+
+          <!-- Grant / Update Access Form -->
+          <div class="border-t border-[#2a2a32] pt-6">
+            <h4 class="text-sm font-semibold text-[#f4f4f6] mb-3">{{ $t('admin.link_new_mailbox') }}</h4>
             <form @submit.prevent="handleGrantAccess" class="space-y-4">
               <div v-if="accessError" class="rounded-xl bg-red-950/50 border border-red-800/50 p-3 text-xs text-red-300">
                 {{ accessError }}
@@ -165,7 +243,29 @@
                   <label class="block text-xs font-medium text-[#b9b9c4] mb-1.5">
                     {{ $t('mailboxes.mailbox_email') }}
                   </label>
+                  <div v-if="systemMailboxes.length > 0" class="space-y-2">
+                    <select
+                      v-model="accessForm.mailboxId"
+                      required
+                      class="w-full px-3.5 py-2.5 bg-[#0e0e12] border border-[#2a2a32] rounded-xl text-sm text-[#f4f4f6] focus:outline-none focus:ring-2 focus:ring-[#f4ce1f]/50"
+                    >
+                      <option value="" disabled>{{ $t('admin.select_mailbox') }}</option>
+                      <option v-for="mb in systemMailboxes" :key="mb.id" :value="mb.email || mb.id">
+                        {{ mb.name }} ({{ mb.email || mb.id }})
+                      </option>
+                      <option value="__custom__">Outro endereço (digitar manualmente)...</option>
+                    </select>
+                    <input
+                      v-if="accessForm.mailboxId === '__custom__'"
+                      v-model="customMailboxInput"
+                      type="text"
+                      required
+                      placeholder="ex: contato@oficinaamarela.com.br"
+                      class="w-full px-3.5 py-2.5 bg-[#0e0e12] border border-[#2a2a32] rounded-xl text-sm text-[#f4f4f6] focus:outline-none focus:ring-2 focus:ring-[#f4ce1f]/50"
+                    />
+                  </div>
                   <input
+                    v-else
                     v-model="accessForm.mailboxId"
                     type="text"
                     required
@@ -197,14 +297,6 @@
                 >
                   {{ accessLoading ? $t('common.loading') : $t('admin.grant_access') }}
                 </button>
-                <button
-                  type="button"
-                  @click="handleRevokeAccess"
-                  :disabled="accessLoading || !accessForm.mailboxId"
-                  class="px-4 py-2 bg-[#2a2a32] text-red-400 hover:bg-red-950/40 text-xs font-semibold rounded-xl border border-red-900/40 transition-all disabled:opacity-50"
-                >
-                  {{ $t('admin.revoke_access') }}
-                </button>
               </div>
             </form>
           </div>
@@ -220,14 +312,7 @@ import { useRouter } from "vue-router";
 import api from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { $t } from "@/i18n";
-
-interface User {
-  id: string;
-  email: string;
-  isAdmin: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
+import type { User, Mailbox } from "@/types";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -243,15 +328,18 @@ const registerSuccess = ref("");
 
 const users = ref<User[]>([]);
 const usersLoading = ref(false);
+const systemMailboxes = ref<Mailbox[]>([]);
 
 const selectedUser = ref<User | null>(null);
-const accessForm = ref({ mailboxId: "", role: "read" });
+const accessForm = ref({ mailboxId: "", role: "write" });
+const customMailboxInput = ref("");
 const accessLoading = ref(false);
 const accessError = ref("");
 const accessSuccess = ref("");
 
 onMounted(() => {
   loadUsers();
+  loadMailboxes();
 });
 
 async function handleRegisterUser() {
@@ -272,11 +360,23 @@ async function handleRegisterUser() {
   }
 }
 
+async function loadMailboxes() {
+  try {
+    const res = await api.listMailboxes();
+    systemMailboxes.value = res.data || [];
+  } catch (e) {
+    console.error("Failed to load mailboxes:", e);
+  }
+}
+
 async function loadUsers() {
   usersLoading.value = true;
   try {
     const response = await api.adminListUsers();
     users.value = response.data;
+    if (selectedUser.value) {
+      selectedUser.value = users.value.find((u) => u.id === selectedUser.value?.id) || null;
+    }
   } catch (error: any) {
     console.error("Failed to load users:", error);
   } finally {
@@ -285,21 +385,36 @@ async function loadUsers() {
 }
 
 function openAccessModal(user: User) {
-  selectedUser.value = user;
-  accessForm.value = { mailboxId: "", role: "read" };
+  selectedUser.value = users.value.find((u) => u.id === user.id) || user;
+  accessForm.value = {
+    mailboxId: systemMailboxes.value[0]?.email || systemMailboxes.value[0]?.id || "",
+    role: "write",
+  };
+  customMailboxInput.value = "";
   accessError.value = "";
   accessSuccess.value = "";
 }
 
 function closeAccessModal() {
   selectedUser.value = null;
-  accessForm.value = { mailboxId: "", role: "read" };
+  accessForm.value = { mailboxId: "", role: "write" };
+  customMailboxInput.value = "";
   accessError.value = "";
   accessSuccess.value = "";
 }
 
 async function handleGrantAccess() {
   if (!selectedUser.value) return;
+
+  const targetMailbox =
+    accessForm.value.mailboxId === "__custom__"
+      ? customMailboxInput.value.trim()
+      : accessForm.value.mailboxId.trim();
+
+  if (!targetMailbox) {
+    accessError.value = "Informe o endereço de e-mail da caixa postal";
+    return;
+  }
 
   accessLoading.value = true;
   accessError.value = "";
@@ -308,11 +423,17 @@ async function handleGrantAccess() {
   try {
     await api.adminGrantAccess(
       selectedUser.value.id,
-      accessForm.value.mailboxId,
+      targetMailbox,
       accessForm.value.role,
     );
-    accessSuccess.value = `Acesso concedido com sucesso!`;
-    accessForm.value.mailboxId = "";
+    accessSuccess.value = `Acesso concedido à caixa ${targetMailbox}!`;
+    await loadUsers();
+    if (systemMailboxes.value.length > 0) {
+      accessForm.value.mailboxId = systemMailboxes.value[0]?.email || systemMailboxes.value[0]?.id || "";
+    } else {
+      accessForm.value.mailboxId = "";
+    }
+    customMailboxInput.value = "";
   } catch (error: any) {
     accessError.value = error.response?.data?.error || "Falha ao conceder acesso";
   } finally {
@@ -320,12 +441,12 @@ async function handleGrantAccess() {
   }
 }
 
-async function handleRevokeAccess() {
-  if (!selectedUser.value || !accessForm.value.mailboxId) return;
+async function handleRevokeSpecific(mailboxId: string) {
+  if (!selectedUser.value) return;
 
   if (
     !confirm(
-      `Revogar acesso de ${selectedUser.value.email} à caixa ${accessForm.value.mailboxId}?`,
+      `Revogar acesso de ${selectedUser.value.email} à caixa ${mailboxId}?`,
     )
   ) {
     return;
@@ -336,12 +457,9 @@ async function handleRevokeAccess() {
   accessSuccess.value = "";
 
   try {
-    await api.adminRevokeAccess(
-      selectedUser.value.id,
-      accessForm.value.mailboxId,
-    );
-    accessSuccess.value = `Acesso revogado com sucesso!`;
-    accessForm.value.mailboxId = "";
+    await api.adminRevokeAccess(selectedUser.value.id, mailboxId);
+    accessSuccess.value = `Acesso à caixa ${mailboxId} revogado com sucesso!`;
+    await loadUsers();
   } catch (error: any) {
     accessError.value =
       error.response?.data?.error || "Falha ao revogar acesso";

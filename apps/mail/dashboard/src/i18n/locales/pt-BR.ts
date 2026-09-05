@@ -137,6 +137,13 @@ export default {
     role_admin: "Administrador",
     role_user: "Usuário Padrão",
     actions: "Ações",
+    mailboxes_access: "Caixas Postais com Acesso",
+    all_mailboxes_admin: "Todas as caixas (Administrador)",
+    no_mailboxes_assigned: "Nenhuma caixa vinculada",
+    assigned_mailboxes: "Caixas Postais Atribuídas",
+    link_new_mailbox: "Vincular Nova Caixa Postal",
+    select_mailbox: "Selecione uma caixa postal existente...",
+    all_mailboxes_info: "Este usuário é Administrador e possui acesso irrestrito a todas as caixas postais da organização.",
   },
   settings: {
     title: "Configurações",

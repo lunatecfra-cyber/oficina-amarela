@@ -50,3 +50,17 @@ export interface Contact {
 	name: string;
 	email: string;
 }
+
+export interface UserMailboxAccess {
+	mailboxId: string;
+	role: string;
+}
+
+export interface User {
+	id: string;
+	email: string;
+	isAdmin: boolean;
+	createdAt: number;
+	updatedAt: number;
+	mailboxes?: UserMailboxAccess[];
+}

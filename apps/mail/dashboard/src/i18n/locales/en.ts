@@ -137,6 +137,13 @@ export default {
     role_admin: "Admin",
     role_user: "Regular User",
     actions: "Actions",
+    mailboxes_access: "Accessible Mailboxes",
+    all_mailboxes_admin: "All mailboxes (Administrator)",
+    no_mailboxes_assigned: "No mailboxes assigned",
+    assigned_mailboxes: "Assigned Mailboxes",
+    link_new_mailbox: "Link New Mailbox",
+    select_mailbox: "Select an existing mailbox...",
+    all_mailboxes_info: "This user is an Administrator and has full unrestricted access to all organization mailboxes.",
   },
   settings: {
     title: "Settings",
