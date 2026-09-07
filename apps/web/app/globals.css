@@ -24,7 +24,7 @@
 
   --color-text: #f4f4f6;
   --color-muted: #9a9aa5;
-  --color-muted-2: #6a6a74;
+  --color-muted-2: #9797a3;
 
   --color-ok: #4ea87a;
   --color-danger: #c85a5a;
@@ -176,7 +176,7 @@ body {
     min-height: 44px;
     border: 0;
     border-radius: 0.75rem;
-    background: linear-gradient(180deg, #fbe9a6, #f4ce1f 55%, #c79c12);
+    background: var(--color-gold);
     color: #1a1405;
     font-weight: 600;
     letter-spacing: 0.03em;

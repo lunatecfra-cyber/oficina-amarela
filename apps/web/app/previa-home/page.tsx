@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./preview.module.css";
+import { Championship } from "@/components/championship";
 
 export default function HomePreview() {
   return <main className={styles.page}>
@@ -27,6 +28,7 @@ export default function HomePreview() {
         <li><span>03 / ENTREGA</span><h3>Revisado. Aprovado. Pronto.</h3><p>O vídeo passa pela revisão. O porta-voz aprova ou pede um ajuste antes de compartilhar.</p></li>
       </ol>
     </section>
+    <Championship />
     <section className={styles.join} id="porta-voz"><div><p>PARA QUEM TEM UMA HISTÓRIA</p><h2>Seu material merece<br />uma boa edição.</h2></div><div><p>A entrada de porta-voz acontece por convite especial do inspetor, vinculado ao seu e-mail.</p><Link href="/login">Já tenho uma conta <span aria-hidden="true">↗</span></Link><p className={styles.caption}>Recebeu um convite? Abra o link enviado pelo inspetor para concluir seu cadastro.</p></div></section>
     <section className={styles.resources}><h2>Faça parte. E aprenda fazendo.</h2><div><Link href="/aulas"><strong>Pequenas aulas</strong><span>O básico que ajuda na próxima edição. ↗</span></Link><Link href="/ferramentas"><strong>Ferramentas úteis</strong><span>Recursos para tirar sua ideia do papel. ↗</span></Link><Link href="/parceiros"><strong>Quem faz a Oficina</strong><span>Conheça a comunidade. ↗</span></Link></div></section>
     <footer className={styles.footer}><span>Oficina Amarela</span><div><Link href="/termos">Termos</Link><Link href="/privacidade">Privacidade</Link><Link href="/login">Entrar</Link></div></footer>

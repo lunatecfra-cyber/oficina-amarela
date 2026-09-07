@@ -47,6 +47,14 @@ export function createRankingRoutes(dependencies: ApiDependencies) {
     return c.json(await electoralRanking(dependencies.ranking));
   });
 
+  routes.get("/championship", async (c) => {
+    const ranking = await electoralRanking(dependencies.ranking);
+    return c.json({
+      activeEditors: ranking.activeEditors,
+      awards: ranking.awards,
+    });
+  });
+
   routes.get("/editor/progress", requireEditor, async (c) => {
     return c.json(await editorProgress(dependencies.ranking, c.get("session").id));
   });
