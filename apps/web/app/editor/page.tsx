@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ActiveMissionCard } from "@/components/active-mission-card";
 import { AppHeader } from "@/components/app-header";
 import { DailyChallenges } from "@/components/daily-challenges";
+import { EditorOwnerNotifications } from "@/components/editor-owner-notifications";
 import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 import { MissionOffer } from "@/components/mission-offer";
 import { getMissionMessages } from "@/lib/chat-db";
@@ -53,6 +54,7 @@ export default async function EditorPage() {
           )}
 
           <ActiveMissionCard mission={currentMission} messages={messages} />
+          <EditorOwnerNotifications />
           <MissionOffer hasActiveMission={!!currentMission} />
 
           <div

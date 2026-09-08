@@ -98,7 +98,7 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
     return c.json(mission);
   });
 
-  routes.delete("/missions/:id", requireSession, async (c) => {
+  routes.delete("/missions/:id", requireAdmin, async (c) => {
     const id = Number(c.req.param("id").replace(/^db-/, ""));
     const result = await dependencies.missions.deleteMission(id);
     if (!result.ok) return c.json({ error: result.error, erro: result.error }, 400);

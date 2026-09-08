@@ -2,6 +2,7 @@
 
 import { LIMITS } from "@oficina/domain/limits";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useOwnerMissionControls } from "@/components/owner-mission-controls";
 import type { ChatMessage, Mensagem } from "@/lib/chat-db";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -47,6 +48,9 @@ export function MissionChat({
   podeEnviar = true,
   compact = false,
   compacto = false,
+  readOnly = false,
+  polling = true,
+  showAssignmentSegments = false,
 }: {
   missionId?: string;
   pautaId?: string;
@@ -56,11 +60,22 @@ export function MissionChat({
   podeEnviar?: boolean;
   compact?: boolean;
   compacto?: boolean;
+  readOnly?: boolean;
+  polling?: boolean;
+  showAssignmentSegments?: boolean;
 }) {
   const effectiveId = missionId ?? pautaId ?? "";
   const effectiveInitial =
     initialMessages && initialMessages.length > 0 ? initialMessages : (mensagensIniciais ?? []);
-  const allowSend = canSend && podeEnviar;
+  const ownerControls = useOwnerMissionControls();
+  const effectiveReadOnly =
+    readOnly ||
+    (!!ownerControls &&
+      (!ownerControls.controls ||
+        ownerControls.controls.cancelled ||
+        !!ownerControls.error ||
+        ownerControls.loading));
+  const allowSend = canSend && podeEnviar && !effectiveReadOnly;
   const isCompact = compact || compacto;
 
   const [messages, setMessages] = useState<ChatMessage[]>(effectiveInitial as any);
@@ -96,7 +111,7 @@ export function MissionChat({
   }, [effectiveId, lastTs]);
 
   useEffect(() => {
-    if (!effectiveId || !/^\d+$/.test(effectiveId.replace(/^db-/, ""))) return;
+    if (!polling || !effectiveId || !/^\d+$/.test(effectiveId.replace(/^db-/, ""))) return;
 
     function start() {
       void poll();
@@ -126,7 +141,7 @@ export function MissionChat({
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [effectiveId, poll]);
+  }, [effectiveId, poll, polling]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -136,7 +151,7 @@ export function MissionChat({
 
   async function send() {
     const t = text.trim();
-    if (!t || isSending) return;
+    if (!allowSend || !t || isSending) return;
     setIsSending(true);
     setError("");
     try {
@@ -178,7 +193,15 @@ export function MissionChat({
         <ul
           className={`flex flex-col gap-2 ${isCompact ? "max-h-64" : "max-h-96"} overflow-y-auto pr-1`}
         >
-          {messages.map((m) => {
+          {messages.map((m, index) => {
+            const assignment = m as ChatMessage & {
+              assignmentId?: number | null;
+              assignmentEditorName?: string | null;
+            };
+            const previous = messages[index - 1] as typeof assignment | undefined;
+            const segmentStart =
+              (showAssignmentSegments || !!ownerControls) &&
+              (index === 0 || assignment.assignmentId !== previous?.assignmentId);
             const authorName = m.authorName ?? (m as any).autorNome;
             const authorRole = m.authorRole ?? (m as any).autorPapel;
             const createdAt = m.createdAt ?? (m as any).criadaEm;
@@ -190,6 +213,13 @@ export function MissionChat({
 
             return (
               <li key={m.id} className="rounded-xl border border-line bg-ink-2/50 px-3.5 py-2.5">
+                {segmentStart && (
+                  <p className="mb-2 border-b border-line pb-2 text-xs font-medium text-gold-hi">
+                    {assignment.assignmentId != null
+                      ? `Atribuição #${assignment.assignmentId}${assignment.assignmentEditorName ? ` · ${assignment.assignmentEditorName}` : ""}`
+                      : "Conversa geral"}
+                  </p>
+                )}
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   <span className="text-sm font-medium text-text">{authorName}</span>
                   <span
@@ -213,6 +243,9 @@ export function MissionChat({
         </ul>
       )}
 
+      {effectiveReadOnly && (
+        <p className="mt-3 text-sm text-muted">Conversa somente para leitura.</p>
+      )}
       {allowSend && (
         <div className="mt-4">
           <div className="flex flex-col gap-2 sm:flex-row">

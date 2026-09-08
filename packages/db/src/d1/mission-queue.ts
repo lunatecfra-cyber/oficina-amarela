@@ -74,6 +74,9 @@ async function nextEligibleEditor(
            SELECT 1 FROM offers o WHERE o.editor_id = u.id AND o.status = 'pendente'
          )
          AND NOT EXISTS (
+           SELECT 1 FROM missions excluded WHERE excluded.id = ? AND excluded.excluded_editor_id = u.id
+         )
+         AND NOT EXISTS (
            SELECT 1 FROM offers o WHERE o.editor_id = u.id AND o.mission_id = ?
          )
        ORDER BY
@@ -85,7 +88,15 @@ async function nextEligibleEditor(
          u.last_seen_at ASC
        LIMIT 1`,
     )
-    .bind(presenceCutoff, nowIso, availabilityPath, availabilityPath, missionId, spokespersonId)
+    .bind(
+      presenceCutoff,
+      nowIso,
+      availabilityPath,
+      availabilityPath,
+      missionId,
+      missionId,
+      spokespersonId,
+    )
     .first<{ id: number }>();
   return row?.id ?? null;
 }
@@ -110,9 +121,9 @@ export function createD1MissionQueue(
           .prepare(
             `UPDATE missions
              SET status = 'reservada', reserved_by_id = ?, reserved_at = ?
-             WHERE id = ? AND status = 'disponivel'`,
+             WHERE id = ? AND status = 'disponivel' AND (excluded_editor_id IS NULL OR excluded_editor_id <> ?)`,
           )
-          .bind(editorId, clock().toISOString(), missionId)
+          .bind(editorId, clock().toISOString(), missionId, editorId)
           .run();
         return result.meta.changes > 0 ? { ok: true } : failure("mission_unavailable");
       } catch (error) {

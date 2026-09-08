@@ -1,10 +1,12 @@
 import { LIMITS, limitStr } from "@oficina/domain/limits";
 import type { Role } from "@oficina/domain/roles";
-import { sql } from "./client.ts";
+import { sql, withTransaction } from "./client.ts";
 
 export type MissionActor = { id: number; name: string; role: Role };
 
 export type MissionMessage = {
+  assignmentId?: number | null;
+  assignmentEditorName?: string | null;
   id: string;
   missionId: number;
   authorId: number;
@@ -65,6 +67,8 @@ export interface MissionCollaborationRepository {
 }
 
 type MessageRow = {
+  assignment_id?: string | null;
+  assignment_editor_name?: string | null;
   id: number;
   pauta_id: number;
   autor_id: number;
@@ -82,6 +86,8 @@ function rowToMessage(row: MessageRow): MissionMessage {
         ? "admin"
         : "editor";
   return {
+    assignmentId: row.assignment_id == null ? null : Number(row.assignment_id),
+    assignmentEditorName: row.assignment_editor_name ?? null,
     id: `m-${row.id}`,
     missionId: row.pauta_id,
     authorId: row.autor_id,
@@ -101,6 +107,7 @@ function rowToMessage(row: MessageRow): MissionMessage {
 async function participant(
   missionId: number,
   actor: Pick<MissionActor, "id" | "role">,
+  history = false,
 ): Promise<
   | { ok: true; spokespersonId: number; editorId: number | null }
   | { ok: false; reason: "mission_not_found" | "forbidden" }
@@ -114,7 +121,11 @@ async function participant(
     mission.porta_voz_id !== actor.id &&
     mission.reservada_por_id !== actor.id
   ) {
-    return { ok: false, reason: "forbidden" };
+    const assignments = history
+      ? await sql`SELECT id FROM mission_assignments
+      WHERE mission_id = ${missionId} AND editor_id = ${actor.id} LIMIT 1`
+      : [];
+    if (!assignments.length) return { ok: false, reason: "forbidden" };
   }
   return {
     ok: true,
@@ -125,20 +136,18 @@ async function participant(
 
 export const postgresMissionCollaboration: MissionCollaborationRepository = {
   async messagesForMission(missionId, actor, after) {
-    const access = await participant(missionId, actor);
+    const access = await participant(missionId, actor, true);
     if (!access.ok) return access;
-    const rows = after
-      ? await sql`
-          SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em
-          FROM mensagens m JOIN users u ON u.id = m.autor_id
-          WHERE m.pauta_id = ${missionId}
-            AND m.criada_em >= ${after}::timestamptz + interval '1 millisecond'
-          ORDER BY m.criada_em ASC`
-      : await sql`
-          SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em
-          FROM mensagens m JOIN users u ON u.id = m.autor_id
-          WHERE m.pauta_id = ${missionId}
-          ORDER BY m.criada_em ASC`;
+    const rows = await sql`
+      SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em,
+        m.assignment_id::text, editor.nome AS assignment_editor_name
+      FROM mensagens m JOIN users u ON u.id = m.autor_id
+      LEFT JOIN mission_assignments a ON a.id = m.assignment_id AND a.mission_id = m.pauta_id
+      LEFT JOIN users editor ON editor.id = a.editor_id
+      WHERE m.pauta_id = ${missionId}
+        AND (${actor.role === "admin" || actor.id === access.spokespersonId} OR a.editor_id = ${actor.id})
+        AND (${after ?? null}::timestamptz IS NULL OR m.criada_em >= ${after ?? null}::timestamptz + interval '1 millisecond')
+      ORDER BY m.criada_em ASC, m.id ASC`;
     return { ok: true, messages: (rows as unknown as MessageRow[]).map(rowToMessage) };
   },
 
@@ -148,8 +157,11 @@ export const postgresMissionCollaboration: MissionCollaborationRepository = {
     if (missionIds.length === 0) return { ok: true, messages };
 
     const rows = await sql`
-      SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em
+      SELECT m.id, m.pauta_id, m.autor_id, u.nome, u.papel, m.texto, m.criada_em,
+        m.assignment_id::text, editor.nome AS assignment_editor_name
       FROM mensagens m JOIN users u ON u.id = m.autor_id
+      LEFT JOIN mission_assignments a ON a.id = m.assignment_id
+      LEFT JOIN users editor ON editor.id = a.editor_id
       WHERE m.pauta_id = ANY(${missionIds})
       ORDER BY m.criada_em ASC, m.id ASC`;
     for (const row of rows as unknown as MessageRow[]) {
@@ -164,23 +176,33 @@ export const postgresMissionCollaboration: MissionCollaborationRepository = {
   async sendMessage(missionId, actor, rawText) {
     const text = limitStr(rawText, LIMITS.message);
     if (!text) return { ok: false, reason: "empty_message" };
-    const access = await participant(missionId, actor);
-    if (!access.ok) return access;
-
-    const [inserted] = await sql`
+    return withTransaction(async (tx) => {
+      const [mission] = await tx`SELECT porta_voz_id, reservada_por_id, status
+      FROM pautas WHERE id = ${missionId} FOR UPDATE`;
+      if (!mission) return { ok: false, reason: "mission_not_found" };
+      if (
+        mission.status === "cancelada" ||
+        (actor.role !== "admin" &&
+          mission.porta_voz_id !== actor.id &&
+          mission.reservada_por_id !== actor.id)
+      ) {
+        return { ok: false, reason: "forbidden" };
+      }
+      const [inserted] = await tx`
       INSERT INTO mensagens (pauta_id, autor_id, texto)
       VALUES (${missionId}, ${actor.id}, ${text})
-      RETURNING id, pauta_id, autor_id, texto, criada_em
+      RETURNING id, pauta_id, autor_id, texto, criada_em, assignment_id::text
     `;
-    if (!inserted) return { ok: false, reason: "write_failed" };
-    return {
-      ok: true,
-      message: rowToMessage({
-        ...inserted,
-        nome: actor.name,
-        papel: actor.role,
-      } as MessageRow),
-    };
+      if (!inserted) return { ok: false, reason: "write_failed" };
+      return {
+        ok: true,
+        message: rowToMessage({
+          ...inserted,
+          nome: actor.name,
+          papel: actor.role,
+        } as MessageRow),
+      };
+    });
   },
 
   async reportMission(missionId, actor, rawText) {

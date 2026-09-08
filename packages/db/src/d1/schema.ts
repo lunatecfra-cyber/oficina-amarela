@@ -105,6 +105,7 @@ export async function applyAllD1Migrations(db: D1DatabaseLike): Promise<void> {
     "0003_rename_to_english.sql",
     "0004_multiple_raw_videos.sql",
     "0005_mixed_raw_media.sql",
+    "0006_mission_owner_actions.sql",
   ];
   for (const file of files) {
     const content = await readFile(path.join(migrationsDir, file), "utf8");

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 import { MissionCounters } from "@/components/mission-counters";
+import { OwnerMissionActions, OwnerMissionProvider } from "@/components/owner-mission-controls";
 import { readCandidateOnboarding } from "@/lib/candidate-db";
 import { getAvailableMissions, getSpokespersonMissions } from "@/lib/missions-db";
 import { getSession } from "@/lib/server-session";
@@ -49,6 +50,8 @@ function timeSince(iso: string) {
 function bucketStripe(bucket: SpokespersonBucket, waiting: boolean): string {
   if (waiting) return "border-l-gold";
   switch (bucket) {
+    case "cancelled":
+      return "border-l-muted-2";
     case "waiting_editor":
       return "border-l-muted-2";
     case "editing":
@@ -64,6 +67,7 @@ const isReal = (id: string) => id.startsWith("db-");
 
 /** Ordem de leitura: primeiro o que depende de você, por último o encerrado. */
 const BUCKET_ORDER: Record<SpokespersonBucket, number> = {
+  cancelled: 4,
   reviewing: 0,
   editing: 1,
   waiting_editor: 2,
@@ -236,6 +240,13 @@ export default async function SpokespersonHome() {
                     </Link>
                   ) : (
                     <div className="px-4 py-3.5 lg:px-5 lg:py-4">{body}</div>
+                  )}
+                  {real && (
+                    <div className="px-4 lg:px-5">
+                      <OwnerMissionProvider id={p.id}>
+                        <OwnerMissionActions id={p.id} />
+                      </OwnerMissionProvider>
+                    </div>
                   )}
                 </li>
               );

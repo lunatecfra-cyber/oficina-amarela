@@ -1,4 +1,6 @@
 export type MigratedMissionAction =
+  | "cancel_mission"
+  | "reassign_mission"
   | "reserve"
   | "cancel"
   | "deliver"
@@ -8,6 +10,8 @@ export type MigratedMissionAction =
   | "approve";
 
 const MIGRATED_ACTIONS: Record<string, MigratedMissionAction> = {
+  cancel_mission: "cancel_mission",
+  reassign_mission: "reassign_mission",
   reserve: "reserve",
   reservar: "reserve",
   cancel: "cancel",

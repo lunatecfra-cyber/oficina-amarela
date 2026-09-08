@@ -102,6 +102,9 @@ async function nextEligibleEditor(
         SELECT 1 FROM ofertas o WHERE o.editor_id = u.id AND o.status = 'pendente'
       )
       AND NOT EXISTS (
+        SELECT 1 FROM pautas excluded WHERE excluded.id = ${missionId} AND excluded.excluded_editor_id = u.id
+      )
+      AND NOT EXISTS (
         SELECT 1 FROM ofertas o WHERE o.editor_id = u.id AND o.pauta_id = ${missionId}
       )
     ORDER BY
@@ -132,6 +135,7 @@ export const postgresMissionQueue: MissionQueueRepository = {
         UPDATE pautas
         SET status = 'reservada', reservada_por_id = ${editorId}, reservada_em = now()
         WHERE id = ${missionId} AND status = 'disponivel'
+          AND (excluded_editor_id IS NULL OR excluded_editor_id <> ${editorId})
         RETURNING id
       `;
       if (!row) return failure("mission_unavailable");
@@ -169,6 +173,7 @@ export const postgresMissionQueue: MissionQueueRepository = {
             reservada_em = now()
         WHERE p.id = ${missionId}
           AND p.status = 'oferecida'
+          AND (p.excluded_editor_id IS NULL OR p.excluded_editor_id <> ${editorId})
           AND EXISTS (
             SELECT 1 FROM ofertas o
             WHERE o.pauta_id = p.id AND o.editor_id = ${editorId}

@@ -8,6 +8,8 @@ import type {
 import type { D1DatabaseLike } from "./types.ts";
 
 type MessageRow = {
+  assignment_id?: number | null;
+  assignment_editor_name?: string | null;
   id: number;
   mission_id?: number;
   author_id?: number;
@@ -39,6 +41,8 @@ function rowToMessage(row: MessageRow): MissionMessage {
   const createdAt = row.created_at ?? row.criada_em ?? "";
 
   return {
+    assignmentId: row.assignment_id ?? null,
+    assignmentEditorName: row.assignment_editor_name ?? null,
     id: `m-${row.id}`,
     missionId,
     authorId,
@@ -67,7 +71,13 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       actor.id !== mission.spokesperson_id &&
       actor.id !== mission.reserved_by_id
     ) {
-      return { ok: false as const, reason: "forbidden" as const };
+      const historical = await db
+        .prepare(
+          "SELECT id FROM mission_assignments WHERE mission_id = ? AND editor_id = ? LIMIT 1",
+        )
+        .bind(missionId, actor.id)
+        .first();
+      if (!historical) return { ok: false as const, reason: "forbidden" as const };
     }
     return { ok: true as const, mission };
   }
@@ -76,18 +86,23 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
     async messagesForMission(missionId, actor, after) {
       const access = await participant(missionId, actor);
       if (!access.ok) return access;
-      const query = after
-        ? `SELECT m.id, m.mission_id, m.author_id, u.name, u.role, m.body, m.created_at
-           FROM messages m JOIN users u ON u.id = m.author_id
-           WHERE m.mission_id = ? AND m.created_at > ? ORDER BY m.created_at ASC, m.id ASC`
-        : `SELECT m.id, m.mission_id, m.author_id, u.name, u.role, m.body, m.created_at
-           FROM messages m JOIN users u ON u.id = m.author_id
-           WHERE m.mission_id = ? ORDER BY m.created_at ASC, m.id ASC`;
-      const statement = db.prepare(query);
-      const rows = await (after
-        ? statement.bind(missionId, after)
-        : statement.bind(missionId)
-      ).all<MessageRow>();
+      const rows = await db
+        .prepare(`SELECT m.id,m.mission_id,m.author_id,u.name,u.role,m.body,m.created_at,
+        m.assignment_id, editor.name AS assignment_editor_name
+        FROM messages m JOIN users u ON u.id = m.author_id
+        LEFT JOIN mission_assignments a ON a.id = m.assignment_id
+        LEFT JOIN users editor ON editor.id = a.editor_id
+        WHERE m.mission_id = ? AND (? IS NULL OR m.created_at > ?)
+        AND (? = 1 OR a.editor_id = ?)
+        ORDER BY m.created_at ASC,m.id ASC`)
+        .bind(
+          missionId,
+          after ?? null,
+          after ?? null,
+          actor.role === "admin" || actor.id === access.mission.spokesperson_id ? 1 : 0,
+          actor.id,
+        )
+        .all<MessageRow>();
       return { ok: true, messages: rows.results.map(rowToMessage) };
     },
 
@@ -129,12 +144,24 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       if (!access.ok) return access;
       const row = await db
         .prepare(
-          `INSERT INTO messages (mission_id, author_id, body) VALUES (?, ?, ?)
+          `INSERT INTO messages (mission_id, author_id, body, assignment_id)
+           SELECT p.id, ?, ?, a.id FROM missions p
+           LEFT JOIN mission_assignments a ON a.mission_id = p.id AND a.ended_at IS NULL
+           WHERE p.id = ? AND p.status <> 'cancelada'
+             AND (? = 'admin' OR p.spokesperson_id = ? OR p.reserved_by_id = ?)
            RETURNING id, mission_id, author_id, body, created_at`,
         )
-        .bind(missionId, actor.id, text)
+        .bind(actor.id, text, missionId, actor.role, actor.id, actor.id)
         .first<Omit<MessageRow, "name" | "role">>();
-      if (!row) return { ok: false, reason: "write_failed" };
+      if (!row) {
+        const writable = await db
+          .prepare(
+            "SELECT id FROM missions WHERE id = ? AND status <> 'cancelada' AND (? = 'admin' OR spokesperson_id = ? OR reserved_by_id = ?)",
+          )
+          .bind(missionId, actor.role, actor.id, actor.id)
+          .first();
+        return { ok: false, reason: writable ? "write_failed" : "forbidden" };
+      }
       return {
         ok: true,
         message: rowToMessage({ ...row, name: actor.name, role: actor.role } as MessageRow),

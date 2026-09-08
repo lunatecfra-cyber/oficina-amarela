@@ -10,6 +10,7 @@ import {
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
+import { requestMissionDispatch } from "../background.ts";
 import { migratedMissionAction } from "../mission-actions.ts";
 import type { MissionClaimResult } from "../mission-claim-coordination.ts";
 import { queueMessage } from "../mission-queue-messages.ts";
@@ -60,6 +61,25 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
   const routes = new Hono<MissionEnv>();
   routes.use("*", requireSession);
 
+  routes.get("/owner-notifications", async (c) => {
+    return c.json({
+      ok: true,
+      notifications: await dependencies.missionOwner.notifications(c.get("session").id),
+    });
+  });
+
+  routes.get("/:id/owner-controls", async (c) => {
+    const id = Number(c.req.param("id").replace(/^db-/, ""));
+    if (!Number.isSafeInteger(id) || id < 1) return c.json({ error: "Missão inválida." }, 400);
+    const result = await dependencies.missionOwner.controls(id, c.get("session").id);
+    if (!result.ok)
+      return c.json(
+        { error: "Você não pode alterar esta missão." },
+        result.reason === "mission_not_found" ? 404 : 403,
+      );
+    return c.json(result);
+  });
+
   routes.post("/:id", async (c, next) => {
     const missionId = Number(c.req.param("id").replace(/^db-/, ""));
     if (!Number.isInteger(missionId)) return next();
@@ -74,6 +94,42 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
 
     const session = c.get("session");
     if (!canAct(session, action)) return c.json({ error: roleMessage(action) }, 403);
+
+    if (action === "cancel_mission" || action === "reassign_mission") {
+      const outcome = await dependencies.missionOwner.act({
+        missionId,
+        actorId: session.id,
+        action,
+        reason: typeof body?.reason === "string" ? body.reason : "",
+        version: body?.version,
+        requestId: c.req.header("idempotency-key") ?? "",
+      });
+      if (!outcome.ok) {
+        const status =
+          outcome.reason === "forbidden"
+            ? 403
+            : outcome.reason === "mission_not_found"
+              ? 404
+              : outcome.reason === "conflict"
+                ? 409
+                : 400;
+        const error =
+          outcome.reason === "invalid_reason"
+            ? "Informe um motivo de 5 a 500 caracteres."
+            : outcome.reason === "conflict"
+              ? "A missão mudou. Atualize a tela antes de tentar novamente."
+              : outcome.reason === "invalid_request"
+                ? "Solicitação inválida. Atualize a tela."
+                : "Você não pode alterar esta missão.";
+        return c.json({ error }, status);
+      }
+      if (action === "reassign_mission") {
+        await requestMissionDispatch(c.env, dependencies.missionQueue).catch((error) =>
+          console.error("[fila] redistribuicao pendente", error),
+        );
+      }
+      return c.json({ ok: true });
+    }
 
     let result: MissionActionResult = { ok: true };
     if (action === "reserve") {

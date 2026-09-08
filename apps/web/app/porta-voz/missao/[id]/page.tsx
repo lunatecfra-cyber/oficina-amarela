@@ -10,6 +10,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MissionActions } from "@/components/mission-actions";
 import { MissionChat } from "@/components/mission-chat";
+import { OwnerMissionActions, OwnerMissionProvider } from "@/components/owner-mission-controls";
 import { ReportButton } from "@/components/report-button";
 import { getMissionMessages } from "@/lib/chat-db";
 import { getQueuePosition, getSpokespersonMissionById, getTotalInQueue } from "@/lib/missions-db";
@@ -116,188 +117,191 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
     (driveLink && isDriveUrl(driveLink)) || (youtubeLink && isYouTubeUrl(youtubeLink));
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pb-16 lg:px-8">
-      {/* sem padding próprio: o container já tem px-5, e o -ml-3 do link só
+    <OwnerMissionProvider key={mission.id} id={mission.id} loadOnMount>
+      <div className="mx-auto w-full max-w-2xl px-5 pb-16 lg:px-8">
+        {/* sem padding próprio: o container já tem px-5, e o -ml-3 do link só
           desconta o padding interno do tap-target pra o texto cair nos 20px */}
-      <div className="pt-4">
-        <Link
-          href="/porta-voz"
-          className="tap-target -ml-3 text-sm text-muted hover:text-silver-hi"
-        >
-          ← Minhas missões
-        </Link>
-      </div>
-
-      {/* Onde a missão está, antes de qualquer outra coisa. */}
-      <header className="mt-3 overflow-hidden rounded-2xl border border-line bg-surface/60">
-        <div
-          className="h-1 w-full"
-          style={{
-            background:
-              "linear-gradient(90deg, transparent, rgba(244,206,31,0.6), rgba(244,206,31,0.9), rgba(244,206,31,0.6), transparent)",
-          }}
-          aria-hidden="true"
-        />
-        <div className="p-5 lg:p-6">
-          <p className={`text-sm font-semibold ${msg.color}`}>{msg.text}</p>
-          <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-semibold leading-tight text-text lg:text-3xl">
-            {title}
-          </h1>
-          <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-2">
-            <span>{FORMAT_LABEL[format as keyof typeof FORMAT_LABEL] ?? format}</span>
-            <span aria-hidden="true">·</span>
-            <span>criada {timeSince(createdAt)}</span>
-            {desiredDeadline && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>prazo {formatPureDate(desiredDeadline)}</span>
-              </>
-            )}
-          </div>
-
-          {isAvailable && position > 0 && (
-            <p className="mt-3 text-xs text-muted">
-              Posição <b className="text-text">{position}</b> de {total} na fila dos editores
-            </p>
-          )}
-
-          {reservedBy && (
-            <p className="mt-3 text-sm text-muted">
-              Com o editor <span className="font-medium text-text">{reservedBy}</span>
-              {reservedAt && (
-                <span className="text-muted-2"> desde {formatDate(reservedAt, false)}</span>
-              )}
-            </p>
-          )}
-
-          {/* A trilha da missão, enrolando em vez de esticar a tela. */}
-          <ol className="mt-4 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-xs">
-            {MISSION_STAGES.map((name, i) => {
-              const passed = i < stage;
-              const isCurrent = i === stage;
-              return (
-                <li key={name} className="flex items-center gap-1.5">
-                  <span
-                    className={
-                      isCurrent
-                        ? "rounded-full border border-gold-lo/60 bg-gold/10 px-2.5 py-0.5 font-medium text-gold-hi"
-                        : passed
-                          ? "text-gold-lo"
-                          : "text-muted-2"
-                    }
-                  >
-                    {passed && !isCurrent ? "✓ " : ""}
-                    {name}
-                  </span>
-                  {i < MISSION_STAGES.length - 1 && (
-                    <span aria-hidden="true" className="text-line">
-                      →
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      </header>
-
-      {/* Assistir vem antes de decidir: sem ver o vídeo, o botão de aprovar não
-          significa nada. */}
-      {deliveryLink && isLikelyUrl(deliveryLink) && (
-        <a
-          href={deliveryLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-gold mt-5"
-          data-guia="ver-entrega"
-        >
-          ▶ Assistir ao vídeo entregue
-        </a>
-      )}
-
-      {needsMyDecision && (
-        <div className="mt-5">
-          <MissionActions id={mission.id} inReview={isInReview} />
-        </div>
-      )}
-
-      {/* Enquanto o editor trabalha, a única ação útil é falar com ele. */}
-      {reservedBy && !needsMyDecision && (
-        <a href="#conversa" className="btn-ghost mt-5">
-          Enviar nova orientação ao editor
-        </a>
-      )}
-
-      {inspectorNotes && (
-        <section className="mt-8">
-          <BlockTitle>
-            {reeditRequestedBy === "spokesperson" || reeditRequestedBy === "porta_voz"
-              ? "O ajuste que você pediu"
-              : "Observação do controle de qualidade"}
-          </BlockTitle>
-          <p className="rounded-2xl border border-line bg-surface/40 p-4 text-sm leading-relaxed text-muted">
-            {inspectorNotes}
-          </p>
-        </section>
-      )}
-
-      {hasRawVideo && (
-        <section className="mt-8">
-          <BlockTitle>Vídeo bruto que você mandou</BlockTitle>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            {driveLink && isDriveUrl(driveLink) && (
-              <a
-                href={driveLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
-              >
-                📁 Abrir no Google Drive
-              </a>
-            )}
-            {youtubeLink && isYouTubeUrl(youtubeLink) && (
-              <a
-                href={youtubeLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
-              >
-                ▶ Abrir no YouTube
-              </a>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Recolhido: quem já mandou o briefing raramente precisa relê-lo, mas
-          precisa achá-lo quando o editor pergunta. */}
-      <details className="group mt-8 rounded-2xl border border-line bg-surface/40">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
-          O que você pediu
-          <span
-            aria-hidden="true"
-            className="text-muted-2 transition-transform group-open:rotate-180"
+        <div className="pt-4">
+          <Link
+            href="/porta-voz"
+            className="tap-target -ml-3 text-sm text-muted hover:text-silver-hi"
           >
-            ▾
-          </span>
-        </summary>
-        <dl className="px-4 pb-2">
-          <BriefLine label="Objetivo da edição" value={reason} />
-          <BriefLine label="Trechos e cortes" value={extras} />
-          <BriefLine label="Referências" value={refs} />
-          <BriefLine label="Tom" value={tone} />
-          <BriefLine label="Cor" value={color} />
-          <BriefLine label="Fonte da legenda" value={font} />
-        </dl>
-      </details>
+            ← Minhas missões
+          </Link>
+        </div>
 
-      <section id="conversa" className="mt-8 scroll-mt-4" data-guia="conversa-missao">
-        <MissionChat missionId={mission.id} messages={messages} />
-      </section>
+        {/* Onde a missão está, antes de qualquer outra coisa. */}
+        <header className="mt-3 overflow-hidden rounded-2xl border border-line bg-surface/60">
+          <div
+            className="h-1 w-full"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent, rgba(244,206,31,0.6), rgba(244,206,31,0.9), rgba(244,206,31,0.6), transparent)",
+            }}
+            aria-hidden="true"
+          />
+          <div className="p-5 lg:p-6">
+            <p className={`text-sm font-semibold ${msg.color}`}>{msg.text}</p>
+            <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-semibold leading-tight text-text lg:text-3xl">
+              {title}
+            </h1>
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-2">
+              <span>{FORMAT_LABEL[format as keyof typeof FORMAT_LABEL] ?? format}</span>
+              <span aria-hidden="true">·</span>
+              <span>criada {timeSince(createdAt)}</span>
+              {desiredDeadline && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>prazo {formatPureDate(desiredDeadline)}</span>
+                </>
+              )}
+            </div>
 
-      <div className="mt-10">
-        <ReportButton missionId={mission.id} />
+            {isAvailable && position > 0 && (
+              <p className="mt-3 text-xs text-muted">
+                Posição <b className="text-text">{position}</b> de {total} na fila dos editores
+              </p>
+            )}
+
+            {reservedBy && (
+              <p className="mt-3 text-sm text-muted">
+                Com o editor <span className="font-medium text-text">{reservedBy}</span>
+                {reservedAt && (
+                  <span className="text-muted-2"> desde {formatDate(reservedAt, false)}</span>
+                )}
+              </p>
+            )}
+
+            {/* A trilha da missão, enrolando em vez de esticar a tela. */}
+            <ol className="mt-4 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-xs">
+              {MISSION_STAGES.map((name, i) => {
+                const passed = i < stage;
+                const isCurrent = i === stage;
+                return (
+                  <li key={name} className="flex items-center gap-1.5">
+                    <span
+                      className={
+                        isCurrent
+                          ? "rounded-full border border-gold-lo/60 bg-gold/10 px-2.5 py-0.5 font-medium text-gold-hi"
+                          : passed
+                            ? "text-gold-lo"
+                            : "text-muted-2"
+                      }
+                    >
+                      {passed && !isCurrent ? "✓ " : ""}
+                      {name}
+                    </span>
+                    {i < MISSION_STAGES.length - 1 && (
+                      <span aria-hidden="true" className="text-line">
+                        →
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </header>
+        <OwnerMissionActions id={mission.id} />
+
+        {/* Assistir vem antes de decidir: sem ver o vídeo, o botão de aprovar não
+          significa nada. */}
+        {deliveryLink && isLikelyUrl(deliveryLink) && (
+          <a
+            href={deliveryLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-gold mt-5"
+            data-guia="ver-entrega"
+          >
+            ▶ Assistir ao vídeo entregue
+          </a>
+        )}
+
+        {needsMyDecision && (
+          <div className="mt-5">
+            <MissionActions id={mission.id} inReview={isInReview} />
+          </div>
+        )}
+
+        {/* Enquanto o editor trabalha, a única ação útil é falar com ele. */}
+        {reservedBy && !needsMyDecision && (
+          <a href="#conversa" className="btn-ghost mt-5">
+            Enviar nova orientação ao editor
+          </a>
+        )}
+
+        {inspectorNotes && (
+          <section className="mt-8">
+            <BlockTitle>
+              {reeditRequestedBy === "spokesperson" || reeditRequestedBy === "porta_voz"
+                ? "O ajuste que você pediu"
+                : "Observação do controle de qualidade"}
+            </BlockTitle>
+            <p className="rounded-2xl border border-line bg-surface/40 p-4 text-sm leading-relaxed text-muted">
+              {inspectorNotes}
+            </p>
+          </section>
+        )}
+
+        {hasRawVideo && (
+          <section className="mt-8">
+            <BlockTitle>Vídeo bruto que você mandou</BlockTitle>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {driveLink && isDriveUrl(driveLink) && (
+                <a
+                  href={driveLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
+                >
+                  📁 Abrir no Google Drive
+                </a>
+              )}
+              {youtubeLink && isYouTubeUrl(youtubeLink) && (
+                <a
+                  href={youtubeLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
+                >
+                  ▶ Abrir no YouTube
+                </a>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Recolhido: quem já mandou o briefing raramente precisa relê-lo, mas
+          precisa achá-lo quando o editor pergunta. */}
+        <details className="group mt-8 rounded-2xl border border-line bg-surface/40">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">
+            O que você pediu
+            <span
+              aria-hidden="true"
+              className="text-muted-2 transition-transform group-open:rotate-180"
+            >
+              ▾
+            </span>
+          </summary>
+          <dl className="px-4 pb-2">
+            <BriefLine label="Objetivo da edição" value={reason} />
+            <BriefLine label="Trechos e cortes" value={extras} />
+            <BriefLine label="Referências" value={refs} />
+            <BriefLine label="Tom" value={tone} />
+            <BriefLine label="Cor" value={color} />
+            <BriefLine label="Fonte da legenda" value={font} />
+          </dl>
+        </details>
+
+        <section id="conversa" className="mt-8 scroll-mt-4" data-guia="conversa-missao">
+          <MissionChat missionId={mission.id} messages={messages} />
+        </section>
+
+        <div className="mt-10">
+          <ReportButton missionId={mission.id} />
+        </div>
       </div>
-    </div>
+    </OwnerMissionProvider>
   );
 }

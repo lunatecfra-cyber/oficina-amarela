@@ -16,6 +16,7 @@ const ORDER = ["waiting_editor", "editing", "reviewing", "done"] as const;
  */
 export function MissionCounters({ missions }: { missions: Mission[] }) {
   const counts: Record<SpokespersonBucket, number> = {
+    cancelled: 0,
     waiting_editor: 0,
     editing: 0,
     reviewing: 0,

@@ -1,4 +1,6 @@
 export type MissionStatus =
+  | "cancelled"
+  | "cancelada"
   | "available"
   | "offered"
   | "mine"
@@ -232,6 +234,8 @@ export const DEMO_MISSIONS: Mission[] = [
 ];
 
 export const STATUS_LABEL: Record<string, string> = {
+  cancelled: "cancelada",
+  cancelada: "cancelada",
   available: "na fila",
   disponivel: "na fila",
   offered: "oferecida",
@@ -266,6 +270,14 @@ export function spokespersonStatusMessage(status: string): {
   cor: string;
 } {
   switch (status) {
+    case "cancelled":
+    case "cancelada":
+      return {
+        text: "Missão cancelada — histórico preservado",
+        color: "text-muted",
+        texto: "Missão cancelada — histórico preservado",
+        cor: "text-muted",
+      };
     case "offered":
     case "oferecida":
     case "ofertada":
@@ -377,9 +389,10 @@ export function currentStage(status: string): number {
  * passou pelo controle de qualidade mas ainda espera o aceite do porta-voz.
  * Só `finished` é trabalho encerrado.
  */
-export type SpokespersonBucket = "waiting_editor" | "editing" | "reviewing" | "done";
+export type SpokespersonBucket = "waiting_editor" | "editing" | "reviewing" | "done" | "cancelled";
 
 export const SPOKESPERSON_BUCKET_LABEL: Record<SpokespersonBucket, string> = {
+  cancelled: "Canceladas",
   waiting_editor: "Aguardando editor",
   editing: "Em edição",
   reviewing: "Em revisão",
@@ -388,6 +401,9 @@ export const SPOKESPERSON_BUCKET_LABEL: Record<SpokespersonBucket, string> = {
 
 export function spokespersonBucket(status: string): SpokespersonBucket {
   switch (status) {
+    case "cancelled":
+    case "cancelada":
+      return "cancelled";
     case "available":
     case "disponivel":
     case "offered":

@@ -131,6 +131,8 @@ describe("paridade D1 da colaboração de missão", () => {
             if (query.startsWith("SELECT spokesperson_id")) {
               return { spokesperson_id: 10, reserved_by_id: 20 };
             }
+            if (query.startsWith("SELECT id FROM missions WHERE id = ? AND status <> 'cancelada'"))
+              return { id: 1 };
             return null;
           },
           async all() {

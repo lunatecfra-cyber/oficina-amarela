@@ -40,6 +40,9 @@ import {
   postgresMissionCollaboration,
 } from "@oficina/db/mission-collaboration";
 import { missionContacts } from "@oficina/db/mission-contacts";
+import type { MissionOwnerRepository } from "@oficina/db/mission-owner";
+import { postgresMissionOwner } from "@oficina/db/postgres-mission-owner";
+import { createD1MissionOwner } from "@oficina/db/d1/mission-owner";
 import {
   type MissionLifecycleRepository,
   postgresMissionLifecycle,
@@ -62,6 +65,7 @@ export type ApiDependencies = {
   sendRecoveryEmail: (userId: number, email: string, name: string) => Promise<void>;
   invalidateSessionRevocation: (userId: number) => void;
   missionQueue: MissionQueueRepository;
+  missionOwner: MissionOwnerRepository;
   missionLifecycle: MissionLifecycleRepository;
   missionCollaboration: MissionCollaborationRepository;
   missionApproval: MissionApprovalRepository;
@@ -84,6 +88,7 @@ export const postgresApiDependencies: ApiDependencies = {
   sendRecoveryEmail,
   invalidateSessionRevocation,
   missionQueue: postgresMissionQueue,
+  missionOwner: postgresMissionOwner,
   missionLifecycle: postgresMissionLifecycle,
   missionCollaboration: postgresMissionCollaboration,
   missionApproval: postgresMissionApproval,
@@ -117,6 +122,7 @@ export function d1ApiDependencies(rawDb: D1DatabaseLike): ApiDependencies {
     sendRecoveryEmail,
     invalidateSessionRevocation,
     missionQueue: createD1MissionQueue(db),
+    missionOwner: createD1MissionOwner(db),
     missionLifecycle: createD1MissionLifecycle(db),
     missionCollaboration: createD1MissionCollaboration(db),
     missionApproval: createD1MissionApproval(db),
