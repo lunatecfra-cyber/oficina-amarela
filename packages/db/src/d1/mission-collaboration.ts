@@ -149,7 +149,7 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
            LEFT JOIN mission_assignments a ON a.mission_id = p.id AND a.ended_at IS NULL
            WHERE p.id = ? AND p.status <> 'cancelada'
              AND (? = 'admin' OR p.spokesperson_id = ? OR p.reserved_by_id = ?)
-           RETURNING id, mission_id, author_id, body, created_at`,
+           RETURNING id, mission_id, author_id, body, created_at, assignment_id`,
         )
         .bind(actor.id, text, missionId, actor.role, actor.id, actor.id)
         .first<Omit<MessageRow, "name" | "role">>();
