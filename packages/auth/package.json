@@ -12,10 +12,10 @@
   "dependencies": {
     "@oficina/config": "*",
     "@oficina/domain": "*",
-    "jose": "^6.2.10"
+    "jose": "^6.2.12"
   },
   "devDependencies": {
     "@types/node": "^26",
-    "typescript": "^5"
+    "typescript": "^7"
   }
 }

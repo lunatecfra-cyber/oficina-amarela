@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@types/node": "^26",
-    "miniflare": "5.20260831.0-alpha",
-    "typescript": "^5"
+    "miniflare": "5.20260911.0-alpha",
+    "typescript": "^7"
   }
 }

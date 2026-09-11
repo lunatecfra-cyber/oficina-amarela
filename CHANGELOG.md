@@ -7,6 +7,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.4.0] - 2026-09-11
+
+### Adicionado
+- Home renovada da Oficina Amarela, com a página anterior preservada em `/home-anterior` e prévia em `/previa-home`.
+- Apresentação de campeonato no web, com rota `/api/championship` e agregados com prêmios reais na API, cobertos por teste.
+
+### Modificado
+- Polimento visual do login e do cadastro (rótulos, links de Termos/Privacidade) e remoção do aviso de convite especial no cadastro de editor.
+- Paleta e botões: `muted-2` mais claro e botão dourado via variável de tema.
+- Dependências atualizadas em todos os workspaces (Next 16.3.5, React 19.3, TypeScript 7, Wrangler 4.131, Workers Types v5, AWS SDK, Sentry, Vite, Biome, Resend, Miniflare, Jose, Hono).
+
+### Corrigido
+- Typecheck do webmail no TypeScript 7 (`lib` WebWorker para `Request`/`Response`/`URL`).
+
 ## [0.3.1] - 2026-09-05
 
 ### Adicionado

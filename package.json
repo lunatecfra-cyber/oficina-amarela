@@ -1,6 +1,6 @@
 {
   "name": "oficina-amarela",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -21,11 +21,11 @@
     "db:studio": "npx d1s --dir packages/db"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.11",
+    "@biomejs/biome": "2.5.13",
     "turbo": "^2.10.12"
   },
   "allowScripts": {
     "esbuild@0.28.1": true,
-    "workerd@1.20260831.1": true
+    "workerd@1.20260911.1": true
   }
 }
