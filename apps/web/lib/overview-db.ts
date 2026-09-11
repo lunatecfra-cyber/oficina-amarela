@@ -1,7 +1,8 @@
 import type { MissionInFlight, QueueItem, QueueMove, SystemOverview } from "@oficina/db/admin";
+import type { AdminNotification } from "@oficina/domain/notifications";
 import { fetchApi, fetchApiJson } from "@/lib/internal-api";
 
-export type { MissionInFlight, QueueItem, QueueMove, SystemOverview };
+export type { AdminNotification, MissionInFlight, QueueItem, QueueMove, SystemOverview };
 export type Summary = SystemOverview;
 export type Resumo = SystemOverview;
 export type ItemFila = QueueItem;
@@ -46,6 +47,11 @@ export async function getEditingQueue(): Promise<QueueItem[]> {
 
 export async function getMissionsInFlight(): Promise<MissionInFlight[]> {
   const data = await fetchApiJson<MissionInFlight[]>("/admin/in-flight");
+  return data ?? [];
+}
+
+export async function getAdminNotifications(): Promise<AdminNotification[]> {
+  const data = await fetchApiJson<AdminNotification[]>("/admin/notifications");
   return data ?? [];
 }
 

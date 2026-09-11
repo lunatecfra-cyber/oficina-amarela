@@ -86,4 +86,41 @@ describe("rotas de administração e fiscalização na API", {
     });
     assert.equal(resUnban.status, 200);
   });
+
+  test("alerts: stalled queue mission and open report appear, resolved report disappears", async () => {
+    const [voz] = await sql`
+      INSERT INTO users (apelido, nome, email, senha_hash, papel)
+      VALUES ('voz.routes', 'Voz Routes', 'voz@adminroutes.local', 'x', 'voz')
+      RETURNING id
+    `;
+    const [pauta] = await sql`
+      INSERT INTO pautas (porta_voz_id, titulo, formato, status, criada_em)
+      VALUES (${Number(voz.id)}, 'Corte parado', 'short', 'disponivel', now() - interval '4 days')
+      RETURNING id
+    `;
+    const [denuncia] = await sql`
+      INSERT INTO denuncias (pauta_id, denunciante_id, texto, status)
+      VALUES (${Number(pauta.id)}, ${targetUserId}, 'algo errado', 'aberta')
+      RETURNING id
+    `;
+
+    const res = await app.request("/admin/notifications", { headers: { cookie: adminCookie } });
+    assert.equal(res.status, 200);
+    const notifications = (await res.json()) as { id: string; category: string; href: string }[];
+
+    const queueAlert = notifications.find((n) => n.id === `queue_stalled:${pauta.id}`);
+    assert.ok(queueAlert, "expected a queue-stalled alert");
+    assert.equal(queueAlert?.href, "/inspetor/panorama");
+
+    const reportAlert = notifications.find((n) => n.id === `report_open:${denuncia.id}`);
+    assert.ok(reportAlert, "expected an open-report alert");
+    assert.equal(reportAlert?.href, "/inspetor/denuncias");
+
+    await sql`UPDATE denuncias SET status = 'resolvida' WHERE id = ${Number(denuncia.id)}`;
+    const resAfter = await app.request("/admin/notifications", {
+      headers: { cookie: adminCookie },
+    });
+    const notificationsAfter = (await resAfter.json()) as { id: string }[];
+    assert.ok(!notificationsAfter.some((n) => n.id === `report_open:${denuncia.id}`));
+  });
 });

@@ -43,19 +43,18 @@
     // -------------------------------------------------------------------
     // STAGING
     //
-    // TODO(provisionamento): todo id abaixo é um marcador. Nenhum deles é um
-    // identificador real — o deploy falha até serem substituídos, e é assim
-    // que se quer: um id inventado que "funciona" apontaria para o recurso
-    // errado em silêncio.
+    // Provisionado na conta casamarela em 2026-08-30: D1, fila (+ DLQ) e
+    // bucket R2 já existem com os ids abaixo, e os Workers
+    // oficina-amarela-api-staging / oficina-amarela-web-staging já estão
+    // implantados. Sem Hyperdrive de propósito — ver nota abaixo.
     //
-    //   wrangler d1 create oficina-amarela-staging
-    //   wrangler queues create oficina-amarela-manutencao-staging
-    //   wrangler r2 bucket create oficina-amarela-midia-staging
-    //   wrangler hyperdrive create oficina-amarela-pg-staging \
-    //     --connection-string "postgres://..." --env staging
+    // Schema aplicado via `node scripts/aplicar-schema-d1.mjs staging`, nunca
+    // `wrangler d1 migrations apply` (quebra o corpo de CREATE TRIGGER). Esse
+    // script descobre os patches no diretório em vez de listá-los à mão —
+    // antes listava 0002/0003 na mão e ficou cego para 0004/0005, que só
+    // chegaram em produção porque alguém rodou o `d1 execute` manualmente.
     //
-    // A string de conexão do Hyperdrive nunca entra neste arquivo: ela vive no
-    // próprio recurso. Segredos vão por `wrangler secret put --env staging`.
+    // Segredos vão por `wrangler secret put --env staging`.
     // -------------------------------------------------------------------
     "staging": {
       "name": "oficina-amarela-api-staging",

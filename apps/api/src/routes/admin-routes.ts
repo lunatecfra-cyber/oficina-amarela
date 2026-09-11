@@ -1,4 +1,5 @@
 import type { UserSession } from "@oficina/auth/session";
+import { buildAdminNotifications } from "@oficina/domain/notifications";
 import { drainEmailQueueNow, queueNoticeEmail } from "@oficina/email/dispatch";
 import { buildEditorsQueueEmail, buildFreeEditorsEmail } from "@oficina/email/messages";
 import { Hono } from "hono";
@@ -131,6 +132,16 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
   routes.get("/in-flight", async (c) => {
     const list = await dependencies.admin.getMissionsInFlight();
     return c.json(list);
+  });
+
+  routes.get("/notifications", async (c) => {
+    const [queue, inFlight, reports] = await Promise.all([
+      dependencies.admin.getEditingQueue(),
+      dependencies.admin.getMissionsInFlight(),
+      dependencies.admin.reportsForInspector(),
+    ]);
+    const notifications = buildAdminNotifications({ queue, inFlight, reports });
+    return c.json(notifications);
   });
 
   routes.post("/queue/move", async (c) => {

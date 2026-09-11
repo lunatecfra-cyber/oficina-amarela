@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/inspetor", label: "Missões", rotulo: "Missões" },
+  { href: "/inspetor/notificacoes", label: "Alertas", rotulo: "Alertas" },
   { href: "/inspetor/panorama", label: "Panorama", rotulo: "Panorama" },
   { href: "/inspetor/contas", label: "Pessoas", rotulo: "Pessoas" },
   { href: "/inspetor/denuncias", label: "Denúncias", rotulo: "Denúncias" },
@@ -13,7 +14,7 @@ const TABS = [
   { href: "/parceiros?source=admin", label: "Parceiros", rotulo: "Parceiros" },
 ];
 
-export function InspectorNav() {
+export function InspectorNav({ alertCount = 0 }: { alertCount?: number }) {
   const pathname = usePathname();
 
   return (
@@ -37,6 +38,11 @@ export function InspectorNav() {
             }`}
           >
             {tab.label}
+            {tab.href === "/inspetor/notificacoes" && alertCount > 0 && (
+              <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-semibold text-white">
+                {alertCount}
+              </span>
+            )}
             {active && (
               <span
                 aria-hidden="true"

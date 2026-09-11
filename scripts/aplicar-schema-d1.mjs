@@ -17,7 +17,7 @@
 
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,7 +48,13 @@ const targetDb = environment === "local" ? "DB" : database;
 
 console.log(`aplicando schema em ${database} (${remote})`);
 
-const base = spawnSync(
+// 0001 cria as tabelas com o nome ANTIGO em português (CREATE TABLE IF NOT
+// EXISTS pautas, ...). 0003 as renomeia para inglês. Reaplicar 0001 depois
+// disso não é idempotente: `pautas` não existe mais (virou `missions`), então
+// o IF NOT EXISTS não barra nada e recria uma tabela fantasma vazia — foi
+// assim que 18 tabelas PT vazias reapareciam a cada deploy. Só roda o schema
+// base numa base que ainda não passou pela renomeação.
+const check = spawnSync(
   "bunx",
   [
     "wrangler",
@@ -59,19 +65,51 @@ const base = spawnSync(
     "--config",
     config,
     ...envFlag,
-    "--file",
-    schema,
-    "--yes",
+    "--command",
+    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='missions'",
+    "--json",
   ],
-  { cwd: root, stdio: "inherit", env: process.env },
+  { cwd: root, encoding: "utf8", env: process.env },
 );
 
-if (base.status !== 0) process.exit(base.status ?? 1);
+let alreadyRenamed = false;
+try {
+  alreadyRenamed = JSON.parse(check.stdout)?.[0]?.results?.length > 0;
+} catch {
+  // não deu para checar (saída inesperada) — aplica o schema base como sempre.
+}
 
-const patches = [
-  path.join(root, "packages", "db", "d1", "0002_electoral_compliance.sql"),
-  path.join(root, "packages", "db", "d1", "0003_rename_to_english.sql"),
-];
+if (alreadyRenamed) {
+  console.log("schema base já aplicado (missions existe), pulando 0001");
+} else {
+  const base = spawnSync(
+    "bunx",
+    [
+      "wrangler",
+      "d1",
+      "execute",
+      targetDb,
+      remote,
+      "--config",
+      config,
+      ...envFlag,
+      "--file",
+      schema,
+      "--yes",
+    ],
+    { cwd: root, stdio: "inherit", env: process.env },
+  );
+
+  if (base.status !== 0) process.exit(base.status ?? 1);
+}
+
+// Lista descoberta no diretório, não hardcoded: 0004 e 0005 foram criados sem
+// tocar este arquivo e nunca rodaram em staging até alguém notar o drift.
+const d1Dir = path.join(root, "packages", "db", "d1");
+const patches = readdirSync(d1Dir)
+  .filter((name) => /^\d{4}_.*\.sql$/.test(name) && name !== path.basename(schema))
+  .sort()
+  .map((name) => path.join(d1Dir, name));
 
 for (const patch of patches) {
   console.log(`aplicando patch ${path.basename(patch)}`);

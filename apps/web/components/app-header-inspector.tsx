@@ -2,11 +2,13 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { InspectorNav } from "@/components/inspector-nav";
 import { LocalGuide } from "@/components/local-guide";
+import { getAdminNotifications } from "@/lib/overview-db";
 import { getSession } from "@/lib/server-session";
 
 export async function AppHeaderInspector() {
   const session = await getSession();
   if (session?.role !== "admin") return null;
+  const notifications = await getAdminNotifications();
 
   return (
     <header className="border-b border-line-soft">
@@ -29,7 +31,7 @@ export async function AppHeaderInspector() {
         </div>
       </div>
       <div className="mx-auto w-full max-w-5xl px-5 lg:px-8">
-        <InspectorNav />
+        <InspectorNav alertCount={notifications.length} />
       </div>
     </header>
   );
