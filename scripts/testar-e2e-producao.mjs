@@ -31,7 +31,7 @@ function step(name, passed, detail = "") {
 
 async function d1(command, attempt = 0) {
   try {
-    const { stdout } = await run("npx", [
+    const { stdout } = await run("bunx", [
       "wrangler",
       "d1",
       "execute",

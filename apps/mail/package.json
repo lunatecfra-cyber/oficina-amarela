@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
-    "build": "npm --prefix dashboard run build-only && wrangler deploy --dry-run",
-    "deploy": "npm --prefix dashboard run build-only && wrangler deploy",
+    "build": "cd dashboard && bun run build-only && cd .. && wrangler deploy --dry-run",
+    "deploy": "cd dashboard && bun run build-only && cd .. && wrangler deploy",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

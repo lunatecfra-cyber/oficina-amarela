@@ -13,7 +13,7 @@ import { describe, test } from "node:test";
  * Estes testes travam o contrato do escopo. O que eles não conseguem provar é o
  * comportamento do workerd; para isso vale o Worker rodando:
  *
- *   cd apps/api && npx wrangler dev --local     # com .dev.vars
+  *   cd apps/api && bunx wrangler dev --local     # com .dev.vars
  *   # seis GET seguidos em /admin/invitations precisam devolver 200
  */
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;

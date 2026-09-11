@@ -38,7 +38,7 @@ function check(name, passed, detail = "") {
 // aparentemente quando o token OAuth renova. Serial e com nova tentativa passa.
 async function wrangler(args, attempt = 0) {
   try {
-    const { stdout } = await run("npx", ["wrangler", ...args], {
+    const { stdout } = await run("bunx", ["wrangler", ...args], {
       maxBuffer: 32 * 1024 * 1024,
       env: process.env,
     });

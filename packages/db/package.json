@@ -8,11 +8,12 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "studio": "npx d1s",
+    "studio": "bunx d1s",
     "test": "node --test --test-concurrency=1 \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@oficina/auth": "*",
     "@oficina/domain": "*",
     "postgres": "^3.4.9"
   },

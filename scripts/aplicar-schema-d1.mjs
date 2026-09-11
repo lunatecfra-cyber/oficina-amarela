@@ -49,7 +49,7 @@ const targetDb = environment === "local" ? "DB" : database;
 console.log(`aplicando schema em ${database} (${remote})`);
 
 const base = spawnSync(
-  "npx",
+  "bunx",
   [
     "wrangler",
     "d1",
@@ -118,7 +118,7 @@ for (const patch of patches) {
     let output = "";
     for (let attempt = 1; attempt <= 4; attempt++) {
       applied = spawnSync(
-        "npx",
+        "bunx",
         [
           "wrangler",
           "d1",

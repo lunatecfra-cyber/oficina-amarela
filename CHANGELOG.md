@@ -17,9 +17,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Polimento visual do login e do cadastro (rótulos, links de Termos/Privacidade) e remoção do aviso de convite especial no cadastro de editor.
 - Paleta e botões: `muted-2` mais claro e botão dourado via variável de tema.
 - Dependências atualizadas em todos os workspaces (Next 16.3.5, React 19.3, TypeScript 7, Wrangler 4.131, Workers Types v5, AWS SDK, Sentry, Vite, Biome, Resend, Miniflare, Jose, Hono).
+- Gerenciador de pacotes trocado de npm para Bun (`packageManager: bun@1.3.14`, `bun.lock` no lugar de `package-lock.json`, `bunx` no lugar de `npx`, `trustedDependencies` no lugar de `allowScripts`).
 
 ### Corrigido
 - Typecheck do webmail no TypeScript 7 (`lib` WebWorker para `Request`/`Response`/`URL`).
+- Dependência `@oficina/auth` declarada em `@oficina/db`: o import existia mas só resolvia pelo hoisting do npm; o Bun isola os workspaces e o typecheck quebrava.
 
 ## [0.3.1] - 2026-09-05
 

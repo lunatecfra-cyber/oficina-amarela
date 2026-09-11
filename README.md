@@ -69,7 +69,7 @@ Monorepo Turborepo, com Biome fazendo lint e formatação.
 
 ### Pré-requisitos
 - Node.js v20.x ou v22.x+
-- npm ou bun
+- Bun v1.3.x (gerenciador de pacotes e scripts)
 - Um banco: PostgreSQL (ou projeto no Supabase), ou o D1 local que o wrangler
   cria na primeira aplicação de schema. Para só abrir as telas, nenhum dos dois
   é necessário: `DATABASE_STUB=1` faz toda consulta devolver lista vazia.
@@ -82,7 +82,7 @@ cd oficina-amarela
 
 ### 2. Instalar dependências
 ```bash
-npm install
+bun install
 ```
 
 ### 3. Configurar variáveis de ambiente
@@ -129,7 +129,7 @@ credenciais de **staging** existirem, crie o binding sem gravar a URL no Git:
 
 ```bash
 cd apps/api
-npx wrangler hyperdrive create oficina-amarela-staging \
+bunx wrangler hyperdrive create oficina-amarela-staging \
   --env staging --binding HYPERDRIVE --update-config \
   --connection-string "$STAGING_DATABASE_URL"
 ```
@@ -155,7 +155,7 @@ node scripts/aplicar-schema-d1.mjs local
 
 ### 5. Iniciar o servidor de desenvolvimento
 ```bash
-npm run dev
+bun run dev
 ```
 
 ## Estrutura do repositório
@@ -172,8 +172,8 @@ oficina-amarela/
 └── package.json    raiz do workspace
 ```
 
-Os comandos da raiz (`npm run dev`, `build`, `test`, `typecheck`) passam pelo
-Turborepo e alcançam todos os pacotes. `npm run lint` roda o Biome na raiz,
+Os comandos da raiz (`bun run dev`, `build`, `test`, `typecheck`) passam pelo
+Turborepo e alcançam todos os pacotes. `bun run lint` roda o Biome na raiz,
 cobrindo o repositório inteiro.
 
 ### Testes que usam banco
@@ -186,7 +186,7 @@ Sem `TEST_DATABASE_URL` esses testes são pulados.
 docker run -d --rm --name oficina-pg -e POSTGRES_PASSWORD=test \
   -e POSTGRES_DB=oficina -p 5439:5432 postgres:16-alpine
 DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" node scripts/migrar.mjs
-TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" npm test
+TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5439/oficina" bun run test
 ```
 
 Acesse [http://localhost:3000](http://localhost:3000) no seu navegador.
