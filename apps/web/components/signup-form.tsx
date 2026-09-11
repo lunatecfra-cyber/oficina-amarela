@@ -172,7 +172,6 @@ export function SignupForm({
       ) : (
         <div className="mb-6 border-y border-line py-3">
           <p className="text-sm font-medium text-silver-hi">Cadastro de editor</p>
-          <p className="mt-1 text-xs text-muted-2">Porta-voz entra por convite especial.</p>
         </div>
       )}
 

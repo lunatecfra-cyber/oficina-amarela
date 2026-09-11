@@ -111,7 +111,7 @@ function LoginFormContent() {
         <div className="mb-4">
           <label
             htmlFor="handle"
-            className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+            className="mb-2 block text-xs font-medium uppercase tracking-[0.1em] text-muted"
           >
             Apelido ou e-mail
           </label>
@@ -148,7 +148,7 @@ function LoginFormContent() {
         <div className="mb-4">
           <label
             htmlFor="password"
-            className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+            className="mb-2 block text-xs font-medium uppercase tracking-[0.1em] text-muted"
           >
             Senha
           </label>
@@ -248,22 +248,19 @@ function LoginFormContent() {
         </Link>
       </p>
 
-      <p className="mt-4 text-center text-xs text-muted-2">
-        Ao entrar, você concorda com os{" "}
+      <p className="mt-4 flex flex-wrap items-center justify-center gap-x-2 text-center text-xs text-muted-2">
         <Link
           href="/termos"
           className="inline-flex min-h-11 items-center text-muted hover:text-silver-hi hover:underline"
         >
           Termos de Uso
-        </Link>{" "}
-        e a{" "}
+        </Link>
         <Link
           href="/privacidade"
           className="inline-flex min-h-11 items-center text-muted hover:text-silver-hi hover:underline"
         >
           Política de Privacidade
         </Link>
-        .
       </p>
     </div>
   );
