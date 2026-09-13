@@ -33,7 +33,7 @@ export function MissionActions({
 
     const body =
       action === "revision"
-        ? { action: "revision", notes: notes.trim(), acao: "ajuste", notas: notes.trim() }
+        ? { action: "adjust", notes: notes.trim(), acao: "ajuste", notas: notes.trim() }
         : effectiveInReview
           ? { action: "approve", rating, acao: "aprovar", nota: rating }
           : { action: "accept", acao: "aceitar" };

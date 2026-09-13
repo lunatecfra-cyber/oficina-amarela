@@ -24,6 +24,7 @@ const MIGRATED_ACTIONS: Record<string, MigratedMissionAction> = {
   aceitar: "accept",
   adjust: "adjust",
   ajuste: "adjust",
+  revision: "adjust",
   approve: "approve",
   aprovar: "approve",
 };
