@@ -16,7 +16,7 @@ export function EditorNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex w-full min-w-0 items-center gap-1 text-[11px] sm:w-auto sm:text-sm">
+    <nav aria-label="Navegação do editor" className="flex w-max min-w-full items-center gap-1 text-xs sm:text-sm">
       {TABS.map((tab) => {
         const path = tab.href.split("?")[0];
         const active = pathname === path || pathname.startsWith(`${path}/`);
@@ -25,7 +25,7 @@ export function EditorNav() {
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`relative flex min-h-11 min-w-0 flex-auto items-center justify-center whitespace-nowrap rounded-lg px-1 py-1.5 transition-colors sm:flex-none sm:px-2.5 ${
+            className={`relative flex min-h-11 flex-none items-center justify-center whitespace-nowrap rounded-[4px] px-2.5 py-1.5 transition-colors ${
               active ? "text-text" : "text-muted hover:text-text"
             }`}
           >

@@ -37,10 +37,11 @@ export function LocalGuide() {
     const list = r.steps ?? (r as any).passos ?? [];
     return list.filter((p: any) => {
       const target = p.target ?? p.alvo;
-      return (
+      const element = (
         document.querySelector(`[data-guia="${target}"]`) ||
         document.querySelector(`[data-guide="${target}"]`)
       );
+      return element && element.getBoundingClientRect().height > 0;
     });
   }, []);
 

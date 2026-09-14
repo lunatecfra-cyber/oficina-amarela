@@ -53,9 +53,13 @@ export default async function EditorPage() {
             </div>
           )}
 
-          <ActiveMissionCard mission={currentMission} messages={messages} />
+          <div data-guia="missao-em-maos">
+            <ActiveMissionCard mission={currentMission} messages={messages} />
+          </div>
           <EditorOwnerNotifications />
-          <MissionOffer hasActiveMission={!!currentMission} />
+          <div data-guia="oferta-missao">
+            <MissionOffer hasActiveMission={!!currentMission} />
+          </div>
 
           <div
             aria-hidden="true"
@@ -66,7 +70,9 @@ export default async function EditorPage() {
             }}
           />
 
-          <DailyChallenges challenges={challenges} />
+          <div data-guia="desafios-diarios">
+            <DailyChallenges challenges={challenges} />
+          </div>
         </div>
       </main>
     </>

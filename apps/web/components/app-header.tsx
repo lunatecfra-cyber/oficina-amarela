@@ -49,19 +49,15 @@ export async function AppHeader() {
             <BrandMark />
           </Link>
 
-          <div className="hidden sm:block">
-            <EditorNav />
-          </div>
         </div>
 
         <div className="flex flex-none items-center gap-2 sm:gap-4">
-          <LocalGuide />
 
           <Link
             href="/perfil"
-            className="hidden text-right transition-opacity hover:opacity-80 sm:block"
+            className="hidden min-w-0 max-w-48 text-right transition-opacity hover:opacity-80 sm:block"
           >
-            <p className="text-sm font-medium text-text">{editor.handle}</p>
+            <p className="truncate text-sm font-medium text-text" title={editor.handle}>{editor.handle}</p>
             <p className="text-xs text-muted">
               {editor.deliveredCount} entregues
               {editor.rating !== null && ` · nota ${editor.rating}`}
@@ -79,11 +75,15 @@ export async function AppHeader() {
         </div>
       </div>
 
-      {/* Segunda linha, só no celular: a navegação com espaço pra respirar.
-          O padding lateral acompanha o da linha de cima (px-4) — com px-2 as
-          abas começavam 8px antes da logo e o cabeçalho lia torto. */}
-      <div className="border-t border-line-soft px-4 pb-1 sm:hidden">
-        <EditorNav />
+      <div className="border-t border-line-soft">
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-1 sm:px-5 lg:px-8">
+          <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <EditorNav />
+          </div>
+          <div className="flex-none border-l border-line-soft pl-3">
+            <LocalGuide />
+          </div>
+        </div>
       </div>
     </header>
   );
