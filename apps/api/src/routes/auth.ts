@@ -2,6 +2,7 @@ import {
   COOKIE_NAME,
   COOKIE_OPTS,
   createSessionToken,
+  type UserSession,
   verifyPendingIdentity,
   verifyRecoveryToken,
 } from "@oficina/auth/session";
@@ -15,7 +16,7 @@ import {
 } from "../account-registration.ts";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
-import { readSession } from "../session.ts";
+import { readSession, requireSession } from "../session.ts";
 
 /**
  * Autenticação.
@@ -41,7 +42,7 @@ const RECOVERY_REPLY = {
   message: "Se existir uma conta com esse e-mail, o link de recuperação foi enviado.",
 };
 
-type AuthEnv = { Bindings: Bindings; Variables: { requestId: string } };
+type AuthEnv = { Bindings: Bindings; Variables: { requestId: string; session: UserSession } };
 
 function clientIp(headers: Headers): string {
   const forwarded = headers.get("cf-connecting-ip") ?? headers.get("x-forwarded-for");
@@ -230,20 +231,15 @@ export function createAuthRoutes(dependencies: ApiDependencies) {
     return c.json({ ok: true });
   });
 
+  routes.use("/rate-limit/*", requireSession);
+
   routes.post("/rate-limit/check", async (c) => {
-    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-    const key = String(body?.key ?? "");
-    const result = await accounts.isRateLocked(key);
+    const result = await accounts.isRateLocked(`presign:${c.get("session").id}`);
     return c.json(result);
   });
 
   routes.post("/rate-limit/record", async (c) => {
-    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-    const key = String(body?.key ?? "");
-    const max = Number(body?.max ?? 10);
-    const windowMinutes = Number(body?.windowMinutes ?? 15);
-    const lockMinutes = Number(body?.lockMinutes ?? 15);
-    const result = await accounts.recordAttempt(key, max, windowMinutes, lockMinutes);
+    const result = await accounts.recordAttempt(`presign:${c.get("session").id}`, 20, 60, 60);
     return c.json(result);
   });
 

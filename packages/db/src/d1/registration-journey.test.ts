@@ -239,4 +239,62 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
       identity.googleId,
     );
   });
+
+  test("editor se cadastra, completa perfil e não administra convites", async () => {
+    assert.equal((await request("/admin/invitations", { email: identity.email })).status, 401);
+    const response = await request("/auth/signup", { ...signup, role: "editor" });
+    assert.equal(response.status, 200);
+    const cookie = cookieOf(response);
+    assert.equal(
+      (await request("/admin/invitations", { email: identity.email }, cookie)).status,
+      403,
+    );
+    assert.equal((await request("/spokesperson/profile", undefined, cookie)).status, 403);
+    assert.equal(
+      (
+        await request(
+          "/editor/profile",
+          {
+            name: "Editor Teste",
+            location: "Curitiba, PR",
+            softwares: ["Premiere"],
+            styles: ["Reels"],
+            editingLevel: "Avançado",
+            pcSetup: "PC",
+          },
+          cookie,
+        )
+      ).status,
+      200,
+    );
+    const login = await request("/auth/login", {
+      handle: identity.email,
+      password: signup.password,
+    });
+    assert.equal(login.status, 200);
+    assert.equal((await request("/auth/signup", { ...signup, role: "editor" })).status, 409);
+  });
+
+  test("cliente não manipula bloqueios de login e cadastro", async () => {
+    const forged = { key: "login:admin.journey", max: 0, windowMinutes: -1, lockMinutes: 99999 };
+    for (const path of ["/auth/rate-limit/check", "/auth/rate-limit/record"]) {
+      assert.equal((await request(path, forged)).status, 401);
+    }
+    const response = await request("/auth/signup", { ...signup, role: "editor" });
+    const cookie = cookieOf(response);
+    assert.equal((await request("/auth/rate-limit/record", forged, cookie)).status, 200);
+    assert.equal(
+      await db
+        .prepare("SELECT count(*) AS n FROM login_attempts WHERE key = ?")
+        .bind(forged.key)
+        .first("n"),
+      0,
+    );
+    assert.equal((await request("/auth/rate-limit/check", forged, cookie)).status, 200);
+    for (let i = 1; i < 20; i++) {
+      assert.equal((await request("/auth/rate-limit/record", forged, cookie)).status, 200);
+    }
+    const checked = await request("/auth/rate-limit/check", {}, cookie);
+    assert.equal(((await checked.json()) as { locked: boolean }).locked, true);
+  });
 });

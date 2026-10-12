@@ -4,11 +4,6 @@ import { generatePresignedUrl } from "@/lib/r2";
 import { getSession } from "@/lib/server-session";
 import { uploadErrorMessage, validateRawMediaUpload } from "@/lib/upload-policy";
 
-const WINDOW_MINUTES = 60;
-const MAX_PER_HOUR = 20;
-
-const uploadKey = (userId: number) => `presign:${userId}`;
-
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
@@ -20,8 +15,6 @@ export async function POST(request: Request) {
 
   const limitRes = await fetchApi("/auth/rate-limit/check", {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ key: uploadKey(session.id) }),
   });
   const limit = (await limitRes.json().catch(() => ({ locked: false }))) as { locked?: boolean };
 
@@ -64,13 +57,6 @@ export async function POST(request: Request) {
     const urls = await generatePresignedUrl(key, contentType, sizeBytes);
     await fetchApi("/auth/rate-limit/record", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        key: uploadKey(session.id),
-        max: MAX_PER_HOUR,
-        windowMinutes: WINDOW_MINUTES,
-        lockMinutes: WINDOW_MINUTES,
-      }),
     });
     return NextResponse.json({ ...urls, kind: policy.kind });
   } catch (error) {
