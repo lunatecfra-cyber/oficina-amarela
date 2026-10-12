@@ -4,7 +4,7 @@
 
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { buildPasswordRecoveryEmail, escapeHtml } from "./messages.ts";
+import { buildPasswordRecoveryEmail, deliverEmail, escapeHtml } from "./messages.ts";
 
 describe("escape em molde de e-mail", () => {
   test("escapa marcação e aspas", () => {
@@ -24,4 +24,25 @@ describe("escape em molde de e-mail", () => {
     assert.ok(html.includes("&lt;img"), "nome deveria estar escapado");
     assert.match(subject, /Recuperar sua senha/);
   });
+});
+
+test("recuperação sem provedor não declara envio nem chama a rede", async (t) => {
+  const previousKey = process.env.RESEND_API_KEY;
+  const network = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("O teste não pode enviar e-mail real.");
+  });
+  try {
+    for (const key of [undefined, "dummy"]) {
+      if (key === undefined) delete process.env.RESEND_API_KEY;
+      else process.env.RESEND_API_KEY = key;
+      assert.equal(
+        await deliverEmail("teste@example.invalid", "Recuperação", "<p>Teste</p>"),
+        false,
+      );
+    }
+    assert.equal(network.mock.callCount(), 0);
+  } finally {
+    if (previousKey === undefined) delete process.env.RESEND_API_KEY;
+    else process.env.RESEND_API_KEY = previousKey;
+  }
 });

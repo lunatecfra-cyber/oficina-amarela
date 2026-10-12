@@ -72,14 +72,12 @@ function moldura(titulo: string, miolo: string, link?: { url: string; texto: str
 /**
  * Entrega uma mensagem já pronta. Devolve true quando o provedor aceitou.
  *
- * Sem provedor configurado (ou com remetente de teste) devolve true: a
- * mensagem sai da fila em vez de ficar girando em retentativa por uma
- * configuração ausente. O aviso vai para o log.
+ * Sem configuração válida, preserva a falha para a fila não registrar envio.
  */
 export async function deliverEmail(to: string, subject: string, html: string): Promise<boolean> {
   if (!isEmailConfigured() || isTestSender() || !to) {
-    console.warn("[email] provedor não configurado; descartando:", subject);
-    return true;
+    console.warn("[email] envio indisponível; mensagem não entregue:", subject);
+    return false;
   }
   const { error } = await getClient().emails.send({ from: SENDER, to, subject, html });
   if (error) {
