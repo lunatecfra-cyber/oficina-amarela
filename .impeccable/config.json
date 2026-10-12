@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "files": [
+          "packages/email/src/messages.ts"
+        ],
+        "createdAt": "2026-10-12T15:30:48.042Z",
+        "reason": "Agent: fonte de sistema em templates de email existentes desde agosto; evita depender de fontes web nos clientes de email"
+      }
+    ]
+  }
+}
