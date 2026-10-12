@@ -9,6 +9,7 @@ type InvitationItem = {
   id: number;
   email: string;
   status: string;
+  expiresAt?: string;
   expira_em?: string;
   expires_at?: string;
 };
@@ -313,7 +314,10 @@ export function RankingSecurityPanel() {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-text">{invitation.email}</p>
                         <p className="mt-0.5 text-xs text-muted">
-                          Expira em {formatDateTime(invitation.expires_at ?? invitation.expira_em)}
+                          Expira em{" "}
+                          {formatDateTime(
+                            invitation.expiresAt ?? invitation.expires_at ?? invitation.expira_em,
+                          )}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
