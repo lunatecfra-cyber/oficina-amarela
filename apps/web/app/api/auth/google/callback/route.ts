@@ -43,10 +43,11 @@ export async function GET(request: Request) {
     return errorRedirect(url.origin, "Could not confirm Google account identity.");
   }
 
+  const pendingToken = await createPendingIdentity(googleProfile);
   const res = await fetchApi("/auth/google/find", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ googleId: googleProfile.googleId, email: googleProfile.email }),
+    body: JSON.stringify({ identityToken: pendingToken }),
   });
   const result = (await res.json().catch(() => ({}))) as {
     ok?: boolean;
@@ -73,12 +74,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL(destination, url.origin));
   }
 
-  const pendingToken = await createPendingIdentity({
-    googleId: googleProfile.googleId,
-    email: googleProfile.email,
-    name: googleProfile.name,
-    picture: googleProfile.picture,
-  });
   cookieStore.set(PENDING_COOKIE_NAME, pendingToken, STATE_COOKIE_OPTS);
   return NextResponse.redirect(new URL("/escolher-papel", url.origin));
 }

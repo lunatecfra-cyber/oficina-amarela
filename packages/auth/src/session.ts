@@ -148,9 +148,9 @@ export async function createPendingIdentity(data: PendingGoogleIdentity) {
     googleId: data.googleId,
     email: data.email,
     name: data.name || data.nome,
-    avatarUrl: data.avatarUrl || data.foto,
+    avatarUrl: data.avatarUrl || data.picture || data.foto,
     nome: data.name || data.nome,
-    foto: data.avatarUrl || data.foto,
+    foto: data.avatarUrl || data.picture || data.foto,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()

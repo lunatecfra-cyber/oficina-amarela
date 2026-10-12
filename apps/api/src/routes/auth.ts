@@ -2,6 +2,7 @@ import {
   COOKIE_NAME,
   COOKIE_OPTS,
   createSessionToken,
+  verifyPendingIdentity,
   verifyRecoveryToken,
 } from "@oficina/auth/session";
 import { Hono } from "hono";
@@ -248,14 +249,15 @@ export function createAuthRoutes(dependencies: ApiDependencies) {
 
   routes.post("/google/find", async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-    const googleId = String(body?.googleId ?? "");
-    const email = String(body?.email ?? "")
-      .trim()
-      .toLowerCase();
-
-    if (!googleId || !email) {
-      return c.json({ error: "Parâmetros inválidos." }, 400);
+    const identity =
+      typeof body?.identityToken === "string"
+        ? await verifyPendingIdentity(body.identityToken)
+        : null;
+    if (!identity) {
+      return c.json({ error: "Sessão Google inválida ou expirada." }, 401);
     }
+    const { googleId } = identity;
+    const email = identity.email.trim().toLowerCase();
 
     const byGoogle = await accounts.findByGoogleId(googleId);
     if (byGoogle) {
@@ -300,12 +302,19 @@ export function createAuthRoutes(dependencies: ApiDependencies) {
 
   routes.post("/google/register", async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const identity =
+      typeof body?.identityToken === "string"
+        ? await verifyPendingIdentity(body.identityToken)
+        : null;
+    if (!identity) {
+      return c.json({ error: "Sessão Google inválida ou expirada." }, 401);
+    }
     const rawRole = body?.role ?? body?.papel;
     if (rawRole !== "spokesperson" && rawRole !== "voz" && rawRole !== "editor") {
       return c.json({ error: "Escolha se você é candidato ou editor." }, 400);
     }
 
-    const email = String(body?.email ?? "").toLowerCase();
+    const email = identity.email.trim().toLowerCase();
     let baseHandle = email
       .split("@")[0]
       .replace(/[^a-zA-Z0-9._]/g, "")
@@ -324,16 +333,12 @@ export function createAuthRoutes(dependencies: ApiDependencies) {
       accounts,
       dependencies.invitationRedemption,
       {
-        name: body?.name ?? body?.nome ?? handle,
+        name: identity.name,
         handle,
         email,
         role: rawRole,
-        googleId: String(body?.googleId ?? ""),
-        avatarUrl: body?.avatarUrl
-          ? String(body.avatarUrl)
-          : body?.picture
-            ? String(body.picture)
-            : null,
+        googleId: identity.googleId,
+        avatarUrl: identity.avatarUrl ?? null,
         invitation: body?.invitation ? String(body.invitation) : null,
         referralCode: body?.referralCode ? String(body.referralCode) : null,
       },

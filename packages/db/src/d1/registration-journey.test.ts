@@ -1,0 +1,242 @@
+/// <reference lib="dom" />
+
+import assert from "node:assert/strict";
+import { after, before, beforeEach, describe, test } from "node:test";
+import { COOKIE_NAME, createPendingIdentity, createSessionToken } from "@oficina/auth/session";
+import { convertV4MiniflareOptions, Miniflare } from "miniflare";
+import { createApp } from "../../../../apps/api/src/app.ts";
+import { d1ApiDependencies } from "../../../../apps/api/src/dependencies.ts";
+import { clearSessionRevocationCache } from "../session-revocation.ts";
+import { applyAllD1Migrations } from "./schema.ts";
+import type { D1DatabaseLike } from "./types.ts";
+
+describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
+  const miniflare = new Miniflare(
+    convertV4MiniflareOptions({
+      compatibilityDate: "2026-08-30",
+      d1Databases: { DB: "oficina-registration-journey-tests" },
+      modules: true,
+      script: "export default { fetch() { return new Response('ok') } }",
+    }),
+  );
+  let db: Awaited<ReturnType<typeof miniflare.getD1Database>>;
+  let app: ReturnType<typeof createApp>;
+  let adminCookie: string;
+  const identity = { googleId: "google-voz", email: "voz@journey.local", name: "Voz Teste" };
+  const signup = {
+    name: identity.name,
+    handle: "voz.journey",
+    email: identity.email,
+    password: "senha-teste",
+    role: "spokesperson",
+  };
+  const cookieOf = (response: Response) => (response.headers.get("set-cookie") ?? "").split(";")[0];
+  const request = (path: string, body?: unknown, cookie = "") =>
+    app.request(
+      `https://web.local${path}`,
+      {
+        method: body === undefined ? "GET" : "POST",
+        headers: { "content-type": "application/json", cookie },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      },
+      { DB: db },
+    );
+  const invite = async (email = identity.email) => {
+    const response = await request("/admin/invitations", { email }, adminCookie);
+    assert.equal(response.status, 200);
+    return (await response.json()) as { id: number; token: string; link: string };
+  };
+
+  before(async () => {
+    process.env.AUTH_SECRET = "oficina-registration-isolated-test-secret";
+    db = await miniflare.getD1Database("DB");
+    await applyAllD1Migrations(db as unknown as D1DatabaseLike);
+    app = createApp(d1ApiDependencies(db as unknown as D1DatabaseLike));
+  });
+  beforeEach(async () => {
+    clearSessionRevocationCache();
+    await db.batch([
+      db.prepare("DELETE FROM invitation_redemptions"),
+      db.prepare("DELETE FROM spokesperson_invitations"),
+      db.prepare("DELETE FROM admin_audit"),
+      db.prepare("DELETE FROM gamification_events"),
+      db.prepare("DELETE FROM login_attempts"),
+      db.prepare("DELETE FROM users"),
+    ]);
+    const admin = await db
+      .prepare(
+        "INSERT INTO users (handle, name, email, role) VALUES ('admin.journey', 'Admin', 'admin@journey.local', 'admin') RETURNING id",
+      )
+      .first<{ id: number }>();
+    adminCookie = `${COOKIE_NAME}=${await createSessionToken({
+      id: admin!.id,
+      handle: "admin.journey",
+      name: "Admin",
+      role: "admin",
+    })}`;
+  });
+  after(() => miniflare.dispose());
+
+  test("admin emite → cadastro resgata uma vez → perfil → acesso → admin confere", async () => {
+    const issued = await invite();
+    assert.equal(issued.link, `https://web.local/criar-conta?convite=${issued.token}`);
+    const response = await request("/auth/signup", { ...signup, invitation: issued.token });
+    assert.equal(response.status, 200);
+    const account = (await response.json()) as { id: number; role: string };
+    assert.equal(account.role, "spokesperson");
+    const cookie = cookieOf(response);
+    assert.match(cookie, new RegExp(`^${COOKIE_NAME}=`));
+    assert.equal((await request("/auth/session", undefined, cookie)).status, 200);
+    assert.equal((await request("/editor/profile", undefined, cookie)).status, 403);
+    assert.equal((await request("/admin/users", undefined, cookie)).status, 403);
+    assert.equal((await request("/spokesperson/profile", { name: "Voz" }, cookie)).status, 400);
+    assert.equal(
+      (
+        await request(
+          "/spokesperson/profile",
+          {
+            name: "Voz Oficial",
+            politicalOffice: "Vereador",
+            location: "Curitiba, PR",
+            candidateNumber: "5510",
+            campaignTaxId: "12.345.678/0001-90",
+          },
+          cookie,
+        )
+      ).status,
+      200,
+    );
+    const checked = await request(`/admin/users/${account.id}`, undefined, adminCookie);
+    assert.equal(checked.status, 200);
+    assert.equal(((await checked.json()) as { profileCompleted: boolean }).profileCompleted, true);
+    const repeated = await request("/auth/signup", { ...signup, invitation: issued.token });
+    assert.equal(repeated.status, 400);
+    assert.match(((await repeated.json()) as { error: string }).error, /já foi usado/);
+    assert.equal(
+      await db.prepare("SELECT count(*) AS n FROM users WHERE role = 'voz'").first("n"),
+      1,
+    );
+  });
+
+  test("convites inválidos, expirados, revogados e de outro e-mail não criam conta", async () => {
+    assert.equal(
+      (await request("/auth/signup", { ...signup, invitation: "invalido" })).status,
+      400,
+    );
+    const issued = await invite();
+    const wrongEmail = await request("/auth/signup", {
+      ...signup,
+      email: "outra@journey.local",
+      invitation: issued.token,
+    });
+    assert.match(((await wrongEmail.json()) as { error: string }).error, /outro e-mail/);
+    await db
+      .prepare(
+        "UPDATE spokesperson_invitations SET expires_at = '2000-01-01T00:00:00.000Z' WHERE id = ?",
+      )
+      .bind(issued.id)
+      .run();
+    const expired = await request("/auth/signup", { ...signup, invitation: issued.token });
+    assert.match(((await expired.json()) as { error: string }).error, /expirou/);
+    const replacement = await invite();
+    assert.equal(
+      (await request("/admin/invitations", { action: "revoke", id: replacement.id }, adminCookie))
+        .status,
+      200,
+    );
+    const revoked = await request("/auth/signup", { ...signup, invitation: replacement.token });
+    assert.match(((await revoked.json()) as { error: string }).error, /revogado/);
+    assert.equal(
+      await db.prepare("SELECT count(*) AS n FROM users WHERE role = 'voz'").first("n"),
+      0,
+    );
+  });
+
+  test("conflito de apelido preserva convite para nova tentativa", async () => {
+    const issued = await invite();
+    const conflict = await request("/auth/signup", {
+      ...signup,
+      handle: "admin.journey",
+      invitation: issued.token,
+    });
+    assert.equal(conflict.status, 409);
+    const retry = await request("/auth/signup", { ...signup, invitation: issued.token });
+    assert.equal(retry.status, 200);
+  });
+
+  test("Google recusa identidade sem prova, assinatura alterada e token expirado", async (t) => {
+    const token = await createPendingIdentity(identity);
+    for (const path of ["/auth/google/find", "/auth/google/register"]) {
+      for (const identityToken of [undefined, 123, `${token.slice(0, -3)}xxx`]) {
+        const response = await request(path, { ...identity, role: "editor", identityToken });
+        assert.equal(response.status, 401);
+        assert.equal(response.headers.get("set-cookie"), null);
+      }
+    }
+    t.mock.timers.enable({ apis: ["Date"], now: Date.now() + 11 * 60_000 });
+    for (const path of ["/auth/google/find", "/auth/google/register"]) {
+      assert.equal((await request(path, { identityToken: token, role: "editor" })).status, 401);
+    }
+    t.mock.timers.reset();
+    assert.equal(await db.prepare("SELECT count(*) AS n FROM users").first("n"), 1);
+  });
+
+  test("Google usa apenas a identidade assinada e mantém convite e papéis", async () => {
+    const identityToken = await createPendingIdentity(identity);
+    assert.equal((await request("/auth/google/find", { identityToken })).status, 200);
+    assert.equal(
+      (await request("/auth/google/register", { identityToken, role: "admin" })).status,
+      400,
+    );
+    assert.equal(
+      (await request("/auth/google/register", { identityToken, role: "spokesperson" })).status,
+      400,
+    );
+    const issued = await invite();
+    const response = await request("/auth/google/register", {
+      identityToken,
+      role: "spokesperson",
+      invitation: issued.token,
+      email: "forged@journey.local",
+      googleId: "forged",
+      name: "Falso",
+    });
+    assert.equal(response.status, 200);
+    const account = (await response.json()) as { email: string; name: string };
+    assert.equal(account.email, identity.email);
+    assert.equal(account.name, identity.name);
+    const found = await request("/auth/google/find", { identityToken });
+    assert.equal(found.status, 200);
+    await db.prepare("UPDATE users SET is_banned = 1 WHERE email = ?").bind(identity.email).run();
+    assert.equal((await request("/auth/google/find", { identityToken })).status, 403);
+  });
+
+  test("Google vincula conta por e-mail somente com identidade assinada", async () => {
+    await db
+      .prepare(
+        "INSERT INTO users (handle, name, email, role) VALUES ('editor.journey', 'Editor', ?, 'editor')",
+      )
+      .bind(identity.email)
+      .run();
+    const forged = await request("/auth/google/find", identity);
+    assert.equal(forged.status, 401);
+    assert.equal(
+      await db
+        .prepare("SELECT google_id FROM users WHERE email = ?")
+        .bind(identity.email)
+        .first("google_id"),
+      null,
+    );
+    const linked = await request("/auth/google/find", {
+      identityToken: await createPendingIdentity(identity),
+    });
+    assert.equal(linked.status, 200);
+    assert.equal(
+      await db
+        .prepare("SELECT google_id FROM users WHERE email = ?")
+        .bind(identity.email)
+        .first("google_id"),
+      identity.googleId,
+    );
+  });
+});
