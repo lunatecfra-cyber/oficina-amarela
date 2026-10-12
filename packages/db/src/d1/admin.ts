@@ -47,7 +47,7 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
         role: string;
         is_banned: number | boolean;
         profile_completed: number | boolean;
-        created_at: string;
+        created_at: string | null;
       }>();
 
       return (result.results ?? []).map((l) => {
@@ -60,13 +60,13 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
           role,
           isBanned: Boolean(l.is_banned),
           profileCompleted: Boolean(l.profile_completed),
-          createdAt: String(l.created_at),
+          createdAt: l.created_at ?? "",
           apelido: String(l.handle),
           nome: String(l.name),
           papel: role,
           banido: Boolean(l.is_banned),
           perfilCompleto: Boolean(l.profile_completed),
-          criadoEm: String(l.created_at),
+          criadoEm: l.created_at ?? "",
         };
       });
     },
@@ -92,7 +92,7 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
           role: string;
           is_banned: number | boolean;
           profile_completed: number | boolean;
-          created_at: string;
+          created_at: string | null;
           avatar_url: string | null;
           location: string | null;
           bio: string | null;
@@ -129,7 +129,7 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
         role,
         isBanned: Boolean(row.is_banned),
         profileCompleted: Boolean(row.profile_completed),
-        createdAt: String(row.created_at),
+        createdAt: row.created_at ?? "",
         avatarUrl: row.avatar_url ? String(row.avatar_url) : null,
         location: row.location ? String(row.location) : null,
         bio: row.bio ? String(row.bio) : null,
@@ -148,7 +148,7 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
         papel: role,
         banido: Boolean(row.is_banned),
         perfilCompleto: Boolean(row.profile_completed),
-        criadoEm: String(row.created_at),
+        criadoEm: row.created_at ?? "",
         fotoUrl: row.avatar_url ? String(row.avatar_url) : null,
         localizacao: row.location ? String(row.location) : null,
         entregues: Number(row.delivered_count ?? 0),

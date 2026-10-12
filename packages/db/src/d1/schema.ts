@@ -12,7 +12,7 @@ import type { D1DatabaseLike } from "./types.ts";
  * migração cria as tabelas, carrega o passado e só então liga os gatilhos.
  */
 
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -99,13 +99,9 @@ export async function applyD1Schema(db: D1DatabaseLike, schema: string): Promise
 export async function applyAllD1Migrations(db: D1DatabaseLike): Promise<void> {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const migrationsDir = path.resolve(here, "../../d1");
-  const files = [
-    "0001_mission_slice.sql",
-    "0002_electoral_compliance.sql",
-    "0003_rename_to_english.sql",
-    "0004_multiple_raw_videos.sql",
-    "0005_mixed_raw_media.sql",
-  ];
+  const files = (await readdir(migrationsDir))
+    .filter((file) => /^\d{4}_.*\.sql$/.test(file))
+    .sort();
   for (const file of files) {
     const content = await readFile(path.join(migrationsDir, file), "utf8");
     await applyD1Schema(db, content);

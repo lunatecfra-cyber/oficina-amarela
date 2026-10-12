@@ -19,7 +19,7 @@ describe("operações e consultas de missões na API", {
   const MARK = "%@missionscrud.local";
   let spokespersonId: number;
   let spokespersonCookie: string;
-  let _adminCookie: string;
+  let adminCookie: string;
 
   async function cleanup() {
     await sql`DELETE FROM ofertas WHERE pauta_id IN (
@@ -53,7 +53,7 @@ describe("operações e consultas de missões na API", {
       role: "spokesperson",
     })}`;
 
-    _adminCookie = `${COOKIE_NAME}=${await createSessionToken({
+    adminCookie = `${COOKIE_NAME}=${await createSessionToken({
       id: Number(adm.id),
       handle: "adm.crud",
       name: "Adm Crud",
@@ -97,7 +97,7 @@ describe("operações e consultas de missões na API", {
 
     const resDel = await app.request(`/missions/${missionId}`, {
       method: "DELETE",
-      headers: { cookie: spokespersonCookie },
+      headers: { cookie: adminCookie },
     });
     assert.equal(resDel.status, 200);
   });

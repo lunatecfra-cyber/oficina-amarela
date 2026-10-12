@@ -1,7 +1,7 @@
 # Cadastro, perfis e convites — execução de 12/10/2026
 
-Meta de negócio: 16/10. Status: código corrigido, testes locais aprovados e
-publicado em staging; aceite final da jornada pela interface ainda pendente.
+Meta de negócio: 16/10. Status: jornada funcional registrada abaixo concluída
+em staging; reconciliação dos critérios oficiais no Jira ONCA ainda indisponível.
 
 ## Entregue
 
@@ -57,25 +57,44 @@ Alvo: https://oficina-amarela-web-staging.casamarela.workers.dev
 - [Evidência do convite](convite-staging.jpg).
 - [Formulário preparado](cadastro-pendente-staging.jpg), sem clicar no aceite.
 
-## Pendências concretas
+## Retomada e aceite funcional
 
-O formulário declara aceite dos Termos de Uso e da Política de Privacidade.
-A política de confirmação do navegador exige aprovação no momento desse
-aceite; foi solicitada aprovação para a conta sintética. A aba permanece aberta.
-Ainda faltam o cadastro pela interface, onboarding e conferência administrativa
-desse novo usuário em staging. Não declarar a meta concluída antes disso.
+O usuário autorizou explicitamente o aceite dos termos apenas para
+`qs.1791818566.v@example.invalid` em staging. Pela interface foram concluídos
+cadastro por convite, as três etapas do onboarding, conferência administrativa
+do perfil completo e novo login por senha. [Perfil conferido](perfil-conferido-staging.jpg).
 
-Fixture pendente: inspetor `qs.1791818566.a` e convite destinado a
-`qs.1791818566.v@example.invalid`. Após o ensaio, remover somente as fixtures
-com esse prefixo e seus registros relacionados, preservando os dados existentes.
+A conferência revelou `Invalid Date`: `users.created_at` em staging é nullable
+e não tem DEFAULT. A migração `0008_user_created_at.sql`, aplicada somente em
+staging, data novas inserções sem preencher datas históricas desconhecidas.
+A API passa a devolver campo vazio para essas datas; a interface foi reconferida.
+O teste reproduz essa diferença de esquema e a reaplicação idempotente do patch.
+Os testes D1 agora descobrem todas as migrações, incluindo atribuições de missão.
+
+Verificação final: **253 testes aprovados**, typecheck de todos os workspaces,
+Biome nos seis arquivos TypeScript alterados e `git diff --check` aprovados.
+As suítes PostgreSQL continuam sem execução: o fallback ainda existe no código
+e em desenvolvimento local; staging e produção configuram o binding D1 e
+selecionam todos os repositórios D1. A ausência de PostgreSQL não bloqueia este
+aceite D1 e não constitui validação daquele adaptador.
+
+API staging final: `c92bfc9b-52de-4c1e-aea9-a7608f2477c7` (inclui as correções
+de acesso a missões descritas no [ciclo seguinte](missoes-atribuicao.md)).
+Web permanece na versão já registrada acima. Publicações usaram o checkout
+isolado anterior, com somente as correções de código copiadas; as alterações
+preexistentes de dependências, portas e auditoria foram preservadas.
+
+Fixtures em staging: inspetor `qs.1791818566.a` (id 83), porta-voz
+`qs.1791818566.v` (id 84), seu convite consumido e sua missão sintética.
+Limpeza depende de aprovação específica para exclusão externa; preservar
+todos os demais dados.
 
 A sondagem HTTP recebeu bloqueio Cloudflare 1010 antes da aplicação. Não houve
 tentativa de enfraquecer a proteção. A validação publicada seguiu pelo Chrome.
 Google OAuth real e entrega real de e-mail não foram executados.
 
-O Jira oficial ONCA redirecionou para verificação de e-mail e solicitação de
+O Jira oficial ONCA foi rechecado nesta retomada e redirecionou para verificação de e-mail e solicitação de
 acesso da conta conectada. Nenhuma issue foi lida, criada ou alterada. Não foi
 usado o Jira pessoal. Não atribuir aceite nem status Done sem reconciliar ONCA.
 
-Próximo passo: concluir e limpar o ensaio sintético após o aceite autorizado;
-em seguida, validar o fluxo existente de solicitações de vídeo e atribuição.
+O desenvolvimento já seguiu para a meta de 23/10: solicitações de vídeo e atribuição.

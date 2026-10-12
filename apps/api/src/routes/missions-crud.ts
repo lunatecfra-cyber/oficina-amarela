@@ -95,10 +95,18 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
     const mission = await dependencies.missions.getMissionById(id);
     if (!mission)
       return c.json({ error: "Missão não encontrada.", erro: "Missão não encontrada." }, 404);
+    const session = c.get("session");
+    if (
+      session.role !== "admin" &&
+      mission.spokespersonHandle !== session.handle &&
+      mission.reservedBy !== session.handle
+    ) {
+      return c.json({ error: "Você não participa desta missão." }, 403);
+    }
     return c.json(mission);
   });
 
-  routes.delete("/missions/:id", requireSession, async (c) => {
+  routes.delete("/missions/:id", requireAdmin, async (c) => {
     const id = Number(c.req.param("id").replace(/^db-/, ""));
     const result = await dependencies.missions.deleteMission(id);
     if (!result.ok) return c.json({ error: result.error, erro: result.error }, 400);

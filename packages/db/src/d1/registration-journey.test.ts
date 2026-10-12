@@ -5,6 +5,7 @@ import { after, before, beforeEach, describe, test } from "node:test";
 import { COOKIE_NAME, createPendingIdentity, createSessionToken } from "@oficina/auth/session";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createApp } from "../../../../apps/api/src/app.ts";
+import { runBackgroundTask } from "../../../../apps/api/src/background.ts";
 import { d1ApiDependencies } from "../../../../apps/api/src/dependencies.ts";
 import { clearSessionRevocationCache } from "../session-revocation.ts";
 import { applyAllD1Migrations } from "./schema.ts";
@@ -22,6 +23,7 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
   let db: Awaited<ReturnType<typeof miniflare.getD1Database>>;
   let app: ReturnType<typeof createApp>;
   let adminCookie: string;
+  let queueTasks: unknown[] = [];
   const identity = { googleId: "google-voz", email: "voz@journey.local", name: "Voz Teste" };
   const signup = {
     name: identity.name,
@@ -39,7 +41,14 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
         headers: { "content-type": "application/json", cookie },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       },
-      { DB: db },
+      {
+        DB: db,
+        BACKGROUND_QUEUE: {
+          async send(message) {
+            queueTasks.push(message);
+          },
+        },
+      },
     );
   const invite = async (email = identity.email) => {
     const response = await request("/admin/invitations", { email }, adminCookie);
@@ -55,7 +64,11 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
   });
   beforeEach(async () => {
     clearSessionRevocationCache();
+    queueTasks = [];
     await db.batch([
+      db.prepare("DELETE FROM offers"),
+      db.prepare("DELETE FROM missions"),
+      db.prepare("DELETE FROM email_queue"),
       db.prepare("DELETE FROM invitation_redemptions"),
       db.prepare("DELETE FROM spokesperson_invitations"),
       db.prepare("DELETE FROM admin_audit"),
@@ -76,6 +89,167 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
     })}`;
   });
   after(() => miniflare.dispose());
+
+  test("solicitação → fila → oferta exclusiva → aceite → atribuição persistida", async (t) => {
+    t.mock.method(globalThis, "fetch", async () => {
+      throw new Error("rede bloqueada no ensaio");
+    });
+    const issued = await invite();
+    const voiceCookie = cookieOf(
+      await request("/auth/signup", { ...signup, invitation: issued.token }),
+    );
+    const editor = await request("/auth/signup", {
+      ...signup,
+      role: "editor",
+      handle: "editor.mission",
+      email: "editor@example.invalid",
+    });
+    const editorId = ((await editor.json()) as { id: number }).id;
+    const editorCookie = cookieOf(editor);
+    assert.equal((await request("/editor/queue/next", undefined, editorCookie)).status, 204);
+    const created = await request(
+      "/missions",
+      {
+        title: "Vídeo de teste",
+        format: "short",
+        spokespersonId: editorId,
+        rawMedia: [{ url: "https://example.invalid/bruto.mp4", kind: "video" }],
+      },
+      voiceCookie,
+    );
+    assert.equal(created.status, 201);
+    const missionId = ((await created.json()) as { id: number }).id;
+    assert.deepEqual(queueTasks, [{ type: "mission-queue-sweep" }]);
+    await runBackgroundTask(
+      {
+        missionQueue: d1ApiDependencies(db as unknown as D1DatabaseLike).missionQueue,
+        async drainEmailQueue() {
+          throw new Error("despacho não deve drenar e-mail");
+        },
+      },
+      queueTasks[0],
+    );
+    const offered = await request("/editor/queue/next", undefined, editorCookie);
+    assert.equal(offered.status, 200);
+    assert.equal(
+      ((await offered.json()) as { mission: { id: string } }).mission.id,
+      `db-${missionId}`,
+    );
+    assert.equal(
+      (
+        await request(
+          "/editor/queue/next",
+          {
+            action: "accept",
+            missionId,
+          },
+          adminCookie,
+        )
+      ).status,
+      409,
+    );
+    assert.equal(
+      (
+        await request(
+          "/editor/queue/next",
+          {
+            action: "accept",
+            missionId,
+          },
+          editorCookie,
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request(
+          "/editor/queue/next",
+          {
+            action: "accept",
+            missionId,
+          },
+          editorCookie,
+        )
+      ).status,
+      409,
+    );
+    const active = await request("/editor/active-mission", undefined, editorCookie);
+    assert.equal(((await active.json()) as { id: string }).id, `db-${missionId}`);
+    assert.equal(
+      (await request(`/missions/view/${missionId}`, undefined, editorCookie)).status,
+      200,
+    );
+    assert.equal(
+      (await request(`/missions/view/${missionId}`, undefined, voiceCookie)).status,
+      200,
+    );
+    const assignment = await db
+      .prepare(
+        "SELECT editor_id FROM mission_assignments WHERE mission_id = ? AND ended_at IS NULL",
+      )
+      .bind(missionId)
+      .first<{ editor_id: number }>();
+    assert.equal(assignment?.editor_id, editorId);
+    const owner = await db
+      .prepare("SELECT spokesperson_id FROM missions WHERE id = ?")
+      .bind(missionId)
+      .first<{ spokesperson_id: number }>();
+    assert.notEqual(owner?.spokesperson_id, editorId);
+    assert.equal(
+      await db
+        .prepare("SELECT count(*) AS n FROM email_queue WHERE sent_at IS NOT NULL")
+        .first("n"),
+      0,
+    );
+  });
+
+  test("editor não apaga missão de outro usuário", async () => {
+    const editorCookie = cookieOf(await request("/auth/signup", { ...signup, role: "editor" }));
+    const created = await request(
+      "/missions",
+      { title: "Missão protegida", format: "short" },
+      adminCookie,
+    );
+    const missionId = ((await created.json()) as { id: number }).id;
+    const removed = await app.request(
+      `/missions/${missionId}`,
+      {
+        method: "DELETE",
+        headers: { cookie: editorCookie },
+      },
+      { DB: db },
+    );
+    assert.equal(removed.status, 403);
+    assert.ok(await db.prepare("SELECT id FROM missions WHERE id = ?").bind(missionId).first());
+    const adminRemoved = await app.request(
+      `/missions/${missionId}`,
+      {
+        method: "DELETE",
+        headers: { cookie: adminCookie },
+      },
+      { DB: db },
+    );
+    assert.equal(adminRemoved.status, 200);
+  });
+
+  test("detalhes da missão ficam restritos aos participantes e ao inspetor", async () => {
+    const editorCookie = cookieOf(await request("/auth/signup", { ...signup, role: "editor" }));
+    const created = await request(
+      "/missions",
+      { title: "Missão privada", format: "short", voterId: "123456789012" },
+      adminCookie,
+    );
+    const missionId = ((await created.json()) as { id: number }).id;
+    assert.equal(
+      (await request(`/missions/view/${missionId}`, undefined, editorCookie)).status,
+      403,
+    );
+    assert.equal(
+      (await request(`/missions/view/${missionId}`, undefined, adminCookie)).status,
+      200,
+    );
+  });
 
   test("admin emite → cadastro resgata uma vez → perfil → acesso → admin confere", async () => {
     const issued = await invite();
@@ -108,7 +282,9 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
     );
     const checked = await request(`/admin/users/${account.id}`, undefined, adminCookie);
     assert.equal(checked.status, 200);
-    assert.equal(((await checked.json()) as { profileCompleted: boolean }).profileCompleted, true);
+    const details = (await checked.json()) as { profileCompleted: boolean; createdAt: string };
+    assert.equal(details.profileCompleted, true);
+    assert.ok(Number.isFinite(Date.parse(details.createdAt)));
     const repeated = await request("/auth/signup", { ...signup, invitation: issued.token });
     assert.equal(repeated.status, 400);
     assert.match(((await repeated.json()) as { error: string }).error, /já foi usado/);
