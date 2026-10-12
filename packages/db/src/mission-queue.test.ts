@@ -88,11 +88,11 @@ describe("concorrência da fila de missões", { skip }, async () => {
     spokespersonId = spokesperson.id;
 
     const editors = await sql`
-      INSERT INTO users (apelido, nome, email, papel, ultimo_visto_em)
+      INSERT INTO users (apelido, nome, email, papel, ultimo_visto_em, perfil_completo)
       VALUES
-        ('editor.um', 'Editor Um', 'um@teste.local', 'editor', now()),
-        ('editor.dois', 'Editor Dois', 'dois@teste.local', 'editor', now()),
-        ('editor.tres', 'Editor Tres', 'tres@teste.local', 'editor', now())
+        ('editor.um', 'Editor Um', 'um@teste.local', 'editor', now(), true),
+        ('editor.dois', 'Editor Dois', 'dois@teste.local', 'editor', now(), true),
+        ('editor.tres', 'Editor Tres', 'tres@teste.local', 'editor', now(), true)
       RETURNING id
     `;
     editorIds = editors.map((e) => e.id as number);

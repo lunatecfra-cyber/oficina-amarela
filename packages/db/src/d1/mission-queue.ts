@@ -58,6 +58,7 @@ async function nextEligibleEditor(
       `SELECT u.id
        FROM users u
        WHERE u.role = 'editor'
+         AND u.is_banned = 0 AND u.profile_completed = 1
          AND u.last_seen_at > ?
          AND (u.reservations_locked_until IS NULL OR u.reservations_locked_until <= ?)
          AND (
@@ -142,9 +143,12 @@ export function createD1MissionQueue(
             `UPDATE offers
              SET status = 'aceita', answered_at = ?
              WHERE mission_id = ? AND editor_id = ?
-               AND status = 'pendente' AND expires_at > ?`,
+               AND status = 'pendente' AND expires_at > ?
+               AND EXISTS (SELECT 1 FROM users u WHERE u.id = offers.editor_id
+                 AND u.role = 'editor' AND u.is_banned = 0 AND u.profile_completed = 1
+                 AND (u.reservations_locked_until IS NULL OR u.reservations_locked_until <= ?))`,
           )
-          .bind(nowIso, missionId, editorId, nowIso)
+          .bind(nowIso, missionId, editorId, nowIso, nowIso)
           .run();
         return result.meta.changes > 0 ? { ok: true } : failure("offer_invalid");
       } catch (error) {

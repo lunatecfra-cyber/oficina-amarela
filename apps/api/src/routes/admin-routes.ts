@@ -144,9 +144,11 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
     return c.json(notifications);
   });
 
-  routes.post("/queue/move", async (c) => {
+  routes.on("POST", ["/queue", "/queue/move"], async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-    const missionId = Number(body?.missionId ?? body?.pautaId);
+    const missionId = Number(body?.missionId ?? body?.pautaId ?? body?.id);
+    if (!Number.isInteger(missionId) || missionId <= 0)
+      return c.json({ error: "Missão inválida." }, 400);
     const movement = (body?.movement ?? body?.movimento ?? "subir") as any;
     const result = await dependencies.admin.moveInQueue(missionId, movement);
     if (!result.ok) return c.json({ error: result.error, erro: result.error }, 400);

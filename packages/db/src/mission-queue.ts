@@ -86,6 +86,7 @@ async function nextEligibleEditor(
     SELECT u.id
     FROM users u, agora a
     WHERE u.papel = 'editor'
+      AND NOT u.banido AND u.perfil_completo
       AND u.ultimo_visto_em > now() - (${PRESENCE_MINUTES} || ' minutes')::interval
       AND (u.travado_reservas_ate IS NULL OR u.travado_reservas_ate <= now())
       AND (
@@ -169,6 +170,9 @@ export const postgresMissionQueue: MissionQueueRepository = {
             reservada_em = now()
         WHERE p.id = ${missionId}
           AND p.status = 'oferecida'
+          AND EXISTS (SELECT 1 FROM users u WHERE u.id = ${editorId}
+            AND u.papel = 'editor' AND NOT u.banido AND u.perfil_completo
+            AND (u.travado_reservas_ate IS NULL OR u.travado_reservas_ate <= now()))
           AND EXISTS (
             SELECT 1 FROM ofertas o
             WHERE o.pauta_id = p.id AND o.editor_id = ${editorId}

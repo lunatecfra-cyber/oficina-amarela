@@ -90,6 +90,22 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
   });
   after(() => miniflare.dispose());
 
+  test("inspetor prioriza a missão pelo contrato usado no panorama", async () => {
+    const first = await request("/missions", { title: "Primeira", format: "short" }, adminCookie);
+    assert.equal(first.status, 201);
+    const second = await request("/missions", { title: "Segunda", format: "short" }, adminCookie);
+    const id = ((await second.json()) as { id: number }).id;
+    assert.equal((await request("/admin/queue", { id, movement: "top" }, adminCookie)).status, 200);
+    const listed = (await (await request("/admin/queue", undefined, adminCookie)).json()) as {
+      queue: { id: number }[];
+    };
+    assert.equal(listed.queue[0].id, id);
+    assert.equal(
+      (await request("/admin/queue", { id: "invalid", movement: "top" }, adminCookie)).status,
+      400,
+    );
+  });
+
   test("solicitação → fila → oferta exclusiva → aceite → atribuição persistida", async (t) => {
     t.mock.method(globalThis, "fetch", async () => {
       throw new Error("rede bloqueada no ensaio");
@@ -106,6 +122,7 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
     });
     const editorId = ((await editor.json()) as { id: number }).id;
     const editorCookie = cookieOf(editor);
+    await db.prepare("UPDATE users SET profile_completed = 1 WHERE id = ?").bind(editorId).run();
     assert.equal((await request("/editor/queue/next", undefined, editorCookie)).status, 204);
     const created = await request(
       "/missions",

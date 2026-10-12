@@ -115,6 +115,7 @@ export function instrumentD1Database(
     options?.onQuery?.(metric);
   }
 
+  const rawStatements = new WeakMap<D1PreparedStatementLike, D1PreparedStatementLike>();
   const instrumented: D1DatabaseLike = {
     prepare(query: string) {
       const stmt = db.prepare(query);
@@ -127,7 +128,9 @@ export function instrumentD1Database(
       }
       const start = performance.now();
       try {
-        const results = await db.batch<T>(statements);
+        const results = await db.batch<T>(
+          statements.map((statement) => rawStatements.get(statement) ?? statement),
+        );
         const durationMs = Number((performance.now() - start).toFixed(2));
 
         let totalRowsRead = 0;
@@ -170,7 +173,7 @@ export function instrumentD1Database(
   Object.defineProperty(instrumented, "__instrumented", { value: true, enumerable: false });
 
   function wrapStatement(stmt: D1PreparedStatementLike, query: string): D1PreparedStatementLike {
-    return {
+    const wrapped: D1PreparedStatementLike = {
       bind(...values: unknown[]) {
         const boundStmt = stmt.bind(...values);
         return wrapStatement(boundStmt, query);
@@ -265,6 +268,8 @@ export function instrumentD1Database(
         }
       },
     };
+    rawStatements.set(wrapped, stmt);
+    return wrapped;
   }
 
   return instrumented;

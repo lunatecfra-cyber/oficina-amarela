@@ -45,8 +45,8 @@ describe("paridade local D1 da fila de missões", () => {
     for (let index = 1; index <= 3; index++) {
       const editor = await db
         .prepare(
-          `INSERT INTO users (handle, name, email, role, last_seen_at)
-           VALUES (?, ?, ?, 'editor', ?) RETURNING id`,
+          `INSERT INTO users (handle, name, email, role, last_seen_at, profile_completed)
+           VALUES (?, ?, ?, 'editor', ?, 1) RETURNING id`,
         )
         .bind(
           `editor.fila.d1.${index}`,
@@ -60,6 +60,45 @@ describe("paridade local D1 da fila de missões", () => {
   });
 
   after(() => miniflare.dispose());
+
+  test("não oferece a editor suspenso, com perfil incompleto ou bloqueado", async () => {
+    await db.prepare("UPDATE users SET is_banned = 1 WHERE id = ?").bind(editorIds[0]).run();
+    await db
+      .prepare("UPDATE users SET profile_completed = 0 WHERE id = ?")
+      .bind(editorIds[1])
+      .run();
+    await db
+      .prepare("UPDATE users SET reservations_locked_until = ? WHERE id = ?")
+      .bind("2099-01-01T00:00:00.000Z", editorIds[2])
+      .run();
+    const missionId = await createMission();
+    assert.equal(await queue.dispatchOffers(), 0);
+    assert.equal((await missionState(missionId))?.status, "disponivel");
+    await db
+      .prepare("UPDATE users SET profile_completed = 1 WHERE id = ?")
+      .bind(editorIds[1])
+      .run();
+    assert.equal(await queue.dispatchOffers(), 1);
+    assert.ok(await queue.pendingOfferFor(editorIds[1]));
+  });
+
+  test("oferta não pode ser aceita depois de suspensão, bloqueio ou perda de elegibilidade", async () => {
+    for (const change of [
+      "is_banned = 1",
+      "profile_completed = 0",
+      "reservations_locked_until = '2099-01-01T00:00:00.000Z'",
+    ]) {
+      const missionId = await createMission();
+      const editorId = editorIds.pop()!;
+      await createOffer(missionId, editorId);
+      await db.prepare(`UPDATE users SET ${change} WHERE id = ?`).bind(editorId).run();
+      assert.deepEqual(await queue.acceptOffer(missionId, editorId), {
+        ok: false,
+        reason: "offer_invalid",
+      });
+      assert.equal((await missionState(missionId))?.reserved_by_id, null);
+    }
+  });
 
   async function createMission(status = "disponivel", reservedBy: number | null = null) {
     const mission = await db

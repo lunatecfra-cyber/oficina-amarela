@@ -41,8 +41,8 @@ export async function getSystemOverview(): Promise<SystemOverview> {
 }
 
 export async function getEditingQueue(): Promise<QueueItem[]> {
-  const data = await fetchApiJson<QueueItem[]>("/admin/queue");
-  return data ?? [];
+  const data = await fetchApiJson<{ queue: QueueItem[] }>("/admin/queue");
+  return data?.queue ?? [];
 }
 
 export async function getMissionsInFlight(): Promise<MissionInFlight[]> {

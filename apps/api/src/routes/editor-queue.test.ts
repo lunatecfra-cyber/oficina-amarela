@@ -57,8 +57,8 @@ describe("fila do editor na API", { skip }, () => {
     spokespersonId = voz.id;
 
     const [editor] = await sql`
-      INSERT INTO users (apelido, nome, email, papel, ultimo_visto_em, sessoes_validas_apos)
-      VALUES ('editor.api', 'Editor API', 'editor.api@teste.local', 'editor', now(), '1970-01-01 00:00:00+00')
+      INSERT INTO users (apelido, nome, email, papel, ultimo_visto_em, sessoes_validas_apos, perfil_completo)
+      VALUES ('editor.api', 'Editor API', 'editor.api@teste.local', 'editor', now(), '1970-01-01 00:00:00+00', true)
       RETURNING id
     `;
     editorId = editor.id;
