@@ -67,7 +67,7 @@ export function SelectLocation({
       <div>
         <label
           htmlFor="estado-uf"
-          className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+          className="mb-2 block text-xs font-medium uppercase tracking-[0.1em] text-muted"
         >
           {effectiveLabelState}
         </label>
@@ -84,7 +84,7 @@ export function SelectLocation({
       <div>
         <label
           htmlFor="cidade-nome"
-          className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+          className="mb-2 block text-xs font-medium uppercase tracking-[0.1em] text-muted"
         >
           {effectiveLabelCity}
         </label>

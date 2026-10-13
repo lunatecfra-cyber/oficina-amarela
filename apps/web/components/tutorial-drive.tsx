@@ -6,6 +6,7 @@ import {
   type TutorialType,
   VIDEOS,
 } from "@oficina/domain/tutorials";
+import { Play } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GuideDemo } from "@/components/guide-demo";
@@ -235,9 +236,9 @@ export function TutorialButton({
     >
       <span
         aria-hidden="true"
-        className="grid h-[18px] w-[18px] place-items-center rounded-full border border-gold/30 bg-gold/15 text-[8px]"
+        className="grid h-[18px] w-[18px] place-items-center rounded-full border border-gold/30 bg-gold/15 text-gold-hi"
       >
-        ▶
+        <Play className="h-2 w-2" fill="currentColor" aria-hidden="true" />
       </span>
       {label}
     </button>

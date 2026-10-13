@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -121,22 +122,28 @@ export function MissionActions({
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row" data-guia="aprovar-missao">
             <button
-              className="btn-gold sm:flex-1"
+              className="btn-gold gap-2 sm:flex-1"
               onClick={() => send("accept")}
               disabled={processingAction !== null || effectiveInReview}
             >
-              {processingAction === "accept"
-                ? "Fechando…"
-                : effectiveInReview
-                  ? "Aguardando fiscalização"
-                  : "✅ Aceitar e postar"}
+              {processingAction === "accept" ? (
+                "Fechando…"
+              ) : effectiveInReview ? (
+                "Aguardando fiscalização"
+              ) : (
+                <>
+                  <Check className="h-4 w-4 flex-none" aria-hidden="true" />
+                  Aceitar e postar
+                </>
+              )}
             </button>
             <button
-              className="btn-ghost sm:w-48"
+              className="btn-ghost gap-2 sm:w-48"
               onClick={() => setIsOpeningRevision(true)}
               disabled={processingAction !== null}
             >
-              💬 Pedir ajuste
+              <MessageCircle className="h-4 w-4 flex-none" aria-hidden="true" />
+              Pedir ajuste
             </button>
           </div>
         </>

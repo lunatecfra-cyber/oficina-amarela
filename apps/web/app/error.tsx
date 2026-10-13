@@ -1,6 +1,7 @@
 "use client";
 
 import * as Sentry from "@sentry/nextjs";
+import { TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -19,8 +20,8 @@ export default function ErrorPage({
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-20">
       <div className="w-full max-w-md text-center">
-        <span className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-danger/40 bg-danger/[0.07] text-2xl">
-          ⚠️
+        <span className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-danger/40 bg-danger/[0.07]">
+          <TriangleAlert className="h-6 w-6 text-danger" aria-hidden="true" />
         </span>
 
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text">

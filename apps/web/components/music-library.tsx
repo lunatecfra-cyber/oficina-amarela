@@ -1,5 +1,6 @@
 "use client";
 
+import { Music as MusicIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface Music {
@@ -88,8 +89,9 @@ export function MusicLibrary() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
-          🎵 Músicas
+        <h1 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
+          <MusicIcon className="h-6 w-6 flex-none text-gold" aria-hidden="true" />
+          Músicas
         </h1>
         <p className="mt-1 text-sm text-muted">
           Biblioteca compartilhada da guilda. Upload, tags e player embutido.

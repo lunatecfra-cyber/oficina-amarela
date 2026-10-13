@@ -156,12 +156,14 @@ export function LocalGuide() {
         type="button"
         onClick={open}
         aria-label={`Como usar: ${scriptTitle}`}
-        className="flex min-h-11 flex-none items-center gap-1.5 rounded-full border border-line px-2.5 text-xs font-medium text-muted transition-colors hover:border-gold-lo/60 hover:text-gold-hi sm:px-3"
+        className="flex min-h-11 flex-none items-center gap-1.5 rounded-full border border-line px-2.5 text-xs font-medium text-muted transition-colors hover:border-gold-lo/60 hover:text-gold-hi lg:px-3"
       >
         <span aria-hidden="true" className="text-sm leading-none">
           ?
         </span>
-        <span className="hidden sm:inline">Como usar</span>
+        {/* Rótulo só em `lg+`: em 768–1024px cada pixel horizontal conta e o
+            "?" sozinho já carrega o sentido ao lado do nível/SAIR. */}
+        <span className="hidden lg:inline">Como usar</span>
       </button>
 
       {isOpen &&

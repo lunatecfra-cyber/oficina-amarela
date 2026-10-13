@@ -1,3 +1,4 @@
+import { GraduationCap } from "lucide-react";
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
 import { requireSession } from "@/lib/server-session";
@@ -31,8 +32,8 @@ export default async function LessonsPage() {
               aria-hidden="true"
             />
             <div className="px-6 py-14 text-center lg:py-20">
-              <span className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-gold-lo/40 bg-gold/[0.06] text-2xl">
-                🎓
+              <span className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-gold-lo/40 bg-gold/[0.06]">
+                <GraduationCap className="h-6 w-6 text-gold" aria-hidden="true" />
               </span>
               <p className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
                 Em breve

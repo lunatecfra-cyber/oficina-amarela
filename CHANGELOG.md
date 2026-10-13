@@ -7,6 +7,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.5.0] - 2026-10-13
+
+### Adicionado
+- Biblioteca de ícones Lucide no web (`lucide-react`), com o módulo `EmojiIcon`/`EmojiLead`: a interface troca emojis por ícones sem mudar nenhum dado guardado (conquistas, setup, status de missão, grupos de ferramentas).
+- Contadores ao vivo nas especialidades e no estilo do montar-perfil, grupos de especialidade recolhíveis e teto visível da bio (600 caracteres, o mesmo do servidor).
+
+### Modificado
+- Cabeçalho do editor: navegação inline só em `xl+`, apelido só em `2xl` e largura máxima maior — fim da sobreposição da pílula "Como usar" sobre a aba Parceiros.
+- Formulário montar-perfil: erro colado no botão que o causou, abas com a mesma validação do Avançar, alvos de toque de 44px, campos de URL com teclado certo e relevo nos cards da área do editor.
+
+### Corrigido
+- "Na guilda desde janeiro de 1970" virou "recém-chegado à guilda" quando a data é o fallback de época.
+- Iniciais ilegíveis no avatar do formulário (quase pretas sobre fundo quase preto) e HTML inválido nos stats do perfil.
+
 ## [0.4.0] - 2026-09-11
 
 ### Adicionado

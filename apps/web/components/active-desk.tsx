@@ -3,6 +3,7 @@
 import { FORMAT_LABEL } from "@oficina/domain/missions";
 import type { TaskOnDesk } from "@oficina/domain/schedule";
 import { isDriveUrl, isYouTubeUrl } from "@oficina/domain/validators";
+import { CalendarClock, FolderOpen, Play, Timer } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -23,7 +24,7 @@ function urgencyColor(ms: number) {
 
 function Chip({ k, v }: { k: string; v: string }) {
   return (
-    <span className="rounded-md border border-line-soft bg-surface px-2 py-0.5 text-[11px] text-muted">
+    <span className="rounded-md border border-line-soft bg-surface px-2 py-0.5 text-xs text-muted">
       <span className="text-muted-2">{k}:</span> {v}
     </span>
   );
@@ -83,9 +84,7 @@ export function ActiveDesk({
           return (
             <li key={t.id} className="flex items-center gap-3">
               <span className="grid h-8 w-8 flex-none place-items-center rounded-lg border border-line bg-ink-2 text-gold">
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
+                <Play className="h-4 w-4" fill="currentColor" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-text">{title}</p>
@@ -178,16 +177,18 @@ export function ActiveDesk({
 
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               {remainingMs !== null && (
-                <span>
+                <span className="inline-flex items-center gap-1">
                   <span className="text-muted-2">Prazo: </span>
-                  <span className={urgencyColor(remainingMs)}>
-                    ⏳ {fmtRemaining(remainingMs)} restantes
+                  <span className={`inline-flex items-center gap-1 ${urgencyColor(remainingMs)}`}>
+                    <Timer className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                    {fmtRemaining(remainingMs)} restantes
                   </span>
                 </span>
               )}
               {desiredDeadline && (
-                <span className="text-xs text-muted-2">
-                  ⏰ Desejado:{" "}
+                <span className="inline-flex items-center gap-1 text-xs text-muted-2">
+                  <CalendarClock className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                  Desejado:{" "}
                   {new Date(desiredDeadline).toLocaleDateString("pt-BR", {
                     day: "2-digit",
                     month: "short",
@@ -205,7 +206,8 @@ export function ActiveDesk({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
                 >
-                  📁 Abrir bruto no Drive
+                  <FolderOpen className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                  Abrir bruto no Drive
                 </a>
               )}
               {youtubeLink && isYouTubeUrl(youtubeLink) && (
@@ -215,7 +217,8 @@ export function ActiveDesk({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
                 >
-                  ▶ Abrir no YouTube
+                  <Play className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                  Abrir no YouTube
                 </a>
               )}
               <Link

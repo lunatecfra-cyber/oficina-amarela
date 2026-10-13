@@ -10,6 +10,7 @@ import {
 } from "@oficina/domain/missions";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { EmojiLead } from "@/components/emoji-icon";
 import { EmptyState } from "@/components/empty-state";
 import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 import { MissionCounters } from "@/components/mission-counters";
@@ -185,7 +186,9 @@ export default async function SpokespersonHome() {
                     )}
                   </div>
 
-                  <p className={`mt-1.5 text-sm font-medium ${msg.color}`}>{msg.text}</p>
+                  <p className={`mt-1.5 text-sm font-medium ${msg.color}`}>
+                    <EmojiLead text={msg.text} />
+                  </p>
 
                   <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-2">
                     <span>{FORMAT_LABEL[format as keyof typeof FORMAT_LABEL] ?? format}</span>

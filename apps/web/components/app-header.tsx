@@ -43,26 +43,35 @@ export async function AppHeader() {
 
   return (
     <header className="border-b border-line-soft">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-8">
-        <div className="flex min-w-0 items-center gap-6">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:px-5 sm:py-4 lg:gap-4 lg:px-8">
+        <div className="flex min-w-0 items-center gap-3 xl:gap-5">
           <Link href="/editor" className="flex min-h-11 flex-none items-center gap-2.5 lg:gap-3">
             <BrandMark />
           </Link>
 
-          <div className="hidden sm:block">
+          {/* Inline só em `xl+`: as abas são `flex-none` + `whitespace-nowrap`
+              e NÃO encolhem — quando a linha estourava, o "Parceiros" vazava da
+              caixa e pintava por baixo da pílula "Como usar" (que vem depois
+              no DOM). Medido: marca larga + 6 abas + guia + usuário + nível +
+              SAIR passam de 1150px; no max-w-7xl com o apelido escondido até
+              `2xl`, a conta fecha em 1280px. Abaixo de `xl` o nav vive na
+              segunda linha (ver abaixo). */}
+          <div className="hidden min-w-0 xl:block">
             <EditorNav />
           </div>
         </div>
 
-        <div className="flex flex-none items-center gap-2 sm:gap-4">
+        <div className="flex flex-none items-center gap-1.5 sm:gap-3">
           <LocalGuide />
 
+          {/* O apelido é o item mais comprido e o menos importante da linha:
+              só aparece em `2xl`, onde há folga de verdade. */}
           <Link
             href="/perfil"
-            className="hidden text-right transition-opacity hover:opacity-80 sm:block"
+            className="hidden max-w-44 truncate text-right transition-opacity hover:opacity-80 2xl:block"
           >
-            <p className="text-sm font-medium text-text">{editor.handle}</p>
-            <p className="text-xs text-muted">
+            <p className="truncate text-sm font-medium text-text">{editor.handle}</p>
+            <p className="truncate text-xs text-muted">
               {editor.deliveredCount} entregues
               {editor.rating !== null && ` · nota ${editor.rating}`}
             </p>
@@ -79,10 +88,10 @@ export async function AppHeader() {
         </div>
       </div>
 
-      {/* Segunda linha, só no celular: a navegação com espaço pra respirar.
+      {/* Segunda linha, só abaixo de `xl`: a navegação com espaço pra respirar.
           O padding lateral acompanha o da linha de cima (px-4) — com px-2 as
           abas começavam 8px antes da logo e o cabeçalho lia torto. */}
-      <div className="border-t border-line-soft px-4 pb-1 sm:hidden">
+      <div className="border-t border-line-soft px-4 pb-1 xl:hidden">
         <EditorNav />
       </div>
     </header>

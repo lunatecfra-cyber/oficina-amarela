@@ -1,6 +1,7 @@
 "use client";
 
 import { DEFAULT_TINT, initials } from "@oficina/domain/candidates";
+import { LIMITS } from "@oficina/domain/limits";
 import {
   EDITING_LEVELS,
   EDITING_STYLES,
@@ -12,8 +13,10 @@ import {
   PC_SETUPS,
   SOFTWARE_TOOLS,
 } from "@oficina/domain/profile";
+import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { EmojiLead } from "@/components/emoji-icon";
 import { SelectLocation } from "@/components/select-location";
 import { onlyDigits, WhatsappField } from "@/components/whatsapp-field";
 import { compressPhoto } from "@/lib/compress-photo";
@@ -123,6 +126,19 @@ export function CreateEditorProfileForm({
   const [headline, setHeadline] = useState<string[]>(data.headline ?? []);
   const [bio, setBio] = useState(data.bio ?? "");
 
+  /* Grupos recolhíveis: cinco grupos abertos de uma vez eram uma parede de
+     chips. Abre o primeiro + quem já tem escolha — o resto espera dobrado,
+     com o contador dizendo onde estão suas marcas. */
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const initialHeadline: string[] = data.headline ?? [];
+    const init: Record<string, boolean> = {};
+    HEADLINES.forEach((group, gi) => {
+      const category = group.category ?? (group as any).categoria;
+      init[category] = gi === 0 || group.tags.some((t) => initialHeadline.includes(t));
+    });
+    return init;
+  });
+
   const [editingLevel, setEditingLevel] = useState(
     data.editingLevel ?? (data as any).nivelEdicao ?? "",
   );
@@ -182,8 +198,12 @@ export function CreateEditorProfileForm({
   const stepNumber = stepIndex + 1;
   const progress = Math.round((stepNumber / TABS.length) * 100);
 
-  function advanceTo(t: Tab) {
-    if (activeTab === "identity" && !name.trim()) {
+  /* Ir pra uma etapa: avançar a partir da identidade exige o nome; voltar
+     nunca bloqueia. Antes, o "Avançar" validava mas as abas pulavam direto —
+     o mesmo gesto com duas regras. */
+  function goTo(t: Tab) {
+    const order = TABS.map((a) => a.key);
+    if (order.indexOf(t) > order.indexOf(activeTab) && activeTab === "identity" && !name.trim()) {
       setError("Precisa do seu nome pra continuar.");
       return;
     }
@@ -247,19 +267,32 @@ export function CreateEditorProfileForm({
         </span>
         <span>{progress}%</span>
       </div>
-      <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-line">
+      <div
+        role="progressbar"
+        aria-label={`Etapa ${stepNumber} de ${TABS.length}`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress}
+        className="mb-6 h-1.5 overflow-hidden rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/10"
+      >
         <div
-          className="h-full rounded-full bg-gradient-to-r from-gold-lo to-gold-hi transition-all duration-300"
+          className="h-full rounded-full bg-gradient-to-r from-gold-lo to-gold-hi shadow-[0_0_12px_rgba(244,206,31,0.35)] transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      <div className="mb-6 flex items-center gap-1 rounded-xl border border-line bg-surface-2 p-1">
+      <div
+        className="mb-6 flex items-center gap-1 rounded-xl border border-line bg-surface-2 p-1"
+        role="tablist"
+        aria-label="Etapas do perfil"
+      >
         {TABS.map((a) => (
           <button
             key={a.key}
             type="button"
-            onClick={() => setActiveTab(a.key)}
+            role="tab"
+            aria-selected={activeTab === a.key}
+            onClick={() => goTo(a.key)}
             className={`min-h-11 flex-1 rounded-lg px-1.5 py-2 text-xs font-medium leading-tight transition-colors sm:px-3 sm:text-sm ${
               activeTab === a.key ? "bg-gold/10 text-gold-hi" : "text-muted hover:text-text"
             }`}
@@ -268,12 +301,6 @@ export function CreateEditorProfileForm({
           </button>
         ))}
       </div>
-
-      {error && (
-        <p role="alert" className="mb-5 text-sm text-danger">
-          {error}
-        </p>
-      )}
 
       {activeTab === "identity" && (
         <section className="reveal flex flex-col gap-8">
@@ -291,6 +318,7 @@ export function CreateEditorProfileForm({
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
+                  aria-label={photo ? "Trocar foto de perfil" : "Enviar foto de perfil"}
                   className="group relative grid h-28 w-28 place-items-center overflow-hidden rounded-2xl border border-dashed border-line bg-surface transition-colors hover:border-gold/50"
                 >
                   {photo ? (
@@ -298,7 +326,7 @@ export function CreateEditorProfileForm({
                     <img src={photo} alt="Sua foto" className="h-full w-full object-cover" />
                   ) : (
                     <span
-                      className="grid h-full w-full place-items-center font-[family-name:var(--font-display)] text-3xl font-semibold text-black/80"
+                      className="grid h-full w-full place-items-center font-[family-name:var(--font-display)] text-3xl font-semibold text-gold"
                       style={{ background: DEFAULT_TINT }}
                     >
                       {initials(name || (data.name ?? (data as any).nome ?? ""))}
@@ -319,7 +347,7 @@ export function CreateEditorProfileForm({
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={isProcessingPhoto}
-                  className="mt-2 text-xs font-medium text-gold-hi hover:underline disabled:opacity-60"
+                  className="mt-2 inline-flex min-h-11 items-center px-1 text-xs font-medium text-gold-hi hover:underline disabled:opacity-60"
                 >
                   {isProcessingPhoto
                     ? "Preparando…"
@@ -329,10 +357,7 @@ export function CreateEditorProfileForm({
                 </button>
 
                 {photoError && (
-                  <p
-                    role="alert"
-                    className="mt-2 max-w-[11rem] text-center text-[11px] text-danger"
-                  >
+                  <p role="alert" className="mt-2 max-w-[11rem] text-center text-xs text-danger">
                     {photoError}
                   </p>
                 )}
@@ -340,7 +365,7 @@ export function CreateEditorProfileForm({
                   <button
                     type="button"
                     onClick={() => setPhoto(undefined)}
-                    className="mt-1 text-[11px] text-muted-2 hover:text-muted"
+                    className="inline-flex min-h-11 items-center px-1 text-xs text-muted-2 hover:text-muted"
                   >
                     Pular por agora (usar iniciais)
                   </button>
@@ -350,7 +375,7 @@ export function CreateEditorProfileForm({
               <div className="w-full flex-1">
                 <label
                   htmlFor="name"
-                  className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
+                  className="mb-2 block text-xs font-medium uppercase tracking-[0.1em] text-muted"
                 >
                   Nome
                 </label>
@@ -358,6 +383,7 @@ export function CreateEditorProfileForm({
                   id="name"
                   className="field-input !pl-4"
                   placeholder="Seu nome"
+                  maxLength={LIMITS.name}
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value);
@@ -377,71 +403,127 @@ export function CreateEditorProfileForm({
             </div>
 
             <div className="mt-4">
-              <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-                Especialidades
-              </label>
+              {/* Contador ao vivo: "Até 5" sozinho não diz onde você está, e a
+                  pessoa só descobria o teto quando os botões apagavam. O
+                  role="status" anuncia a mudança sem roubar o foco. */}
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <label className="text-xs font-medium uppercase tracking-[0.1em] text-muted">
+                  Especialidades
+                </label>
+                <span role="status" className="text-xs tabular-nums text-muted-2">
+                  {headline.length}/{MAX_HEADLINES}
+                </span>
+              </div>
               <p className="mb-2 text-xs text-muted-2">
-                Até {MAX_HEADLINES}. É o que casa você com o porta-voz na hora do match.
+                É o que casa você com o porta-voz na hora do match.
               </p>
-              <div className="flex flex-col gap-3">
-                {HEADLINES.map((group) => {
+              <div className="flex flex-col gap-2">
+                {HEADLINES.map((group, gi) => {
                   const category = group.category ?? (group as any).categoria;
+                  const picked = group.tags.filter((h) => headline.includes(h)).length;
+                  const open = openGroups[category] ?? gi === 0;
                   return (
-                    <div key={category}>
-                      <p className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-2">
-                        {category}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {group.tags.map((h) => {
-                          const active = headline.includes(h);
-                          const blocked = !active && headline.length >= MAX_HEADLINES;
-                          return (
-                            <button
-                              key={h}
-                              type="button"
-                              onClick={() => {
-                                toggleHeadline(h);
-                                setError("");
-                              }}
-                              disabled={blocked}
-                              aria-pressed={active}
-                              className={chip(active, blocked)}
-                            >
-                              {h}
-                            </button>
-                          );
-                        })}
-                      </div>
+                    <div
+                      key={category}
+                      className={`overflow-hidden rounded-xl border transition-colors ${
+                        open ? "border-line bg-surface/40" : "border-line-soft"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setOpenGroups((o) => ({ ...o, [category]: !open }))}
+                        aria-expanded={open}
+                        className="flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left"
+                      >
+                        <span className="flex-1 text-xs font-medium uppercase tracking-[0.08em] text-muted-2">
+                          {category}
+                        </span>
+                        {picked > 0 && (
+                          <span className="rounded-full bg-gold/15 px-2 py-0.5 text-xs font-semibold tabular-nums text-gold-hi">
+                            {picked}
+                          </span>
+                        )}
+                        <ChevronDown
+                          className={`h-4 w-4 flex-none text-muted-2 transition-transform duration-200 ${
+                            open ? "rotate-180" : ""
+                          }`}
+                          aria-hidden="true"
+                        />
+                      </button>
+                      {open && (
+                        <div className="flex flex-wrap gap-2 px-3 pb-3">
+                          {group.tags.map((h) => {
+                            const active = headline.includes(h);
+                            const blocked = !active && headline.length >= MAX_HEADLINES;
+                            return (
+                              <button
+                                key={h}
+                                type="button"
+                                onClick={() => {
+                                  toggleHeadline(h);
+                                  setError("");
+                                }}
+                                disabled={blocked}
+                                aria-pressed={active}
+                                className={chip(active, blocked)}
+                              >
+                                {h}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
               {headline.length >= MAX_HEADLINES && (
-                <p className="mt-2 text-xs text-muted-2">
-                  Máximo de {MAX_HEADLINES} especialidades.
+                <p role="status" className="mt-2 text-xs text-gold-hi">
+                  Fechou {MAX_HEADLINES} — pra trocar uma, toque nela de novo.
                 </p>
               )}
             </div>
 
             <div className="mt-4">
-              <label
-                htmlFor="bio"
-                className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-muted"
-              >
-                Bio curta
-              </label>
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <label
+                  htmlFor="bio"
+                  className="text-xs font-medium uppercase tracking-[0.1em] text-muted"
+                >
+                  Bio curta
+                </label>
+                {/* O servidor corta em silêncio aos 600 (LIMITS.bio): o
+                    contador mostra o teto antes, em vez de engolir o final. */}
+                <span role="status" className="text-xs tabular-nums text-muted-2">
+                  {bio.length}/{LIMITS.bio}
+                </span>
+              </div>
               <textarea
                 id="bio"
                 rows={3}
+                maxLength={LIMITS.bio}
                 className="field-input !pl-4 resize-none"
                 placeholder="Breve descrição da sua experiência ou estilo."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
               />
+              <p className="mt-1.5 text-xs text-muted-2">Duas frases bastam.</p>
             </div>
           </div>
 
-          <button type="button" className="btn-gold self-start" onClick={() => advanceTo("desk")}>
+          {/* O erro mora colado no botão que o causou: antes ele nascia lá no
+              topo, fora da tela, e parecia que o Avançar tinha morrido. */}
+          {error && (
+            <p role="alert" id="erro-form" className="-mb-4 text-sm text-danger">
+              {error}
+            </p>
+          )}
+          <button
+            type="button"
+            className="btn-gold self-start"
+            onClick={() => goTo("desk")}
+            aria-describedby={error ? "erro-form" : undefined}
+          >
             Avançar →
           </button>
         </section>
@@ -452,7 +534,7 @@ export function CreateEditorProfileForm({
           <button
             type="button"
             onClick={() => setActiveTab("identity")}
-            className="-mt-2 self-start text-xs font-medium text-muted hover:text-gold-hi"
+            className="-mt-2 inline-flex min-h-11 items-center self-start text-xs font-medium text-muted hover:text-gold-hi"
           >
             ← Voltar (identidade)
           </button>
@@ -497,11 +579,16 @@ export function CreateEditorProfileForm({
           </div>
 
           <div>
-            <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
-              Seu estilo
-            </h2>
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
+                Seu estilo
+              </h2>
+              <span role="status" className="text-xs tabular-nums text-muted-2">
+                {styles.length}/{MAX_STYLES}
+              </span>
+            </div>
             <p className="mt-1 text-sm text-muted">
-              Até {MAX_STYLES}. É o que casa você com o tom da pauta na hora do match.
+              É o que casa você com o tom da pauta na hora do match.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {EDITING_STYLES.map((e: string) => {
@@ -522,14 +609,22 @@ export function CreateEditorProfileForm({
               })}
             </div>
             {styles.length >= MAX_STYLES && (
-              <p className="mt-2 text-xs text-muted-2">Máximo de {MAX_STYLES} estilos.</p>
+              <p role="status" className="mt-2 text-xs text-gold-hi">
+                Fechou {MAX_STYLES} — pra trocar um, toque nele de novo.
+              </p>
             )}
           </div>
 
+          {error && (
+            <p role="alert" id="erro-form" className="-mb-4 text-sm text-danger">
+              {error}
+            </p>
+          )}
           <button
             type="button"
             className="btn-gold self-start"
-            onClick={() => advanceTo("portfolio")}
+            onClick={() => goTo("portfolio")}
+            aria-describedby={error ? "erro-form" : undefined}
           >
             Avançar →
           </button>
@@ -541,7 +636,7 @@ export function CreateEditorProfileForm({
           <button
             type="button"
             onClick={() => setActiveTab("desk")}
-            className="-mt-2 self-start text-xs font-medium text-muted hover:text-gold-hi"
+            className="-mt-2 inline-flex min-h-11 items-center self-start text-xs font-medium text-muted hover:text-gold-hi"
           >
             ← Voltar (a bancada)
           </button>
@@ -554,6 +649,11 @@ export function CreateEditorProfileForm({
             </p>
             <input
               id="portfolio"
+              type="url"
+              inputMode="url"
+              autoComplete="url"
+              aria-label="Link do portfólio"
+              maxLength={LIMITS.link}
               className="field-input !pl-4 mt-3"
               placeholder="https://…"
               value={portfolioLink}
@@ -595,7 +695,9 @@ export function CreateEditorProfileForm({
                     aria-pressed={active}
                     className={cardClass(active)}
                   >
-                    <p className="text-sm font-medium text-text">{label}</p>
+                    <p className="text-sm font-medium text-text">
+                      <EmojiLead text={label} iconClassName="h-4 w-4 flex-none text-gold" />
+                    </p>
                     <p className="mt-0.5 text-xs text-muted">{phrase}</p>
                   </button>
                 );
@@ -603,7 +705,18 @@ export function CreateEditorProfileForm({
             </div>
           </div>
 
-          <button type="button" className="btn-gold" onClick={handleFinish} disabled={isSaving}>
+          {error && (
+            <p role="alert" id="erro-form" className="-mb-4 text-sm text-danger">
+              {error}
+            </p>
+          )}
+          <button
+            type="button"
+            className="btn-gold"
+            onClick={handleFinish}
+            disabled={isSaving}
+            aria-describedby={error ? "erro-form" : undefined}
+          >
             {isSaving ? "Salvando…" : "Concluir e ver a fila"}
           </button>
         </section>

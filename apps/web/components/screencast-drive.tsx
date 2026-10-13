@@ -1,3 +1,5 @@
+import { Clapperboard, Folder, Link2, Lock, Upload } from "lucide-react";
+
 const CYCLE = 15;
 const SCENES = 5;
 
@@ -36,7 +38,7 @@ function Window({ title, children }: { title: string; children: React.ReactNode 
   return (
     <div className="cast-window">
       <div className="cast-bar">
-        <span aria-hidden="true">📁</span>
+        <Folder className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
         {title}
       </div>
       {children}
@@ -47,7 +49,7 @@ function Window({ title, children }: { title: string; children: React.ReactNode 
 function FileItem({ name, target }: { name: string; target?: boolean }) {
   return (
     <div className={`cast-line${target ? " cast-line--target" : ""}`}>
-      <span aria-hidden="true">🎬</span>
+      <Clapperboard className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
       <span className="truncate">{name}</span>
     </div>
   );
@@ -63,7 +65,7 @@ export function ScreencastDrive() {
             <FileItem name="bairro-01.mp4" />
             <FileItem name="bairro-02.mp4" />
             <div className="cast-line" style={{ color: "#5f6368" }}>
-              <span aria-hidden="true">⬆</span>
+              <Upload className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
               <span>enviando…</span>
             </div>
           </Window>
@@ -114,7 +116,7 @@ export function ScreencastDrive() {
             <div className="cast-bar">Compartilhar “bairro-02.mp4”</div>
             <div style={{ padding: "8px 9px", color: "#5f6368" }}>Acesso geral</div>
             <div className="cast-line" style={{ gap: 6 }}>
-              <span aria-hidden="true">🔒</span>
+              <Lock className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
               <span style={{ textDecoration: "line-through", color: "#80868b" }}>Restrito</span>
               <span style={{ color: "#1967d2" }}>▾</span>
             </div>
@@ -152,7 +154,7 @@ export function ScreencastDrive() {
           <div className="cast-window">
             <div className="cast-bar">Compartilhar “bairro-02.mp4”</div>
             <div className="cast-line" style={{ gap: 6 }}>
-              <span aria-hidden="true">🔗</span>
+              <Link2 className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
               <span style={{ color: "#137333", fontWeight: 600 }}>Qualquer pessoa com o link</span>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "10px 9px" }}>

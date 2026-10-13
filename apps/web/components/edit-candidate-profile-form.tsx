@@ -15,6 +15,7 @@ import {
   TONE_EXAMPLES,
 } from "@oficina/domain/candidates";
 import { WATERMARK_GUIDANCE } from "@oficina/domain/missions";
+import { Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -528,9 +529,10 @@ export function EditCandidateProfileForm({
           <button
             type="button"
             onClick={handleGenerateBio}
-            className="text-xs font-medium text-gold-hi hover:underline"
+            className="inline-flex min-h-11 items-center gap-1 text-xs font-medium text-gold-hi hover:underline"
           >
-            ✨ Gerar sugestão
+            <Sparkles className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+            Gerar sugestão
           </button>
         </div>
         <textarea

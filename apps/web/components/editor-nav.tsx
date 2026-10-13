@@ -15,8 +15,11 @@ const TABS = [
 export function EditorNav() {
   const pathname = usePathname();
 
+  /* `overflow-x-auto`: em 345px as seis abas somem ~370px e sem isso a
+     página rola pro lado (DESIGN §5). Com o scroll interno, a lista
+     desliza e o resto da página fica parado. */
   return (
-    <nav className="flex w-full min-w-0 items-center gap-1 text-[11px] sm:w-auto sm:text-sm">
+    <nav className="flex w-full min-w-0 items-center gap-1 overflow-x-auto text-[11px] sm:w-auto sm:text-sm lg:overflow-visible">
       {TABS.map((tab) => {
         const path = tab.href.split("?")[0];
         const active = pathname === path || pathname.startsWith(`${path}/`);

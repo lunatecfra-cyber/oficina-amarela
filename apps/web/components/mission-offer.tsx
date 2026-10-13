@@ -2,6 +2,7 @@
 
 import { FORMAT_LABEL, type Mission } from "@oficina/domain/missions";
 import { isDriveUrl, isYouTubeUrl } from "@oficina/domain/validators";
+import { Clapperboard, Play, Square } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -139,8 +140,9 @@ export function MissionOffer({
         <p className="mx-auto mt-2 mb-6 max-w-sm text-sm text-muted">
           Clique abaixo quando estiver pronto para receber missões. Sem pressa e sem cronômetro.
         </p>
-        <button className="btn-gold mx-auto px-8" onClick={() => setIsInQueue(true)}>
-          ▶ Entrar na fila
+        <button className="btn-gold mx-auto gap-2 px-8" onClick={() => setIsInQueue(true)}>
+          <Play className="h-4 w-4 flex-none" fill="currentColor" aria-hidden="true" />
+          Entrar na fila
         </button>
       </section>
     );
@@ -151,9 +153,10 @@ export function MissionOffer({
       <section className="mb-8 rounded-2xl border border-line bg-surface/40 px-6 py-10 text-center relative">
         <button
           onClick={leaveQueue}
-          className="absolute top-4 right-4 text-xs font-medium text-muted hover:text-text"
+          className="absolute top-4 right-4 inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-muted hover:text-text"
         >
-          ⏹ Sair da fila
+          <Square className="h-3 w-3 flex-none" aria-hidden="true" />
+          Sair da fila
         </button>
         <span className="relative mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-gold-lo/40 bg-gold/[0.06] text-2xl">
           <span
@@ -197,9 +200,10 @@ export function MissionOffer({
     <section className="mb-8 overflow-hidden rounded-2xl border border-gold-lo/60 bg-gradient-to-b from-gold/[0.09] to-transparent relative">
       <button
         onClick={leaveQueue}
-        className="absolute top-6 right-6 text-xs font-medium text-muted hover:text-text z-10"
+        className="absolute top-6 right-6 z-10 inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-muted hover:text-text"
       >
-        ⏹ Sair da fila
+        <Square className="h-3 w-3 flex-none" aria-hidden="true" />
+        Sair da fila
       </button>
       <div
         className="h-1 w-full"
@@ -211,8 +215,9 @@ export function MissionOffer({
       />
       <div className="p-6 lg:p-7 relative">
         <div className="flex flex-wrap items-center justify-between gap-3 pr-24">
-          <span className="text-xs uppercase tracking-[0.15em] text-gold-hi">
-            🎬 Nova missão pra você
+          <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-gold-hi">
+            <Clapperboard className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+            Nova missão pra você
           </span>
         </div>
 

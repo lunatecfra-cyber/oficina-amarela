@@ -7,7 +7,9 @@ import {
   type Tool,
   type ToolGroup,
 } from "@oficina/domain/tools";
+import { Search } from "lucide-react";
 import { useState } from "react";
+import { EmojiIcon } from "@/components/emoji-icon";
 
 /** Uma ferramenta: nome, o que faz, categoria e o jeito de abrir. Nada além. */
 function ToolRow({ tool, groupName }: { tool: Tool; groupName: string }) {
@@ -71,9 +73,9 @@ export function ToolsList() {
       <div className="relative">
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-2"
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-2"
         >
-          🔍
+          <Search className="h-4 w-4" aria-hidden="true" />
         </span>
         <input
           type="search"
@@ -137,10 +139,8 @@ export function ToolsList() {
         <div className="mt-6 flex flex-col gap-6">
           {groups.map((g) => (
             <section key={g.id}>
-              <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span aria-hidden="true" className="text-base">
-                  {g.emoji}
-                </span>
+              <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <EmojiIcon value={g.emoji} className="h-4 w-4 flex-none text-gold" />
                 <h2 className="font-[family-name:var(--font-display)] text-base font-semibold text-text">
                   {g.name}
                 </h2>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -188,10 +189,11 @@ export function OverviewPanel({
           type="button"
           onClick={() => notify("editors")}
           disabled={notifying !== null || inQueueCount === 0}
-          className="tap-target -ml-3 mb-1 text-xs text-muted hover:text-gold disabled:opacity-40"
+          className="tap-target -ml-3 mb-1 inline-flex items-center gap-1.5 text-xs text-muted hover:text-gold disabled:opacity-40"
           title={inQueueCount === 0 ? "Sem missões na fila" : "Enviar e-mail pra todos os editores"}
         >
-          ✉ Avisar editores que há missões na fila
+          <Mail className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+          Avisar editores que há missões na fila
         </button>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           <StatNumber value={inQueueCount} label="na fila" highlight />
@@ -209,14 +211,15 @@ export function OverviewPanel({
           type="button"
           onClick={() => notify("candidates")}
           disabled={notifying !== null || freeEditorsCount === 0}
-          className="tap-target -ml-3 mb-1 text-xs text-muted hover:text-gold disabled:opacity-40"
+          className="tap-target -ml-3 mb-1 inline-flex items-center gap-1.5 text-xs text-muted hover:text-gold disabled:opacity-40"
           title={
             freeEditorsCount === 0
               ? "Sem editores livres"
               : "Enviar e-mail pra todos os porta-vozes"
           }
         >
-          ✉ Avisar porta-vozes que há editores livres
+          <Mail className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+          Avisar porta-vozes que há editores livres
         </button>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <StatNumber value={candidatesCount} label="porta-vozes" />

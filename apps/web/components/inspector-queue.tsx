@@ -9,6 +9,7 @@ import {
   WATERMARK_GUIDANCE,
 } from "@oficina/domain/missions";
 import { isLikelyUrl } from "@oficina/domain/validators";
+import { MessageCircle, Star } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -238,9 +239,10 @@ function ReviewCard({
             <button
               type="button"
               onClick={() => setIsChatOpen((v) => !v)}
-              className="tap-target -mx-3 font-medium text-gold-hi hover:underline"
+              className="tap-target -mx-3 inline-flex items-center gap-1 font-medium text-gold-hi hover:underline"
             >
-              💬 Conversa ({messages.length})
+              <MessageCircle className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+              Conversa ({messages.length})
             </button>
           </p>
         </div>
@@ -253,9 +255,7 @@ function ReviewCard({
 
         {!isReeditOpen && (
           <div className="flex flex-none flex-col gap-2 lg:w-56">
-            <p className="text-xs text-muted">
-              Nota técnica opcional; não altera a avaliação do porta-voz.
-            </p>
+            <p className="text-xs text-muted">Nota técnica opcional; não altera a avaliação do porta-voz.</p>
             <div className="flex items-center justify-center gap-1" data-guia="nota-editor">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
@@ -264,11 +264,15 @@ function ReviewCard({
                   aria-label={`Dar nota ${n}`}
                   aria-pressed={stars === n}
                   onClick={() => setStars(n)}
-                  className={`grid h-11 w-11 place-items-center text-lg leading-none transition-opacity lg:h-auto lg:w-auto ${
+                  className={`grid h-11 w-11 place-items-center text-gold transition-opacity lg:h-auto lg:w-auto ${
                     stars && n <= stars ? "opacity-100" : "opacity-30 hover:opacity-60"
                   }`}
                 >
-                  ⭐
+                  <Star
+                    className="h-5 w-5"
+                    fill={stars && n <= stars ? "currentColor" : "none"}
+                    aria-hidden="true"
+                  />
                 </button>
               ))}
             </div>

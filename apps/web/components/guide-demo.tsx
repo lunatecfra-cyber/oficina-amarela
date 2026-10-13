@@ -1,4 +1,5 @@
 import type { Demo, GuideDemoType } from "@oficina/domain/guide";
+import { Folder as FolderIcon, Link2, Lock, MousePointerClick } from "lucide-react";
 
 const CYCLE = { drive: 9.6, delivery: 7.2, entrega: 7.2 } as const;
 
@@ -35,7 +36,10 @@ function Caption({ n, children }: { n: number; children: React.ReactNode }) {
 function Folder({ label }: { label: string }) {
   return (
     <div className="w-[150px] rounded-lg border border-line bg-surface/80 p-2">
-      <p className="mb-1.5 truncate text-[10px] text-muted-2">📁 {label}</p>
+      <p className="mb-1.5 flex items-center gap-1 truncate text-[10px] text-muted-2">
+        <FolderIcon className="h-3 w-3 flex-none" aria-hidden="true" />
+        <span className="truncate">{label}</span>
+      </p>
       <div className="flex flex-col gap-1">
         {[100, 74, 88].map((w, i) => (
           <span
@@ -54,8 +58,8 @@ function FakeButton({ text, withFinger }: { text: string; withFinger?: boolean }
     <span className="relative inline-flex items-center rounded-lg bg-gradient-to-b from-gold-hi to-gold-lo px-3 py-1.5 text-[11px] font-semibold text-black/80">
       {text}
       {withFinger && (
-        <span aria-hidden="true" className="guide-tap absolute -bottom-3 -right-3 text-base">
-          👆
+        <span aria-hidden="true" className="guide-tap absolute -bottom-3 -right-3">
+          <MousePointerClick className="h-4 w-4 text-ink" aria-hidden="true" />
         </span>
       )}
     </span>
@@ -65,14 +69,16 @@ function FakeButton({ text, withFinger }: { text: string; withFinger?: boolean }
 function AccessSelector() {
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <span className="rounded-md border border-line bg-ink-2 px-2 py-1 text-[10px] text-muted-2 line-through">
-        🔒 Restrito
+      <span className="inline-flex items-center gap-1 rounded-md border border-line bg-ink-2 px-2 py-1 text-[10px] text-muted-2 line-through">
+        <Lock className="h-3 w-3 flex-none" aria-hidden="true" />
+        Restrito
       </span>
       <span aria-hidden="true" className="text-[10px] text-gold">
         ↓
       </span>
-      <span className="rounded-md border border-gold-lo/60 bg-gold/10 px-2 py-1 text-[10px] font-medium text-gold-hi">
-        🔗 Qualquer pessoa com o link
+      <span className="inline-flex items-center gap-1 rounded-md border border-gold-lo/60 bg-gold/10 px-2 py-1 text-[10px] font-medium text-gold-hi">
+        <Link2 className="h-3 w-3 flex-none" aria-hidden="true" />
+        Qualquer pessoa com o link
       </span>
     </div>
   );

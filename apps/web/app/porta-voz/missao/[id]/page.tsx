@@ -5,9 +5,11 @@ import {
   spokespersonStatusMessage,
 } from "@oficina/domain/missions";
 import { isDriveUrl, isLikelyUrl, isYouTubeUrl } from "@oficina/domain/validators";
+import { FolderOpen, Play } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EmojiLead } from "@/components/emoji-icon";
 import { MissionActions } from "@/components/mission-actions";
 import { MissionChat } from "@/components/mission-chat";
 import { MissionNotifications } from "@/components/mission-notifications";
@@ -142,7 +144,9 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
           aria-hidden="true"
         />
         <div className="p-5 lg:p-6">
-          <p className={`text-sm font-semibold ${msg.color}`}>{msg.text}</p>
+          <p className={`text-sm font-semibold ${msg.color}`}>
+            <EmojiLead text={msg.text} />
+          </p>
           <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-semibold leading-tight text-text lg:text-3xl">
             {title}
           </h1>
@@ -211,10 +215,11 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
           href={deliveryLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn-gold mt-5"
+          className="btn-gold mt-5 gap-2"
           data-guia="ver-entrega"
         >
-          ▶ Assistir ao vídeo entregue
+          <Play className="h-4 w-4 flex-none" fill="currentColor" aria-hidden="true" />
+          Assistir ao vídeo entregue
         </a>
       )}
 
@@ -283,7 +288,8 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
                 rel="noopener noreferrer"
                 className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
               >
-                📁 Abrir no Google Drive
+                <FolderOpen className="h-4 w-4 flex-none" aria-hidden="true" />
+                Abrir no Google Drive
               </a>
             )}
             {youtubeLink && isYouTubeUrl(youtubeLink) && (
@@ -293,7 +299,8 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
                 rel="noopener noreferrer"
                 className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface/60 px-4 py-3 text-sm text-gold-hi transition-colors hover:border-gold/40 hover:bg-surface-2"
               >
-                ▶ Abrir no YouTube
+                <Play className="h-4 w-4 flex-none" aria-hidden="true" />
+                Abrir no YouTube
               </a>
             )}
           </div>

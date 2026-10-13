@@ -1,5 +1,6 @@
 "use client";
 
+import { Globe, Lock, LockOpen, LogOut, Scan, Search, Settings, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -158,21 +159,24 @@ export function DevToolbar() {
                     </span>
                     <a
                       href="/api/auth/dev-login?role=spokesperson"
-                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                      className="flex items-center gap-1.5 text-sm text-silver hover:text-gold-hi py-1"
                     >
-                      🔓 Sign in as Spokesperson
+                      <LockOpen className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                      Sign in as Spokesperson
                     </a>
                     <a
                       href="/api/auth/dev-login?role=editor"
-                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                      className="flex items-center gap-1.5 text-sm text-silver hover:text-gold-hi py-1"
                     >
-                      🔓 Sign in as Editor
+                      <LockOpen className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                      Sign in as Editor
                     </a>
                     <a
                       href="/api/auth/dev-login?role=admin"
-                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                      className="flex items-center gap-1.5 text-sm text-silver hover:text-gold-hi py-1"
                     >
-                      🔓 Sign in as Admin / Inspector
+                      <LockOpen className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                      Sign in as Admin / Inspector
                     </a>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
@@ -180,16 +184,18 @@ export function DevToolbar() {
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="block w-full py-1 text-left text-sm text-red-400 hover:text-red-300"
+                      className="flex w-full items-center gap-1.5 py-1 text-left text-sm text-red-400 hover:text-red-300"
                     >
-                      🚪 Log Out
+                      <LogOut className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                      Log Out
                     </button>
                     <Link
                       href="/api/auth/session"
                       onClick={closeMenu}
-                      className="block text-sm text-silver hover:text-gold-hi py-1"
+                      className="flex items-center gap-1.5 text-sm text-silver hover:text-gold-hi py-1"
                     >
-                      🔍 Inspect Session JSON
+                      <Search className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                      Inspect Session JSON
                     </Link>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
@@ -242,9 +248,10 @@ export function DevToolbar() {
                     href="https://yellowworkshop.dev"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block text-sm text-silver hover:text-gold-hi py-1"
+                    className="flex items-center gap-1.5 text-sm text-silver hover:text-gold-hi py-1"
                   >
-                    🌐 yellowworkshop.dev ↗
+                    <Globe className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                    yellowworkshop.dev ↗
                   </a>
                 </div>
               )}
@@ -257,9 +264,19 @@ export function DevToolbar() {
                     </span>
                     <button
                       onClick={toggleGodMode}
-                      className="w-full text-left block text-sm text-silver hover:text-gold-hi py-1"
+                      className="flex w-full items-center gap-1.5 text-left text-sm text-silver hover:text-gold-hi py-1"
                     >
-                      {godModeActive ? "🔓 Disable God Mode" : "🔐 Enable God Mode (Bypass Auth)"}
+                      {godModeActive ? (
+                        <>
+                          <LockOpen className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                          Disable God Mode
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                          Enable God Mode (Bypass Auth)
+                        </>
+                      )}
                     </button>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
@@ -268,15 +285,17 @@ export function DevToolbar() {
                     </span>
                     <button
                       onClick={toggleXray}
-                      className="w-full text-left block text-sm text-silver hover:text-gold-hi py-1"
+                      className="flex w-full items-center gap-1.5 text-left text-sm text-silver hover:text-gold-hi py-1"
                     >
-                      {xrayActive ? "🟢 X-Ray Active (Disable)" : "🔘 Enable X-Ray Mode"}
+                      <Scan className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                      {xrayActive ? "X-Ray Active (Disable)" : "Enable X-Ray Mode"}
                     </button>
                     <button
                       onClick={hardReset}
-                      className="w-full text-left block text-sm text-red-400 hover:text-red-300 py-1"
+                      className="flex w-full items-center gap-1.5 text-left text-sm text-red-400 hover:text-red-300 py-1"
                     >
-                      💥 Clear All (Hard Reset)
+                      <Trash2 className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                      Clear All (Hard Reset)
                     </button>
                   </div>
                   <div className="rounded border border-line bg-surface/50 p-2 mt-1">
@@ -363,7 +382,7 @@ export function DevToolbar() {
             title="Full Dev Page"
             className="ml-1 flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface hover:text-gold-hi"
           >
-            ⚙️
+            <Settings className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
       </div>

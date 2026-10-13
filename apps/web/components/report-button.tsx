@@ -1,6 +1,7 @@
 "use client";
 
 import { LIMITS } from "@oficina/domain/limits";
+import { Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -53,10 +54,11 @@ export function ReportButton({ missionId, pautaId }: { missionId?: string; pauta
       {!isOpen ? (
         <button
           /* tap-target: continua discreto, mas o alvo sai de 16px pra 44 */
-          className="tap-target -ml-3 text-xs uppercase tracking-[0.12em] text-muted-2 hover:text-danger"
+          className="tap-target -ml-3 inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-muted-2 hover:text-danger"
           onClick={() => setIsOpen(true)}
         >
-          🚩 Denunciar esta missão
+          <Flag className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+          Denunciar esta missão
         </button>
       ) : (
         <div className="rounded-xl border border-danger/30 bg-danger/[0.04] p-3">

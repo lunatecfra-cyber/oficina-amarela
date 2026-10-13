@@ -94,10 +94,19 @@ export function ElectoralProgress({
             </span>
           </div>
 
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-line">
+          <div
+            role="progressbar"
+            aria-label="Progresso da meta desta semana"
+            aria-valuemin={0}
+            aria-valuemax={currentWeek.goal}
+            aria-valuenow={currentWeek.count}
+            className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/10"
+          >
             <div
               className={`h-full rounded-full ${
-                currentWeek.completed ? "bg-gradient-to-r from-gold-lo to-gold-hi" : "bg-gold/70"
+                currentWeek.completed
+                  ? "bg-gradient-to-r from-gold-lo to-gold-hi shadow-[0_0_12px_rgba(244,206,31,0.35)]"
+                  : "bg-gradient-to-r from-gold-lo to-gold"
               }`}
               style={{ width: `${progressPct}%` }}
             />
@@ -117,23 +126,23 @@ export function ElectoralProgress({
 
       {/* sequência e bloqueios, lado a lado */}
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg border border-line-soft px-3 py-2.5">
-          <p className="flex items-center gap-1.5 font-[family-name:var(--font-display)] text-lg font-semibold text-text">
-            <FlameIcon className="h-4 w-4 text-gold" />
+        <div className="rounded-xl border border-line-soft bg-ink-2/50 px-3 py-2.5">
+          <p className="flex items-center gap-1.5 font-[family-name:var(--font-display)] text-xl font-semibold tabular-nums text-text">
+            <FlameIcon className="h-4 w-4 flex-none text-gold" />
             {currentStreak}
           </p>
-          <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-[0.04em] text-muted-2">
+          <p className="mt-1 text-xs uppercase leading-tight tracking-[0.06em] text-muted-2">
             {currentStreak === 1 ? "semana seguida" : "semanas seguidas"}
           </p>
         </div>
 
-        <div className="rounded-lg border border-line-soft px-3 py-2.5">
-          <p className="flex items-center gap-1.5 font-[family-name:var(--font-display)] text-lg font-semibold text-text">
-            <ShieldIcon className="h-4 w-4 text-silver" />
+        <div className="rounded-xl border border-line-soft bg-ink-2/50 px-3 py-2.5">
+          <p className="flex items-center gap-1.5 font-[family-name:var(--font-display)] text-xl font-semibold tabular-nums text-text">
+            <ShieldIcon className="h-4 w-4 flex-none text-silver" />
             {currentShields}
             <span className="text-sm font-normal text-muted-2">de {MAX_SHIELDS}</span>
           </p>
-          <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-[0.04em] text-muted-2">
+          <p className="mt-1 text-xs uppercase leading-tight tracking-[0.06em] text-muted-2">
             {currentShields === 1 ? "bloqueio disponível" : "bloqueios disponíveis"}
           </p>
         </div>
@@ -169,7 +178,7 @@ export function ElectoralProgress({
                   title={`Semana de ${formatShortDate(s.week)}: ${s.count}/${s.goal} — ${
                     s.completed ? "cumprida" : salva ? "salva por bloqueio" : "não cumprida"
                   }`}
-                  className={`rounded-md border px-2 py-1 text-[11px] font-medium ${
+                  className={`rounded-md border px-2 py-1 text-xs font-medium ${
                     s.completed
                       ? "border-gold-lo/50 bg-gold/10 text-gold-hi"
                       : salva

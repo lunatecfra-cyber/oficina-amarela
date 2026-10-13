@@ -1,3 +1,4 @@
+import { TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -18,9 +19,12 @@ export default function PrivacyPage() {
         Política de Privacidade
       </h1>
 
-      <div className="mt-3 rounded-xl border border-gold-lo/40 bg-gold/[0.06] p-4 text-sm text-muted">
-        ⚠️ Rascunho gerado em 27/07/2026, baseado no que a plataforma realmente coleta hoje. Revisar
-        com um advogado antes de publicar de verdade — isso aqui não é aconselhamento jurídico.
+      <div className="mt-3 flex items-start gap-2 rounded-xl border border-gold-lo/40 bg-gold/[0.06] p-4 text-sm text-muted">
+        <TriangleAlert className="mt-0.5 h-4 w-4 flex-none text-gold" aria-hidden="true" />
+        <span>
+          Rascunho gerado em 27/07/2026, baseado no que a plataforma realmente coleta hoje. Revisar
+          com um advogado antes de publicar de verdade — isso aqui não é aconselhamento jurídico.
+        </span>
       </div>
 
       <div className="mt-8 flex flex-col gap-6 text-[15px] leading-relaxed text-muted">
