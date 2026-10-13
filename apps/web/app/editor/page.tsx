@@ -56,7 +56,7 @@ export default async function EditorPage() {
 
           <ActiveMissionCard mission={currentMission} messages={messages} />
           <MissionOffer hasActiveMission={!!currentMission} />
-          <MissionBoard />
+          <MissionBoard key={currentMission?.id ?? "unassigned"} />
           {!currentMission && <MissionNotifications />}
 
           <div

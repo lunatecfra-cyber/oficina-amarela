@@ -21,6 +21,8 @@ export function MissionBoard() {
   }, []);
   useEffect(() => {
     void load();
+    const poll = setInterval(() => void load(), 15_000);
+    return () => clearInterval(poll);
   }, [load]);
   async function interest(id: number) {
     setBusy(id);

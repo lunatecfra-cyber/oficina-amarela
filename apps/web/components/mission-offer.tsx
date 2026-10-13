@@ -135,14 +135,14 @@ export function MissionOffer({
     return (
       <section className="mb-8 rounded-2xl border border-line bg-surface/40 px-6 py-10 text-center">
         <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
-          Você está fora da fila
+          Confira suas ofertas
         </h2>
         <p className="mx-auto mt-2 mb-6 max-w-sm text-sm text-muted">
-          Clique abaixo quando estiver pronto para receber missões. Sem pressa e sem cronômetro.
+          Abra as ofertas para conferir se um porta-voz selecionou você. Aceitar inicia a produção.
         </p>
         <button className="btn-gold mx-auto gap-2 px-8" onClick={() => setIsInQueue(true)}>
           <Play className="h-4 w-4 flex-none" fill="currentColor" aria-hidden="true" />
-          Entrar na fila
+          Receber ofertas
         </button>
       </section>
     );
@@ -168,10 +168,11 @@ export function MissionOffer({
         </span>
 
         <p className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
-          Buscando missões...
+          Aguardando uma oferta
         </p>
         <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
-          Assim que entrar uma missão com a sua cara, ela aparece aqui.
+          Você pode manifestar interesse no mural. A oferta aparece aqui após a escolha do
+          porta-voz.
         </p>
         <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-ink-2 px-3 py-1 text-xs text-muted-2">
           <span className="h-2 w-2 rounded-full bg-ok" />
