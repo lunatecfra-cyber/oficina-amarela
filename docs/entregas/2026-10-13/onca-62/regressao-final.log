@@ -1,0 +1,35 @@
+@oficina/domain:test: ℹ pass 66
+@oficina/domain:test: ℹ fail 0
+@oficina/config:test: ℹ pass 6
+@oficina/config:test: ℹ fail 0
+@oficina/db:test: ﹣ configuração do banco por binding (0.666972ms) # TEST_DATABASE_URL não configurado
+@oficina/db:test: ﹣ caixa de saída de e-mail (0.697413ms) # TEST_DATABASE_URL não configurado
+@oficina/db:test: ﹣ resgate atômico de convite (1.499581ms) # TEST_DATABASE_URL não configurado
+@oficina/db:test: ﹣ ensaio de migração PostgreSQL → D1 (0.773324ms) # TEST_DATABASE_URL não configurado
+@oficina/db:test: ﹣ aprovação atômica de missão (0.733901ms) # TEST_DATABASE_URL não configurado
+@oficina/db:test: ﹣ ciclo de vida da missão (1.032192ms) # TEST_DATABASE_URL não configurado
+@oficina/db:test: ﹣ concorrência da fila de missões (0.904729ms) # TEST_DATABASE_URL não configurado — veja o cabeçalho do arquivo
+@oficina/db:test: ﹣ presença do editor (1.146182ms) # TEST_DATABASE_URL não configurado
+@oficina/db:test: ﹣ escopo de banco por requisição (0.609574ms) # TEST_DATABASE_URL não configurado
+@oficina/db:test: ﹣ trava de periodicidade (0.802723ms) # TEST_DATABASE_URL não configurado
+@oficina/db:test: ℹ pass 140
+@oficina/db:test: ℹ fail 0
+@oficina/email:test: ℹ pass 4
+@oficina/email:test: ℹ fail 0
+@oficina/api:test: ﹣ administração de convites na API (1.486192ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ correções do ranking na API (0.652432ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ rotas de administração e fiscalização na API (0.84885ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ autenticação na API (1.178374ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ recuperação de senha não enumera conta (0.209914ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ rotas de novidades e músicas na API (1.455361ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ fila do editor na API (2.460781ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ colaboração da missão na API (0.938747ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ ciclo de vida da missão na API (0.756798ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ operações e consultas de missões na API (0.746408ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ perfis e onboarding na API (1.013566ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ﹣ ranking e vagas na API (0.883185ms) # TEST_DATABASE_URL não configurado
+@oficina/api:test: ℹ pass 49
+@oficina/api:test: ℹ fail 0
+@oficina/web:test: ℹ pass 18
+@oficina/web:test: ℹ fail 0
+ Tasks:    7 successful, 7 total

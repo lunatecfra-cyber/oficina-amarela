@@ -26,6 +26,19 @@ API staging: `b4fda50e-7eb8-4ebe-94b3-8e00325f8658`. Web staging: `46e4fc6f-5227
 
 Não houve alteração de produção, pagamento ou envio externo real. PostgreSQL não foi testado; mural retorna 503 nesse ambiente. Fixtures preservadas. Amostragem/risco de inspeção continuam decisões pendentes do ciclo anterior.
 
-O Jira oficial foi lido na conta Hotmail. A gravação de progresso encontrou timeouts CDP; o comentário está preservado em `jira-comment.txt`, sem afirmar atualização salva ou status Done. ONCA-53 e ONCA-120 permanecem com seus critérios mais amplos.
+O Jira oficial foi lido e atualizado na conta Hotmail após recuperar a conexão: comentário salvo e ONCA-62 **Done**; ONCA-61 em andamento com progresso salvo; ONCA-53 e ONCA-120 receberam as novas evidências e permaneceram em andamento. Screenshots de confirmação incluídos. `jira-comment.txt` preserva o texto da ONCA-62.
 
-Próxima entrega iniciada: ONCA-61, descoberta de editores e publicação consentida do perfil/portfólio.
+## Continuação entregue — primeira fatia ONCA-61
+
+Commits `2edb654`, `16b0e60` e correções subsequentes: diretório autenticado com publicação explicitamente autorizada pelo editor, busca por nome/apelido e especialidade/nicho, filtro de elegibilidade atual, contagem de trabalhos finalizados e média/amostra de avaliações reais. Permissão para publicar o perfil é separada da divulgação do link de portfólio. Nenhuma obra privada da plataforma é publicada por essas opções; links privados/assinados são omitidos. O endpoint antigo de perfil fica restrito ao próprio editor/admin; consultas de terceiros usam a projeção publicada ou a relação de missão do porta-voz, sem contatos ou histórico privado.
+
+O diretório começou vazio. A autorizou publicação pela interface, mantendo o consentimento de portfólio desligado. O porta-voz encontrou A na busca móvel com 4,0/1 e dois trabalhos concluídos; B permaneceu fora do diretório por não autorizar publicação. A partir do diretório, a nova missão `db-41` recebeu convite direto e aceite por A via interface, chegando à bancada de produção. `db-39` permanece atribuída somente a B. `db-40` conserva a tentativa anterior expirada (prazo desejado persistido em 01/11/2026), que expôs o uso indevido de presença antiga em ofertas explícitas. A correção mantém o prazo existente de cinco minutos para selecionados; expiração antecipada por ausência permanece apenas no despacho automático legado.
+
+`diretorio-evidencia-d1.json` confirma uma atribuição ativa em cada missão (39→85, 41→50), visibilidade autorizada de A/privada de B, auditoria do consentimento e FK sem violações. As screenshots mostram o diretório móvel e o convite/aceite direto. O primeiro ensaio automático confirmou privacidade/publicação/busca; o convite completo foi concluído pelo Chrome interativo após corrigir a expiração, sem contar a tentativa anterior como sucesso.
+
+Regressão final do checkout isolado: **283 testes**, zero falhas; typecheck com 9 tarefas passou. 18 direcionados da integração, proteção de links e 14 de fila/recuperação passaram. API final de staging `982bf9e4-1eb8-43ab-a556-5d76b3d08370`; web final registrada abaixo. Migração 0015 aplicada apenas ao staging. Mudanças paralelas não commitadas continuam preservadas e fora da publicação.
+
+ONCA-61 ainda não está concluída: faltam publicação/revogação por obra com autorização específica, habilitação administrativa de editor experiente e selo derivado dela, preferências voluntário/remunerado e indicador de entregas no prazo com proveniência. Não foram inventadas notas, selos ou permissões de divulgação de vídeos. Próxima fatia executável: autorização e publicação de amostras por obra, articulada à ONCA-34.
+
+
+Web final de staging: `e8945c6c-a748-48b8-8a37-2b0e522e05c2`.

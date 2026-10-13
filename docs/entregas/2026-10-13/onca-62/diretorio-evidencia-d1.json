@@ -1,0 +1,69 @@
+{
+  "missionsAndOffers": [
+    {
+      "id": 39,
+      "title": "ONCA-62 — mural sintético com dois editores",
+      "status": "reservada",
+      "reserved_by_id": 85,
+      "desired_deadline": null,
+      "editor_id": 85,
+      "offer_status": "aceita",
+      "selection_kind": "interest",
+      "selected_by_id": 84
+    },
+    {
+      "id": 40,
+      "title": "ONCA-61 — convite direto sintético",
+      "status": "disponivel",
+      "reserved_by_id": null,
+      "desired_deadline": "2026-11-01",
+      "editor_id": 50,
+      "offer_status": "expirada",
+      "selection_kind": "direct",
+      "selected_by_id": 84
+    },
+    {
+      "id": 41,
+      "title": "ONCA-61 — convite direto após recuperação",
+      "status": "reservada",
+      "reserved_by_id": 50,
+      "desired_deadline": null,
+      "editor_id": 50,
+      "offer_status": "aceita",
+      "selection_kind": "direct",
+      "selected_by_id": 84
+    }
+  ],
+  "assignments": [
+    {
+      "mission_id": 39,
+      "editor_id": 85,
+      "ended_at": null
+    },
+    {
+      "mission_id": 41,
+      "editor_id": 50,
+      "ended_at": null
+    }
+  ],
+  "visibility": [
+    {
+      "id": 50,
+      "directory_visible": 1,
+      "directory_portfolio_consent": 0
+    },
+    {
+      "id": 85,
+      "directory_visible": 0,
+      "directory_portfolio_consent": 0
+    }
+  ],
+  "visibilityAudit": [
+    {
+      "actor_id": 50,
+      "action": "editor_directory_consent",
+      "details": "{\"visible\":1,\"portfolioConsent\":0}"
+    }
+  ],
+  "foreignKeyViolations": []
+}
