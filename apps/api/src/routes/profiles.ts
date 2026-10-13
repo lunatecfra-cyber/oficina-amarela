@@ -26,8 +26,8 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
     if (missionId !== undefined && (!Number.isInteger(Number(missionId)) || Number(missionId) <= 0))
       return c.json({ error: "Missão inválida." }, 400);
     const result = await (c.env.DB as D1DatabaseLike)
-      .prepare(`SELECT key,mission_id AS missionId,event,version,notes,created_at AS createdAt FROM mission_notifications
-      WHERE recipient_id=? AND (? IS NULL OR mission_id=?) ORDER BY created_at DESC,rowid DESC LIMIT 50`)
+      .prepare(`SELECT n.key,n.mission_id AS missionId,p.title AS missionTitle,n.event,n.version,n.notes,n.created_at AS createdAt FROM mission_notifications n JOIN missions p ON p.id=n.mission_id
+      WHERE n.recipient_id=? AND (? IS NULL OR n.mission_id=?) ORDER BY n.created_at DESC,n.rowid DESC LIMIT 50`)
       .bind(c.get("session").id, missionId ?? null, missionId ?? null)
       .all();
     return c.json(result.results);

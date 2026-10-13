@@ -3,6 +3,7 @@ import { ActiveMissionCard } from "@/components/active-mission-card";
 import { AppHeader } from "@/components/app-header";
 import { DailyChallenges } from "@/components/daily-challenges";
 import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
+import { MissionNotifications } from "@/components/mission-notifications";
 import { MissionOffer } from "@/components/mission-offer";
 import { getMissionMessages } from "@/lib/chat-db";
 import { listDailyChallenges, recordDailyLogin } from "@/lib/gamification-db";
@@ -54,6 +55,7 @@ export default async function EditorPage() {
 
           <ActiveMissionCard mission={currentMission} messages={messages} />
           <MissionOffer hasActiveMission={!!currentMission} />
+          {!currentMission && <MissionNotifications />}
 
           <div
             aria-hidden="true"
