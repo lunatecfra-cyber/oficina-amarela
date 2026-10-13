@@ -1,5 +1,7 @@
 import type { UserSession } from "@oficina/auth/session";
+import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import type { MissionActionFailure, MissionActionResult } from "@oficina/db/mission-lifecycle";
+import { inspectionPolicy } from "@oficina/domain/inspection-policy";
 import { isLikelyUrl } from "@oficina/domain/validators";
 import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
 import {
@@ -74,6 +76,14 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
 
     const session = c.get("session");
     if (!canAct(session, action)) return c.json({ error: roleMessage(action) }, 403);
+    const expectedVersion = body?.expectedDeliveryVersion;
+    if (
+      c.env?.DB &&
+      action !== "reserve" &&
+      action !== "cancel" &&
+      (!Number.isInteger(expectedVersion) || expectedVersion < 0)
+    )
+      return c.json({ error: "Atualize a página para conferir a versão da entrega." }, 400);
 
     let result: MissionActionResult = { ok: true };
     if (action === "reserve") {
@@ -95,23 +105,69 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
       if (!isLikelyUrl(link)) {
         return c.json({ error: "Cole o link do vídeo editado ou faça o upload." }, 400);
       }
-      const uploaded = UPLOADED_VIDEO_HOSTS.some((host) => link.includes(host));
+      const videoUrl = new URL(link);
+      let uploaded = UPLOADED_VIDEO_HOSTS.some(
+        (host) => videoUrl.hostname === host || videoUrl.hostname.endsWith(`.${host}`),
+      );
+      if (videoUrl.pathname.startsWith("/api/missions/") && videoUrl.pathname.includes("/files/")) {
+        const prefix = `/api/missions/${missionId}/files/${session.id}/`;
+        const fileId = videoUrl.pathname.slice(prefix.length);
+        if (
+          videoUrl.origin !== (c.env.PUBLIC_ORIGIN ?? new URL(c.req.url).origin) ||
+          !videoUrl.pathname.startsWith(prefix) ||
+          !/^[a-f0-9-]{36}$/.test(fileId)
+        )
+          return c.json({ error: "Este vídeo não pertence à sua entrega." }, 403);
+        const object = await c.env.MEDIA?.head(`missions/${missionId}/${session.id}/${fileId}`);
+        if (!object || object.size !== Number(object.customMetadata?.expectedSize))
+          return c.json({ error: "Conclua o upload antes de entregar o vídeo." }, 400);
+        uploaded = true;
+      }
+      const editor = c.env.DB
+        ? await (c.env.DB as D1DatabaseLike)
+            .prepare("SELECT delivered_count FROM users WHERE id=?")
+            .bind(session.id)
+            .first<{ delivered_count: number }>()
+        : null;
+      const inspection = inspectionPolicy({
+        deliveries: editor?.delivered_count ?? 0,
+        stagingMandatory: c.env.STAGING_INSPECTION_ALL === "true",
+      });
       result = await dependencies.missionLifecycle.submitDelivery(missionId, session.id, {
         link: uploaded ? null : link,
         videoUrl: uploaded ? link : null,
+        inspectionRequired: inspection.required !== false,
+        inspectionReason: inspection.reason,
+        expectedVersion:
+          typeof body?.expectedDeliveryVersion === "number"
+            ? body.expectedDeliveryVersion
+            : undefined,
       });
     } else if (action === "re_edit") {
       result = await dependencies.missionLifecycle.requestInspectorRevision(
         missionId,
         String(body?.notes ?? body?.notas ?? ""),
+        expectedVersion,
+        session.id,
       );
     } else if (action === "accept") {
-      result = await dependencies.missionLifecycle.finishMission(missionId, session.id);
+      result = await dependencies.missionLifecycle.finishMission(
+        missionId,
+        session.id,
+        expectedVersion,
+      );
+    } else if (action === "approve" && session.role === "spokesperson") {
+      result = await dependencies.missionLifecycle.finishMission(
+        missionId,
+        session.id,
+        expectedVersion,
+      );
     } else if (action === "approve") {
       const rating = body?.rating ?? body?.nota;
       const approval = await dependencies.missionApproval.approveMission({
         missionId,
         actor: session,
+        expectedVersion,
         rating: typeof rating === "number" ? rating : undefined,
         comment:
           typeof (body?.feedback ?? body?.comentario) === "string"
@@ -134,6 +190,7 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
         missionId,
         session.id,
         String(body?.notes ?? body?.notas ?? ""),
+        expectedVersion,
       );
     }
 

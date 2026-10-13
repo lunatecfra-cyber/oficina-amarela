@@ -11,6 +11,8 @@ type ApprovalState = {
   status: string;
   is_scored: number;
   approval_status: string | null;
+  delivery_version: number;
+  inspected_at: string | null;
 };
 
 export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepository {
@@ -18,18 +20,24 @@ export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepo
     const state = await db
       .prepare(
         `SELECT p.spokesperson_id, p.reserved_by_id, p.status, p.is_scored,
-                a.status_final AS approval_status
+                a.status_final AS approval_status, p.delivery_version, i.inspected_at
          FROM missions p LEFT JOIN mission_approvals a ON a.mission_id = p.id
+         LEFT JOIN mission_inspections i ON i.mission_id=p.id AND i.version=p.delivery_version
          WHERE p.id = ?`,
       )
       .bind(input.missionId)
       .first<ApprovalState>();
     if (!state) return { ok: false, reason: "mission_not_found" };
-    if (input.actor.role === "spokesperson" && state.spokesperson_id !== input.actor.id) {
+    if (input.actor.role !== "admin" || state.reserved_by_id === input.actor.id) {
       return { ok: false, reason: "forbidden" };
     }
-    const expectedStatus = input.actor.role === "admin" ? "aprovada" : "finalizada";
-    if (state.approval_status === expectedStatus && state.reserved_by_id) {
+    if (input.expectedVersion !== undefined && state.delivery_version !== input.expectedVersion)
+      return { ok: false, reason: "mission_not_in_review" };
+    if (
+      state.inspected_at &&
+      ["aprovada", "finalizada"].includes(state.status) &&
+      state.reserved_by_id
+    ) {
       return {
         ok: true,
         editorId: state.reserved_by_id,
@@ -48,50 +56,54 @@ export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepo
       ) {
         return { ok: false, reason: "invalid_rating" };
       }
-      if (input.actor.role !== "admin" && input.actor.role !== "spokesperson") {
+      if (input.actor.role !== "admin") {
         return { ok: false, reason: "forbidden" };
       }
 
-      const finalStatus = input.actor.role === "admin" ? "aprovada" : "finalizada";
       const approvedAt = new Date().toISOString();
       try {
         const inserted = await db
           .prepare(
-            `INSERT INTO mission_approvals (
-               mission_id, editor_id, approved_by, status_final, rating, comment, approved_at
-             )
-             SELECT id, reserved_by_id, ?, ?, ?, ?, ?
+            `INSERT INTO mission_inspections (mission_id,version,inspector_id,rating,comment,inspected_at)
+             SELECT id,delivery_version,?,?,?,?
              FROM missions
-             WHERE id = ? AND status = 'em_revisao' AND is_scored = 0
+             WHERE id = ? AND status = 'em_revisao'
                AND reserved_by_id IS NOT NULL
-               AND (? = 'admin' OR spokesperson_id = ?)
-             ON CONFLICT (mission_id) DO NOTHING
-             RETURNING editor_id`,
+               AND reserved_by_id <> ? AND (? IS NULL OR delivery_version=?)
+             ON CONFLICT (mission_id,version) DO NOTHING
+             RETURNING version`,
           )
           .bind(
             input.actor.id,
-            finalStatus,
             input.rating ?? null,
             input.comment?.trim() || null,
             approvedAt,
             input.missionId,
-            input.actor.role,
             input.actor.id,
+            input.expectedVersion ?? null,
+            input.expectedVersion ?? null,
           )
-          .first<{ editor_id: number }>();
+          .first<{ version: number }>();
         if (!inserted) return currentState(input);
+        const inspection = await db
+          .prepare(
+            "SELECT p.reserved_by_id AS editor_id,i.scored FROM mission_inspections i JOIN missions p ON p.id=i.mission_id WHERE i.mission_id=? AND i.version=?",
+          )
+          .bind(input.missionId, inserted.version)
+          .first<{ editor_id: number; scored: number }>();
         const referral = await db
           .prepare("SELECT invitee_id FROM referral_rewards WHERE invitee_id = ?")
-          .bind(inserted.editor_id)
+          .bind(inspection!.editor_id)
           .first();
         return {
           ok: true,
-          editorId: inserted.editor_id,
-          scored: true,
+          editorId: inspection!.editor_id,
+          scored: inspection!.scored === 1,
           referralAwarded: Boolean(referral),
         };
       } catch (error) {
-        if (String(error).includes("mission_not_in_review")) return currentState(input);
+        if (/mission_not_in_review|inspection_unavailable/.test(String(error)))
+          return currentState(input);
         throw error;
       }
     },

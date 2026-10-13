@@ -94,7 +94,7 @@ export function ActiveMissionCard({
     const resp = await fetch(`/api/missions/${currentMission!.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(link ? { action, link, acao: action } : { action, acao: action }),
+      body: JSON.stringify(link ? { action, link, acao: action, expectedDeliveryVersion: currentMission?.deliveryVersion ?? 0 } : { action, acao: action }),
     });
     setIsProcessing(false);
 
@@ -356,6 +356,8 @@ export function ActiveMissionCard({
             </h3>
 
             <UploadDropzone
+              missionId={currentMission.id}
+              maxSizeMB={2048}
               label="Fazer upload do vídeo editado"
               onUploadSuccess={(url) => {
                 setDeliveryLink(url);

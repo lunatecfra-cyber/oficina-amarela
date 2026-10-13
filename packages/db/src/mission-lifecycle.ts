@@ -14,14 +14,30 @@ export interface MissionLifecycleRepository {
   submitDelivery(
     missionId: number,
     editorId: number,
-    delivery: { link: string | null; videoUrl: string | null },
+    delivery: {
+      link: string | null;
+      videoUrl: string | null;
+      expectedVersion?: number;
+      inspectionRequired?: boolean;
+      inspectionReason?: string;
+    },
   ): Promise<MissionActionResult>;
-  requestInspectorRevision(missionId: number, notes: string): Promise<MissionActionResult>;
-  finishMission(missionId: number, spokespersonId: number): Promise<MissionActionResult>;
+  requestInspectorRevision(
+    missionId: number,
+    notes: string,
+    expectedVersion?: number,
+    inspectorId?: number,
+  ): Promise<MissionActionResult>;
+  finishMission(
+    missionId: number,
+    spokespersonId: number,
+    expectedVersion?: number,
+  ): Promise<MissionActionResult>;
   requestSpokespersonRevision(
     missionId: number,
     spokespersonId: number,
     notes: string,
+    expectedVersion?: number,
   ): Promise<MissionActionResult>;
 }
 

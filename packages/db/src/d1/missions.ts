@@ -12,7 +12,7 @@ const BASE_QUERY = `
   SELECT p.id, u.name AS spokesperson_name, u.handle AS spokesperson_handle, p.title, p.format,
          p.brief_tone, p.brief_color, p.brief_font, p.brief_refs,
          p.drive_link, p.youtube_link, p.status, p.reserved_until, p.reserved_at, p.delivery_link,
-         p.inspector_notes, p.created_at,
+         p.inspector_notes, p.created_at, p.delivery_version,
          p.extras, p.motivation, p.desired_deadline, p.revision_requested_by,
          p.drive_link AS raw_video_url, p.raw_video_urls, p.raw_media, p.delivery_video_url,
          p.watermark, p.campaign_tax_id, p.candidate_number, p.voter_id,
@@ -23,6 +23,16 @@ const BASE_QUERY = `
 `;
 
 export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
+  async function details(row: MissionRow | null): Promise<Mission | null> {
+    if (!row) return null;
+    const history = await db
+      .prepare(
+        "SELECT version,delivery_link AS deliveryLink,delivery_video_url AS deliveryVideoUrl,submitted_at AS submittedAt FROM mission_deliveries WHERE mission_id=? ORDER BY version",
+      )
+      .bind(row.id)
+      .all<NonNullable<Mission["deliveryHistory"]>[number]>();
+    return { ...rowToMission(row), deliveryHistory: history.results };
+  }
   return {
     async createMission(data: CreateMissionInput) {
       const spokespersonId = data.spokespersonId ?? data.portaVozId;
@@ -45,9 +55,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
       }
 
       const campaignIdentity = await db
-        .prepare(
-          "SELECT watermark, campaign_tax_id, candidate_number FROM users WHERE id = ?",
-        )
+        .prepare("SELECT watermark, campaign_tax_id, candidate_number FROM users WHERE id = ?")
         .bind(spokespersonId)
         .first<{
           watermark: string | null;
@@ -80,9 +88,10 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
             url: limitOrNull(item.url, LIMITS.link),
             kind: item.kind,
             name: limitOrNull(item.name, LIMITS.briefField) ?? undefined,
-            sizeBytes: Number.isInteger(item.sizeBytes) && Number(item.sizeBytes) > 0
-              ? Number(item.sizeBytes)
-              : undefined,
+            sizeBytes:
+              Number.isInteger(item.sizeBytes) && Number(item.sizeBytes) > 0
+                ? Number(item.sizeBytes)
+                : undefined,
           }))
           .filter((item): item is typeof item & { url: string } => Boolean(item.url)),
         youtubeLink: limitOrNull(
@@ -158,7 +167,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
 
     async getMissionById(id: number): Promise<Mission | null> {
       const row = await db.prepare(`${BASE_QUERY} WHERE p.id = ?`).bind(id).first<MissionRow>();
-      return row ? rowToMission(row) : null;
+      return details(row);
     },
 
     async getSpokespersonMissions(spokespersonId: number): Promise<Mission[]> {
@@ -174,7 +183,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
         .prepare(`${BASE_QUERY} WHERE p.id = ? AND p.spokesperson_id = ?`)
         .bind(id, spokespersonId)
         .first<MissionRow>();
-      return row ? rowToMission(row) : null;
+      return details(row);
     },
 
     async getAvailableMissions(): Promise<Mission[]> {
@@ -204,7 +213,7 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
         )
         .bind(editorId)
         .first<MissionRow>();
-      return row ? rowToMission(row) : null;
+      return details(row);
     },
 
     async getApprovedDeliveries(editorId: number): Promise<Mission[]> {

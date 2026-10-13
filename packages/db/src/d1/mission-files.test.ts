@@ -1,0 +1,283 @@
+import assert from "node:assert/strict";
+import { after, before, describe, test } from "node:test";
+import { COOKIE_NAME, createSessionToken } from "@oficina/auth/session";
+import { convertV4MiniflareOptions, Miniflare } from "miniflare";
+import { createApp } from "../../../../apps/api/src/app.ts";
+import { d1ApiDependencies } from "../../../../apps/api/src/dependencies.ts";
+import { applyAllD1Migrations } from "./schema.ts";
+import type { D1DatabaseLike } from "./types.ts";
+
+describe("entrega privada com D1 e R2 reais isolados", () => {
+  const mf = new Miniflare(
+    convertV4MiniflareOptions({
+      compatibilityDate: "2026-08-30",
+      d1Databases: { DB: "mission-files-tests" },
+      r2Buckets: { MEDIA: "mission-files-tests" },
+      modules: true,
+      script: "export default {fetch() {return new Response('ok')}}",
+    }),
+  );
+  let db: Awaited<ReturnType<typeof mf.getD1Database>>;
+  let media: Awaited<ReturnType<typeof mf.getR2Bucket>>;
+  let app: ReturnType<typeof createApp>;
+  const cookies: Record<string, string> = {};
+  let missionId: number;
+  const call = (
+    path: string,
+    method = "GET",
+    body?: unknown,
+    cookie = cookies.editor,
+    headers: Record<string, string> = {},
+  ) =>
+    app.request(
+      `https://staging.local${path}`,
+      {
+        method,
+        headers: { cookie, "content-type": "application/json", ...headers },
+        ...(body === undefined
+          ? {}
+          : {
+              body: body instanceof Uint8Array ? new Uint8Array(body).buffer : JSON.stringify(body),
+            }),
+      },
+      { DB: db, MEDIA: media as never, BACKGROUND_QUEUE: { async send() {} } },
+    );
+  before(async () => {
+    process.env.AUTH_SECRET = "mission-files-isolated-test-secret";
+    db = await mf.getD1Database("DB");
+    media = await mf.getR2Bucket("MEDIA");
+    await applyAllD1Migrations(db as unknown as D1DatabaseLike);
+    app = createApp(d1ApiDependencies(db as unknown as D1DatabaseLike));
+    for (const [id, role, handle] of [
+      [1, "spokesperson", "voice"],
+      [2, "editor", "editor"],
+      [3, "admin", "admin"],
+      [4, "editor", "other"],
+    ] as const) {
+      await db
+        .prepare(
+          "INSERT INTO users (id,handle,name,email,role,profile_completed) VALUES (?,?,?,?,?,1)",
+        )
+        .bind(
+          id,
+          handle,
+          handle,
+          `${handle}@example.invalid`,
+          role === "spokesperson" ? "voz" : role,
+        )
+        .run();
+      cookies[handle] =
+        `${COOKIE_NAME}=${await createSessionToken({ id, role, handle, name: handle })}`;
+    }
+    const mission = await db
+      .prepare(
+        "INSERT INTO missions (spokesperson_id,title,format,status,reserved_by_id) VALUES (1,'Vídeo','short','reservada',2) RETURNING id",
+      )
+      .first<{ id: number }>();
+    missionId = mission!.id;
+  });
+  after(() => mf.dispose());
+  const prepare = async (size = 3, contentType = "video/mp4") =>
+    call(`/missions/${missionId}/uploads`, "POST", {
+      filename: "synthetic.mp4",
+      contentType,
+      size,
+    });
+  const sendPart = (fileId: string, uploadId: string, bytes = new Uint8Array([1, 2, 3])) =>
+    call(`/missions/${missionId}/files/${fileId}/parts/1`, "PUT", bytes, cookies.editor, {
+      "x-upload-id": uploadId,
+    });
+  const complete = (fileId: string, uploadId: string, parts: unknown[]) =>
+    call(`/missions/${missionId}/files/${fileId}/complete`, "POST", { uploadId, parts });
+
+  test("valida formato, tamanho e papel antes de criar arquivo", async () => {
+    assert.equal((await prepare(3, "text/html")).status, 415);
+    assert.equal((await prepare(2 * 1024 ** 3 + 1)).status, 413);
+    assert.equal((await prepare(0)).status, 400);
+    assert.equal(
+      (
+        await call(
+          `/missions/${missionId}/uploads`,
+          "POST",
+          { filename: "x.mp4", contentType: "video/mp4", size: 3 },
+          cookies.voice,
+        )
+      ).status,
+      403,
+    );
+  });
+  test("upload interrompido não pode ser lido nem entregue; tamanho incorreto não declara sucesso", async () => {
+    const upload = (await (await prepare()).json()) as { fileId: string; uploadId: string };
+    const read = `/missions/${missionId}/files/2/${upload.fileId}`;
+    assert.equal((await call(read)).status, 404);
+    assert.equal(
+      (
+        await call(`/missions/${missionId}`, "POST", {
+          action: "deliver",
+          expectedDeliveryVersion: 0,
+          link: `https://staging.local/api${read}`,
+        })
+      ).status,
+      400,
+    );
+    const part = await (
+      await sendPart(upload.fileId, upload.uploadId, new Uint8Array([1, 2]))
+    ).json();
+    assert.equal((await complete(upload.fileId, upload.uploadId, [part])).status, 409);
+    assert.equal((await call(read)).status, 404);
+  });
+  test("persiste conteúdo e autoria, suporta retry e Range e impede acesso alheio", async () => {
+    const upload = (await (await prepare()).json()) as { fileId: string; uploadId: string };
+    const part = await (await sendPart(upload.fileId, upload.uploadId)).json();
+    const done = await complete(upload.fileId, upload.uploadId, [part]);
+    assert.equal(done.status, 200);
+    assert.equal((await complete(upload.fileId, upload.uploadId, [part])).status, 200);
+    const read = `/missions/${missionId}/files/2/${upload.fileId}`;
+    assert.equal((await call(read, "GET", undefined, "")).status, 401);
+    assert.equal((await call(read, "GET", undefined, cookies.other)).status, 403);
+    const video = await call(read, "GET", undefined, cookies.voice);
+    assert.equal(video.status, 200);
+    assert.deepEqual(new Uint8Array(await video.arrayBuffer()), new Uint8Array([1, 2, 3]));
+    assert.equal(video.headers.get("cache-control"), "private, no-store");
+    const ranged = await call(read, "GET", undefined, cookies.admin, { range: "bytes=1-2" });
+    assert.equal(ranged.status, 206);
+    assert.equal(ranged.headers.get("content-range"), "bytes 1-2/3");
+    assert.deepEqual(new Uint8Array(await ranged.arrayBuffer()), new Uint8Array([2, 3]));
+    assert.equal(
+      (await call(read, "GET", undefined, cookies.admin, { range: "bytes=9-10" })).status,
+      416,
+    );
+    const object = await media.head(`missions/${missionId}/2/${upload.fileId}`);
+    assert.equal(object?.customMetadata?.ownerId, "2");
+    assert.equal(object?.customMetadata?.filename, "synthetic.mp4");
+    assert.equal(
+      (
+        await call(`/missions/${missionId}`, "POST", {
+          action: "deliver",
+          expectedDeliveryVersion: 0,
+          link: `https://staging.local/api${read}`,
+        })
+      ).status,
+      200,
+    );
+    const state = await db
+      .prepare("SELECT status,delivery_video_url FROM missions WHERE id=?")
+      .bind(missionId)
+      .first<{ status: string; delivery_video_url: string }>();
+    assert.equal(state?.status, "em_revisao");
+    assert.equal(state?.delivery_video_url, `https://staging.local/api${read}`);
+  });
+
+  test("ajuste e reenvio preservam versões e recusam requisições da versão anterior", async () => {
+    const revision = {
+      action: "revision",
+      notes: "Aumentar a legenda",
+      expectedDeliveryVersion: 1,
+    };
+    assert.equal(
+      (await call(`/missions/${missionId}`, "POST", revision, cookies.other)).status,
+      403,
+    );
+    assert.equal(
+      (await call(`/missions/${missionId}`, "POST", revision, cookies.voice)).status,
+      200,
+    );
+    assert.equal(
+      (await call(`/missions/${missionId}`, "POST", revision, cookies.voice)).status,
+      409,
+    );
+    const upload = (await (await prepare()).json()) as { fileId: string; uploadId: string };
+    const part = await (await sendPart(upload.fileId, upload.uploadId)).json();
+    const completed = (await (await complete(upload.fileId, upload.uploadId, [part])).json()) as {
+      readUrl: string;
+    };
+    const results = await Promise.all(
+      [0, 1].map(() =>
+        call(`/missions/${missionId}`, "POST", {
+          action: "deliver",
+          link: completed.readUrl,
+          expectedDeliveryVersion: 1,
+        }),
+      ),
+    );
+    assert.deepEqual(results.map((result) => result.status).sort(), [200, 409]);
+    assert.equal(
+      (await call(`/missions/${missionId}`, "POST", revision, cookies.voice)).status,
+      409,
+    );
+    const mission = (await (
+      await call(`/missions/view/${missionId}`, "GET", undefined, cookies.voice)
+    ).json()) as {
+      deliveryVersion: number;
+      deliveryHistory: { version: number; deliveryVideoUrl: string }[];
+    };
+    assert.equal(mission.deliveryVersion, 2);
+    assert.deepEqual(
+      mission.deliveryHistory.map((version) => version.version),
+      [1, 2],
+    );
+    assert.notEqual(
+      mission.deliveryHistory[0].deliveryVideoUrl,
+      mission.deliveryHistory[1].deliveryVideoUrl,
+    );
+    const oldPath = new URL(mission.deliveryHistory[0].deliveryVideoUrl).pathname.replace(
+      /^\/api/,
+      "",
+    );
+    assert.equal((await call(oldPath, "GET", undefined, cookies.voice)).status, 200);
+    assert.equal(
+      await db
+        .prepare(
+          "SELECT count(*) AS n FROM admin_audit WHERE entity_id=? AND action='entrega_submetida'",
+        )
+        .bind(String(missionId))
+        .first("n"),
+      2,
+    );
+  });
+  test("aprovação HTTP exige inspeção da versão atual e encerra uma única vez", async () => {
+    const approve = { action: "approve", expectedDeliveryVersion: 2, rating: 5 };
+    assert.equal(
+      (await call(`/missions/${missionId}`, "POST", approve, cookies.voice)).status,
+      409,
+    );
+    assert.equal(
+      (await call(`/missions/${missionId}`, "POST", approve, cookies.other)).status,
+      403,
+    );
+    assert.equal(
+      (
+        await call(
+          `/missions/${missionId}`,
+          "POST",
+          { ...approve, expectedDeliveryVersion: 1 },
+          cookies.admin,
+        )
+      ).status,
+      409,
+    );
+    assert.equal(
+      (await call(`/missions/${missionId}`, "POST", approve, cookies.admin)).status,
+      200,
+    );
+    const finish = { action: "accept", expectedDeliveryVersion: 2 };
+    const results = await Promise.all([
+      call(`/missions/${missionId}`, "POST", finish, cookies.voice),
+      call(`/missions/${missionId}`, "POST", finish, cookies.voice),
+    ]);
+    assert.deepEqual(results.map((r) => r.status).sort(), [200, 409]);
+    assert.equal(
+      await db.prepare("SELECT status FROM missions WHERE id=?").bind(missionId).first("status"),
+      "finalizada",
+    );
+    assert.equal(
+      await db
+        .prepare(
+          "SELECT count(*) FROM admin_audit WHERE entity_id=? AND action='missao_finalizada'",
+        )
+        .bind(String(missionId))
+        .first("count(*)"),
+      1,
+    );
+  });
+});

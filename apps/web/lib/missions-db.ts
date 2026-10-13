@@ -81,6 +81,7 @@ export async function approveMission(
   rating?: number,
   comment?: string,
   _spokespersonId?: number,
+  expectedDeliveryVersion?: number,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const res = await fetchApi(`/missions/${missionId}`, {
     method: "POST",
@@ -89,6 +90,8 @@ export async function approveMission(
       action: "approve",
       rating,
       comment,
+      expectedDeliveryVersion:
+        expectedDeliveryVersion ?? (await getMissionById(missionId))?.deliveryVersion,
     }),
   });
   const body = (await res.json().catch(() => ({}))) as {

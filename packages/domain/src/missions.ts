@@ -33,6 +33,13 @@ export type RawMedia = {
 };
 
 export type Mission = {
+  deliveryVersion?: number;
+  deliveryHistory?: {
+    version: number;
+    deliveryLink: string | null;
+    deliveryVideoUrl: string | null;
+    submittedAt: string | null;
+  }[];
   id: string;
   spokesperson: string;
   spokespersonHandle?: string;

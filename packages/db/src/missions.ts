@@ -45,6 +45,7 @@ export type CreateMissionInput = {
 };
 
 export type MissionRow = {
+  delivery_version?: number;
   id: number;
   // English column names:
   spokesperson_name?: string;
@@ -127,15 +128,14 @@ export function rowToMission(r: MissionRow): Mission {
   const reservedBy = r.reserved_by_handle ?? r.reservada_por_apelido ?? undefined;
   const reservedAtVal = r.reserved_at ?? r.reservada_em;
   const reservedAt = reservedAtVal ? new Date(reservedAtVal).toISOString() : undefined;
-  const reservedUntil = r.reserved_until
-    ? new Date(r.reserved_until).toISOString()
-    : undefined;
+  const reservedUntil = r.reserved_until ? new Date(r.reserved_until).toISOString() : undefined;
   const rawVideo = r.raw_video_url ?? r.video_bruto_url ?? r.drive_link ?? undefined;
   let rawVideoUrls: string[] = [];
   if (r.raw_video_urls) {
     try {
       const parsed = JSON.parse(r.raw_video_urls);
-      if (Array.isArray(parsed)) rawVideoUrls = parsed.filter((url): url is string => typeof url === "string");
+      if (Array.isArray(parsed))
+        rawVideoUrls = parsed.filter((url): url is string => typeof url === "string");
     } catch {
       rawVideoUrls = [];
     }
@@ -169,6 +169,7 @@ export function rowToMission(r: MissionRow): Mission {
 
   return {
     id: `db-${r.id}`,
+    deliveryVersion: r.delivery_version ?? 0,
     spokesperson: spName,
     spokespersonHandle: spHandle,
     title,

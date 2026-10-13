@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { uploadMissionVideo } from "@/lib/mission-upload";
 
 export type UploadState = "idle" | "uploading" | "success" | "error";
 
@@ -10,6 +11,7 @@ interface UploadDropzoneProps {
   accept?: string;
   maxSizeMB?: number;
   multiple?: boolean;
+  missionId?: string;
 }
 
 export function UploadDropzone({
@@ -18,6 +20,7 @@ export function UploadDropzone({
   accept = "video/mp4,video/quicktime,video/x-msvideo,video/webm",
   maxSizeMB = 2000,
   multiple = false,
+  missionId,
 }: UploadDropzoneProps) {
   const [state, setState] = useState<UploadState>("idle");
   const [progress, setProgress] = useState(0);
@@ -49,6 +52,12 @@ export function UploadDropzone({
     setErrorMessage("");
 
     try {
+      if (missionId) {
+        const readUrl = await uploadMissionVideo(file, missionId, setProgress);
+        setState("success");
+        onUploadSuccess(readUrl);
+        return;
+      }
       const presignRes = await fetch("/api/upload/presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

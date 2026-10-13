@@ -7,10 +7,12 @@ export function MissionActions({
   id,
   inReview = false,
   emRevisao = false,
+  deliveryVersion = 0,
 }: {
   id: string;
   inReview?: boolean;
   emRevisao?: boolean;
+  deliveryVersion?: number;
 }) {
   const router = useRouter();
   const effectiveInReview = inReview || emRevisao;
@@ -20,7 +22,6 @@ export function MissionActions({
   >(null);
   const [isOpeningRevision, setIsOpeningRevision] = useState(false);
   const [notes, setNotes] = useState("");
-  const [rating, setRating] = useState<number | undefined>(undefined);
   const [notice, setNotice] = useState("");
 
   async function send(action: "accept" | "revision" | "approve") {
@@ -34,14 +35,12 @@ export function MissionActions({
     const body =
       action === "revision"
         ? { action: "revision", notes: notes.trim(), acao: "ajuste", notas: notes.trim() }
-        : effectiveInReview
-          ? { action: "approve", rating, acao: "aprovar", nota: rating }
-          : { action: "accept", acao: "aceitar" };
+        : { action: "accept", acao: "aceitar" };
 
     const resp = await fetch(`/api/missions/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, expectedDeliveryVersion: deliveryVersion }),
     });
 
     if (!resp.ok) {
@@ -62,42 +61,9 @@ export function MissionActions({
       <p className="text-xs uppercase tracking-[0.14em] text-gold-hi">Sua vez de conferir</p>
       <p className="mt-2 text-sm text-muted">
         {effectiveInReview
-          ? "O editor entregou. Assista e diga se pode ir pro ar — ou peça um ajuste antes."
+          ? "O editor entregou. A aprovação final aguarda a fiscalização independente. Você já pode assistir e pedir ajustes."
           : "O controle de qualidade já aprovou. Assista ao vídeo e diga se pode ir pro ar — ou peça um ajuste antes."}
       </p>
-
-      {effectiveInReview && !isOpeningRevision && (
-        <div className="mt-4">
-          <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted">
-            Que nota o editor merece? <span className="text-muted-2">(opcional)</span>
-          </p>
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                type="button"
-                aria-label={`${n} de 5`}
-                aria-pressed={rating === n}
-                onClick={() => setRating(rating === n ? undefined : n)}
-                className={`text-2xl leading-none transition-colors ${
-                  rating !== undefined && n <= rating ? "text-gold" : "text-line hover:text-gold-lo"
-                }`}
-              >
-                ★
-              </button>
-            ))}
-            {rating !== undefined && (
-              <button
-                type="button"
-                className="ml-2 text-xs text-muted-2 underline hover:text-muted"
-                onClick={() => setRating(undefined)}
-              >
-                limpar
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {isOpeningRevision ? (
         <div className="mt-5">
@@ -156,13 +122,13 @@ export function MissionActions({
           <div className="mt-5 flex flex-col gap-3 sm:flex-row" data-guia="aprovar-missao">
             <button
               className="btn-gold sm:flex-1"
-              onClick={() => send(effectiveInReview ? "approve" : "accept")}
-              disabled={processingAction !== null}
+              onClick={() => send("accept")}
+              disabled={processingAction !== null || effectiveInReview}
             >
               {processingAction === "accept"
                 ? "Fechando…"
                 : effectiveInReview
-                  ? "✅ Aprovar e fechar"
+                  ? "Aguardando fiscalização"
                   : "✅ Aceitar e postar"}
             </button>
             <button

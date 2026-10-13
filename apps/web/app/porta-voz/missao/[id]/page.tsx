@@ -101,7 +101,8 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
   const reason = mission.reason ?? (mission as any).motivo;
   const reservedBy = mission.reservedBy ?? (mission as any).reservadaPor;
   const reservedAt = mission.reservedAt ?? (mission as any).reservadaEm;
-  const deliveryLink = mission.deliveryLink ?? (mission as any).entregaLink;
+  const deliveryLink =
+    mission.deliveryVideoUrl ?? mission.deliveryLink ?? (mission as any).entregaLink;
   const driveLink = mission.driveLink;
   const youtubeLink = mission.youtubeLink;
   const inspectorNotes = mission.inspectorNotes ?? (mission as any).notasInspetor;
@@ -217,8 +218,29 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
 
       {needsMyDecision && (
         <div className="mt-5">
-          <MissionActions id={mission.id} inReview={isInReview} />
+          <MissionActions
+            id={mission.id}
+            inReview={isInReview}
+            deliveryVersion={mission.deliveryVersion}
+          />
         </div>
+      )}
+      {mission.deliveryHistory && mission.deliveryHistory.length > 1 && (
+        <section className="mt-5">
+          <h2 className="text-sm font-semibold">Versões da entrega</h2>
+          <ul>
+            {mission.deliveryHistory.map((version) => (
+              <li key={version.version}>
+                <a
+                  className="tap-target text-gold underline"
+                  href={version.deliveryVideoUrl ?? version.deliveryLink ?? "#"}
+                >
+                  Versão {version.version}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Enquanto o editor trabalha, a única ação útil é falar com ele. */}

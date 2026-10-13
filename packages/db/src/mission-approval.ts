@@ -16,6 +16,7 @@ export type ApproveMissionInput = {
   actor: { id: number; role: Role };
   rating?: number;
   comment?: string;
+  expectedVersion?: number;
 };
 
 export interface MissionApprovalRepository {

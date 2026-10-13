@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test, { after, before, beforeEach, describe } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
+import { createD1MissionApproval } from "./mission-approval.ts";
 import { createD1MissionLifecycle, type D1DatabaseLike } from "./mission-lifecycle.ts";
 import { applyAllD1Migrations } from "./schema.ts";
 
@@ -89,10 +89,23 @@ describe("paridade local D1 da missão", () => {
   });
 
   test("reedição e conclusão preservam estado e autoria", async () => {
-    const reviewId = await createMission("em_revisao", editorId);
-    assert.deepEqual(await missions.requestInspectorRevision(reviewId, "  Corrigir áudio  "), {
-      ok: true,
+    const admin = await db
+      .prepare(
+        "INSERT INTO users(handle,name,email,role) VALUES ('inspetor.d1','Inspetor','inspetor@example.invalid','admin') RETURNING id",
+      )
+      .first<{ id: number }>();
+    const reviewId = await createMission("reservada", editorId);
+    await missions.submitDelivery(reviewId, editorId, {
+      link: "https://video.example/v1",
+      videoUrl: null,
+      expectedVersion: 0,
     });
+    assert.deepEqual(
+      await missions.requestInspectorRevision(reviewId, "  Corrigir áudio  ", 1, admin!.id),
+      {
+        ok: true,
+      },
+    );
     const review = await db
       .prepare("SELECT status, inspector_notes, revision_requested_by FROM missions WHERE id = ?")
       .bind(reviewId)
@@ -103,7 +116,16 @@ describe("paridade local D1 da missão", () => {
       revision_requested_by: "inspetor",
     });
 
-    await db.prepare("UPDATE missions SET status = 'aprovada' WHERE id = ?").bind(reviewId).run();
+    await missions.submitDelivery(reviewId, editorId, {
+      link: "https://video.example/v2",
+      videoUrl: null,
+      expectedVersion: 1,
+    });
+    await createD1MissionApproval(db as unknown as D1DatabaseLike).approveMission({
+      missionId: reviewId,
+      actor: { id: admin!.id, role: "admin" },
+      expectedVersion: 2,
+    });
     assert.deepEqual(await missions.finishMission(reviewId, spokespersonId), { ok: true });
   });
 

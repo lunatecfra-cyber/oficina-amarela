@@ -49,7 +49,11 @@ export function InspectorQueue({
     const resp = await fetch(`/api/missions/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...body,
+        expectedDeliveryVersion:
+          missions.find((mission) => mission.id === id)?.deliveryVersion ?? 0,
+      }),
     });
     if (!resp.ok) {
       const data = await resp.json().catch(() => null);
@@ -158,7 +162,7 @@ function ReviewCard({
   const status = p.status;
   const format = p.format ?? (p as any).formato;
   const reservedBy = p.reservedBy ?? (p as any).reservadaPor;
-  const deliveryLink = p.deliveryLink ?? (p as any).entregaLink;
+  const deliveryLink = p.deliveryVideoUrl ?? p.deliveryLink ?? (p as any).entregaLink;
   const brief = p.brief ?? {};
   const tone = brief.tone ?? (brief as any).tom;
   const color = brief.color ?? (brief as any).cor;

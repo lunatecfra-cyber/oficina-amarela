@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1MissionApproval } from "./mission-approval.ts";
+import { createD1MissionLifecycle } from "./mission-lifecycle.ts";
 import { applyAllD1Migrations } from "./schema.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
@@ -61,9 +61,14 @@ describe("paridade D1 da aprovação de missão", () => {
       .prepare(
         "INSERT INTO missions (spokesperson_id, title, format, status, reserved_by_id) VALUES (?, ?, ?, ?, ?) RETURNING id",
       )
-      .bind(spokespersonId, "Missão aprovada no D1", "short", "em_revisao", editorId)
+      .bind(spokespersonId, "Missão aprovada no D1", "short", "reservada", editorId)
       .first<{ id: number }>();
     missionId = mission?.id as number;
+    await createD1MissionLifecycle(db as unknown as D1DatabaseLike).submitDelivery(
+      missionId,
+      editorId,
+      { link: "https://video.example/synthetic", videoUrl: null, expectedVersion: 0 },
+    );
     await db
       .prepare("INSERT INTO ranking_cycles (name, starts_at, ends_at) VALUES (?, ?, ?)")
       .bind("Ciclo D1", "2026-01-01T00:00:00.000Z", "2027-01-01T00:00:00.000Z")
@@ -98,7 +103,7 @@ describe("paridade D1 da aprovação de missão", () => {
         `SELECT
            (SELECT count(*) FROM reviews WHERE mission_id = ?) AS reviews,
            (SELECT count(*) FROM ranking_approvals WHERE mission_id = ?) AS ranking,
-           (SELECT count(*) FROM admin_audit WHERE entity_id = ?) AS audit`,
+           (SELECT count(*) FROM admin_audit WHERE entity_id = ? AND action='edicao_aprovada') AS audit`,
       )
       .bind(missionId, missionId, String(missionId))
       .first();
@@ -114,17 +119,144 @@ describe("paridade D1 da aprovação de missão", () => {
       }),
       { ok: false, reason: "forbidden" },
     );
-    const result = await approval.approveMission({
-      missionId,
-      actor: { id: spokespersonId, role: "spokesperson" },
-      rating: 4,
-    });
-    assert.equal(result.ok, true);
+    const lifecycle = createD1MissionLifecycle(db as unknown as D1DatabaseLike);
+    assert.deepEqual(
+      await approval.approveMission({
+        missionId,
+        actor: { id: spokespersonId, role: "spokesperson" },
+      }),
+      { ok: false, reason: "forbidden" },
+    );
+    assert.equal((await lifecycle.finishMission(missionId, spokespersonId, 1)).ok, false);
+    assert.equal(
+      (
+        await approval.approveMission({
+          missionId,
+          actor: { id: adminId, role: "admin" },
+          expectedVersion: 1,
+          rating: 4,
+        })
+      ).ok,
+      true,
+    );
+    assert.equal((await lifecycle.finishMission(missionId, otherSpokespersonId, 1)).ok, false);
+    const concurrent = await Promise.all([
+      lifecycle.finishMission(missionId, spokespersonId, 1),
+      lifecycle.finishMission(missionId, spokespersonId, 1),
+    ]);
+    assert.equal(concurrent.filter((r) => r.ok).length, 1);
     const mission = await db
       .prepare("SELECT status, is_scored FROM missions WHERE id = ?")
       .bind(missionId)
       .first();
     assert.deepEqual(mission, { status: "finalizada", is_scored: 1 });
+  });
+
+  test("independência, reprovação e versão revisada impedem contorno", async () => {
+    const lifecycle = createD1MissionLifecycle(db as unknown as D1DatabaseLike);
+    assert.deepEqual(
+      await approval.approveMission({
+        missionId,
+        actor: { id: editorId, role: "admin" },
+        expectedVersion: 1,
+      }),
+      { ok: false, reason: "forbidden" },
+    );
+    assert.equal(
+      (await lifecycle.requestInspectorRevision(missionId, "Corrigir áudio", 1, editorId)).ok,
+      false,
+    );
+    assert.equal(
+      (await lifecycle.requestInspectorRevision(missionId, "Corrigir áudio", 1, adminId)).ok,
+      true,
+    );
+    await assert.rejects(
+      () => db.prepare("UPDATE missions SET status='finalizada' WHERE id=?").bind(missionId).run(),
+      /inspection_required/,
+    );
+    assert.equal(
+      (
+        await approval.approveMission({
+          missionId,
+          actor: { id: adminId, role: "admin" },
+          expectedVersion: 1,
+        })
+      ).ok,
+      false,
+    );
+    assert.equal(
+      (
+        await lifecycle.submitDelivery(missionId, editorId, {
+          link: "https://video.example/v2",
+          videoUrl: null,
+          expectedVersion: 1,
+        })
+      ).ok,
+      true,
+    );
+    assert.equal(
+      (
+        await approval.approveMission({
+          missionId,
+          actor: { id: adminId, role: "admin" },
+          expectedVersion: 1,
+        })
+      ).ok,
+      false,
+    );
+    assert.equal(
+      (
+        await approval.approveMission({
+          missionId,
+          actor: { id: adminId, role: "admin" },
+          expectedVersion: 2,
+        })
+      ).ok,
+      true,
+    );
+    assert.equal(
+      (await lifecycle.requestSpokespersonRevision(missionId, spokespersonId, "Outra legenda", 2))
+        .ok,
+      true,
+    );
+    assert.equal(
+      (
+        await lifecycle.submitDelivery(missionId, editorId, {
+          link: "https://video.example/v3",
+          videoUrl: null,
+          expectedVersion: 2,
+        })
+      ).ok,
+      true,
+    );
+    await assert.rejects(
+      () => db.prepare("UPDATE missions SET status='aprovada' WHERE id=?").bind(missionId).run(),
+      /inspection_required/,
+    );
+    assert.equal(
+      (
+        await approval.approveMission({
+          missionId,
+          actor: { id: adminId, role: "admin" },
+          expectedVersion: 3,
+        })
+      ).ok,
+      true,
+    );
+    assert.equal(
+      await db
+        .prepare("SELECT delivered_count FROM users WHERE id=?")
+        .bind(editorId)
+        .first("delivered_count"),
+      1,
+    );
+    assert.equal(
+      await db
+        .prepare("SELECT count(*) FROM mission_inspections WHERE mission_id=?")
+        .bind(missionId)
+        .first("count(*)"),
+      3,
+    );
   });
 
   test("nota inválida não grava o evento idempotente", async () => {

@@ -1,3 +1,4 @@
+import type { R2Bucket } from "@cloudflare/workers-types";
 import { configureDatabaseUrl, withRequestDatabase } from "@oficina/db/client";
 import { createD1EmailQueueSource } from "@oficina/db/d1/email-queue";
 import { D1MetricsCollector, runWithD1Metrics } from "@oficina/db/d1/instrumentation";
@@ -20,6 +21,7 @@ import { createAuthRoutes } from "./routes/auth.ts";
 import { createContentRoutes } from "./routes/content.ts";
 import { createEditorQueue } from "./routes/editor-queue.ts";
 import { createMissionCollaborationRoutes } from "./routes/mission-collaboration.ts";
+import { createMissionFileRoutes } from "./routes/mission-files.ts";
 import { createMissionLifecycleRoutes } from "./routes/mission-lifecycle.ts";
 import { createMissionsCrudRoutes } from "./routes/missions-crud.ts";
 import { createProfileRoutes } from "./routes/profiles.ts";
@@ -36,6 +38,8 @@ import { type AnalyticsEngineDataset, recordApiTelemetry } from "./telemetry.ts"
  */
 
 export type Bindings = {
+  MEDIA?: R2Bucket;
+  STAGING_INSPECTION_ALL?: string;
   HYPERDRIVE?: { readonly connectionString: string };
   /**
    * Produtor da fila de manutenção. A presença dele é o interruptor: com fila
@@ -159,6 +163,7 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
   // da colaboração antes de chegar à consulta pública.
   app.route("/", createMissionsCrudRoutes(dependencies));
   app.route("/missions", createMissionCollaborationRoutes(dependencies));
+  app.route("/missions", createMissionFileRoutes(dependencies));
   app.route("/missions", createMissionLifecycleRoutes(dependencies));
 
   app.notFound((c) =>
