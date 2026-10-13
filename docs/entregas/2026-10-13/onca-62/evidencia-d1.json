@@ -1,0 +1,100 @@
+{
+  "mission": [
+    {
+      "id": 39,
+      "status": "reservada",
+      "spokesperson_id": 84,
+      "reserved_by_id": 85,
+      "manual_selection": 1
+    }
+  ],
+  "offers": [
+    {
+      "editor_id": 85,
+      "status": "aceita",
+      "selected_by_id": 84,
+      "selection_kind": "interest"
+    }
+  ],
+  "interests": [
+    {
+      "editor_id": 50
+    },
+    {
+      "editor_id": 85
+    }
+  ],
+  "assignments": [
+    {
+      "editor_id": 85,
+      "ended_at": null
+    }
+  ],
+  "audit": [
+    {
+      "actor_id": 50,
+      "action": "mission_interest",
+      "details": "{\"editorId\":50}"
+    },
+    {
+      "actor_id": 85,
+      "action": "mission_interest",
+      "details": "{\"editorId\":85}"
+    },
+    {
+      "actor_id": 84,
+      "action": "mission_editor_selected",
+      "details": "{\"editorId\":85,\"offerId\":30,\"kind\":\"interest\"}"
+    },
+    {
+      "actor_id": 85,
+      "action": "missao_aceita",
+      "details": "{\"offerId\":30}"
+    }
+  ],
+  "notifications": [
+    {
+      "event": "interest",
+      "recipient_id": 84
+    },
+    {
+      "event": "interest",
+      "recipient_id": 84
+    },
+    {
+      "event": "offer",
+      "recipient_id": 85
+    },
+    {
+      "event": "accepted",
+      "recipient_id": 84
+    }
+  ],
+  "foreignKeyViolations": [],
+  "notificationDelivery": [
+    {
+      "event": "interest",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T23:00:11.421Z",
+      "attempts": 1
+    },
+    {
+      "event": "interest",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T23:01:25.156Z",
+      "attempts": 1
+    },
+    {
+      "event": "offer",
+      "delivery_mode": "cancelled",
+      "sent_at": null,
+      "attempts": 0
+    },
+    {
+      "event": "accepted",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T23:04:06.790Z",
+      "attempts": 1
+    }
+  ]
+}

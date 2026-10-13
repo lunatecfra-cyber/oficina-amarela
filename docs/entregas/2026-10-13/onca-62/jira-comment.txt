@@ -1,0 +1,11 @@
+Aceite técnico ONCA-62 concluído em staging (13/10/2026).
+
+Missão db-39 publicada pelo porta-voz sintético 84. Editores A (50) e B (85) registraram interesse separadamente pela interface, sem atribuição. O porta-voz consultou os dois perfis, comparou a avaliação real 4,0/1 de A com o estado sem avaliações de B e selecionou B explicitamente. B recebeu e aceitou a oferta pela interface e entrou na bancada de produção. D1 confirma uma única atribuição ativa, ao editor 85, dois interesses e auditoria com os atores.
+
+Mural não expõe materiais privados. Novas publicações D1 usam seleção manual; histórico legado preservado. Convite direto usa os mesmos offers, triggers, índices únicos e aceite. Recusa/expiração reabrem seleção manual; nenhum fallback automático. Interesse/seleção/aceite suportam retries e testes concorrentes. Eventos internos persistidos; e-mails do ensaio simulados, oferta obsoleta cancelada ao aceitar.
+
+281 testes passaram, typecheck e Biome. E2E desktop em Chrome e móvel 390x844: A sem ação de apropriação e porta-voz com aceite persistido, sem overflow horizontal. Teste sem JS confirma login POST e bloqueado antes de hidratar. PostgreSQL não testado (TEST_DATABASE_URL ausente).
+
+Commits principais: 4fe7ae2, 6d3f1d6, 2ffe421, 396d85b, c735ffe, d8981f5, 349f178. Evidências: docs/entregas/2026-10-13/onca-62/.
+
+Somente staging; sem produção, pagamentos ou mensagens externas reais. ONCA-53/120 não são encerrados por esta entrega. Próxima fatia: ONCA-61, diretório e portfólio consentido.
