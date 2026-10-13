@@ -216,6 +216,7 @@ export function createD1MissionQueue(
     },
 
     async expireOffers() {
+      // Explicitly chosen editors can return before the deadline; presence expiry belongs to automatic dispatch.
       const now = clock();
       const { results } = await db
         .prepare(
@@ -226,7 +227,7 @@ export function createD1MissionQueue(
                offered_at <= ?
                OR EXISTS (
                  SELECT 1 FROM users u
-                 WHERE u.id = offers.editor_id AND u.last_seen_at <= ?
+                 WHERE offers.selected_by_id IS NULL AND u.id = offers.editor_id AND u.last_seen_at <= ?
                )
              )
            RETURNING mission_id`,

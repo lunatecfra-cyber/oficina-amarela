@@ -291,6 +291,12 @@ test("diretório é opt-in, não expõe dados privados e consentimento pode ser 
     (await call(`/missions/${directId}/selection`, 1, { editorId: 2, kind: "direct" })).status,
     201,
   );
+  await db.prepare("UPDATE users SET last_seen_at='2000-01-01T00:00:00.000Z' WHERE id=2").run();
+  assert.equal(
+    ((await (await call(`/missions/${directId}/selection`, 1)).json()) as { status: string })
+      .status,
+    "oferecida",
+  );
   assert.equal((await call("/editors/synthetic2", 1)).status, 200);
   assert.equal((await call("/editors/synthetic2", 4)).status, 404);
   assert.deepEqual(await list("/editors?available=true"), []);
