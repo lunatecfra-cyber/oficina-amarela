@@ -208,7 +208,8 @@ test("convite direto compartilha oferta; recusa e expiração reabrem escolha ma
     (await call("/editor/queue/next", 3, { missionId: id, action: "accept" })).status,
     409,
   );
-  await d1ApiDependencies(db as unknown as D1DatabaseLike).missionQueue.expireOffers();
+  const recovered = await call(`/missions/${id}/selection`, 1);
+  assert.equal(((await recovered.json()) as { status: string }).status, "disponivel");
   assert.equal(
     (
       await db

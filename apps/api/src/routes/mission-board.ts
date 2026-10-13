@@ -1,4 +1,5 @@
 import type { UserSession } from "@oficina/auth/session";
+import { createD1MissionQueue } from "@oficina/db/d1/mission-queue";
 import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import { OFFER_MINUTES } from "@oficina/db/mission-queue";
 import { drainEmailQueueNow } from "@oficina/email/dispatch";
@@ -6,6 +7,7 @@ import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import { requireEditor, requireSpokesperson } from "../session.ts";
 
+// shortcut: timetable SQL uses São Paulo UTC-3, revise if its civil-time rules change.
 const ELIGIBLE = `u.role='editor' AND u.is_banned=0 AND u.profile_completed=1
   AND (json_extract(u.availability, '$[' || CASE WHEN CAST(strftime('%H','now','-3 hours') AS INTEGER) BETWEEN 6 AND 11 THEN 0 WHEN CAST(strftime('%H','now','-3 hours') AS INTEGER) BETWEEN 12 AND 17 THEN 1 ELSE 2 END || '][' || ((CAST(strftime('%w','now','-3 hours') AS INTEGER)+6)%7) || ']') IS NOT 0)
   AND (u.reservations_locked_until IS NULL OR u.reservations_locked_until<=strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -21,6 +23,7 @@ export function createMissionBoardRoutes() {
   routes.get("/board", requireEditor, async (c) => {
     const db = c.env.DB as unknown as D1DatabaseLike,
       id = c.get("session").id;
+    await createD1MissionQueue(db).expireOffers();
     const user = await db
       .prepare(`SELECT (${ELIGIBLE}) AS eligible FROM users u WHERE u.id=?`)
       .bind(id)
@@ -60,7 +63,9 @@ export function createMissionBoardRoutes() {
         )
         .bind(id, editor)
         .run();
-    } catch {
+    } catch (error) {
+      if (!(error instanceof Error) || !/editor_ineligible|UNIQUE constraint/.test(error.message))
+        throw error;
       return c.json(
         { error: "Missão indisponível ou você não está elegível. Atualize o mural." },
         409,
@@ -75,6 +80,7 @@ export function createMissionBoardRoutes() {
     const db = c.env.DB as unknown as D1DatabaseLike,
       id = Number(c.req.param("id")),
       actor = c.get("session").id;
+    await createD1MissionQueue(db).expireOffers();
     const mission = await db
       .prepare(
         "SELECT status FROM missions WHERE id=? AND spokesperson_id=? AND manual_selection=1",
@@ -114,6 +120,7 @@ export function createMissionBoardRoutes() {
       !["interest", "direct"].includes(kind)
     )
       return c.json({ error: "Seleção inválida." }, 400);
+    await createD1MissionQueue(db).expireOffers();
     const mission = await db
       .prepare(
         "SELECT status FROM missions WHERE id=? AND spokesperson_id=? AND manual_selection=1",
@@ -147,6 +154,11 @@ export function createMissionBoardRoutes() {
         )
         .run();
     } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !/selection_invalid|mission_unavailable|UNIQUE constraint/.test(error.message)
+      )
+        throw error;
       const retry = await db
         .prepare(
           "SELECT 1 FROM offers WHERE mission_id=? AND editor_id=? AND selected_by_id=? AND selection_kind=? AND status IN ('pendente','aceita')",

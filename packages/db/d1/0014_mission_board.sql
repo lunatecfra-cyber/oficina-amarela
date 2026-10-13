@@ -1,3 +1,4 @@
+-- shortcut: timetable SQL uses São Paulo UTC-3, revise if its civil-time rules change.
 -- Preserve legacy routing; new publications explicitly use spokesperson selection.
 ALTER TABLE missions ADD COLUMN manual_selection INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE offers ADD COLUMN selected_by_id INTEGER REFERENCES users(id);
