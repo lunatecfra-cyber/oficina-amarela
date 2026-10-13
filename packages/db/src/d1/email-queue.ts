@@ -1,4 +1,4 @@
-import type { EmailQueueSource, QueuedEmail } from "../email-queue.ts";
+import type { EmailQueueSource, MissionNotification } from "../email-queue.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 /**
@@ -43,11 +43,11 @@ export function createD1EmailQueueSource(
            SET attempts = attempts + 1, process_after = ?
            WHERE id IN (
              SELECT id FROM email_queue
-             WHERE sent_at IS NULL AND process_after <= ? AND attempts < ?
+             WHERE sent_at IS NULL AND delivery_mode IS NULL AND process_after <= ? AND attempts < ?
              ORDER BY process_after
              LIMIT ?
            )
-             AND sent_at IS NULL
+             AND sent_at IS NULL AND delivery_mode IS NULL
            RETURNING id, recipient, subject, html, attempts`,
         )
         .bind(backoffIso(), nowIso(), maxAttempts, limit)
@@ -70,10 +70,20 @@ export function createD1EmailQueueSource(
       }));
     },
 
-    async markSent(id) {
+    async pendingMissionNotifications() {
+      const rows = await db
+        .prepare(`SELECT n.key,n.mission_id AS missionId,n.event,n.version,n.notes,n.created_at AS createdAt,u.email AS recipient,u.name,u.role,p.title
+        FROM mission_notifications n JOIN users u ON u.id=n.recipient_id JOIN missions p ON p.id=n.mission_id
+        LEFT JOIN email_queue e ON e.key=n.key WHERE e.id IS NULL
+          AND (n.event<>'offer' OR EXISTS(SELECT 1 FROM offers o WHERE 'mission:'||o.mission_id||':offer:'||o.id=n.key AND o.status='pendente'))
+        ORDER BY n.created_at LIMIT 25`)
+        .all<MissionNotification>();
+      return rows.results;
+    },
+    async markSent(id, mode = "provider") {
       await db
-        .prepare("UPDATE email_queue SET sent_at = ?, error = NULL WHERE id = ?")
-        .bind(nowIso(), id)
+        .prepare("UPDATE email_queue SET sent_at = ?, delivery_mode = ?, error = NULL WHERE id = ?")
+        .bind(nowIso(), mode, id)
         .run();
     },
 

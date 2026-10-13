@@ -49,9 +49,26 @@ export type EmailToQueue = {
 export type EmailQueueSource = {
   enqueue(messages: EmailToQueue[]): Promise<number>;
   claim(limit: number): Promise<QueuedEmail[]>;
-  markSent(id: number): Promise<void>;
+  markSent(id: number, mode?: "provider" | "simulated"): Promise<void>;
   markFailed(id: number, error: string): Promise<void>;
+  pendingMissionNotifications?(): Promise<MissionNotification[]>;
 };
+
+export type MissionNotification = {
+  key: string;
+  missionId: number;
+  event: string;
+  version: number;
+  notes: string | null;
+  createdAt: string;
+  recipient: string;
+  name: string;
+  title: string;
+  role: string;
+};
+export function pendingMissionNotifications(): Promise<MissionNotification[]> {
+  return source().pendingMissionNotifications?.() ?? Promise.resolve([]);
+}
 
 let activeSource: EmailQueueSource | null = null;
 
@@ -135,6 +152,7 @@ export type DrainResult = { sent: number; failed: number };
 export async function drainEmailQueue(
   send: (email: QueuedEmail) => Promise<boolean>,
   limit = 50,
+  mode: "provider" | "simulated" = "provider",
 ): Promise<DrainResult> {
   const queue = source();
   const claimed = await queue.claim(limit);
@@ -144,7 +162,7 @@ export async function drainEmailQueue(
   for (const email of claimed) {
     try {
       if (await send(email)) {
-        await queue.markSent(email.id);
+        await queue.markSent(email.id, mode);
         sent++;
       } else {
         await queue.markFailed(email.id, "provedor recusou a mensagem");

@@ -1,3 +1,4 @@
+import { MISSION_NOTIFICATION_LABELS } from "@oficina/domain/mission-notifications";
 import { Resend } from "resend";
 
 function getClient() {
@@ -100,6 +101,23 @@ export function buildMissionAcceptedEmail(
       `<p>Oi, ${escapeHtml(name)}. A missão <b>${escapeHtml(title)}</b> saiu da fila e está sendo trabalhada agora.</p>
        <p>Você recebe outro aviso quando o vídeo ficar pronto.</p>`,
       { url, texto: "Acompanhar a missão" },
+    ),
+  };
+}
+
+export function buildMissionUpdateEmail(
+  event: string,
+  title: string,
+  notes: string | null,
+  url: string,
+): EmailContent {
+  const label = MISSION_NOTIFICATION_LABELS[event] ?? "Atualização da missão";
+  return {
+    subject: `${label}: "${title}"`,
+    html: moldura(
+      escapeHtml(label),
+      `<p>${escapeHtml(title)}</p>${notes ? `<p>${escapeHtml(notes)}</p>` : ""}`,
+      { url, texto: "Acompanhar missão" },
     ),
   };
 }

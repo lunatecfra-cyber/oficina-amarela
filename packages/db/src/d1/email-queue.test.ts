@@ -102,4 +102,35 @@ describe("paridade D1 da caixa de saída de e-mail", () => {
 
     assert.deepEqual(await drainEmailQueue(async () => true), { sent: 0, failed: 0 });
   });
+  test("drenadores concorrentes reivindicam uma mensagem só uma vez", async () => {
+    await enqueueEmails([message("concurrent")]);
+    const deliveries: number[] = [];
+    const results = await Promise.all(
+      [0, 1].map(() =>
+        drainEmailQueue(async (email) => {
+          deliveries.push(email.id);
+          return true;
+        }),
+      ),
+    );
+    assert.equal(deliveries.length, 1);
+    assert.equal(
+      results.reduce((sum, r) => sum + r.sent, 0),
+      1,
+    );
+  });
+  test("simulação fica identificada e recuperação mantém a mesma mensagem", async () => {
+    await enqueueEmails([message("simulated")]);
+    await drainEmailQueue(async () => false, 25, "simulated");
+    await db
+      .prepare("UPDATE email_queue SET process_after=?")
+      .bind(new Date(Date.now() - 60000).toISOString())
+      .run();
+    assert.deepEqual(await drainEmailQueue(async () => true, 25, "simulated"), {
+      sent: 1,
+      failed: 0,
+    });
+    const result = await db.prepare("SELECT delivery_mode,attempts,error FROM email_queue").first();
+    assert.deepEqual(result, { delivery_mode: "simulated", attempts: 2, error: null });
+  });
 });

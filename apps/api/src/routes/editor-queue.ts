@@ -84,7 +84,7 @@ export function createEditorQueue(dependencies: ApiDependencies) {
     }
 
     const contact = await dependencies.missionContacts(missionId);
-    if (contact?.spokesperson) {
+    if (contact?.spokesperson && !c.env.DB) {
       const origin = new URL(c.req.url).origin;
       await queueMissionNotification(
         "aceite",
@@ -100,7 +100,9 @@ export function createEditorQueue(dependencies: ApiDependencies) {
     }
 
     // Entrega fora do caminho da requisição; nos Workers isso vira waitUntil.
-    await drainEmailQueueNow();
+    await drainEmailQueueNow().catch((error) =>
+      console.error("[notification] pending retry", error),
+    );
 
     return c.json({ ok: true });
   });

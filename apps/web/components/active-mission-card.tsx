@@ -5,6 +5,7 @@ import { isDriveUrl, isYouTubeUrl } from "@oficina/domain/validators";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MissionChat } from "@/components/mission-chat";
+import { MissionNotifications } from "@/components/mission-notifications";
 import { ReportButton } from "@/components/report-button";
 import { TutorialButton, TutorialDrive } from "@/components/tutorial-drive";
 import { UploadDropzone } from "@/components/upload-dropzone";
@@ -94,7 +95,16 @@ export function ActiveMissionCard({
     const resp = await fetch(`/api/missions/${currentMission!.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(link ? { action, link, acao: action, expectedDeliveryVersion: currentMission?.deliveryVersion ?? 0 } : { action, acao: action }),
+      body: JSON.stringify(
+        link
+          ? {
+              action,
+              link,
+              acao: action,
+              expectedDeliveryVersion: currentMission?.deliveryVersion ?? 0,
+            }
+          : { action, acao: action },
+      ),
     });
     setIsProcessing(false);
 
@@ -148,6 +158,10 @@ export function ActiveMissionCard({
       <h2 className="mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
         {title}
       </h2>
+      <MissionNotifications
+        missionId={currentMission.id}
+        key={`${currentMission.id}:${currentMission.deliveryVersion}:${status}`}
+      />
       <p className="mt-1 text-sm text-muted">
         {spokesperson} · {FORMAT_LABEL[format]}
         {desiredDeadline && <> · pra {shortDate(desiredDeadline)}</>}

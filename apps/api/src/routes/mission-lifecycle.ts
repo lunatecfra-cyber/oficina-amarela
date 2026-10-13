@@ -210,14 +210,17 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
         .catch((error) => console.error("[gamification] failed to record delivery", error));
     }
 
-    await dispatchNotifications(
-      dependencies,
-      action,
-      missionId,
-      new URL(c.req.url).origin,
-      body,
-    ).catch((error) => console.error("[notification] failed after action", action, error));
-    await drainEmailQueueNow();
+    if (!c.env.DB)
+      await dispatchNotifications(
+        dependencies,
+        action,
+        missionId,
+        new URL(c.req.url).origin,
+        body,
+      ).catch((error) => console.error("[notification] failed after action", action, error));
+    await drainEmailQueueNow().catch((error) =>
+      console.error("[notification] pending retry", error),
+    );
 
     return c.json({ ok: true });
   });

@@ -4,6 +4,7 @@ import {
   createSessionToken,
   type UserSession,
 } from "@oficina/auth/session";
+import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import bcrypt from "bcryptjs";
 import { Hono } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
@@ -18,6 +19,19 @@ type ProfileEnv = {
 
 export function createProfileRoutes(dependencies: ApiDependencies) {
   const routes = new Hono<ProfileEnv>();
+
+  routes.get("/profile/notifications", requireSession, async (c) => {
+    if (!c.env.DB) return c.json([]);
+    const missionId = c.req.query("missionId");
+    if (missionId !== undefined && (!Number.isInteger(Number(missionId)) || Number(missionId) <= 0))
+      return c.json({ error: "Missão inválida." }, 400);
+    const result = await (c.env.DB as D1DatabaseLike)
+      .prepare(`SELECT key,mission_id AS missionId,event,version,notes,created_at AS createdAt FROM mission_notifications
+      WHERE recipient_id=? AND (? IS NULL OR mission_id=?) ORDER BY created_at DESC,rowid DESC LIMIT 50`)
+      .bind(c.get("session").id, missionId ?? null, missionId ?? null)
+      .all();
+    return c.json(result.results);
+  });
 
   routes.get("/profile", requireSession, async (c) => {
     const session = c.get("session");

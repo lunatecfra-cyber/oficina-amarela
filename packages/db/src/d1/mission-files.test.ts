@@ -40,7 +40,14 @@ describe("entrega privada com D1 e R2 reais isolados", () => {
               body: body instanceof Uint8Array ? new Uint8Array(body).buffer : JSON.stringify(body),
             }),
       },
-      { DB: db, MEDIA: media as never, BACKGROUND_QUEUE: { async send() {} } },
+      {
+        DB: db,
+        MEDIA: media as never,
+        BACKGROUND_QUEUE: { async send() {} },
+        STAGING_EMAIL_SIMULATED: "true",
+        PUBLIC_ORIGIN: "https://staging.local",
+        STAGING_INSPECTION_ALL: "true",
+      },
     );
   before(async () => {
     process.env.AUTH_SECRET = "mission-files-isolated-test-secret";
@@ -279,5 +286,92 @@ describe("entrega privada com D1 e R2 reais isolados", () => {
         .first("count(*)"),
       1,
     );
+  });
+  test("notificações persistem por versão, simulam entrega e só mostram os avisos do usuário", async () => {
+    const voice = await call(
+      `/profile/notifications?missionId=${missionId}`,
+      "GET",
+      undefined,
+      cookies.voice,
+    );
+    assert.equal(voice.status, 200);
+    const events = (await voice.json()) as { event: string; version: number; key: string }[];
+    assert.deepEqual(
+      events
+        .filter((e) => e.event === "submitted")
+        .map((e) => e.version)
+        .sort(),
+      [1, 2],
+    );
+    const editor = (await (await call(`/profile/notifications?missionId=${missionId}`)).json()) as {
+      event: string;
+      notes: string | null;
+    }[];
+    assert.equal(
+      editor.some((e) => e.event === "revision" && e.notes === "Aumentar a legenda"),
+      true,
+    );
+    assert.equal(
+      editor.some((e) => e.event === "approved"),
+      true,
+    );
+    assert.equal((await call("/profile/notifications", "GET", undefined, "")).status, 401);
+    assert.deepEqual(
+      await (await call("/profile/notifications", "GET", undefined, cookies.other)).json(),
+      [],
+    );
+    const delivered = await db
+      .prepare(
+        "SELECT key,delivery_mode,sent_at FROM email_queue WHERE key LIKE 'mission:%:submitted:%' ORDER BY key",
+      )
+      .all<{ key: string; delivery_mode: string; sent_at: string | null }>();
+    assert.equal(delivered.results.length, 2);
+    assert.equal(
+      delivered.results.every((e) => e.delivery_mode === "simulated" && e.sent_at),
+      true,
+    );
+    assert.equal(
+      await db
+        .prepare("SELECT count(*) FROM email_queue WHERE delivery_mode='provider'")
+        .first("count(*)"),
+      0,
+    );
+  });
+  test("cancelamento e repasse preservam a caixa de saída existente sem duplicar eventos", async () => {
+    for (const action of ["cancel_mission", "reassign_mission"]) {
+      const mission = await db
+        .prepare(
+          "INSERT INTO missions(spokesperson_id,title,format,status,reserved_by_id,reserved_at) VALUES(1,'Synthetic owner event','short','reservada',2,'2026-01-01T00:00:00.000Z') RETURNING id",
+        )
+        .first<{ id: number }>();
+      const input = db
+        .prepare(
+          "INSERT INTO mission_owner_events(request_id,mission_id,actor_id,action,reason,expected_version,previous_editor_id,created_at) VALUES(?,?,1,?,'Ensaio sintético',0,2,?) ON CONFLICT(request_id) DO NOTHING",
+        )
+        .bind(`owner-${action}`, mission!.id, action, new Date().toISOString());
+      await input.run();
+      await input.run();
+      assert.equal(
+        await db
+          .prepare("SELECT count(*) FROM mission_notifications WHERE mission_id=? AND event=?")
+          .bind(mission!.id, action)
+          .first("count(*)"),
+        1,
+      );
+      assert.equal(
+        await db
+          .prepare("SELECT count(*) FROM email_queue WHERE key=?")
+          .bind(`mission-owner:owner-${action}`)
+          .first("count(*)"),
+        1,
+      );
+      assert.equal(
+        await db
+          .prepare("SELECT reserved_by_id FROM missions WHERE id=?")
+          .bind(mission!.id)
+          .first("reserved_by_id"),
+        null,
+      );
+    }
   });
 });

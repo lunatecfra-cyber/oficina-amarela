@@ -1,5 +1,23 @@
-import { type DrainResult, drainEmailQueue, enqueueEmails } from "@oficina/db/email-queue";
-import { buildPasswordRecoveryEmail, deliverEmail, type EmailContent } from "./messages.ts";
+import {
+  type DrainResult,
+  drainEmailQueue,
+  enqueueEmails,
+  pendingMissionNotifications,
+} from "@oficina/db/email-queue";
+import {
+  buildApprovedDeliveryEmail,
+  buildDeliveryReadyEmail,
+  buildMissionUpdateEmail,
+  buildPasswordRecoveryEmail,
+  buildReEditRequestedEmail,
+  deliverEmail,
+  type EmailContent,
+} from "./messages.ts";
+
+let emailRuntime = { simulated: false, origin: "https://oficinaamarela.com.br" };
+export function configureEmailRuntime(runtime: typeof emailRuntime) {
+  emailRuntime = runtime;
+}
 
 /**
  * Liga a caixa de saída ao provedor de e-mail.
@@ -13,12 +31,39 @@ import { buildPasswordRecoveryEmail, deliverEmail, type EmailContent } from "./m
 const BATCH = 25;
 
 export async function drainEmailQueueNow(): Promise<DrainResult> {
+  const runtime = emailRuntime;
+  const events = await pendingMissionNotifications();
+  await enqueueEmails(
+    events.map((event) => {
+      const url =
+        event.role === "admin"
+          ? `${runtime.origin}/inspetor`
+          : event.role === "editor"
+            ? `${runtime.origin}/editor`
+            : `${runtime.origin}/porta-voz/missao/db-${event.missionId}`;
+      const content =
+        event.event === "submitted"
+          ? buildDeliveryReadyEmail(event.name, event.title, url)
+          : event.event === "revision"
+            ? buildReEditRequestedEmail(event.name, event.title, event.notes ?? "", url)
+            : event.event === "approved"
+              ? buildApprovedDeliveryEmail(event.name, event.title, undefined, url)
+              : buildMissionUpdateEmail(event.event, event.title, event.notes, url);
+      return { key: event.key, to: event.recipient, ...content };
+    }),
+  );
   const result = await drainEmailQueue(
-    (email) => deliverEmail(email.destinatario, email.assunto, email.html),
+    (email) =>
+      runtime.simulated
+        ? Promise.resolve(/@example\.invalid$/i.test(email.destinatario))
+        : deliverEmail(email.destinatario, email.assunto, email.html),
     BATCH,
+    runtime.simulated ? "simulated" : "provider",
   );
   if (result.sent > 0 || result.failed > 0) {
-    console.log(`[email] fila drenada: ${result.sent} enviados, ${result.failed} falharam`);
+    console.log(
+      `[email] fila drenada: ${result.sent} ${runtime.simulated ? "simulados" : "enviados"}, ${result.failed} falharam`,
+    );
   }
   return result;
 }
@@ -34,11 +79,12 @@ export async function queueMissionNotification(
   missionId: number,
   to: string,
   content: EmailContent,
+  eventVersion?: string | number,
 ): Promise<void> {
   const minute = new Date().toISOString().slice(0, 16);
   await enqueueEmails([
     {
-      key: `mission:${missionId}:${event}:${to.toLowerCase()}:${minute}`,
+      key: `mission:${missionId}:${event}:${to.toLowerCase()}:${eventVersion ?? minute}`,
       to,
       subject: content.subject,
       html: content.html,

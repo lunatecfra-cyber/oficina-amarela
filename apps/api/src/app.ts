@@ -8,6 +8,7 @@ import {
   MAX_ATTEMPTS as EMAIL_MAX_ATTEMPTS,
 } from "@oficina/db/email-queue";
 import { configureSessionRevocationSource } from "@oficina/db/session-revocation";
+import { configureEmailRuntime } from "@oficina/email/dispatch";
 import { Hono } from "hono";
 import {
   type ApiDependencies,
@@ -40,6 +41,7 @@ import { type AnalyticsEngineDataset, recordApiTelemetry } from "./telemetry.ts"
 export type Bindings = {
   MEDIA?: R2Bucket;
   STAGING_INSPECTION_ALL?: string;
+  STAGING_EMAIL_SIMULATED?: string;
   HYPERDRIVE?: { readonly connectionString: string };
   /**
    * Produtor da fila de manutenção. A presença dele é o interruptor: com fila
@@ -66,6 +68,10 @@ export type Variables = {
 };
 
 export function configureRuntimeBindings(bindings: Bindings | undefined): void {
+  configureEmailRuntime({
+    simulated: bindings?.STAGING_EMAIL_SIMULATED === "true",
+    origin: bindings?.PUBLIC_ORIGIN ?? "https://oficinaamarela.com.br",
+  });
   const hyperdriveUrl = bindings?.HYPERDRIVE?.connectionString;
   if (hyperdriveUrl) configureDatabaseUrl(hyperdriveUrl);
 

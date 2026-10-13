@@ -162,6 +162,19 @@ describe("paridade local D1 da fila de missões", () => {
       .first<{ editor_id: number; status: string }>();
     assert.equal(offer?.status, "pendente");
     assert.equal((await missionState(missionId))?.status, "oferecida");
+    const notice = await db
+      .prepare(
+        "SELECT key,recipient_id FROM mission_notifications WHERE mission_id=? AND event='offer'",
+      )
+      .bind(missionId)
+      .first<{ key: string; recipient_id: number }>();
+    assert.equal(notice?.recipient_id, offer?.editor_id);
+    await db
+      .prepare(
+        "INSERT INTO email_queue(key,recipient,subject,html) VALUES (?,'synthetic@example.invalid','Oferta','<p>Oferta</p>')",
+      )
+      .bind(notice!.key)
+      .run();
 
     const pending = await queue.pendingOfferFor(offer?.editor_id as number);
     assert.equal(pending?.mission.id, `db-${missionId}`);
@@ -176,6 +189,22 @@ describe("paridade local D1 da fila de missões", () => {
       ok: false,
       reason: "offer_invalid",
     });
+    assert.equal(
+      await db
+        .prepare(
+          "SELECT count(*) FROM mission_notifications WHERE mission_id=? AND event='accepted'",
+        )
+        .bind(missionId)
+        .first("count(*)"),
+      1,
+    );
+    assert.equal(
+      await db
+        .prepare("SELECT delivery_mode FROM email_queue WHERE key=?")
+        .bind(notice!.key)
+        .first("delivery_mode"),
+      "cancelled",
+    );
   });
 
   test("aceite concorrente respeita a missão ativa do editor", async () => {

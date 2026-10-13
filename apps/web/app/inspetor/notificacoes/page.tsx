@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MissionNotifications } from "@/components/mission-notifications";
 import { getAdminNotifications } from "@/lib/overview-db";
 
 export const metadata: Metadata = { title: "Alertas — Oficina Amarela" };
@@ -41,6 +42,8 @@ export default async function NotificationsPage() {
           {notifications.length} pendente{notifications.length === 1 ? "" : "s"}
         </p>
       </div>
+
+      <MissionNotifications />
 
       {notifications.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-line-soft bg-surface/40 p-10 text-center text-sm text-muted">

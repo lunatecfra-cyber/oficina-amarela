@@ -4,6 +4,8 @@
 
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { configureEmailQueueSource } from "@oficina/db/email-queue";
+import { configureEmailRuntime, drainEmailQueueNow } from "./dispatch.ts";
 import { buildPasswordRecoveryEmail, deliverEmail, escapeHtml } from "./messages.ts";
 
 describe("escape em molde de e-mail", () => {
@@ -44,5 +46,46 @@ test("recuperação sem provedor não declara envio nem chama a rede", async (t)
   } finally {
     if (previousKey === undefined) delete process.env.RESEND_API_KEY;
     else process.env.RESEND_API_KEY = previousKey;
+  }
+});
+
+test("provedor simulado recusa destinatário real e nunca chama a rede", async (t) => {
+  const network = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("Envio externo proibido");
+  });
+  const sent: { id: number; mode: string | undefined }[] = [];
+  const failed: number[] = [];
+  configureEmailQueueSource({
+    async enqueue() {
+      return 0;
+    },
+    async claim() {
+      return ["synthetic@example.invalid", "real@example.com"].map((recipient, index) => ({
+        id: index + 1,
+        recipient,
+        destinatario: recipient,
+        subject: "Teste",
+        assunto: "Teste",
+        html: "<p>Teste</p>",
+        attempts: 1,
+        tentativas: 1,
+      }));
+    },
+    async markSent(id, mode) {
+      sent.push({ id, mode });
+    },
+    async markFailed(id) {
+      failed.push(id);
+    },
+  });
+  configureEmailRuntime({ simulated: true, origin: "https://staging.local" });
+  try {
+    assert.deepEqual(await drainEmailQueueNow(), { sent: 1, failed: 1 });
+    assert.deepEqual(sent, [{ id: 1, mode: "simulated" }]);
+    assert.deepEqual(failed, [2]);
+    assert.equal(network.mock.callCount(), 0);
+  } finally {
+    configureEmailQueueSource(null);
+    configureEmailRuntime({ simulated: false, origin: "https://oficinaamarela.com.br" });
   }
 });

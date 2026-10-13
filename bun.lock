@@ -124,6 +124,7 @@
       "version": "0.2.3",
       "dependencies": {
         "@oficina/db": "*",
+        "@oficina/domain": "*",
         "resend": "^6.27.0",
       },
       "devDependencies": {
