@@ -259,6 +259,35 @@ describe("paridade D1 da aprovação de missão", () => {
     );
   });
 
+  test("pedido de ajuste aguarda o editor ocupado sem falha de integridade", async () => {
+    const lifecycle = createD1MissionLifecycle(db as unknown as D1DatabaseLike);
+    await approval.approveMission({
+      missionId,
+      actor: { id: adminId, role: "admin" },
+      expectedVersion: 1,
+    });
+    const other = await db
+      .prepare(
+        "INSERT INTO missions(spokesperson_id,title,format,status,reserved_by_id) VALUES(?,'Outra missão','short','reservada',?) RETURNING id",
+      )
+      .bind(spokespersonId, editorId)
+      .first<{ id: number }>();
+    assert.deepEqual(
+      await lifecycle.requestSpokespersonRevision(missionId, spokespersonId, "Mudar o texto", 1),
+      { ok: false, reason: "editor_busy" },
+    );
+    assert.equal(
+      await db.prepare("SELECT status FROM missions WHERE id=?").bind(missionId).first("status"),
+      "aprovada",
+    );
+    await db.prepare("DELETE FROM missions WHERE id=?").bind(other!.id).run();
+    assert.equal(
+      (await lifecycle.requestSpokespersonRevision(missionId, spokespersonId, "Mudar o texto", 1))
+        .ok,
+      true,
+    );
+  });
+
   test("nota inválida não grava o evento idempotente", async () => {
     assert.deepEqual(
       await approval.approveMission({

@@ -279,6 +279,12 @@ describe("entrega privada com D1 e R2 reais isolados", () => {
       await db.prepare("SELECT status FROM missions WHERE id=?").bind(missionId).first("status"),
       "finalizada",
     );
+    const assignment = await db
+      .prepare("SELECT ended_at,end_reason FROM mission_assignments WHERE mission_id=?")
+      .bind(missionId)
+      .first<{ ended_at: string | null; end_reason: string }>();
+    assert.ok(assignment?.ended_at);
+    assert.equal(assignment?.end_reason, "finalizada");
     assert.equal(
       await db
         .prepare(

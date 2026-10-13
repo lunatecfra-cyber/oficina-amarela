@@ -98,7 +98,8 @@ export function createD1MissionLifecycle(db: D1DatabaseLike): MissionLifecycleRe
         .prepare(
           `UPDATE missions
            SET status = 'reedicao', inspector_notes = ?, revision_requested_by = 'porta_voz'
-           WHERE id = ? AND spokesperson_id = ? AND status IN ('em_revisao', 'aprovada') AND (? IS NULL OR delivery_version = ?)`,
+           WHERE id = ? AND spokesperson_id = ? AND status IN ('em_revisao', 'aprovada') AND (? IS NULL OR delivery_version = ?)
+             AND NOT EXISTS(SELECT 1 FROM missions other WHERE other.reserved_by_id=missions.reserved_by_id AND other.id<>missions.id AND other.status IN ('reservada','em_revisao','reedicao'))`,
         )
         .bind(
           cleanNotes,
@@ -108,6 +109,15 @@ export function createD1MissionLifecycle(db: D1DatabaseLike): MissionLifecycleRe
           expectedVersion ?? null,
         )
         .run();
+      if (result.meta.changes === 0) {
+        const busy = await db
+          .prepare(
+            "SELECT 1 FROM missions p WHERE p.id=? AND p.spokesperson_id=? AND p.status='aprovada' AND EXISTS(SELECT 1 FROM missions other WHERE other.reserved_by_id=p.reserved_by_id AND other.id<>p.id AND other.status IN ('reservada','em_revisao','reedicao'))",
+          )
+          .bind(missionId, spokespersonId)
+          .first();
+        if (busy) return failure("editor_busy");
+      }
       return result.meta.changes > 0
         ? { ok: true }
         : transitionFailure(missionId, "mission_not_awaiting_spokesperson");

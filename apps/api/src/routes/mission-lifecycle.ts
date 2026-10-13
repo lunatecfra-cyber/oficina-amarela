@@ -36,6 +36,8 @@ function failureMessage(reason: MissionActionFailure): string {
       return "Essa missão não está aguardando sua conferência.";
     case "revision_notes_required":
       return "Escreva o que precisa mudar.";
+    case "editor_busy":
+      return "O editor está trabalhando em outra missão. Tente pedir o ajuste quando ele estiver disponível.";
   }
 }
 

@@ -5,7 +5,8 @@ export type MissionActionFailure =
   | "mission_not_held"
   | "mission_not_in_review"
   | "mission_not_awaiting_spokesperson"
-  | "revision_notes_required";
+  | "revision_notes_required"
+  | "editor_busy";
 
 export type MissionActionResult = { ok: true } | { ok: false; reason: MissionActionFailure };
 
