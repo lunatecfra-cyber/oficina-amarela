@@ -135,7 +135,7 @@ export default async function ProfilePage() {
                       ? "sem avaliações"
                       : p.ratingCount === undefined
                         ? "nota"
-                        : `${p.ratingCount} avaliações`
+                        : `${p.ratingCount} ${p.ratingCount === 1 ? "avaliação" : "avaliações"}`
                   }
                   estrela
                 />
