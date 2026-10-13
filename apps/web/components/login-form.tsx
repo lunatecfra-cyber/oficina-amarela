@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 function LoginFormContent() {
   const router = useRouter();
@@ -14,6 +14,8 @@ function LoginFormContent() {
     searchParams.get("google_error") ?? searchParams.get("erro_google") ?? "",
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -107,7 +109,7 @@ function LoginFormContent() {
         <span className="h-px flex-1 bg-line" />
       </div>
 
-      <form onSubmit={onSubmit} noValidate>
+      <form method="post" onSubmit={onSubmit} noValidate>
         <div className="mb-4">
           <label
             htmlFor="handle"
@@ -129,6 +131,7 @@ function LoginFormContent() {
             </svg>
             <input
               id="handle"
+              disabled={!ready}
               name="handle"
               className="field-input"
               placeholder="seu apelido ou e-mail"
@@ -166,6 +169,7 @@ function LoginFormContent() {
             </svg>
             <input
               id="password"
+              disabled={!ready}
               name="password"
               type={showPassword ? "text" : "password"}
               className="field-input pr-12"
@@ -233,7 +237,7 @@ function LoginFormContent() {
           </p>
         )}
 
-        <button type="submit" className="btn-gold" disabled={isSubmitting}>
+        <button type="submit" className="btn-gold" disabled={isSubmitting || !ready}>
           {isSubmitting ? "Abrindo os portões…" : "Entrar na Oficina Amarela"}
         </button>
       </form>
