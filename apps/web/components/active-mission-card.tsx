@@ -1,6 +1,6 @@
 "use client";
 
-import { FORMAT_LABEL, type Mission } from "@oficina/domain/missions";
+import { FORMAT_LABEL, type Mission, WATERMARK_GUIDANCE } from "@oficina/domain/missions";
 import { isDriveUrl, isYouTubeUrl } from "@oficina/domain/validators";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -202,6 +202,7 @@ export function ActiveMissionCard({
             <p className="mt-1 text-sm text-silver-lo">
               As seguintes informações devem aparecer de forma legível no vídeo final:
             </p>
+            <p className="mt-2 text-sm text-silver-lo">{WATERMARK_GUIDANCE}</p>
             <ul className="mt-2 space-y-1 text-sm text-text">
               {watermark && (
                 <li>

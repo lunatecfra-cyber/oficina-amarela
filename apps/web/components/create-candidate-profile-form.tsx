@@ -14,6 +14,7 @@ import {
   THEME_FLAGS,
   TONE_EXAMPLES,
 } from "@oficina/domain/candidates";
+import { WATERMARK_GUIDANCE } from "@oficina/domain/missions";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { CampaignIdentity } from "@/components/campaign-identity";
@@ -819,6 +820,7 @@ export function CreateCandidateProfileForm({
                     setError("");
                   }}
                 />
+                <p className="mt-2 text-xs text-muted">{WATERMARK_GUIDANCE}</p>
               </div>
               <div>
                 {/* Não confundir com o número eleitoral acima: este é o título

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Format, Formato } from "@oficina/domain/missions";
+import { type Format, type Formato, WATERMARK_GUIDANCE } from "@oficina/domain/missions";
 import { isDriveUrl, isLikelyUrl, isYouTubeUrl } from "@oficina/domain/validators";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -525,6 +525,7 @@ export function NewMissionForm({
               value={data.watermark}
               onChange={(e) => setField("watermark", e.target.value)}
             />
+            <p className="mt-2 text-xs text-muted">{WATERMARK_GUIDANCE}</p>
           </FieldWrapper>
 
           <FieldWrapper label="CNPJ da campanha">

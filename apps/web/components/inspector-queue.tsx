@@ -1,7 +1,13 @@
 "use client";
 
 import { type Candidate, type Candidato, initials } from "@oficina/domain/candidates";
-import { DEMO_MISSIONS, FORMAT_LABEL, type Mission, type Pauta } from "@oficina/domain/missions";
+import {
+  DEMO_MISSIONS,
+  FORMAT_LABEL,
+  type Mission,
+  type Pauta,
+  WATERMARK_GUIDANCE,
+} from "@oficina/domain/missions";
 import { isLikelyUrl } from "@oficina/domain/validators";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -211,6 +217,7 @@ function ReviewCard({
             {font && <Chip k="fonte" v={font} />}
             {refs && <Chip k="ref" v={refs} />}
           </div>
+          <p className="mt-2 text-xs text-muted">{WATERMARK_GUIDANCE}</p>
           <p className="mt-2 text-xs text-muted">
             Entregue por <span className="text-text">{reservedBy}</span>
             {deliveryLink && isLikelyUrl(deliveryLink) && (

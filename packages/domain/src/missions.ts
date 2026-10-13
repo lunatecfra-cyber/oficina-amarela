@@ -1,3 +1,6 @@
+export const WATERMARK_GUIDANCE =
+  "A marca d’água deve usar texto branco discreto na lateral direita, na vertical, com leitura de baixo para cima.";
+
 export type MissionStatus =
   | "available"
   | "offered"
