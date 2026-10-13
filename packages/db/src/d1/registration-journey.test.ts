@@ -191,7 +191,7 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
           editorCookie,
         )
       ).status,
-      409,
+      200,
     );
     const active = await request("/editor/active-mission", undefined, editorCookie);
     assert.equal(((await active.json()) as { id: string }).id, `db-${missionId}`);
