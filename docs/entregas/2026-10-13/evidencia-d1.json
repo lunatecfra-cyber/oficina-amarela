@@ -1,0 +1,446 @@
+{
+  "mission": [
+    {
+      "id": 38,
+      "status": "finalizada",
+      "delivery_version": 4,
+      "inspection_required": 1,
+      "inspection_reason": "first_three_deliveries",
+      "is_scored": 1
+    }
+  ],
+  "deliveries": [
+    {
+      "version": 1,
+      "editor_id": 50,
+      "submitted_at": "2026-10-13T18:04:20.384Z",
+      "delivery_video_url": "https://oficina-amarela-web-staging.casamarela.workers.dev/api/missions/38/files/50/071df027-b989-49df-898c-ae9afdcde612"
+    },
+    {
+      "version": 2,
+      "editor_id": 50,
+      "submitted_at": "2026-10-13T18:10:27.354Z",
+      "delivery_video_url": "https://oficina-amarela-web-staging.casamarela.workers.dev/api/missions/38/files/50/448d011f-04ca-41ff-a6ff-bd925e4a41ef"
+    },
+    {
+      "version": 3,
+      "editor_id": 50,
+      "submitted_at": "2026-10-13T18:25:02.144Z",
+      "delivery_video_url": "https://oficina-amarela-web-staging.casamarela.workers.dev/api/missions/38/files/50/13535522-6afc-4ddc-ac4c-f14bed52f48e"
+    },
+    {
+      "version": 4,
+      "editor_id": 50,
+      "submitted_at": "2026-10-13T18:43:00.398Z",
+      "delivery_video_url": "https://oficina-amarela-web-staging.casamarela.workers.dev/api/missions/38/files/50/22cd0896-f63c-440d-8a00-f68dacb6a57a"
+    }
+  ],
+  "inspections": [
+    {
+      "version": 2,
+      "inspector_id": 83,
+      "decision": "revision_requested",
+      "inspected_at": "2026-10-13T18:14:44.759Z",
+      "scored": 0
+    },
+    {
+      "version": 3,
+      "inspector_id": 83,
+      "decision": "revision_requested",
+      "inspected_at": "2026-10-13T18:31:03.726Z",
+      "scored": 0
+    },
+    {
+      "version": 4,
+      "inspector_id": 83,
+      "decision": "approved",
+      "inspected_at": "2026-10-13T18:49:18.555Z",
+      "scored": 1
+    }
+  ],
+  "assignments": [
+    {
+      "editor_id": 50,
+      "accepted_at": "2026-10-12T17:46:46.277Z",
+      "ended_at": "2026-10-13T19:00:04.205Z",
+      "end_reason": "finalizada"
+    }
+  ],
+  "notifications": [
+    {
+      "event": "inspection_pending",
+      "version": 1,
+      "recipients": 5
+    },
+    {
+      "event": "revision",
+      "version": 1,
+      "recipients": 1
+    },
+    {
+      "event": "submitted",
+      "version": 1,
+      "recipients": 1
+    },
+    {
+      "event": "inspection_pending",
+      "version": 2,
+      "recipients": 5
+    },
+    {
+      "event": "inspection_rejected",
+      "version": 2,
+      "recipients": 1
+    },
+    {
+      "event": "revision",
+      "version": 2,
+      "recipients": 1
+    },
+    {
+      "event": "submitted",
+      "version": 2,
+      "recipients": 1
+    },
+    {
+      "event": "inspection_pending",
+      "version": 3,
+      "recipients": 5
+    },
+    {
+      "event": "inspection_rejected",
+      "version": 3,
+      "recipients": 1
+    },
+    {
+      "event": "revision",
+      "version": 3,
+      "recipients": 1
+    },
+    {
+      "event": "submitted",
+      "version": 3,
+      "recipients": 1
+    },
+    {
+      "event": "approved",
+      "version": 4,
+      "recipients": 1
+    },
+    {
+      "event": "inspection_approved",
+      "version": 4,
+      "recipients": 1
+    },
+    {
+      "event": "inspection_pending",
+      "version": 4,
+      "recipients": 5
+    },
+    {
+      "event": "submitted",
+      "version": 4,
+      "recipients": 1
+    }
+  ],
+  "emailQueue": [
+    {
+      "key": "mission:38:aceite:qs.1791818566.v@example.invalid:2026-10-12T17:46",
+      "delivery_mode": null,
+      "sent_at": null,
+      "attempts": 5,
+      "error": "provedor recusou a mensagem"
+    },
+    {
+      "key": "mission:38:submitted:1",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:04:22.182Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:1:49",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:03.541Z",
+      "attempts": 4,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:1:72",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:03.693Z",
+      "attempts": 4,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:1:79",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:03.848Z",
+      "attempts": 4,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:1:80",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:03.994Z",
+      "attempts": 4,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:1:83",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:04:22.868Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:revision:1",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:04.142Z",
+      "attempts": 3,
+      "error": null
+    },
+    {
+      "key": "mission:38:submitted:2",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:10:28.579Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:2:49",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:04.299Z",
+      "attempts": 3,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:2:72",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:04.448Z",
+      "attempts": 3,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:2:79",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:04.593Z",
+      "attempts": 3,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:2:80",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:04.746Z",
+      "attempts": 3,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:2:83",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:10:29.059Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection:2",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:14:45.404Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:revision:2",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:04.904Z",
+      "attempts": 2,
+      "error": null
+    },
+    {
+      "key": "mission:38:submitted:3",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:05.052Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:3:49",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:05.205Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:3:72",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:05.360Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:3:79",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:05.514Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:3:80",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:05.660Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:3:83",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:25:05.817Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection:3",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:31:04.373Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:revision:3",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:31:04.521Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:submitted:4",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:43:01.938Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:4:49",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:43:02.078Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:4:72",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:43:02.226Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:4:79",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:43:02.365Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:4:80",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:43:02.510Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection_pending:4:83",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:43:02.652Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:inspection:4",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T18:49:19.422Z",
+      "attempts": 1,
+      "error": null
+    },
+    {
+      "key": "mission:38:approved:4",
+      "delivery_mode": "simulated",
+      "sent_at": "2026-10-13T19:00:04.714Z",
+      "attempts": 1,
+      "error": null
+    }
+  ],
+  "audit": [
+    {
+      "actor_id": 50,
+      "action": "entrega_submetida",
+      "details": "{\"version\":1}",
+      "created_at": "2026-10-13T18:04:20.384Z"
+    },
+    {
+      "actor_id": null,
+      "action": "ajuste_solicitado",
+      "details": "{\"version\":1,\"by\":\"porta_voz\",\"notes\":\"Ensaio sintético: trocar o fundo amarelo pelo azul e preservar as informações de identificação fictícias.\"}",
+      "created_at": "2026-10-13T18:06:47.342Z"
+    },
+    {
+      "actor_id": 50,
+      "action": "entrega_submetida",
+      "details": "{\"version\":2}",
+      "created_at": "2026-10-13T18:10:27.354Z"
+    },
+    {
+      "actor_id": null,
+      "action": "ajuste_solicitado",
+      "details": "{\"version\":2,\"by\":\"inspetor\",\"notes\":\"Ensaio sintético: posicionar a marca d’água verticalmente na lateral direita do vídeo. Conferir a nova versão antes de aprovar.\"}",
+      "created_at": "2026-10-13T18:14:44.759Z"
+    },
+    {
+      "actor_id": 83,
+      "action": "inspecao_reprovada",
+      "details": "{\"version\":2}",
+      "created_at": "2026-10-13T18:14:44.759Z"
+    },
+    {
+      "actor_id": 50,
+      "action": "entrega_submetida",
+      "details": "{\"version\":3}",
+      "created_at": "2026-10-13T18:25:02.144Z"
+    },
+    {
+      "actor_id": null,
+      "action": "ajuste_solicitado",
+      "details": "{\"version\":3,\"by\":\"inspetor\",\"notes\":\"Ensaio sintético: a orientação está correta. Melhorar a legibilidade da marca d’água branca na lateral direita, mantendo a leitura de baixo para cima, como na referência aprovada.\"}",
+      "created_at": "2026-10-13T18:31:03.726Z"
+    },
+    {
+      "actor_id": 83,
+      "action": "inspecao_reprovada",
+      "details": "{\"version\":3}",
+      "created_at": "2026-10-13T18:31:03.726Z"
+    },
+    {
+      "actor_id": 50,
+      "action": "entrega_submetida",
+      "details": "{\"version\":4}",
+      "created_at": "2026-10-13T18:43:00.398Z"
+    },
+    {
+      "actor_id": 83,
+      "action": "edicao_aprovada",
+      "details": "{\"editorId\":50}",
+      "created_at": "2026-10-13T18:49:18.555Z"
+    },
+    {
+      "actor_id": 83,
+      "action": "inspecao_aprovada",
+      "details": "{\"version\":4}",
+      "created_at": "2026-10-13T18:49:18.555Z"
+    },
+    {
+      "actor_id": 84,
+      "action": "missao_finalizada",
+      "details": "{\"version\":4}",
+      "created_at": "2026-10-13T19:00:04.205Z"
+    }
+  ]
+}
