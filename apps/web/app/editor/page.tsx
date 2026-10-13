@@ -3,6 +3,7 @@ import { ActiveMissionCard } from "@/components/active-mission-card";
 import { AppHeader } from "@/components/app-header";
 import { DailyChallenges } from "@/components/daily-challenges";
 import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
+import { MissionBoard } from "@/components/mission-board";
 import { MissionNotifications } from "@/components/mission-notifications";
 import { MissionOffer } from "@/components/mission-offer";
 import { getMissionMessages } from "@/lib/chat-db";
@@ -38,12 +39,12 @@ export default async function EditorPage() {
         <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
           <div className="mb-8">
             <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
-              Fila de missões
+              Bancada e mural de missões
             </h1>
             <p className="mt-1 text-sm text-muted">
               {currentMission
                 ? "Você já tem uma missão em mãos. Entregue pra receber a próxima."
-                : "As missões chegam até você, uma por vez. Aceite ou passe — se passar, vai pro próximo editor."}
+                : "Encontre uma missão no mural e manifeste interesse. Se escolhido, confira e aceite a oferta."}
             </p>
           </div>
 
@@ -55,6 +56,7 @@ export default async function EditorPage() {
 
           <ActiveMissionCard mission={currentMission} messages={messages} />
           <MissionOffer hasActiveMission={!!currentMission} />
+          <MissionBoard />
           {!currentMission && <MissionNotifications />}
 
           <div

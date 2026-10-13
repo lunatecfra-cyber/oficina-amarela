@@ -14,6 +14,7 @@ import { MissionActions } from "@/components/mission-actions";
 import { MissionChat } from "@/components/mission-chat";
 import { MissionNotifications } from "@/components/mission-notifications";
 import { MissionReview } from "@/components/mission-review";
+import { MissionSelectionPanel } from "@/components/mission-selection";
 import { ReportButton } from "@/components/report-button";
 import { getMissionMessages } from "@/lib/chat-db";
 import { getQueuePosition, getSpokespersonMissionById, getTotalInQueue } from "@/lib/missions-db";
@@ -232,6 +233,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
           />
         </div>
       )}
+      <MissionSelectionPanel missionId={numId} />
       <MissionNotifications
         missionId={mission.id}
         key={`${mission.id}:${mission.deliveryVersion}:${mission.status}`}
