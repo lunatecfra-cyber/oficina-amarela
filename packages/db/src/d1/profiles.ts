@@ -200,8 +200,8 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
       try {
         const isNumeric = typeof handleOrId === "number";
         const accountQuery = isNumeric
-          ? "SELECT * FROM users WHERE id = ?"
-          : "SELECT * FROM users WHERE lower(handle) = lower(?)";
+          ? "SELECT *, (SELECT round(avg(rating),2) FROM reviews WHERE editor_id=users.id AND source='spokesperson' AND voided_at IS NULL) AS public_rating, (SELECT count(*) FROM reviews WHERE editor_id=users.id AND source='spokesperson' AND voided_at IS NULL) AS rating_count FROM users WHERE id = ?"
+          : "SELECT *, (SELECT round(avg(rating),2) FROM reviews WHERE editor_id=users.id AND source='spokesperson' AND voided_at IS NULL) AS public_rating, (SELECT count(*) FROM reviews WHERE editor_id=users.id AND source='spokesperson' AND voided_at IS NULL) AS rating_count FROM users WHERE lower(handle) = lower(?)";
 
         const account = await db
           .prepare(accountQuery)
@@ -218,6 +218,8 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
             reputation: number | null;
             streak: number | null;
             rating: number | null;
+            rating_count: number;
+            public_rating: number | null;
             tier: string | null;
             avatar_url: string | null;
             software_tools: string | null;
@@ -326,7 +328,8 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           deliveredCount: Number(account.delivered_count ?? 0),
           reputation: Number(account.reputation ?? 0),
           streak: Number(account.streak ?? 0),
-          rating: account.rating !== null ? Number(account.rating) : null,
+          rating: account.public_rating !== null ? Number(account.public_rating) : null,
+          ratingCount: Number(account.rating_count),
           level: (account.tier as Tier) ?? "Aprendiz",
           tier: (account.tier as Tier) ?? "Aprendiz",
           portfolio,
@@ -346,7 +349,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
           setupPc: account.pc_setup ?? undefined,
           entregues: Number(account.delivered_count ?? 0),
           reputacao: Number(account.reputation ?? 0),
-          nota: account.rating !== null ? Number(account.rating) : null,
+          nota: account.public_rating !== null ? Number(account.public_rating) : null,
           conquistas: achievements,
           historico: history,
         };

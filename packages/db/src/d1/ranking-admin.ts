@@ -91,14 +91,19 @@ export function createD1RankingAdmin(db: D1DatabaseLike): RankingAdminRepository
         .prepare("UPDATE missions SET is_scored = 0 WHERE id = ?")
         .bind(missionId)
         .run();
-      await database.prepare("DELETE FROM reviews WHERE mission_id = ?").bind(missionId).run();
+      await database
+        .prepare(
+          "UPDATE reviews SET voided_at=?,voided_by=?,void_reason=? WHERE mission_id=? AND source='spokesperson' AND voided_at IS NULL",
+        )
+        .bind(now, adminId, trimmed, missionId)
+        .run();
       await database
         .prepare(
           `UPDATE users
            SET delivered_count = max(delivered_count - 1, 0),
                streak = max(streak - 1, 0),
                rating = (SELECT round(avg(rating), 2) FROM reviews
-                         WHERE editor_id = ? AND mission_id <> ?)
+                         WHERE editor_id = ? AND mission_id <> ? AND source='spokesperson' AND voided_at IS NULL)
            WHERE id = ?`,
         )
         .bind(editorId, missionId, editorId)

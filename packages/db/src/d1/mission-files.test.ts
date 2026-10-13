@@ -244,6 +244,18 @@ describe("entrega privada com D1 e R2 reais isolados", () => {
       2,
     );
   });
+  test("avaliação HTTP exige dono, autenticação, nota válida e conclusão da entrega", async () => {
+    const path = `/missions/${missionId}/review`;
+    const body = { rating: 4, expectedDeliveryVersion: 2 };
+    assert.equal((await call(path, "POST", body, "")).status, 401);
+    for (const user of [cookies.editor, cookies.admin, cookies.other, cookies.reusedHandle])
+      assert.equal((await call(path, "POST", body, user)).status, 403);
+    for (const rating of [0, 6, 2.5, "5", null])
+      assert.equal((await call(path, "POST", { ...body, rating }, cookies.voice)).status, 400);
+    assert.equal((await call(path, "POST", { ...body, comment: 1 }, cookies.voice)).status, 400);
+    assert.equal((await call(path, "POST", body, cookies.voice)).status, 409);
+    assert.equal(await db.prepare("SELECT count(*) FROM reviews").first("count(*)"), 0);
+  });
   test("aprovação HTTP exige inspeção da versão atual e encerra uma única vez", async () => {
     const approve = { action: "approve", expectedDeliveryVersion: 2, rating: 5 };
     assert.equal(
@@ -285,6 +297,8 @@ describe("entrega privada com D1 e R2 reais isolados", () => {
       .first<{ ended_at: string | null; end_reason: string }>();
     assert.ok(assignment?.ended_at);
     assert.equal(assignment?.end_reason, "finalizada");
+    assert.equal(await db.prepare("SELECT rating FROM users WHERE id=2").first("rating"), null);
+    assert.equal(await db.prepare("SELECT count(*) FROM reviews").first("count(*)"), 0);
     assert.equal(
       await db
         .prepare(
@@ -293,6 +307,166 @@ describe("entrega privada com D1 e R2 reais isolados", () => {
         .bind(String(missionId))
         .first("count(*)"),
       1,
+    );
+  });
+  test("avaliação real é idempotente, exclusiva por missão e preserva autor/versão", async () => {
+    const path = `/missions/${missionId}/review`;
+    const body = { rating: 4, expectedDeliveryVersion: 2, comment: "Entrega sintética aprovada" };
+    assert.equal(
+      (await call(path, "POST", { ...body, expectedDeliveryVersion: 1 }, cookies.voice)).status,
+      409,
+    );
+    const race = await Promise.all([
+      call(path, "POST", body, cookies.voice),
+      call(path, "POST", body, cookies.voice),
+    ]);
+    assert.deepEqual(
+      race.map((response) => response.status),
+      [200, 200],
+    );
+    assert.equal((await call(path, "POST", { ...body, rating: 5 }, cookies.voice)).status, 409);
+    assert.deepEqual(await (await call(path, "GET", undefined, cookies.voice)).json(), {
+      review: { rating: 4, comment: body.comment, version: 2, voidedAt: null },
+    });
+    const review = await db
+      .prepare("SELECT reviewer_id,source,delivery_version FROM reviews WHERE mission_id=?")
+      .bind(missionId)
+      .first();
+    assert.deepEqual(review, { reviewer_id: 1, source: "spokesperson", delivery_version: 2 });
+    assert.equal(
+      await db
+        .prepare("SELECT count(*) FROM admin_audit WHERE action='avaliacao_porta_voz'")
+        .first("count(*)"),
+      1,
+    );
+    const profile = (await (await call("/editor/profile/2")).json()) as {
+      rating: number;
+      ratingCount: number;
+    };
+    assert.equal(profile.rating, 4);
+    assert.equal(profile.ratingCount, 1);
+    await assert.rejects(
+      () => db.prepare("UPDATE reviews SET rating=5 WHERE mission_id=?").bind(missionId).run(),
+      /review_immutable/,
+    );
+  });
+  test("média considera apenas votos reais ativos, e anulação preserva histórico/auditoria", async () => {
+    await db
+      .prepare("INSERT INTO reviews(mission_id,editor_id,rating) VALUES(?,2,1)")
+      .bind(missionId)
+      .run();
+    const otherMission = await db
+      .prepare(
+        "INSERT INTO missions(spokesperson_id,title,format,status,reserved_by_id) VALUES(1,'Segunda entrega','short','reservada',2) RETURNING id",
+      )
+      .first<{ id: number }>();
+    const id = otherMission!.id;
+    assert.equal(
+      (
+        await call(`/missions/${id}`, "POST", {
+          action: "deliver",
+          link: "https://video.example/synthetic",
+          expectedDeliveryVersion: 0,
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await call(
+          `/missions/${id}`,
+          "POST",
+          { action: "approve", rating: 1, expectedDeliveryVersion: 1 },
+          cookies.admin,
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await call(
+          `/missions/${id}`,
+          "POST",
+          { action: "accept", expectedDeliveryVersion: 1 },
+          cookies.voice,
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await call(
+          `/missions/${id}/review`,
+          "POST",
+          { rating: 2, expectedDeliveryVersion: 1 },
+          cookies.voice,
+        )
+      ).status,
+      200,
+    );
+    const profile = (await (await call("/editor/profile/2")).json()) as {
+      rating: number;
+      ratingCount: number;
+    };
+    assert.equal(profile.rating, 3);
+    assert.equal(profile.ratingCount, 2);
+    await assert.rejects(
+      () =>
+        db
+          .prepare(
+            "UPDATE reviews SET voided_at='2026-10-13',voided_by=2,void_reason='Sem autorização' WHERE mission_id=? AND source='spokesperson'",
+          )
+          .bind(id)
+          .run(),
+      /review_immutable/,
+    );
+    await db
+      .prepare(
+        "INSERT INTO ranking_cycles(name,starts_at,ends_at) VALUES('Review test','2026-01-01','2027-01-01')",
+      )
+      .run();
+    await db
+      .prepare(
+        "INSERT INTO ranking_approvals(mission_id,cycle_id,editor_id,approved_by,approved_at) VALUES(?,(SELECT max(id) FROM ranking_cycles),2,3,'2026-10-13')",
+      )
+      .bind(id)
+      .run();
+    const { createD1RankingAdmin } = await import("./ranking-admin.ts");
+    const moderation = createD1RankingAdmin(db as unknown as D1DatabaseLike);
+    assert.deepEqual(await moderation.cancelApproval(id, 3, "Ensaio de anulação"), { ok: true });
+    const after = (await (await call("/editor/profile/2")).json()) as {
+      rating: number;
+      ratingCount: number;
+    };
+    assert.equal(after.rating, 4);
+    assert.equal(after.ratingCount, 1);
+    assert.equal(
+      await db.prepare("SELECT count(*) FROM reviews WHERE source='legacy'").first("count(*)"),
+      1,
+    );
+    const historical = await db
+      .prepare(
+        "SELECT rating,void_reason FROM reviews WHERE mission_id=? AND source='spokesperson'",
+      )
+      .bind(id)
+      .first();
+    assert.deepEqual(historical, { rating: 2, void_reason: "Ensaio de anulação" });
+    assert.equal(
+      await db
+        .prepare("SELECT count(*) FROM admin_audit WHERE action='avaliacao_anulada'")
+        .first("count(*)"),
+      1,
+    );
+    assert.equal(
+      (
+        await call(
+          `/missions/${id}/review`,
+          "POST",
+          { rating: 5, expectedDeliveryVersion: 1 },
+          cookies.voice,
+        )
+      ).status,
+      409,
     );
   });
   test("notificações persistem por versão, simulam entrega e só mostram os avisos do usuário", async () => {
@@ -333,7 +507,7 @@ describe("entrega privada com D1 e R2 reais isolados", () => {
         "SELECT key,delivery_mode,sent_at FROM email_queue WHERE key LIKE 'mission:%:submitted:%' ORDER BY key",
       )
       .all<{ key: string; delivery_mode: string; sent_at: string | null }>();
-    assert.equal(delivered.results.length, 2);
+    assert.equal(delivered.results.length, 3);
     assert.equal(
       delivered.results.every((e) => e.delivery_mode === "simulated" && e.sent_at),
       true,

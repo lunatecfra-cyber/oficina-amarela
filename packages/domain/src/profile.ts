@@ -244,6 +244,7 @@ export type EditorProfile = {
   deliveries?: number;
   deliveredCount?: number;
   rating: number | null;
+  ratingCount?: number;
   tier?: Tier;
   level?: Tier;
   reputation: number;

@@ -253,6 +253,9 @@ function ReviewCard({
 
         {!isReeditOpen && (
           <div className="flex flex-none flex-col gap-2 lg:w-56">
+            <p className="text-xs text-muted">
+              Nota técnica opcional; não altera a avaliação do porta-voz.
+            </p>
             <div className="flex items-center justify-center gap-1" data-guia="nota-editor">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button

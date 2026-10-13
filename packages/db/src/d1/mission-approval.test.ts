@@ -107,8 +107,8 @@ describe("paridade D1 da aprovação de missão", () => {
       )
       .bind(missionId, missionId, String(missionId))
       .first();
-    assert.deepEqual(editor, { delivered_count: 1, reputation: 25, streak: 1, rating: 5 });
-    assert.deepEqual(counts, { reviews: 1, ranking: 1, audit: 1 });
+    assert.deepEqual(editor, { delivered_count: 1, reputation: 25, streak: 1, rating: null });
+    assert.deepEqual(counts, { reviews: 0, ranking: 1, audit: 1 });
   });
 
   test("porta-voz precisa ser proprietária e finaliza a missão", async () => {

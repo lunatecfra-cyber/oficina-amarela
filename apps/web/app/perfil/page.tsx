@@ -130,7 +130,13 @@ export default async function ProfilePage() {
                       ? "—"
                       : Number(rating).toFixed(1).replace(".", ",")
                   }
-                  rotulo={rating === null || rating === undefined ? "sem nota ainda" : "nota"}
+                  rotulo={
+                    rating === null || rating === undefined
+                      ? "sem avaliações"
+                      : p.ratingCount === undefined
+                        ? "nota"
+                        : `${p.ratingCount} avaliações`
+                  }
                   estrela
                 />
                 <Stat valor={String(reputation)} rotulo="XP" />
