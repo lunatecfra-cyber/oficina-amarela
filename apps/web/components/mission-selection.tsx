@@ -33,6 +33,7 @@ export function MissionSelectionPanel({ missionId }: { missionId: number }) {
     }
   }, [missionId]);
   useEffect(() => {
+    setSearch(new URLSearchParams(window.location.search).get("editor") ?? "");
     void load();
   }, [load]);
   async function select(editorId: number, kind: "interest" | "direct") {

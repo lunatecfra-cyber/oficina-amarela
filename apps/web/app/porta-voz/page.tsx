@@ -127,6 +127,9 @@ export default async function SpokespersonHome() {
         Criar missão
       </Link>
 
+      <Link href="/editores" className="btn-ghost mt-3 w-full">
+        Consultar diretório de editores
+      </Link>
       {isIncompleteProfile && (
         <div className="mt-4">
           <IncompleteProfileBanner role="spokesperson" />

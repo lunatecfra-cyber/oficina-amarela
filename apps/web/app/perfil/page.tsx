@@ -15,6 +15,7 @@ import { ActiveDesk } from "@/components/active-desk";
 import { AppHeader } from "@/components/app-header";
 import { AvailabilityCell } from "@/components/availability-cell";
 import { Card } from "@/components/card";
+import { EditorDirectoryConsent } from "@/components/editor-directory-consent";
 import { EditorInvitation } from "@/components/editor-invitation";
 import { ElectoralProgress } from "@/components/electoral-progress";
 import { EmojiIcon, EmojiLead } from "@/components/emoji-icon";
@@ -147,7 +148,13 @@ export default async function ProfilePage() {
                       ? "—"
                       : Number(rating).toFixed(1).replace(".", ",")
                   }
-                  rotulo={rating === null || rating === undefined ? "sem avaliações" : p.ratingCount === undefined ? "nota" : `${p.ratingCount} ${p.ratingCount === 1 ? "avaliação" : "avaliações"}`}
+                  rotulo={
+                    rating === null || rating === undefined
+                      ? "sem avaliações"
+                      : p.ratingCount === undefined
+                        ? "nota"
+                        : `${p.ratingCount} ${p.ratingCount === 1 ? "avaliação" : "avaliações"}`
+                  }
                   estrela
                 />
                 <Stat valor={String(reputation)} rotulo="XP" />
@@ -402,6 +409,7 @@ export default async function ProfilePage() {
               </Card>
             </aside>
           </div>
+          <EditorDirectoryConsent />
         </div>
       </main>
     </>

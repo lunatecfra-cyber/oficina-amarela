@@ -2,13 +2,14 @@ import type { UserSession } from "@oficina/auth/session";
 import { createD1MissionQueue } from "@oficina/db/d1/mission-queue";
 import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import { OFFER_MINUTES } from "@oficina/db/mission-queue";
+import { publishedPortfolioLink } from "@oficina/domain/validators";
 import { drainEmailQueueNow } from "@oficina/email/dispatch";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import { requireEditor, requireSpokesperson } from "../session.ts";
 
 // shortcut: timetable SQL uses São Paulo UTC-3, revise if its civil-time rules change.
-const ELIGIBLE = `u.role='editor' AND u.is_banned=0 AND u.profile_completed=1
+export const ELIGIBLE = `u.role='editor' AND u.is_banned=0 AND u.profile_completed=1
   AND (json_extract(u.availability, '$[' || CASE WHEN CAST(strftime('%H','now','-3 hours') AS INTEGER) BETWEEN 6 AND 11 THEN 0 WHEN CAST(strftime('%H','now','-3 hours') AS INTEGER) BETWEEN 12 AND 17 THEN 1 ELSE 2 END || '][' || ((CAST(strftime('%w','now','-3 hours') AS INTEGER)+6)%7) || ']') IS NOT 0)
   AND (u.reservations_locked_until IS NULL OR u.reservations_locked_until<=strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   AND NOT EXISTS(SELECT 1 FROM missions a WHERE a.reserved_by_id=u.id AND a.status IN ('reservada','em_revisao','reedicao'))
@@ -89,21 +90,29 @@ export function createMissionBoardRoutes() {
       .first<{ status: string }>();
     if (!mission) return c.json({ error: "Missão não encontrada." }, 404);
     const { results: candidates } = await db
-      .prepare(`SELECT u.id,u.handle,u.name,u.headline,u.portfolio_link AS portfolioLink,u.editing_styles AS styles,u.niches,u.availability,
+      .prepare(`SELECT u.id,u.handle,u.name,u.headline,CASE WHEN u.directory_visible=1 AND u.directory_portfolio_consent=1 THEN u.portfolio_link ELSE NULL END AS portfolioLink,u.editing_styles AS styles,u.niches,u.availability,
       (SELECT AVG(r.rating) FROM reviews r WHERE r.editor_id=u.id AND r.source='spokesperson' AND r.voided_at IS NULL) AS rating,
       (SELECT COUNT(*) FROM reviews r WHERE r.editor_id=u.id AND r.source='spokesperson' AND r.voided_at IS NULL) AS ratingCount,
       EXISTS(SELECT 1 FROM mission_interests i WHERE i.mission_id=? AND i.editor_id=u.id) AS interested,
       (${ELIGIBLE}) AS eligible,(SELECT status FROM offers WHERE mission_id=? AND editor_id=u.id) AS offerStatus
       FROM users u WHERE u.role='editor' AND u.profile_completed=1 AND u.is_banned=0
+      AND (u.directory_visible=1 OR EXISTS(SELECT 1 FROM mission_interests i WHERE i.mission_id=? AND i.editor_id=u.id))
       ORDER BY interested DESC,u.name LIMIT 100`)
-      .bind(id, id)
+      .bind(id, id, id)
       .all();
     const selected = await db
       .prepare(`SELECT o.editor_id AS editorId,u.name,o.status,o.expires_at AS expiresAt FROM offers o JOIN users u ON u.id=o.editor_id
       WHERE o.mission_id=? ORDER BY o.position DESC LIMIT 1`)
       .bind(id)
       .first();
-    return c.json({ ...mission, candidates, selected });
+    return c.json({
+      ...mission,
+      candidates: candidates.map((row) => ({
+        ...row,
+        portfolioLink: publishedPortfolioLink(row.portfolioLink as string | null),
+      })),
+      selected,
+    });
   });
   routes.post("/:id/selection", requireSpokesperson, async (c) => {
     const db = c.env.DB as unknown as D1DatabaseLike,

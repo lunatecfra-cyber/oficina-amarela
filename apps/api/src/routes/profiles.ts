@@ -90,7 +90,15 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
     return c.json({ ok: true });
   });
 
-  routes.get("/editor/profile/:handleOrId", async (c) => {
+  routes.get("/editor/profile/:handleOrId", requireSession, async (c) => {
+    const viewer = c.get("session");
+    const requested = c.req.param("handleOrId");
+    if (
+      viewer.role !== "admin" &&
+      requested !== String(viewer.id) &&
+      requested.toLowerCase() !== viewer.handle.toLowerCase()
+    )
+      return c.json({ error: "Consulte o perfil publicado no diretório." }, 403);
     const handleOrId = c.req.param("handleOrId");
     const isNum = /^\d+$/.test(handleOrId);
     const profile = await dependencies.profiles.readEditorProfile(

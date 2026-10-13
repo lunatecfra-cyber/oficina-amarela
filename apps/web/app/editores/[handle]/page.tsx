@@ -1,6 +1,8 @@
+import type { EditorProfile } from "@oficina/domain/profile";
+import { isLikelyUrl } from "@oficina/domain/validators";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { readEditorProfile } from "@/lib/profile-db";
+import { fetchApiJson } from "@/lib/internal-api";
 import { requireSession } from "@/lib/server-session";
 export const dynamic = "force-dynamic";
 export default async function EditorProfilePage({
@@ -10,7 +12,9 @@ export default async function EditorProfilePage({
 }) {
   await requireSession();
   const { handle } = await params;
-  const profile = await readEditorProfile(handle);
+  const profile = await fetchApiJson<EditorProfile & { portfolioLink?: string }>(
+    `/editors/${encodeURIComponent(handle)}`,
+  );
   if (!profile) notFound();
   return (
     <main className="mx-auto max-w-3xl p-5 lg:p-8">
@@ -32,6 +36,16 @@ export default async function EditorProfilePage({
         {[...(profile.styles || []), ...(profile.niche || [])].join(" · ") || "Não informadas"}
       </p>
       <h2 className="mt-6 text-lg font-semibold text-text">Portfólio publicado</h2>
+      {profile.portfolioLink && isLikelyUrl(profile.portfolioLink) && (
+        <a
+          className="mt-2 block text-gold-hi underline"
+          href={profile.portfolioLink}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Abrir portfólio autorizado
+        </a>
+      )}
       {profile.portfolio.length ? (
         <ul className="mt-3 grid gap-3 sm:grid-cols-2">
           {profile.portfolio.map((item) => (

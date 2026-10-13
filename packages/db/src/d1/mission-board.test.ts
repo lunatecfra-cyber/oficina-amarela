@@ -239,3 +239,51 @@ test("SQL não contorna seleção; integridade preservada", async () => {
   );
   assert.deepEqual((await db.prepare("PRAGMA foreign_key_check").all()).results, []);
 });
+
+test("diretório é opt-in, não expõe dados privados e consentimento pode ser revogado", async () => {
+  const list = async (path = "/editors") =>
+    (async () => {
+      const r = await call(path, 1);
+      assert.equal(r.status, 200);
+      return r.json() as Promise<{ handle: string; rating: null; portfolioLink: string | null }[]>;
+    })();
+  assert.equal((await call("/editors", 0)).status, 401);
+  assert.equal((await call("/editor/profile/synthetic2", 0)).status, 401);
+  assert.equal((await call("/editor/profile/synthetic2", 4)).status, 403);
+  assert.deepEqual(await list(), []);
+  assert.equal(
+    (await call("/editors/visibility", 1, { visible: true, portfolioConsent: true })).status,
+    403,
+  );
+  await db
+    .prepare(
+      "UPDATE users SET portfolio_link='https://example.invalid/portfolio',whatsapp='+5511999999999',editing_styles='[\"Documentário\"]' WHERE id=2",
+    )
+    .run();
+  assert.equal(
+    (await call("/editors/visibility", 2, { visible: true, portfolioConsent: false })).status,
+    200,
+  );
+  const published = await list();
+  assert.equal(published.length, 1);
+  assert.equal(published[0].rating, null);
+  assert.equal(published[0].portfolioLink, null);
+  assert.ok(!JSON.stringify(published).includes("whatsapp"));
+  assert.deepEqual(await list("/editors?search=nonexistent"), []);
+  assert.equal((await list("/editors?specialty=Document")).length, 1);
+  assert.deepEqual(await list("/editors?specialty=Animation"), []);
+  await call("/editors/visibility", 2, { visible: true, portfolioConsent: true });
+  assert.equal((await list())[0].portfolioLink, "https://example.invalid/portfolio");
+  await db
+    .prepare(
+      "UPDATE users SET portfolio_link='https://staging.local/api/missions/39/files/private' WHERE id=2",
+    )
+    .run();
+  assert.equal((await list())[0].portfolioLink, null);
+  await db.prepare("UPDATE users SET is_banned=1 WHERE id=2").run();
+  assert.deepEqual(await list(), []);
+  await db.prepare("UPDATE users SET is_banned=0 WHERE id=2").run();
+  await call("/editors/visibility", 2, { visible: false, portfolioConsent: false });
+  assert.deepEqual(await list(), []);
+  assert.equal((await call("/editors/synthetic2", 4)).status, 404);
+});
