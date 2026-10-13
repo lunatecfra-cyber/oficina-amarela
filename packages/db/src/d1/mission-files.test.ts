@@ -76,6 +76,7 @@ describe("entrega privada com D1 e R2 reais isolados", () => {
       cookies[handle] =
         `${COOKIE_NAME}=${await createSessionToken({ id, role, handle, name: handle })}`;
     }
+    cookies.reusedHandle = `${COOKIE_NAME}=${await createSessionToken({ id: 4, role: "editor", handle: "editor", name: "Old handle" })}`;
     const mission = await db
       .prepare(
         "INSERT INTO missions (spokesperson_id,title,format,status,reserved_by_id) VALUES (1,'Vídeo','short','reservada',2) RETURNING id",
@@ -142,6 +143,7 @@ describe("entrega privada com D1 e R2 reais isolados", () => {
     const read = `/missions/${missionId}/files/2/${upload.fileId}`;
     assert.equal((await call(read, "GET", undefined, "")).status, 401);
     assert.equal((await call(read, "GET", undefined, cookies.other)).status, 403);
+    assert.equal((await call(read, "GET", undefined, cookies.reusedHandle)).status, 403);
     const video = await call(read, "GET", undefined, cookies.voice);
     assert.equal(video.status, 200);
     assert.deepEqual(new Uint8Array(await video.arrayBuffer()), new Uint8Array([1, 2, 3]));

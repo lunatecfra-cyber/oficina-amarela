@@ -1,6 +1,7 @@
 import type { UserSession } from "@oficina/auth/session";
+import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import { validateRawMediaUpload } from "@oficina/domain/uploads";
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
 import { requireSession } from "../session.ts";
@@ -13,39 +14,32 @@ export function createMissionFileRoutes(dependencies: ApiDependencies) {
   const routes = new Hono<FileEnv>();
   routes.use("/:id/uploads", requireSession);
   routes.use("/:id/files/*", requireSession);
-  routes.use("/:id/uploads", async (c, next) => {
-    const mission = await dependencies.missions.getMissionById(Number(c.req.param("id")));
-    const actor = c.get("session");
-    if (
-      !mission ||
-      actor.role !== "editor" ||
-      mission.reservedBy !== actor.handle ||
-      !["reservada", "reedicao"].includes(mission.status)
-    )
-      return c.json({ error: "Essa missão não está com você para entrega." }, 403);
-    if (!c.env.MEDIA) return c.json({ error: "Armazenamento de vídeo indisponível." }, 503);
-    await next();
-  });
-  routes.use("/:id/files/*", async (c, next) => {
-    const mission = await dependencies.missions.getMissionById(Number(c.req.param("id")));
+  const authorize: MiddlewareHandler<FileEnv> = async (c, next) => {
+    if (!c.env.DB || !c.env.MEDIA)
+      return c.json({ error: "Armazenamento de vídeo indisponível." }, 503);
+    const mission = await (c.env.DB as D1DatabaseLike)
+      .prepare("SELECT spokesperson_id,reserved_by_id,status FROM missions WHERE id=?")
+      .bind(Number(c.req.param("id")))
+      .first<{ spokesperson_id: number; reserved_by_id: number | null; status: string }>();
     const actor = c.get("session");
     if (
       !mission ||
       (actor.role !== "admin" &&
-        mission.reservedBy !== actor.handle &&
-        mission.spokespersonHandle !== actor.handle)
+        mission.reserved_by_id !== actor.id &&
+        mission.spokesperson_id !== actor.id)
     )
       return c.json({ error: "Você não participa desta missão." }, 403);
     if (
       c.req.method !== "GET" &&
       (actor.role !== "editor" ||
-        mission.reservedBy !== actor.handle ||
+        mission.reserved_by_id !== actor.id ||
         !["reservada", "reedicao"].includes(mission.status))
     )
       return c.json({ error: "Essa missão não está com você para entrega." }, 403);
-    if (!c.env.MEDIA) return c.json({ error: "Armazenamento de vídeo indisponível." }, 503);
     await next();
-  });
+  };
+  routes.use("/:id/uploads", authorize);
+  routes.use("/:id/files/*", authorize);
   routes.post("/:id/uploads", async (c) => {
     const body = await c.req.json().catch(() => null);
     if (
