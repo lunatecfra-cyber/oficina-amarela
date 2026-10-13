@@ -355,7 +355,7 @@ export function RankingSecurityPanel() {
             action="grant_shield"
             idKey="editorId"
             buttonLabel="Conceder bloqueio"
-            limite="Teto de 2 por editor — acima disso o pedido é recusado."
+            limite="Teto de 2 por editor. Acima disso o pedido é recusado."
             loading={loadingAction}
             onSubmit={postAction}
           />

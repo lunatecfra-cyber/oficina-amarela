@@ -55,7 +55,7 @@ export function SetPassword({
       </h2>
       <p className="mt-1 text-sm text-muted">
         {effectiveHasPassword
-          ? "Vale mesmo que você não lembre a antiga — não vamos pedir por ela."
+          ? "Vale mesmo que você não lembre a antiga. Não vamos pedir por ela."
           : "Sua conta entra pelo Google. Com uma senha, você passa a ter os dois caminhos."}
       </p>
 

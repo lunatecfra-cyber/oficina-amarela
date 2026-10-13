@@ -209,7 +209,7 @@ export function TutorialDrive({
           </ol>
 
           <p className="text-xs text-muted-2">
-            O vídeo nunca sai do seu Drive — a Oficina guarda só o link.
+            O vídeo nunca sai do seu Drive. A Oficina guarda só o link.
           </p>
         </div>
       </div>

@@ -7,6 +7,21 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.6.0] - 2026-10-13
+
+### Adicionado
+- Mural de missões gratuitas: o editor registra interesse e o porta-voz escolhe um editor com oferta exclusiva; aceite idempotente com retentativa segura.
+- Diretório de editores com busca e publicação consentida (opt-in), incluindo oferta direta, retorno e criação de missão a partir do diretório.
+
+### Modificado
+- Textos públicos em PT-BR sem travessão explicativo (ponto, vírgula ou dois-pontos no lugar) e sem intensificadores vazios (`realmente`, `de verdade`, `obrigatoriamente`, `avaliação real`) nas telas, nos e-mails transacionais e nos termos.
+- Dependências atualizadas (Hono, Wrangler, workers-types, Miniflare, Resend).
+- Portas de desenvolvimento fixas (web 3000, API 8790, e-mail 8791, depuração 9230/9231), documentadas no README.
+
+### Corrigido
+- Ofertas expiradas recuperadas durante a consulta ao mural; estados do mural e recebimento de ofertas esclarecidos.
+- Perfil segue acessível ao responsável por convite ativo; credenciais não são mais enviadas antes da hidratação do login.
+
 ## [0.5.0] - 2026-10-13
 
 ### Adicionado

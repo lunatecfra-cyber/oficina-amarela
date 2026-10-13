@@ -479,7 +479,7 @@ export function CreateEditorProfileForm({
               </div>
               {headline.length >= MAX_HEADLINES && (
                 <p role="status" className="mt-2 text-xs text-gold-hi">
-                  Fechou {MAX_HEADLINES} — pra trocar uma, toque nela de novo.
+                  Fechou {MAX_HEADLINES}. Pra trocar uma, toque nela de novo.
                 </p>
               )}
             </div>
@@ -542,7 +542,7 @@ export function CreateEditorProfileForm({
             <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-text">
               Nível de edição
             </h2>
-            <p className="mt-1 text-sm text-muted">Sem julgamento — é só pra calibrar sua fila.</p>
+            <p className="mt-1 text-sm text-muted">Sem julgamento. É só pra calibrar sua fila.</p>
             <CardSelector
               options={EDITING_LEVELS}
               value={editingLevel}
@@ -610,7 +610,7 @@ export function CreateEditorProfileForm({
             </div>
             {styles.length >= MAX_STYLES && (
               <p role="status" className="mt-2 text-xs text-gold-hi">
-                Fechou {MAX_STYLES} — pra trocar um, toque nele de novo.
+                Fechou {MAX_STYLES}. Pra trocar um, toque nele de novo.
               </p>
             )}
           </div>
@@ -645,7 +645,7 @@ export function CreateEditorProfileForm({
               Portfólio
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Um link com trabalho seu (YouTube, Vimeo, Drive) — de 2 a 2:30 min.
+              Um link com trabalho seu (YouTube, Vimeo, Drive), de 2 a 2:30 min.
             </p>
             <input
               id="portfolio"

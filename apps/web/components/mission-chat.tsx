@@ -172,7 +172,7 @@ export function MissionChat({
 
       {messages.length === 0 ? (
         <p className="rounded-xl border border-line-soft bg-ink-2/40 px-4 py-3 text-sm text-muted">
-          Ninguém falou ainda. Pergunta, combina detalhes do vídeo — fica tudo registrado aqui.
+          Ninguém falou ainda. Pergunta, combina detalhes do vídeo. Fica tudo registrado aqui.
         </p>
       ) : (
         <ul

@@ -288,7 +288,7 @@ export function OverviewPanel({
                       {status === "offered" || status === "oferecida" ? (
                         <p className="mt-1 text-xs text-silver">
                           oferecida a <span className="text-text">@{offeredTo}</span>{" "}
-                          {sinceWhen(offeredAt)} — esperando resposta
+                          {sinceWhen(offeredAt)}. Esperando resposta
                         </p>
                       ) : (
                         idle >= 3 && (

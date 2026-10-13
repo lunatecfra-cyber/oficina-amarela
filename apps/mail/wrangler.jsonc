@@ -8,6 +8,7 @@
     "enabled": true
   },
   "compatibility_flags": ["nodejs_compat", "enable_email_sending_queuing"],
+  "dev": { "port": 8791, "inspector_port": 9231 },
   "assets": {
     "directory": "dashboard/dist",
     "binding": "ASSETS",

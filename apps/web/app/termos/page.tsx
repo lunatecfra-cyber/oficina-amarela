@@ -22,7 +22,7 @@ export default function TermsPage() {
       <div className="mt-3 flex items-start gap-2 rounded-xl border border-gold-lo/40 bg-gold/[0.06] p-4 text-sm text-muted">
         <TriangleAlert className="mt-0.5 h-4 w-4 flex-none text-gold" aria-hidden="true" />
         <span>
-          Rascunho gerado em 27/07/2026. Revisar com um advogado antes de publicar de verdade — isso
+          Rascunho gerado em 27/07/2026. Revisar com um advogado antes de publicar de verdade. Isso
           aqui não é aconselhamento jurídico.
         </span>
       </div>
@@ -58,8 +58,7 @@ export default function TermsPage() {
           </h2>
           <p>
             O vídeo bruto e o material editado continuam sendo de propriedade do porta-voz que o
-            enviou. A Oficina Amarela não reivindica nenhum direito sobre esse conteúdo — apenas
-            intermedia a conexão entre porta-voz e editor.
+            enviou. A Oficina Amarela apenas intermedia a conexão entre porta-voz e editor.
           </p>
         </section>
 
@@ -93,7 +92,7 @@ export default function TermsPage() {
           </h2>
           <p>
             A Oficina Amarela não é responsável pelo conteúdo enviado pelos porta-vozes nem pelo
-            material editado pelos editores — a responsabilidade sobre o que é publicado é de quem
+            material editado pelos editores. A responsabilidade sobre o que é publicado é de quem
             publica.
           </p>
         </section>

@@ -71,7 +71,7 @@ export function ReportButton({ missionId, pautaId }: { missionId?: string; pauta
           <textarea
             id={`denuncia-${effectiveId}`}
             className="field-input !pl-4 min-h-24 resize-y"
-            placeholder="Descreva o problema — o controle de qualidade vai ler isto."
+            placeholder="Descreva o problema. O controle de qualidade vai ler isto."
             value={text}
             maxLength={LIMITS.report}
             onChange={(e) => {

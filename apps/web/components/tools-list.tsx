@@ -129,7 +129,7 @@ export function ToolsList() {
         <div className="mt-4 rounded-2xl border border-dashed border-line px-6 py-12 text-center">
           <p className="text-sm text-muted">Nenhuma ferramenta pra “{term}”.</p>
           <p className="mx-auto mt-2 max-w-xs text-xs leading-relaxed text-muted-2">
-            Tente uma palavra do que você quer fazer — cortar, legenda, música, imagem.
+            Tente uma palavra do que você quer fazer: cortar, legenda, música, imagem.
           </p>
           <button onClick={() => setSearch("")} className="btn-ghost mt-5 sm:w-48">
             Limpar busca

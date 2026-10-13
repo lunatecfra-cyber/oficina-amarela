@@ -149,7 +149,7 @@ export function ElectoralProgress({
       </div>
 
       <p className="text-xs leading-relaxed text-muted-2">
-        Um bloqueio é gasto sozinho quando você não fecha a meta da semana — ele segura a sequência
+        Um bloqueio é gasto sozinho quando você não fecha a meta da semana. Ele segura a sequência
         no lugar em vez de zerar.
         {savedByShield > 0 && (
           <>
@@ -218,7 +218,7 @@ export function ElectoralProgress({
           {isEligible ? (
             <>
               <b className="font-medium text-gold-hi">Você está no sorteio por constância.</b> É
-              preciso manter 4 semanas seguidas — você já tem.
+              preciso manter 4 semanas seguidas. Você já tem.
             </>
           ) : (
             <>

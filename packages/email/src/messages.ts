@@ -128,7 +128,7 @@ export function buildDeliveryReadyEmail(name: string, title: string, url: string
     html: moldura(
       "O editor entregou seu vídeo",
       `<p>Oi, ${escapeHtml(name)}. O vídeo da missão <b>${escapeHtml(title)}</b> ficou pronto.</p>
-       <p>Assista e diga se pode ir pro ar — ou peça um ajuste, se algo não ficou como você queria.</p>`,
+       <p>Assista e diga se pode ir pro ar, ou peça um ajuste, se algo não ficou como você queria.</p>`,
       { url, texto: "Ver o vídeo" },
     ),
   };
@@ -146,7 +146,7 @@ export function buildApprovedDeliveryEmail(
       "Sua entrega foi aprovada",
       `<p>Oi, ${escapeHtml(name)}. A missão <b>${escapeHtml(title)}</b> foi aprovada.</p>
        ${rating !== undefined ? `<p>Nota recebida: <b>${rating} de 5</b>.</p>` : ""}
-       <p>Sua fila está livre — a próxima missão já pode chegar.</p>`,
+       <p>Sua fila está livre. A próxima missão já pode chegar.</p>`,
       { url, texto: "Ver minha fila" },
     ),
   };
@@ -164,7 +164,7 @@ export function buildReEditRequestedEmail(
       "A missão voltou pra você",
       `<p>Oi, ${escapeHtml(name)}. Pediram um ajuste em <b>${escapeHtml(title)}</b>.</p>
        ${notes.trim() ? `<p style="background:#f6f4ee; border-left:3px solid #f4ce1f; padding:12px 14px; margin:16px 0;">${escapeHtml(notes)}</p>` : ""}
-       <p>A missão está de volta na sua mão — é só entregar de novo quando estiver pronta.</p>`,
+       <p>A missão está de volta na sua mão. É só entregar de novo quando estiver pronta.</p>`,
       { url, texto: "Abrir a missão" },
     ),
   };

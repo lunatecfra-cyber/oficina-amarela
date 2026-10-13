@@ -299,7 +299,7 @@ export function ActiveMissionCard({
             )}
           </p>
           <p className="mt-3 text-xs text-muted-2">
-            Se o Drive pedir permissão, peça a liberação a quem criou a missão — hoje esse acesso
+            Se o Drive pedir permissão, peça a liberação a quem criou a missão. Hoje esse acesso
             ainda é liberado à mão.
           </p>
         </div>
@@ -343,7 +343,7 @@ export function ActiveMissionCard({
         <>
           <div className="mt-5 rounded-2xl border border-ok/40 bg-ok/[0.06] p-4">
             <p className="flex flex-wrap items-center gap-2 text-sm text-text">
-              <span className="text-ok">✓</span> Entregue. Agora é com o controle de qualidade —
+              <span className="text-ok">✓</span> Entregue. Agora é com o controle de qualidade.
               assim que aprovarem, a próxima missão chega pra você.
               {deliveredVideoUrl && (
                 <a
@@ -359,7 +359,7 @@ export function ActiveMissionCard({
           </div>
 
           <p className="mt-3 text-xs text-muted-2">
-            Precisa trocar o vídeo? Fale com quem pediu a missão — depois de aprovada, ela não volta
+            Precisa trocar o vídeo? Fale com quem pediu a missão. Depois de aprovada, ela não volta
             pra edição sozinha.
           </p>
         </>
@@ -429,7 +429,7 @@ export function ActiveMissionCard({
           </div>
 
           <p className="mt-3 text-xs text-muted-2">
-            Sem prazo — a missão é sua até entregar. Devolver libera pra outro editor.
+            Sem prazo. A missão é sua até entregar. Devolver libera pra outro editor.
           </p>
         </>
       )}

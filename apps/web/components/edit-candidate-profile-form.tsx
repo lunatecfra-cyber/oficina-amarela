@@ -549,8 +549,8 @@ export function EditCandidateProfileForm({
         <div>
           <h2 className={sectionTitle}>Identificação de campanha</h2>
           <p className="mt-1 text-sm text-muted">
-            Obrigatório. Vai automático em toda missão, pro editor colocar no vídeo — e monta a
-            tarja que ele encaixa na lateral.
+            Obrigatório. Vai automático em toda missão, pro editor colocar no vídeo, e monta a tarja
+            que ele encaixa na lateral.
           </p>
         </div>
 
@@ -617,8 +617,8 @@ export function EditCandidateProfileForm({
         <div>
           <h2 className={sectionTitle}>Contato e redes</h2>
           <p className="mt-1 text-sm text-muted">
-            O WhatsApp destrava a conversa direta com o editor. Só o @ ou o link das redes já ajuda
-            — o editor precisa saber onde o vídeo vai ao ar.
+            O WhatsApp destrava a conversa direta com o editor. Só o @ ou o link das redes já ajuda.
+            O editor precisa saber onde o vídeo vai ao ar.
           </p>
         </div>
         <WhatsappField
@@ -635,7 +635,7 @@ export function EditCandidateProfileForm({
             <IconInstagram className="pointer-events-none absolute left-4 h-[17px] w-[17px] text-muted-2" />
             <input
               className="field-input"
-              placeholder="Instagram — @seuperfil"
+              placeholder="Instagram: @seuperfil"
               aria-label="Instagram"
               value={socialLinks.instagram ?? ""}
               onChange={(e) => updateSocialLink("instagram", e.target.value)}
@@ -645,7 +645,7 @@ export function EditCandidateProfileForm({
             <IconYoutube className="pointer-events-none absolute left-4 h-[17px] w-[17px] text-muted-2" />
             <input
               className="field-input"
-              placeholder="YouTube — nome do canal"
+              placeholder="YouTube: nome do canal"
               aria-label="YouTube"
               value={socialLinks.youtube ?? ""}
               onChange={(e) => updateSocialLink("youtube", e.target.value)}
@@ -655,7 +655,7 @@ export function EditCandidateProfileForm({
             <IconTiktok className="pointer-events-none absolute left-4 h-[17px] w-[17px] text-muted-2" />
             <input
               className="field-input"
-              placeholder="TikTok — @seuperfil"
+              placeholder="TikTok: @seuperfil"
               aria-label="TikTok"
               value={socialLinks.tiktok ?? ""}
               onChange={(e) => updateSocialLink("tiktok", e.target.value)}
@@ -665,7 +665,7 @@ export function EditCandidateProfileForm({
             <IconX className="pointer-events-none absolute left-4 h-[17px] w-[17px] text-muted-2" />
             <input
               className="field-input"
-              placeholder="X — @seuperfil"
+              placeholder="X: @seuperfil"
               aria-label="X"
               value={socialLinks.x ?? ""}
               onChange={(e) => updateSocialLink("x", e.target.value)}

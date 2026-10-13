@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Entrar — Oficina Amarela" };
 
 const PILLARS = [
   {
-    text: "As missões chegam até você — aceite a que combinar.",
+    text: "As missões chegam até você. Aceite a que combinar.",
     icon: (
       <>
         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -44,7 +44,7 @@ export default function LoginPage() {
           </h2>
           <p className="mt-5 max-w-sm text-[15px] font-light leading-relaxed text-muted">
             Onde o bruto vira arte. Editores entram provando valor, sobem de nível e desbloqueiam os
-            trabalhos — em ordem, com mérito.
+            trabalhos em ordem, com mérito.
           </p>
         </div>
 

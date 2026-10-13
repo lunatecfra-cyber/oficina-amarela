@@ -9,6 +9,8 @@
   // node:crypto para a Web Crypto.
   "compatibility_flags": ["nodejs_compat"],
 
+  "dev": { "port": 8790, "inspector_port": 9230 },
+
   "observability": {
     "enabled": true
   },

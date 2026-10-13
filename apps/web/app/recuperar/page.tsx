@@ -19,7 +19,7 @@ export default function RecoverPage() {
         Recuperar senha
       </h1>
       <p className="mb-7 max-w-sm text-center text-sm text-muted">
-        Se a sua conta usa um e-mail do Google, o caminho mais rápido é entrar direto por ele — o
+        Se a sua conta usa um e-mail do Google, o caminho mais rápido é entrar direto por ele. O
         Google confirma que o e-mail é seu e você entra na mesma conta de sempre.
       </p>
 

@@ -38,9 +38,9 @@ export function LegalNotice() {
         <div>
           <h3 className="font-semibold text-gold">Diretrizes Obrigatórias do TSE</h3>
           <p className="mt-1 text-sm text-silver-lo">
-            Lembre-se: todo material de campanha precisa obrigatoriamente exibir a{" "}
-            <strong>Marca d&apos;água</strong> e o <strong>CNPJ da campanha</strong> no vídeo.
-            Preencha os campos abaixo para que o editor insira essas informações na edição.
+            Lembre-se: todo material de campanha precisa exibir a <strong>Marca d&apos;água</strong>{" "}
+            e o <strong>CNPJ da campanha</strong> no vídeo. Preencha os campos abaixo para que o
+            editor insira essas informações na edição.
           </p>
         </div>
       </div>

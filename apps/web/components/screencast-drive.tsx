@@ -212,7 +212,7 @@ export function ScreencastDrive() {
               <span className="text-ok">✓</span>
             </span>
           </div>
-          <Caption n={5}>Cole aqui na Oficina — pronto</Caption>
+          <Caption n={5}>Cole aqui na Oficina. Pronto</Caption>
         </Scene>
       </div>
 

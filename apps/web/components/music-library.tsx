@@ -210,7 +210,7 @@ export function MusicLibrary() {
         <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label htmlFor="musica-arquivo" className="mb-1 block text-sm text-text">
-              Arquivo (MP3, WAV ou OGG — máx. 4 MB)
+              Arquivo (MP3, WAV ou OGG, máx. 4 MB)
             </label>
             <input
               id="musica-arquivo"

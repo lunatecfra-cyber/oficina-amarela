@@ -18,7 +18,7 @@ function ResetPasswordContent() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!token) {
-      setError("Link inválido — peça a recuperação de novo.");
+      setError("Link inválido. Peça a recuperação de novo.");
       return;
     }
     if (password.length < 6) {

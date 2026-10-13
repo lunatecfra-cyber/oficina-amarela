@@ -156,7 +156,7 @@ export function CampaignIdentity({
             onChange={(e) => onNameChange(e.target.value)}
           />
           <p className="mt-1.5 text-xs text-muted-2">
-            É o mesmo nome do seu perfil — mudar aqui muda nos dois lugares.
+            É o mesmo nome do seu perfil. Mudar aqui muda nos dois lugares.
           </p>
         </div>
 

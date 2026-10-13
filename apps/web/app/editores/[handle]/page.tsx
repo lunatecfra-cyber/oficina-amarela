@@ -28,7 +28,7 @@ export default async function EditorProfilePage({
       <p className="mt-4 whitespace-pre-wrap text-muted">{profile.bio}</p>
       <p className="mt-4 text-text">
         {profile.ratingCount
-          ? `${profile.rating?.toFixed(1).replace(".", ",")} ★ · ${profile.ratingCount} ${profile.ratingCount === 1 ? "avaliação real" : "avaliações reais"}`
+          ? `${profile.rating?.toFixed(1).replace(".", ",")} ★ · ${profile.ratingCount} ${profile.ratingCount === 1 ? "avaliação" : "avaliações"}`
           : "Sem avaliações de porta-vozes"}
       </p>
       <h2 className="mt-6 text-lg font-semibold text-text">Especialidades</h2>

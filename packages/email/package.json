@@ -13,7 +13,7 @@
   "dependencies": {
     "@oficina/domain": "*",
     "@oficina/db": "*",
-    "resend": "^6.27.0"
+    "resend": "^6.32.1"
   },
   "devDependencies": {
     "@types/node": "^26",

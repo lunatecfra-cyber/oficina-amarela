@@ -158,6 +158,10 @@ node scripts/aplicar-schema-d1.mjs local
 bun run dev
 ```
 
+O web abre em `http://localhost:3000`, a API em `http://localhost:8790` e o
+painel de e-mail em `http://localhost:8791`. Os Workers usam portas de depuração
+separadas (`9230` e `9231`) para iniciar juntos sem disputar a mesma porta.
+
 ## Estrutura do repositório
 
 O projeto é um monorepo Turborepo:

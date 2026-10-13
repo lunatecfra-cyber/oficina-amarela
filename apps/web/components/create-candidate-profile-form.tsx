@@ -346,7 +346,7 @@ export function CreateCandidateProfileForm({
               Quem é você
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Nome e foto — é o que editores e o público vão ver primeiro. A foto é opcional: sem
+              Nome e foto. É o que editores e o público vão ver primeiro. A foto é opcional: sem
               ela, usamos suas iniciais.
             </p>
 
@@ -676,7 +676,7 @@ export function CreateCandidateProfileForm({
               </button>
             </div>
             <p className="mt-1 text-sm text-muted">
-              Já vem com uma sugestão pronta — edite à vontade.
+              Já vem com uma sugestão pronta. Edite à vontade.
             </p>
             <textarea
               className="field-input !pl-4 mt-3"
@@ -713,7 +713,7 @@ export function CreateCandidateProfileForm({
             </h2>
             <p className="mt-1 text-sm text-muted">
               O WhatsApp destrava a conversa direta com o editor. Só o @ ou o link das redes já
-              ajuda — o editor precisa saber onde o vídeo vai ao ar pra editar no formato certo.
+              ajuda. O editor precisa saber onde o vídeo vai ao ar pra editar no formato certo.
             </p>
 
             <div className="mt-4">
@@ -732,7 +732,7 @@ export function CreateCandidateProfileForm({
                 <IconInstagram className="pointer-events-none absolute left-4 h-[17px] w-[17px] text-muted-2" />
                 <input
                   className="field-input"
-                  placeholder="Instagram — @seuperfil"
+                  placeholder="Instagram: @seuperfil"
                   aria-label="Instagram"
                   value={socialLinks.instagram ?? ""}
                   onChange={(e) => updateSocialLink("instagram", e.target.value)}
@@ -742,7 +742,7 @@ export function CreateCandidateProfileForm({
                 <IconYoutube className="pointer-events-none absolute left-4 h-[17px] w-[17px] text-muted-2" />
                 <input
                   className="field-input"
-                  placeholder="YouTube — nome do canal"
+                  placeholder="YouTube: nome do canal"
                   aria-label="YouTube"
                   value={socialLinks.youtube ?? ""}
                   onChange={(e) => updateSocialLink("youtube", e.target.value)}
@@ -752,7 +752,7 @@ export function CreateCandidateProfileForm({
                 <IconTiktok className="pointer-events-none absolute left-4 h-[17px] w-[17px] text-muted-2" />
                 <input
                   className="field-input"
-                  placeholder="TikTok — @seuperfil"
+                  placeholder="TikTok: @seuperfil"
                   aria-label="TikTok"
                   value={socialLinks.tiktok ?? ""}
                   onChange={(e) => updateSocialLink("tiktok", e.target.value)}
@@ -762,7 +762,7 @@ export function CreateCandidateProfileForm({
                 <IconX className="pointer-events-none absolute left-4 h-[17px] w-[17px] text-muted-2" />
                 <input
                   className="field-input"
-                  placeholder="X — @seuperfil"
+                  placeholder="X: @seuperfil"
                   aria-label="X"
                   value={socialLinks.x ?? ""}
                   onChange={(e) => updateSocialLink("x", e.target.value)}
@@ -776,7 +776,7 @@ export function CreateCandidateProfileForm({
               Identificação de campanha
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Obrigatório. Vai automático em toda missão, pro editor colocar no vídeo — e monta a
+              Obrigatório. Vai automático em toda missão, pro editor colocar no vídeo, e monta a
               tarja que ele encaixa na lateral.
             </p>
 

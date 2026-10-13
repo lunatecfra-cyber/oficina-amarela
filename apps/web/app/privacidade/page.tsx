@@ -22,8 +22,8 @@ export default function PrivacyPage() {
       <div className="mt-3 flex items-start gap-2 rounded-xl border border-gold-lo/40 bg-gold/[0.06] p-4 text-sm text-muted">
         <TriangleAlert className="mt-0.5 h-4 w-4 flex-none text-gold" aria-hidden="true" />
         <span>
-          Rascunho gerado em 27/07/2026, baseado no que a plataforma realmente coleta hoje. Revisar
-          com um advogado antes de publicar de verdade — isso aqui não é aconselhamento jurídico.
+          Rascunho gerado em 27/07/2026, baseado no que a plataforma coleta hoje. Revisar com um
+          advogado antes de publicar. Isso aqui não é aconselhamento jurídico.
         </span>
       </div>
 
@@ -45,7 +45,7 @@ export default function PrivacyPage() {
           </h2>
           <ul className="list-disc pl-5">
             <li>Nome, apelido e e-mail (via cadastro ou login com Google)</li>
-            <li>Sua senha, guardada apenas como hash — nunca em texto legível</li>
+            <li>Sua senha, guardada apenas como hash, nunca em texto legível</li>
             <li>
               O que você preenche no perfil: foto, cidade/estado, bio e as etiquetas que escolhe
               (especialidades, softwares, temas, tom)
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
             </li>
             <li>
               <b className="text-text">Só para editores:</b> sua grade de disponibilidade e o
-              horário do seu último acesso — é o que decide se uma missão pode ser oferecida a você
+              horário do seu último acesso. É o que decide se uma missão pode ser oferecida a você
               agora
             </li>
             <li>
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
               histórico de entregas e quem está online
             </li>
             <li>
-              Mostrar seu perfil a quem participa da mesma missão — o porta-voz vê quem está
+              Mostrar seu perfil a quem participa da mesma missão. O porta-voz vê quem está
               editando, o editor vê de quem é o material
             </li>
             <li>Proteger as contas contra tentativa de invasão e cadastro em massa</li>
@@ -104,7 +104,7 @@ export default function PrivacyPage() {
           <p className="mt-2">
             <b className="text-text">Importante sobre o Google Drive:</b> quem libera o acesso ao
             arquivo bruto é você, no seu próprio Drive. A plataforma guarda o link, mas não concede
-            nem revoga permissão nenhuma por você — quem controla quem enxerga o arquivo, e por
+            nem revoga permissão nenhuma por você. Quem controla quem enxerga o arquivo, e por
             quanto tempo, continua sendo você.
           </p>
         </section>
@@ -115,7 +115,7 @@ export default function PrivacyPage() {
           </h2>
           <p>
             Enquanto sua conta existir. Ao excluir a conta, apagamos seu perfil, suas missões, seu
-            portfólio e seu histórico — é imediato e não dá para desfazer.
+            portfólio e seu histórico. É imediato e não dá para desfazer.
           </p>
           <p className="mt-2">
             Os arquivos no seu Google Drive não são tocados: eles nunca estiveram conosco. Se você
@@ -130,14 +130,14 @@ export default function PrivacyPage() {
           <p>Você pode, a qualquer momento:</p>
           <ul className="list-disc pl-5">
             <li>
-              <b className="text-text">Apagar sua conta sozinho</b>, na tela de editar perfil — vai
+              <b className="text-text">Apagar sua conta sozinho</b>, na tela de editar perfil: vai
               embora tudo, na hora
             </li>
             <li>Corrigir seus dados na mesma tela de editar perfil</li>
             <li>Pedir acesso a uma cópia dos seus dados, pelo e-mail abaixo</li>
             <li>
-              Desfazer o compartilhamento de qualquer pasta do Google Drive direto no seu Drive —
-              esse acesso nunca passou por nós
+              Desfazer o compartilhamento de qualquer pasta do Google Drive direto no seu Drive.
+              Esse acesso nunca passou por nós
             </li>
           </ul>
         </section>
@@ -170,8 +170,8 @@ export default function PrivacyPage() {
             .
           </p>
           <p className="mt-2">
-            Você também pode apagar sua conta sozinho, a qualquer momento, na tela de editar perfil
-            — a exclusão é imediata e não passa por nós.
+            Você também pode apagar sua conta sozinho, a qualquer momento, na tela de editar perfil.
+            A exclusão é imediata e não passa por nós.
           </p>
         </section>
       </div>

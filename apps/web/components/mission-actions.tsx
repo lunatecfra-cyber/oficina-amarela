@@ -63,7 +63,7 @@ export function MissionActions({
       <p className="mt-2 text-sm text-muted">
         {effectiveInReview
           ? "O editor entregou. A aprovação final aguarda a fiscalização independente. Você já pode assistir e pedir ajustes."
-          : "O controle de qualidade já aprovou. Assista ao vídeo e diga se pode ir pro ar — ou peça um ajuste antes."}
+          : "O controle de qualidade já aprovou. Assista ao vídeo e diga se pode ir pro ar, ou peça um ajuste antes."}
       </p>
 
       {isOpeningRevision ? (

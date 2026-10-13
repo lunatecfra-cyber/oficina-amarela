@@ -21,7 +21,7 @@ export function IncompleteProfileBanner({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-gold">
-            Perfil incompleto —{" "}
+            Perfil incompleto:{" "}
             {isEditor ? "complete seu cadastro de editor" : "complete seu cadastro de candidato"}
           </p>
           <p className="mt-1 text-sm text-muted">{description}</p>

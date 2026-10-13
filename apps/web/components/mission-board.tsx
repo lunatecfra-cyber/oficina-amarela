@@ -99,9 +99,9 @@ export function MissionBoard() {
             </details>
             <p className="mt-3 text-sm text-gold-hi" role="status">
               {m.assignedToMe
-                ? "Atribuída a você — continue na bancada"
+                ? "Atribuída a você. Continue na bancada"
                 : m.offerStatus === "pendente"
-                  ? "Você foi selecionado — confira a oferta na bancada"
+                  ? "Você foi selecionado. Confira a oferta na bancada"
                   : m.offerStatus === "rejeitada"
                     ? "Você recusou esta oferta"
                     : m.offerStatus === "expirada"
@@ -109,7 +109,7 @@ export function MissionBoard() {
                       : m.status !== "disponivel"
                         ? "Missão indisponível para novos interesses"
                         : m.interested
-                          ? "Interesse registrado — aguardando escolha do porta-voz"
+                          ? "Interesse registrado. Aguardando escolha do porta-voz"
                           : "Aberta a interessados"}
             </p>
             {data.eligible && m.status === "disponivel" && !m.interested && !m.offerStatus && (

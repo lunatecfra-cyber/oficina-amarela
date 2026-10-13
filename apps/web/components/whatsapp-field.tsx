@@ -46,7 +46,7 @@ export function WhatsappField({
       />
       <p id="whatsapp-ajuda" className="mt-1.5 text-xs leading-relaxed text-muted-2">
         {incomplete
-          ? "Faltam dígitos — coloque o DDD e o número."
+          ? "Faltam dígitos. Coloque o DDD e o número."
           : (hint ?? "Com DDD. Fica visível pra quem estiver na mesma missão que você.")}
       </p>
     </div>
