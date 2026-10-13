@@ -286,4 +286,12 @@ test("diretório é opt-in, não expõe dados privados e consentimento pode ser 
   await call("/editors/visibility", 2, { visible: false, portfolioConsent: false });
   assert.deepEqual(await list(), []);
   assert.equal((await call("/editors/synthetic2", 4)).status, 404);
+  const directId = await mission();
+  assert.equal(
+    (await call(`/missions/${directId}/selection`, 1, { editorId: 2, kind: "direct" })).status,
+    201,
+  );
+  assert.equal((await call("/editors/synthetic2", 1)).status, 200);
+  assert.equal((await call("/editors/synthetic2", 4)).status, 404);
+  assert.deepEqual(await list("/editors?available=true"), []);
 });

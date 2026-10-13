@@ -68,8 +68,8 @@ export function createEditorDirectoryRoutes() {
     const row = await db
       .prepare(`SELECT u.id,u.directory_visible,u.directory_portfolio_consent,u.portfolio_link,u.availability FROM users u
     WHERE u.handle=? AND u.role='editor' AND u.is_banned=0 AND u.profile_completed=1
-    AND (u.directory_visible=1 OR u.id=? OR EXISTS(SELECT 1 FROM mission_interests i JOIN missions m ON m.id=i.mission_id WHERE i.editor_id=u.id AND m.spokesperson_id=?))`)
-      .bind(c.req.param("handle"), c.get("session").id, c.get("session").id)
+    AND (u.directory_visible=1 OR u.id=? OR EXISTS(SELECT 1 FROM mission_interests i JOIN missions m ON m.id=i.mission_id WHERE i.editor_id=u.id AND m.spokesperson_id=?) OR EXISTS(SELECT 1 FROM offers o JOIN missions m ON m.id=o.mission_id WHERE o.editor_id=u.id AND m.spokesperson_id=? AND o.status IN ('pendente','aceita') AND m.status IN ('oferecida','reservada','em_revisao','reedicao','aprovada')))`)
+      .bind(c.req.param("handle"), c.get("session").id, c.get("session").id, c.get("session").id)
       .first<{
         id: number;
         directory_visible: number;
