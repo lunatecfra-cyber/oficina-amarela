@@ -1,0 +1,46 @@
+{
+  "environment": "staging",
+  "missionId": 38,
+  "before": {
+    "reviewsBySource": [
+      {
+        "source": "legacy",
+        "total": 1
+      }
+    ],
+    "editorRating": [
+      {
+        "rating": null
+      }
+    ],
+    "foreignKeyViolations": []
+  },
+  "after": {
+    "missionReviews": [
+      {
+        "id": 6,
+        "mission_id": 38,
+        "editor_id": 50,
+        "rating": 4,
+        "source": "spokesperson",
+        "reviewer_id": 84,
+        "delivery_version": 4,
+        "voided_at": null
+      }
+    ],
+    "editorRating": [
+      {
+        "rating": 4
+      }
+    ],
+    "audit": [
+      {
+        "action": "avaliacao_porta_voz",
+        "actor_id": 84,
+        "entity_id": "38",
+        "details": "{\"version\":4,\"rating\":4}"
+      }
+    ],
+    "foreignKeyViolations": []
+  }
+}
