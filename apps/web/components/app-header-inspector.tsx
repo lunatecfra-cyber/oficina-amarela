@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { InspectorNav } from "@/components/inspector-nav";
 import { LocalGuide } from "@/components/local-guide";
+import { LogoutButton } from "@/components/logout-button";
 import { getAdminNotifications } from "@/lib/overview-db";
 import { getSession } from "@/lib/server-session";
 
@@ -22,12 +23,7 @@ export async function AppHeaderInspector() {
           <span className="hidden text-sm text-muted sm:block">
             {session.name} · controle de qualidade
           </span>
-          <Link
-            href="/"
-            className="tap-target text-xs uppercase tracking-[0.12em] text-muted hover:text-silver-hi"
-          >
-            Sair
-          </Link>
+          <LogoutButton className="tap-target text-xs uppercase tracking-[0.12em] text-muted hover:text-silver-hi" />
         </div>
       </div>
       <div className="mx-auto w-full max-w-5xl px-5 lg:px-8">
