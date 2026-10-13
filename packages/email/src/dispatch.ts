@@ -55,7 +55,7 @@ export async function drainEmailQueueNow(): Promise<DrainResult> {
   const result = await drainEmailQueue(
     (email) =>
       runtime.simulated
-        ? Promise.resolve(/@example\.invalid$/i.test(email.destinatario))
+        ? Promise.resolve(/@[^@\s]+\.(?:invalid|test|local)$/i.test(email.destinatario))
         : deliverEmail(email.destinatario, email.assunto, email.html),
     BATCH,
     runtime.simulated ? "simulated" : "provider",

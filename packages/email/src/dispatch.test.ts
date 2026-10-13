@@ -60,7 +60,12 @@ test("provedor simulado recusa destinatário real e nunca chama a rede", async (
       return 0;
     },
     async claim() {
-      return ["synthetic@example.invalid", "real@example.com"].map((recipient, index) => ({
+      return [
+        "synthetic@example.invalid",
+        "synthetic@teste.local",
+        "synthetic@example.test",
+        "real@example.com",
+      ].map((recipient, index) => ({
         id: index + 1,
         recipient,
         destinatario: recipient,
@@ -80,9 +85,13 @@ test("provedor simulado recusa destinatário real e nunca chama a rede", async (
   });
   configureEmailRuntime({ simulated: true, origin: "https://staging.local" });
   try {
-    assert.deepEqual(await drainEmailQueueNow(), { sent: 1, failed: 1 });
-    assert.deepEqual(sent, [{ id: 1, mode: "simulated" }]);
-    assert.deepEqual(failed, [2]);
+    assert.deepEqual(await drainEmailQueueNow(), { sent: 3, failed: 1 });
+    assert.deepEqual(sent, [
+      { id: 1, mode: "simulated" },
+      { id: 2, mode: "simulated" },
+      { id: 3, mode: "simulated" },
+    ]);
+    assert.deepEqual(failed, [4]);
     assert.equal(network.mock.callCount(), 0);
   } finally {
     configureEmailQueueSource(null);
