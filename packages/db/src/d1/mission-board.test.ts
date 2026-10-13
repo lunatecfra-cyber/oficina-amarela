@@ -157,6 +157,10 @@ test("seleção concorrente, posse exclusiva, autorização e retries", async ()
     (await call("/editor/queue/next", winner, { action: "accept", missionId: id })).status,
     200,
   );
+  assert.equal(
+    (await call("/editor/queue/next", winner, { action: "accept", missionId: id })).status,
+    200,
+  );
   assert.equal((await call(`/missions/${id}/interest`, 5, {})).status, 409);
   assert.equal((await call(`/missions/${id}`, loser, { action: "reserve" })).status, 409);
   assert.equal(

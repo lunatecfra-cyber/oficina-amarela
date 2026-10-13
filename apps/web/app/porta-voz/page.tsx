@@ -168,7 +168,15 @@ export default async function SpokespersonHome() {
 
               const bucket = spokespersonBucket(status);
               const waiting = waitingOnSpokesperson(status);
-              const msg = spokespersonStatusMessage(status);
+              const msg =
+                p.manualSelection && (status === "available" || status === "disponivel")
+                  ? {
+                      text: p.interestCount
+                        ? `${p.interestCount} editor(es) interessado(s) — escolha quem recebe a oferta`
+                        : "Publicada no mural — aguardando interessados",
+                      color: "text-gold-hi",
+                    }
+                  : spokespersonStatusMessage(status);
 
               const queueIndex = generalQueue.findIndex((f) => f.id === p.id);
               const position = queueIndex >= 0 ? queueIndex + 1 : 0;
@@ -208,7 +216,9 @@ export default async function SpokespersonHome() {
                     <p className="mt-1.5 text-xs text-muted">
                       {reservedBy
                         ? `com o editor ${reservedBy}`
-                        : `posição ${position} de ${generalQueue.length} na fila`}
+                        : p.manualSelection
+                          ? "Escolha explícita pelo porta-voz"
+                          : `posição ${position} de ${generalQueue.length} na fila`}
                     </p>
                   )}
 

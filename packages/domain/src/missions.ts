@@ -36,6 +36,8 @@ export type RawMedia = {
 };
 
 export type Mission = {
+  manualSelection?: boolean;
+  interestCount?: number;
   deliveryVersion?: number;
   deliveryHistory?: {
     version: number;

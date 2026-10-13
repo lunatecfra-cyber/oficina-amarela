@@ -89,7 +89,15 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
   ]);
   if (!mission) notFound();
 
-  const msg = spokespersonStatusMessage(mission.status);
+  const msg =
+    mission.manualSelection && (mission.status === "available" || mission.status === "disponivel")
+      ? {
+          text: mission.interestCount
+            ? "Interessados aguardam sua escolha"
+            : "Publicada no mural — aguardando interessados",
+          color: "text-gold-hi",
+        }
+      : spokespersonStatusMessage(mission.status);
   const stage = currentStage(mission.status);
 
   const title = mission.title ?? (mission as any).titulo;
@@ -163,7 +171,7 @@ export default async function MissionDetailPage({ params }: { params: Promise<{ 
             )}
           </div>
 
-          {isAvailable && position > 0 && (
+          {isAvailable && !mission.manualSelection && position > 0 && (
             <p className="mt-3 text-xs text-muted">
               Posição <b className="text-text">{position}</b> de {total} na fila dos editores
             </p>

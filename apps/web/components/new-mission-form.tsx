@@ -285,8 +285,8 @@ export function NewMissionForm({
           Missão enviada!
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          Ela já está na fila dos editores. Você acompanha o status na sua área e recebe o vídeo
-          pronto por aqui.
+          Ela já está no mural. Confira os interessados na sua área e escolha o editor que receberá
+          a oferta.
         </p>
         <div className="mt-8 flex flex-col gap-3">
           <Link href="/porta-voz" className="btn-gold">
@@ -596,8 +596,8 @@ export function NewMissionForm({
           </FieldWrapper>
 
           <p className="text-xs leading-relaxed text-muted-2">
-            Ao enviar, a missão entra na fila e um editor da guilda pega. Você acompanha tudo na sua
-            área.
+            Ao enviar, a missão é publicada no mural gratuito. Você compara os interessados e
+            escolhe quem receberá a oferta.
           </p>
         </StepContainer>
       )}

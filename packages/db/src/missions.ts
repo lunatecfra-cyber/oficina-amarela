@@ -45,6 +45,8 @@ export type CreateMissionInput = {
 };
 
 export type MissionRow = {
+  manual_selection?: number;
+  interest_count?: number;
   delivery_version?: number;
   id: number;
   // English column names:
@@ -170,6 +172,8 @@ export function rowToMission(r: MissionRow): Mission {
   return {
     id: `db-${r.id}`,
     deliveryVersion: r.delivery_version ?? 0,
+    manualSelection: Boolean(r.manual_selection),
+    interestCount: Number(r.interest_count ?? 0),
     spokesperson: spName,
     spokespersonHandle: spHandle,
     title,

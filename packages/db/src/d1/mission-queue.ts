@@ -150,7 +150,15 @@ export function createD1MissionQueue(
           )
           .bind(nowIso, missionId, editorId, nowIso, nowIso)
           .run();
-        return result.meta.changes > 0 ? { ok: true } : failure("offer_invalid");
+        if (result.meta.changes > 0) return { ok: true };
+        const accepted = await db
+          .prepare(`SELECT 1 FROM offers o JOIN missions m ON m.id=o.mission_id JOIN users u ON u.id=o.editor_id
+          WHERE o.mission_id=? AND o.editor_id=? AND o.status='aceita' AND m.manual_selection=1
+            AND m.reserved_by_id=u.id AND m.status IN ('reservada','em_revisao','reedicao','aprovada')
+            AND u.role='editor' AND u.is_banned=0 AND u.profile_completed=1`)
+          .bind(missionId, editorId)
+          .first();
+        return accepted ? { ok: true } : failure("offer_invalid");
       } catch (error) {
         if (isActiveMissionConflict(error)) return failure("already_holds_mission");
         if (errorIncludes(error, "offer_invalid")) return failure("offer_invalid");
