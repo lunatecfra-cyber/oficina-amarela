@@ -1,4 +1,5 @@
 export const MISSION_NOTIFICATION_LABELS: Record<string, string> = {
+  interest: "Novo editor interessado",
   offer: "Nova oferta de missão",
   accepted: "Editor aceitou a missão",
   submitted: "Vídeo entregue para revisão",

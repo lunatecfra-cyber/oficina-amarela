@@ -111,7 +111,7 @@ export function createD1MissionQueue(
           .prepare(
             `UPDATE missions
              SET status = 'reservada', reserved_by_id = ?, reserved_at = ?
-             WHERE id = ? AND status = 'disponivel'`,
+             WHERE id = ? AND status = 'disponivel' AND manual_selection = 0`,
           )
           .bind(editorId, clock().toISOString(), missionId)
           .run();
@@ -174,7 +174,7 @@ export function createD1MissionQueue(
       const { results: missions } = await db
         .prepare(
           `SELECT id, spokesperson_id FROM missions
-           WHERE status = 'disponivel'
+           WHERE status = 'disponivel' AND manual_selection = 0
            ORDER BY priority DESC, created_at ASC
            LIMIT 20`,
         )

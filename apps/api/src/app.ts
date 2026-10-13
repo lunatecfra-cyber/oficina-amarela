@@ -21,6 +21,7 @@ import { createAdminManagementRoutes } from "./routes/admin-routes.ts";
 import { createAuthRoutes } from "./routes/auth.ts";
 import { createContentRoutes } from "./routes/content.ts";
 import { createEditorQueue } from "./routes/editor-queue.ts";
+import { createMissionBoardRoutes } from "./routes/mission-board.ts";
 import { createMissionCollaborationRoutes } from "./routes/mission-collaboration.ts";
 import { createMissionFileRoutes } from "./routes/mission-files.ts";
 import { createMissionLifecycleRoutes } from "./routes/mission-lifecycle.ts";
@@ -173,6 +174,7 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
   app.route("/missions", createMissionFileRoutes(dependencies));
   app.route("/missions", createMissionLifecycleRoutes(dependencies));
   app.route("/missions", createMissionReviewRoutes());
+  app.route("/missions", createMissionBoardRoutes());
 
   app.notFound((c) =>
     c.json({ error: "Rota não encontrada.", requestId: c.get("requestId") }, 404),

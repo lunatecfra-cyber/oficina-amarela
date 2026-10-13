@@ -129,8 +129,8 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
              spokesperson_id, title, format, drive_link, youtube_link,
              brief_tone, brief_color, brief_font, brief_refs,
              extras, motivation, desired_deadline, raw_video_urls, raw_media,
-             watermark, campaign_tax_id, candidate_number, voter_id
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             watermark, campaign_tax_id, candidate_number, voter_id, manual_selection
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
            RETURNING id`,
         )
         .bind(

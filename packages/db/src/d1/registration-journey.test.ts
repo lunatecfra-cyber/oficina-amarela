@@ -146,6 +146,8 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
       },
       queueTasks[0],
     );
+    assert.equal((await request(`/missions/${missionId}/interest`, {}, editorCookie)).status, 201);
+    assert.equal((await request(`/missions/${missionId}/selection`, {editorId,kind:"interest"}, voiceCookie)).status,201);
     const offered = await request("/editor/queue/next", undefined, editorCookie);
     assert.equal(offered.status, 200);
     assert.equal(

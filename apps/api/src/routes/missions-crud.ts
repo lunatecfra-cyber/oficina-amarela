@@ -53,7 +53,16 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
 
   routes.get("/missions/available", requireSession, async (c) => {
     const list = await dependencies.missions.getAvailableMissions();
-    return c.json(list);
+    return c.json(
+      list.map(({ id, title, format, status, spokesperson, desiredDeadline }) => ({
+        id,
+        title,
+        format,
+        status,
+        spokesperson,
+        desiredDeadline,
+      })),
+    );
   });
 
   routes.get("/missions/in-review", requireAdmin, async (c) => {
@@ -87,7 +96,15 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
   routes.get("/candidates/:handle/missions", async (c) => {
     const handle = c.req.param("handle");
     const list = await dependencies.missions.getPublicCandidateMissions(handle);
-    return c.json(list);
+    return c.json(
+      list.map(({ id, title, format, status, spokesperson }) => ({
+        id,
+        title,
+        format,
+        status,
+        spokesperson,
+      })),
+    );
   });
 
   routes.get("/missions/view/:id", requireSession, async (c) => {
