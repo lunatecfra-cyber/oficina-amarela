@@ -202,7 +202,7 @@ async function deliver(id, actor, version) {
   return link;
 }
 const beginning = await createMission("beginner");
-await deliver(beginning, "beginner", 0);
+const firstDelivery = await deliver(beginning, "beginner", 0);
 const experienced = await createMission("experienced");
 await deliver(experienced, "experienced", 0);
 const reasons = await d1(
@@ -221,6 +221,35 @@ await call(
 const queue = (await call("/inspections", "inspector")).data;
 assert.ok(queue.some((item) => item.id === beginning));
 await call(`/inspections/${beginning}/claim`, "inspector", { version: 1 });
+for (const path of [
+  "/missions/in-review",
+  `/missions/view/${beginning}`,
+  `/missions/messages?ids=${beginning}`,
+  "/admin/missions",
+  "/admin/in-flight",
+  "/admin/notifications",
+])
+  await call(path, "inspector", undefined, 403);
+assert.equal(
+  (await fetch(firstDelivery, { headers: { cookie: accounts.inspector.cookie } })).status,
+  200,
+);
+await d1(
+  `INSERT INTO user_capability_revocations(user_id,capability) VALUES(${accounts.inspector.id},'mission.inspect')`,
+);
+try {
+  await call(`/inspections/${beginning}`, "inspector", undefined, 403);
+  assert.equal(
+    (await fetch(firstDelivery, { headers: { cookie: accounts.inspector.cookie } })).status,
+    403,
+  );
+} finally {
+  await d1(
+    `DELETE FROM user_capability_revocations WHERE user_id=${accounts.inspector.id} AND capability='mission.inspect'`,
+  );
+}
+ok("atribuição e revogação de capacidade restringem mídia e informações privadas");
+
 await call(`/inspections/${beginning}`, "other", undefined, 403);
 await call(`/missions/${beginning}`, "inspector", {
   action: "re_edit",
