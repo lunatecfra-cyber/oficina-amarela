@@ -11,11 +11,14 @@ const mf = new Miniflare(
   convertV4MiniflareOptions({
     compatibilityDate: "2026-08-30",
     d1Databases: { DB: "chat-routes" },
+    r2Buckets: { MEDIA: "chat-routes" },
     modules: true,
     script: "export default {fetch(){return new Response('ok')}}",
   }),
 );
-let db: Awaited<ReturnType<typeof mf.getD1Database>>, app: ReturnType<typeof createApp>;
+let db: Awaited<ReturnType<typeof mf.getD1Database>>,
+  media: Awaited<ReturnType<typeof mf.getR2Bucket>>,
+  app: ReturnType<typeof createApp>;
 const cookies: Record<number, string> = {};
 const request = (path: string, actor?: number, method = "GET", body?: unknown) =>
   app.request(
@@ -28,12 +31,18 @@ const request = (path: string, actor?: number, method = "GET", body?: unknown) =
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     },
-    { DB: db, BACKGROUND_QUEUE: { async send() {} }, STAGING_EMAIL_SIMULATED: "true" },
+    {
+      DB: db,
+      MEDIA: media as never,
+      BACKGROUND_QUEUE: { async send() {} },
+      STAGING_EMAIL_SIMULATED: "true",
+    },
   );
 
 before(async () => {
   process.env.AUTH_SECRET = "chat-routes-isolated-secret";
   db = await mf.getD1Database("DB");
+  media = await mf.getR2Bucket("MEDIA");
   await applyAllD1Migrations(db as unknown as D1DatabaseLike);
   app = createApp(d1ApiDependencies(db as unknown as D1DatabaseLike));
   for (const [id, role] of [
@@ -41,6 +50,9 @@ before(async () => {
     [2, "editor"],
     [3, "editor"],
     [4, "spokesperson"],
+    [5, "spokesperson"],
+    [6, "editor"],
+    [7, "editor"],
   ] as const) {
     await db
       .prepare("INSERT INTO users(id,handle,name,email,role,profile_completed) VALUES(?,?,?,?,?,1)")
@@ -142,4 +154,129 @@ test("rotas de leitura e cursor exigem sessão, validam entrada e isolam missõe
   // sessão revogada pela troca de papel/ban deixa de ler na hora
   await db.prepare("UPDATE users SET is_banned = 1 WHERE id = 1").run();
   assert.equal((await request("/missions/unread", 1)).status, 401);
+});
+
+const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4];
+const upload = (
+  path: string,
+  actor: number | undefined,
+  file: Blob | null,
+  name = "prova.png",
+  text?: string,
+) => {
+  const form = new FormData();
+  if (file) form.set("file", file, name);
+  if (text !== undefined) form.set("text", text);
+  return app.request(
+    `https://staging.local${path}`,
+    { method: "POST", headers: { cookie: actor ? (cookies[actor] ?? "") : "" }, body: form },
+    {
+      DB: db,
+      MEDIA: media as never,
+      BACKGROUND_QUEUE: { async send() {} },
+      STAGING_EMAIL_SIMULATED: "true",
+    },
+  );
+};
+const objectCount = async () => (await media.list()).objects.length;
+
+test("anexos: autorização antes do R2, tipo verificado, isolamento e transferência", async () => {
+  await db
+    .prepare(
+      "INSERT INTO missions(id,spokesperson_id,reserved_by_id,title,format,status) VALUES(3,5,6,'Terceira','short','reservada')",
+    )
+    .run();
+  const png = new Blob([new Uint8Array(PNG)], { type: "image/png" });
+
+  // sem sessão ou sem participação: nada é gravado
+  const before = await objectCount();
+  assert.equal((await upload("/missions/3/attachments", undefined, png)).status, 401);
+  assert.equal((await upload("/missions/3/attachments", 3, png)).status, 403);
+  assert.equal((await upload("/missions/3/attachments", 4, png)).status, 403);
+  assert.equal(await objectCount(), before);
+
+  // entrada inválida
+  assert.equal((await upload("/missions/3/attachments", 6, null)).status, 400);
+  assert.equal(
+    (
+      await upload(
+        "/missions/3/attachments",
+        6,
+        new Blob(["texto"], { type: "text/plain" }),
+        "a.txt",
+      )
+    ).status,
+    415,
+  );
+  // declara PNG mas o conteúdo não é
+  assert.equal(
+    (await upload("/missions/3/attachments", 6, new Blob(["nao sou png"], { type: "image/png" })))
+      .status,
+    415,
+  );
+  const big = new Blob([new Uint8Array(10 * 1024 ** 2 + 1)], { type: "application/pdf" });
+  assert.equal((await upload("/missions/3/attachments", 6, big, "g.pdf")).status, 413);
+  assert.equal(await objectCount(), before);
+
+  // envio válido: mensagem + anexo, hash conferido, nome higienizado
+  const sent = await upload("/missions/3/attachments", 6, png, "..\\pasta/prova final.png", "veja");
+  assert.equal(sent.status, 200);
+  const { message } = (await sent.json()) as {
+    message: {
+      text: string;
+      attachments: { id: number; filename: string; contentType: string; size: number }[];
+    };
+  };
+  assert.equal(message.text, "veja");
+  const [attachment] = message.attachments;
+  assert.deepEqual(
+    [attachment?.filename, attachment?.contentType, attachment?.size],
+    ["prova final.png", "image/png", PNG.length],
+  );
+  const stored = await db
+    .prepare("SELECT object_key, sha256 FROM message_attachments WHERE id = ?")
+    .bind(attachment?.id)
+    .first<{ object_key: string; sha256: string }>();
+  const expected = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new Uint8Array(PNG)))]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  assert.equal(stored?.sha256, expected);
+  assert.ok(stored?.object_key.startsWith("chat/3/"));
+  assert.equal(await objectCount(), before + 1);
+
+  // a página de mensagens já traz o anexo
+  const page = (await (await request("/missions/3?afterId=0", 5)).json()) as {
+    messages: { attachments?: { id: number }[] }[];
+  };
+  assert.equal(page.messages[0]?.attachments?.[0]?.id, attachment?.id);
+
+  // download: a outra parte recebe os mesmos bytes, com cabeçalhos de contenção
+  const path = `/missions/3/attachments/${attachment?.id}`;
+  const download = await request(path, 5);
+  assert.equal(download.status, 200);
+  assert.deepEqual([...new Uint8Array(await download.arrayBuffer())], PNG);
+  assert.equal(download.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(download.headers.get("cache-control"), "private, no-store");
+  assert.match(download.headers.get("content-security-policy") ?? "", /sandbox/);
+
+  // sem sessão, fora da missão, e o id de outra conversa não abre por este caminho
+  assert.equal((await request(path)).status, 401);
+  assert.equal((await request(path, 3)).status, 403);
+  assert.equal((await request(`/missions/2/attachments/${attachment?.id}`, 4)).status, 404);
+  assert.equal((await request("/missions/3/attachments/abc", 5)).status, 400);
+
+  // editor trocado: o anterior perde o acesso na hora
+  await db.prepare("UPDATE missions SET reserved_by_id = 7 WHERE id = 3").run();
+  assert.equal((await request(path, 6)).status, 403);
+  assert.equal((await upload("/missions/3/attachments", 6, png)).status, 403);
+  assert.equal((await request(path, 7)).status, 200);
+
+  // anexo não é reescrito depois de enviado
+  await assert.rejects(
+    db
+      .prepare("UPDATE message_attachments SET filename = 'x' WHERE id = ?")
+      .bind(attachment?.id)
+      .run(),
+    /attachment_immutable/,
+  );
 });

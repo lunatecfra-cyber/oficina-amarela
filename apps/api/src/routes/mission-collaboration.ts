@@ -1,5 +1,10 @@
 import type { UserSession } from "@oficina/auth/session";
 import type { MissionCollaborationFailure } from "@oficina/db/mission-collaboration";
+import {
+  ATTACHMENT_MAX_BYTES,
+  attachmentMatchesType,
+  validateChatAttachment,
+} from "@oficina/domain/uploads";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
@@ -78,6 +83,95 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
     }
     c.header("cache-control", "private, no-store");
     return c.json({ missions: result.missions });
+  });
+
+  // Multipart com `file` e `text` (opcional). Autoriza antes de gravar no R2 e, se a
+  // mensagem não for registrada, devolve o objeto recém-criado, que ninguém referencia.
+  routes.post("/:id/attachments", async (c) => {
+    const missionId = missionIdOf(c.req.param("id"));
+    if (missionId === null) return c.json({ error: "Missão inválida." }, 400);
+    if (!c.env.MEDIA) return c.json({ error: "Anexos indisponíveis." }, 503);
+    const session = c.get("session");
+    const allowed = await dependencies.missionCollaboration.canChat(missionId, session);
+    if (!allowed.ok) {
+      const response = failure(allowed.reason);
+      return c.json({ error: response.error }, response.status);
+    }
+    // Recusa pelo cabeçalho antes de ler o corpo; o tamanho real é conferido adiante.
+    if (Number(c.req.header("content-length") ?? 0) > ATTACHMENT_MAX_BYTES + 64 * 1024)
+      return c.json({ error: "O anexo excede 10 MB." }, 413);
+    const attempt = await dependencies.accounts.recordAttempt(`chatfile:${session.id}`, 30, 60, 60);
+    if (attempt.locked)
+      return c.json({ error: "Muitos anexos na última hora. Tente de novo mais tarde." }, 429);
+
+    const form = await c.req.parseBody().catch(() => null);
+    const file = form?.file;
+    if (!(file instanceof File)) return c.json({ error: "Envie um arquivo." }, 400);
+    const policy = validateChatAttachment(file.type, file.size);
+    if (!policy.ok) return c.json({ error: policy.error }, policy.status);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (bytes.byteLength !== file.size || !attachmentMatchesType(file.type, bytes))
+      return c.json({ error: "O conteúdo não corresponde ao formato do arquivo." }, 415);
+
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const sha256 = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    // Só o nome, sem caminho nem caracteres de controle, e com teto de tamanho.
+    const filename =
+      [...(file.name.split(/[\\/]/).pop() ?? "")]
+        .filter((ch) => ch.charCodeAt(0) > 31)
+        .join("")
+        .slice(0, 120) || "anexo";
+    const objectKey = `chat/${missionId}/${crypto.randomUUID()}`;
+    await c.env.MEDIA.put(objectKey, bytes, {
+      httpMetadata: { contentType: file.type },
+      customMetadata: { missionId: String(missionId), ownerId: String(session.id), sha256 },
+    });
+    const text = typeof form?.text === "string" ? form.text : "";
+    const result = await dependencies.missionCollaboration.sendMessage(missionId, session, text, {
+      objectKey,
+      filename,
+      contentType: file.type,
+      size: file.size,
+      sha256,
+    });
+    if (!result.ok) {
+      await c.env.MEDIA.delete(objectKey).catch(() => {});
+      const response = failure(result.reason);
+      return c.json({ error: response.error }, response.status);
+    }
+    return c.json({ ok: true, message: result.message });
+  });
+
+  routes.get("/:id/attachments/:attachmentId", async (c) => {
+    const missionId = missionIdOf(c.req.param("id"));
+    const attachmentId = Number(c.req.param("attachmentId"));
+    if (missionId === null || !Number.isInteger(attachmentId) || attachmentId <= 0)
+      return c.json({ error: "Anexo inválido." }, 400);
+    if (!c.env.MEDIA) return c.json({ error: "Anexos indisponíveis." }, 503);
+    const found = await dependencies.missionCollaboration.attachmentFor(
+      missionId,
+      attachmentId,
+      c.get("session"),
+    );
+    if (!found.ok) {
+      if (found.reason === "attachment_not_found")
+        return c.json({ error: "Anexo não encontrado." }, 404);
+      const response = failure(found.reason);
+      return c.json({ error: response.error }, response.status);
+    }
+    const object = await c.env.MEDIA.get(found.attachment.objectKey);
+    if (!object) return c.json({ error: "Anexo não encontrado." }, 404);
+    const inline = found.attachment.contentType.startsWith("image/");
+    return new Response(object.body as never, {
+      headers: {
+        "content-type": found.attachment.contentType,
+        "content-length": String(object.size),
+        "content-disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(found.attachment.filename)}`,
+        "cache-control": "private, no-store",
+        "x-content-type-options": "nosniff",
+        "content-security-policy": "default-src 'none'; sandbox",
+      },
+    });
   });
 
   routes.post("/:id/read", async (c) => {

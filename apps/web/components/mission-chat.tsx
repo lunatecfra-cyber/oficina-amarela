@@ -1,6 +1,7 @@
 "use client";
 
 import { LIMITS } from "@oficina/domain/limits";
+import { ATTACHMENT_MAX_BYTES, validateChatAttachment } from "@oficina/domain/uploads";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatMessage, Mensagem } from "@/lib/chat-db";
 
@@ -50,6 +51,12 @@ const EVENT_LABEL: Record<string, (version: number) => string> = {
   returned: () => "Missão devolvida ao mural",
 };
 
+function formatSize(bytes: number): string {
+  return bytes >= 1024 ** 2
+    ? `${(bytes / 1024 ** 2).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 function seqOf(m: ChatMessage): number {
   return m.seq ?? (Number(String(m.id).replace(/^m-/, "")) || 0);
 }
@@ -82,6 +89,8 @@ export function MissionChat({
   const [messages, setMessages] = useState<ChatMessage[]>(effectiveInitial as any);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [text, setText] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
 
@@ -190,27 +199,53 @@ export function MissionChat({
 
   async function send() {
     const t = text.trim();
-    if (!t || isSending) return;
+    if ((!t && !file) || isSending) return;
     setIsSending(true);
     setError("");
     try {
-      const resp = await fetch(`/api/missions/${effectiveId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "message", text: t, acao: "mensagem", texto: t }),
-      });
+      let resp: Response;
+      if (file) {
+        const form = new FormData();
+        form.set("file", file);
+        if (t) form.set("text", t);
+        resp = await fetch(`/api/missions/${effectiveId}/attachments`, {
+          method: "POST",
+          body: form,
+        });
+      } else {
+        resp = await fetch(`/api/missions/${effectiveId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "message", text: t, acao: "mensagem", texto: t }),
+        });
+      }
       if (!resp.ok) {
         const data = await resp.json().catch(() => null);
         setError(data?.error ?? data?.erro ?? "Não deu pra enviar.");
         return;
       }
       setText("");
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       void poll();
     } catch {
       setError("Sem conexão. Tenta de novo.");
     } finally {
       setIsSending(false);
     }
+  }
+
+  function pickFile(picked: File | null) {
+    setError("");
+    if (picked) {
+      const policy = validateChatAttachment(picked.type, picked.size);
+      if (!policy.ok) {
+        setError(policy.error);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+    }
+    setFile(picked);
   }
 
   return (
@@ -270,6 +305,31 @@ export function MissionChat({
                 <p className="mt-1 whitespace-pre-line break-words text-sm text-text/90">
                   {textWithLinks(content)}
                 </p>
+                {m.attachments?.map((a) => {
+                  const href = `/api/missions/${effectiveId}/attachments/${a.id}`;
+                  return (
+                    <div key={a.id} className="mt-2">
+                      {a.contentType.startsWith("image/") && (
+                        <a href={href} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={href}
+                            alt={a.filename}
+                            loading="lazy"
+                            className="max-h-40 rounded-lg border border-line"
+                          />
+                        </a>
+                      )}
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 block text-xs text-gold-hi underline underline-offset-2"
+                      >
+                        {a.filename} · {formatSize(a.size)}
+                      </a>
+                    </div>
+                  );
+                })}
               </li>
             );
           })}
@@ -297,10 +357,32 @@ export function MissionChat({
             <button
               className="btn-gold sm:w-32"
               onClick={() => void send()}
-              disabled={isSending || !text.trim()}
+              disabled={isSending || (!text.trim() && !file)}
             >
               {isSending ? "Enviando…" : "Enviar"}
             </button>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+            <label className="cursor-pointer rounded-lg border border-line px-3 py-1.5 hover:bg-ink-2/60">
+              Anexar imagem ou PDF
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                className="sr-only"
+                onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            {file ? (
+              <span>
+                {file.name} · {formatSize(file.size)}{" "}
+                <button type="button" className="underline" onClick={() => pickFile(null)}>
+                  remover
+                </button>
+              </span>
+            ) : (
+              <span>até {ATTACHMENT_MAX_BYTES / 1024 ** 2} MB</span>
+            )}
           </div>
           {error && (
             <p role="alert" className="mt-2 text-sm text-danger">

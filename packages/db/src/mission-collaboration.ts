@@ -14,6 +14,7 @@ export type MissionMessage = {
   createdAt: string;
   /** Id numérico da mensagem: é o cursor estável da paginação e da leitura. */
   seq?: number;
+  attachments?: MissionAttachment[];
   pautaId?: number;
   autorId?: number;
   autorNome?: string;
@@ -21,6 +22,22 @@ export type MissionMessage = {
   texto?: string;
   criadaEm?: string;
 };
+export type MissionAttachment = {
+  id: number;
+  filename: string;
+  contentType: string;
+  size: number;
+};
+export type NewAttachment = {
+  objectKey: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  sha256: string;
+};
+export type MissionAttachmentResult =
+  | { ok: true; attachment: MissionAttachment & { objectKey: string } }
+  | { ok: false; reason: MissionCollaborationFailure | "attachment_not_found" };
 export type Message = MissionMessage;
 export type Mensagem = MissionMessage;
 export type ChatMessage = MissionMessage;
@@ -69,6 +86,16 @@ export type MissionEventsResult =
   | { ok: false; reason: MissionCollaborationFailure };
 
 export interface MissionCollaborationRepository {
+  /** Autoriza antes de gravar bytes: quem não participa não gasta armazenamento. */
+  canChat(
+    missionId: number,
+    actor: Pick<MissionActor, "id" | "role">,
+  ): Promise<{ ok: true } | { ok: false; reason: MissionCollaborationFailure }>;
+  attachmentFor(
+    missionId: number,
+    attachmentId: number,
+    actor: Pick<MissionActor, "id" | "role">,
+  ): Promise<MissionAttachmentResult>;
   missionEvents(
     missionId: number,
     actor: Pick<MissionActor, "id" | "role">,
@@ -100,7 +127,12 @@ export interface MissionCollaborationRepository {
     missionIds: number[],
     actor: Pick<MissionActor, "id" | "role">,
   ): Promise<MissionMessagesByMissionResult>;
-  sendMessage(missionId: number, actor: MissionActor, text: string): Promise<MissionMessageResult>;
+  sendMessage(
+    missionId: number,
+    actor: MissionActor,
+    text: string,
+    attachment?: NewAttachment,
+  ): Promise<MissionMessageResult>;
   reportMission(
     missionId: number,
     actor: Pick<MissionActor, "id" | "role">,
@@ -169,6 +201,12 @@ async function participant(
 
 export const postgresMissionCollaboration: MissionCollaborationRepository = {
   // Cursor por id e leitura são só D1: no PostgreSQL falham fechados.
+  async canChat() {
+    return { ok: false, reason: "unsupported" };
+  },
+  async attachmentFor() {
+    return { ok: false, reason: "unsupported" };
+  },
   async missionEvents() {
     return { ok: false, reason: "unsupported" };
   },

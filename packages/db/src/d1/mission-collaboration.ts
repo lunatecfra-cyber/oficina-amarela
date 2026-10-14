@@ -3,6 +3,7 @@ import type { Role } from "@oficina/domain/roles";
 import { roleFromDb } from "../accounts.ts";
 import type {
   MissionActor,
+  MissionAttachment,
   MissionCollaborationRepository,
   MissionMessage,
 } from "../mission-collaboration.ts";
@@ -72,6 +73,35 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
     return { ok: true as const, mission };
   }
 
+  /** Anexa os arquivos às mensagens da página com uma consulta só, pela faixa de ids. */
+  async function withAttachments(missionId: number, messages: MissionMessage[]) {
+    const seqs = messages.map((m) => m.seq ?? 0).filter(Boolean);
+    if (seqs.length === 0) return messages;
+    const rows = await db
+      .prepare(
+        `SELECT id, message_id, filename, content_type, size FROM message_attachments
+         WHERE mission_id = ? AND message_id BETWEEN ? AND ? ORDER BY id`,
+      )
+      .bind(missionId, Math.min(...seqs), Math.max(...seqs))
+      .all<{
+        id: number;
+        message_id: number;
+        filename: string;
+        content_type: string;
+        size: number;
+      }>();
+    const byMessage = new Map<number, MissionAttachment[]>();
+    for (const r of rows.results) {
+      const list = byMessage.get(r.message_id) ?? [];
+      list.push({ id: r.id, filename: r.filename, contentType: r.content_type, size: r.size });
+      byMessage.set(r.message_id, list);
+    }
+    return messages.map((m) => {
+      const attachments = byMessage.get(m.seq ?? 0);
+      return attachments ? { ...m, attachments } : m;
+    });
+  }
+
   const PAGE_DEFAULT = 100;
   const PAGE_MAX = 200;
 
@@ -88,6 +118,41 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
   ];
 
   return {
+    async canChat(missionId, actor) {
+      const access = await participant(missionId, actor);
+      return access.ok ? { ok: true } : access;
+    },
+
+    async attachmentFor(missionId, attachmentId, actor) {
+      const access = await participant(missionId, actor);
+      if (!access.ok) return access;
+      // O filtro por missão impede abrir o anexo de outra conversa pelo id.
+      const row = await db
+        .prepare(
+          `SELECT id, object_key, filename, content_type, size FROM message_attachments
+           WHERE id = ? AND mission_id = ?`,
+        )
+        .bind(attachmentId, missionId)
+        .first<{
+          id: number;
+          object_key: string;
+          filename: string;
+          content_type: string;
+          size: number;
+        }>();
+      if (!row) return { ok: false, reason: "attachment_not_found" };
+      return {
+        ok: true,
+        attachment: {
+          id: row.id,
+          objectKey: row.object_key,
+          filename: row.filename,
+          contentType: row.content_type,
+          size: row.size,
+        },
+      };
+    },
+
     async missionEvents(missionId, actor) {
       const access = await participant(missionId, actor);
       if (!access.ok) return access;
@@ -135,7 +200,11 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       const hasMore = rows.results.length > size;
       const page = rows.results.slice(0, size);
       if (!ascending) page.reverse();
-      return { ok: true, messages: page.map(rowToMessage), hasMore };
+      return {
+        ok: true,
+        messages: await withAttachments(missionId, page.map(rowToMessage)),
+        hasMore,
+      };
     },
 
     async markRead(missionId, actor, upToMessageId) {
@@ -204,7 +273,10 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
         ? statement.bind(missionId, after)
         : statement.bind(missionId)
       ).all<MessageRow>();
-      return { ok: true, messages: rows.results.map(rowToMessage) };
+      return {
+        ok: true,
+        messages: await withAttachments(missionId, rows.results.map(rowToMessage)),
+      };
     },
 
     async messagesForMissions(missionIds, actor) {
@@ -245,23 +317,42 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       return { ok: true as const, messages };
     },
 
-    async sendMessage(missionId, actor, rawText) {
-      const text = limitStr(rawText, LIMITS.message);
+    async sendMessage(missionId, actor, rawText, attachment) {
+      const text =
+        limitStr(rawText, LIMITS.message) || (attachment ? `Anexo: ${attachment.filename}` : "");
       if (!text) return { ok: false, reason: "empty_message" };
       const access = await participant(missionId, actor);
       if (!access.ok) return access;
-      const row = await db
-        .prepare(
-          `INSERT INTO messages (mission_id, author_id, body) VALUES (?, ?, ?)
-           RETURNING id, mission_id, author_id, body, created_at`,
-        )
-        .bind(missionId, actor.id, text)
-        .first<Omit<MessageRow, "name" | "role">>();
+      const insert = `INSERT INTO messages (mission_id, author_id, body) VALUES (?, ?, ?)
+           RETURNING id, mission_id, author_id, body, created_at`;
+      let row: Omit<MessageRow, "name" | "role"> | null;
+      if (attachment && db.batch) {
+        // Mensagem e anexo no mesmo lote: ou os dois existem, ou nenhum. O
+        // last_insert_rowid() volta ao valor da mensagem depois dos gatilhos.
+        const [message] = await db.batch<{ results?: Omit<MessageRow, "name" | "role">[] }>([
+          db.prepare(insert).bind(missionId, actor.id, text),
+          db
+            .prepare(
+              `INSERT INTO message_attachments (message_id, mission_id, object_key, filename, content_type, size, sha256)
+               VALUES (last_insert_rowid(), ?, ?, ?, ?, ?, ?)`,
+            )
+            .bind(
+              missionId,
+              attachment.objectKey,
+              attachment.filename,
+              attachment.contentType,
+              attachment.size,
+              attachment.sha256,
+            ),
+        ]);
+        row = message?.results?.[0] ?? null;
+      } else {
+        row = await db.prepare(insert).bind(missionId, actor.id, text).first();
+      }
       if (!row) return { ok: false, reason: "write_failed" };
-      return {
-        ok: true,
-        message: rowToMessage({ ...row, name: actor.name, role: actor.role } as MessageRow),
-      };
+      const message = rowToMessage({ ...row, name: actor.name, role: actor.role } as MessageRow);
+      const [withFiles] = await withAttachments(missionId, [message]);
+      return { ok: true, message: withFiles ?? message };
     },
 
     async reportMission(missionId, actor, rawText) {
