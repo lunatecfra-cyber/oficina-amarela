@@ -1,0 +1,40 @@
+{
+  "sampleId": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+  "missionId": 42,
+  "profile": {
+    "handle": "portfolio.20261014.a",
+    "name": "Editor sintético A — Portfólio",
+    "location": "",
+    "bio": "",
+    "styles": [
+      "Documentário"
+    ],
+    "niche": [
+      "Cultura"
+    ],
+    "rating": 4,
+    "ratingCount": 1,
+    "portfolio": [
+      {
+        "id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "title": "AMOSTRA SINTÉTICA — montagem documental",
+        "description": "Vídeo de teste gerado para validar publicação e revogação em staging. Não representa uma campanha real.",
+        "specialties": "Documentário · Cultura",
+        "previewSeconds": 1,
+        "mediaKind": "video"
+      }
+    ],
+    "portfolioLink": null,
+    "availability": null,
+    "available": 1,
+    "workPreference": "both",
+    "verified": 1,
+    "completedCount": 1,
+    "onTimeCount": 1,
+    "onTimeKnownCount": 1
+  },
+  "previewStatus": 206,
+  "previewCache": "private, no-store",
+  "idor": "rejected",
+  "original": "private"
+}

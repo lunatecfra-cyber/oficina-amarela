@@ -1,0 +1,348 @@
+[
+  {
+    "results": [
+      {
+        "id": 38,
+        "title": "qs.1791818566 — validação de solicitação de vídeo",
+        "status": "finalizada",
+        "spokesperson_id": 84,
+        "reserved_by_id": 50,
+        "delivery_version": 4
+      },
+      {
+        "id": 39,
+        "title": "ONCA-62 — mural sintético com dois editores",
+        "status": "reservada",
+        "spokesperson_id": 84,
+        "reserved_by_id": 85,
+        "delivery_version": 0
+      },
+      {
+        "id": 41,
+        "title": "ONCA-61 — convite direto após recuperação",
+        "status": "reservada",
+        "spokesperson_id": 84,
+        "reserved_by_id": 50,
+        "delivery_version": 0
+      },
+      {
+        "id": 42,
+        "title": "ONCA-34 — AMOSTRA SINTÉTICA de portfólio",
+        "status": "finalizada",
+        "spokesperson_id": 88,
+        "reserved_by_id": 86,
+        "delivery_version": 1
+      },
+      {
+        "id": 43,
+        "title": "ONCA-61 — CONVITE SINTÉTICO após consulta ao portfólio",
+        "status": "reservada",
+        "spokesperson_id": 88,
+        "reserved_by_id": 86,
+        "delivery_version": 0
+      },
+      {
+        "id": 44,
+        "title": "ONCA-61 — CONVITE SINTÉTICO a editor iniciante",
+        "status": "reservada",
+        "spokesperson_id": 88,
+        "reserved_by_id": 87,
+        "delivery_version": 0
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "ENAM",
+      "served_by_colo": "IAD",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.3501
+      },
+      "duration": 0.3501,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 512000,
+      "rows_read": 12,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [
+      {
+        "mission_id": 42,
+        "version": 1,
+        "editor_id": 86,
+        "delivery_video_url": "https://oficina-amarela-web-staging.casamarela.workers.dev/api/missions/42/files/86/0162947a-cd60-46b7-a25a-07c003da26de",
+        "submitted_at": "2026-10-14T11:20:18.667Z"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "ENAM",
+      "served_by_colo": "IAD",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.0995
+      },
+      "duration": 0.0995,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 512000,
+      "rows_read": 1,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [
+      {
+        "id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "mission_id": 42,
+        "delivery_version": 1,
+        "editor_id": 86,
+        "editor_visible": 0,
+        "owner_authorized": 0,
+        "authorized_by": null,
+        "authorization_statement": null,
+        "revision": 8
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "ENAM",
+      "served_by_colo": "IAD",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.112
+      },
+      "duration": 0.112,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 512000,
+      "rows_read": 1,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [
+      {
+        "id": 86,
+        "handle": "portfolio.20261014.a",
+        "directory_visible": 1,
+        "work_preference": "volunteer"
+      },
+      {
+        "id": 87,
+        "handle": "portfolio.20261014.b",
+        "directory_visible": 1,
+        "work_preference": "both"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "ENAM",
+      "served_by_colo": "IAD",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.1068
+      },
+      "duration": 0.1068,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 512000,
+      "rows_read": 4,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [
+      {
+        "editor_id": 86,
+        "verified": 1,
+        "admin_id": 89,
+        "reason": "Habilitação sintética para validar o selo administrativo em staging."
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "ENAM",
+      "served_by_colo": "IAD",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.0834
+      },
+      "duration": 0.0834,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 512000,
+      "rows_read": 1,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [
+      {
+        "mission_id": 43,
+        "editor_id": 86,
+        "ended_at": null
+      },
+      {
+        "mission_id": 44,
+        "editor_id": 87,
+        "ended_at": null
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "ENAM",
+      "served_by_colo": "IAD",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.0915
+      },
+      "duration": 0.0915,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 512000,
+      "rows_read": 6,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [
+      {
+        "actor_id": 86,
+        "action": "portfolio_requested",
+        "entity": "portfolio_sample",
+        "entity_id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "details": "{\"missionId\":42,\"version\":1}"
+      },
+      {
+        "actor_id": 86,
+        "action": "portfolio_updated",
+        "entity": "portfolio_sample",
+        "entity_id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "details": "{\"missionId\":42,\"version\":1,\"revision\":1,\"visible\":0,\"ownerAuthorized\":0,\"authorizationStatement\":null,\"authorizedBy\":null,\"previousAuthorizedBy\":null}"
+      },
+      {
+        "actor_id": 86,
+        "action": "portfolio_updated",
+        "entity": "portfolio_sample",
+        "entity_id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "details": "{\"missionId\":42,\"version\":1,\"revision\":2,\"visible\":1,\"ownerAuthorized\":0,\"authorizationStatement\":null,\"authorizedBy\":null,\"previousAuthorizedBy\":null}"
+      },
+      {
+        "actor_id": 88,
+        "action": "portfolio_updated",
+        "entity": "portfolio_sample",
+        "entity_id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "details": "{\"missionId\":42,\"version\":1,\"revision\":3,\"visible\":1,\"ownerAuthorized\":1,\"authorizationStatement\":\"Declaro que tenho todas as permissões necessárias para divulgar esta amostra, nesta versão, no portfólio do editor dentro da Oficina Amarela.\",\"authorizedBy\":88,\"previousAuthorizedBy\":null}"
+      },
+      {
+        "actor_id": 89,
+        "action": "editor_verification",
+        "entity": "user",
+        "entity_id": "86",
+        "details": "{\"verified\":1,\"reason\":\"Habilitação sintética para validar o selo administrativo em staging.\"}"
+      },
+      {
+        "actor_id": 88,
+        "action": "portfolio_updated",
+        "entity": "portfolio_sample",
+        "entity_id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "details": "{\"missionId\":42,\"version\":1,\"revision\":4,\"visible\":1,\"ownerAuthorized\":0,\"authorizationStatement\":null,\"authorizedBy\":null,\"previousAuthorizedBy\":88}"
+      },
+      {
+        "actor_id": 86,
+        "action": "portfolio_updated",
+        "entity": "portfolio_sample",
+        "entity_id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "details": "{\"missionId\":42,\"version\":1,\"revision\":5,\"visible\":1,\"ownerAuthorized\":0,\"authorizationStatement\":null,\"authorizedBy\":null,\"previousAuthorizedBy\":null}"
+      },
+      {
+        "actor_id": 88,
+        "action": "portfolio_updated",
+        "entity": "portfolio_sample",
+        "entity_id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "details": "{\"missionId\":42,\"version\":1,\"revision\":6,\"visible\":1,\"ownerAuthorized\":1,\"authorizationStatement\":\"Declaro que tenho todas as permissões necessárias para divulgar esta amostra, nesta versão, no portfólio do editor dentro da Oficina Amarela.\",\"authorizedBy\":88,\"previousAuthorizedBy\":null}"
+      },
+      {
+        "actor_id": 89,
+        "action": "portfolio_updated",
+        "entity": "portfolio_sample",
+        "entity_id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "details": "{\"missionId\":42,\"version\":1,\"revision\":7,\"visible\":1,\"ownerAuthorized\":0,\"authorizationStatement\":null,\"authorizedBy\":null,\"previousAuthorizedBy\":88}"
+      },
+      {
+        "actor_id": 86,
+        "action": "editor_work_preference",
+        "entity": "user",
+        "entity_id": "86",
+        "details": "{\"preference\":\"volunteer\"}"
+      },
+      {
+        "actor_id": 86,
+        "action": "portfolio_updated",
+        "entity": "portfolio_sample",
+        "entity_id": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+        "details": "{\"missionId\":42,\"version\":1,\"revision\":8,\"visible\":0,\"ownerAuthorized\":0,\"authorizationStatement\":null,\"authorizedBy\":null,\"previousAuthorizedBy\":null}"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "ENAM",
+      "served_by_colo": "IAD",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.2179
+      },
+      "duration": 0.2179,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 512000,
+      "rows_read": 45,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "ENAM",
+      "served_by_colo": "IAD",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.2655
+      },
+      "duration": 0.2655,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 512000,
+      "rows_read": 502,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  }
+]

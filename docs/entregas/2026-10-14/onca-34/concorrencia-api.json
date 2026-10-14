@@ -1,0 +1,15 @@
+{
+  "sampleId": "98ff2efa-f737-4a91-8b79-219ba0ad3ded",
+  "duplicateCreate": [
+    201,
+    201
+  ],
+  "sameSample": true,
+  "concurrentUpdates": [
+    200,
+    409
+  ],
+  "staleAuthorization": 409,
+  "adminRevocation": 200,
+  "oldUrlAfterAdminRevocation": 404
+}

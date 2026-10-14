@@ -1,0 +1,23 @@
+{
+  "environment": "staging",
+  "sourceCommits": [
+    "973d6f9",
+    "4a81168",
+    "f4103c8"
+  ],
+  "apiVersion": "6ac99da9-b3a3-4c38-8407-da4ce5ee0a9e",
+  "webVersion": "f7d065f6-4efa-4166-b221-9636c1d9e5a8",
+  "regressionPassed": 293,
+  "focusedPassed": 16,
+  "finalTypeGuardPassed": 1,
+  "stagingInvalidPreferenceStatus": 400,
+  "preservedPreference": "volunteer",
+  "typecheck": "passed",
+  "biomeScopeFiles": 21,
+  "biomeScope": "passed",
+  "biomeGlobal": "16 pre-existing errors outside scope",
+  "postgres": "not run: TEST_DATABASE_URL absent",
+  "production": "unchanged",
+  "payments": "inactive",
+  "realExternalNotifications": "not sent"
+}

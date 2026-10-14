@@ -1,0 +1,29 @@
+{
+  "missionId": 44,
+  "editorId": 87,
+  "profile": {
+    "handle": "portfolio.20261014.b",
+    "name": "Editor sintético B — Iniciante",
+    "location": "",
+    "bio": "",
+    "styles": [
+      "Documentário"
+    ],
+    "niche": [
+      "Cultura"
+    ],
+    "rating": null,
+    "ratingCount": 0,
+    "portfolio": [],
+    "portfolioLink": null,
+    "availability": null,
+    "available": 1,
+    "workPreference": "both",
+    "verified": 0,
+    "completedCount": 0,
+    "onTimeCount": 0,
+    "onTimeKnownCount": 0
+  },
+  "selectionStatus": 201,
+  "acceptanceStatus": 200
+}
