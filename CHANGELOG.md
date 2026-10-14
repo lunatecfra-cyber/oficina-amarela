@@ -7,6 +7,34 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.8.0] - 2026-10-14
+
+### Adicionado
+- Videoaulas: o catálogo em `/aulas` (busca por título e descrição, filtros de categoria e nível, "Continue assistindo", aulas recentes, barra de progresso) substitui o aviso "Em breve", e cada aula abre em `/aulas/[id]` com o vídeo e a marcação de conclusão. O progresso é individual e persiste entre sessões.
+- Gestão de videoaulas em `/inspetor/aulas` para quem tem `content.manage`: trilhas, módulos e aulas, com rascunho, publicação, volta a rascunho, arquivamento e restauração. Toda operação da administração fica em auditoria. Aula arquivada sai do catálogo e mantém o progresso de quem já assistiu.
+- Chat da missão com anexos privados (JPG, PNG, WebP e PDF, até 10 MB), autorizados por missão, indicador de conversas com novidades e marcação de leitura que nunca recua.
+- Disputas entre porta-voz e editor, com manifestações das partes, mediação na primeira rodada, recurso à administração e decisão registrada com fundamentação. Quem tem vínculo com a missão não julga o caso. A mediação é uma concessão explícita (`disputes.mediate`).
+- Painel da administração abre em "Precisa de você agora", e a fila do inspetor mostra o que exige atenção e há quanto tempo.
+
+### Modificado
+- Diretório de editores, perfil de editor e portfólio ganham o cabeçalho do papel de quem está vendo.
+- O convite de porta-voz passa a ser emitido pela administração, não pelo inspetor.
+- Alvos de toque de 44 px, contraste e largura da fila do inspetor no celular ajustados nas telas administrativas e do editor.
+- Falha da API nas videoaulas aparece como erro com nova tentativa, em vez de catálogo vazio.
+
+### Corrigido
+- Paginação do chat deixava de entregar mensagens com o mesmo horário.
+- Erro de hidratação nas horas da missão.
+- A exclusão de conta aceita a senha como confirmação, além do apelido.
+
+### Validação e limites
+- Videoaulas validadas por testes automatizados e typecheck. A jornada de administrador e de editor no navegador, em desktop e celular, ainda não foi executada.
+- O vídeo vem de link do YouTube ou do Google Drive. Vídeo não listado do YouTube não restringe o acesso: qualquer pessoa com o link assiste. Não há upload próprio.
+- A conclusão da aula é marcada pelo editor e não comprova que o vídeo foi assistido. Não existem thumbnails, materiais complementares, métricas de uso nem papel de instrutor. A formação continua voluntária e não é exigida para aceitar missões.
+- A decisão de uma disputa registra o resultado e não age sobre a missão: cancelamento, redistribuição e efeito na reputação continuam como passo humano. A retenção de uma disputa não tem regra de liberação definida.
+- Produção, PostgreSQL e dispositivos móveis físicos não foram validados. Pagamentos continuam desativados.
+- O `v0.7.0` foi preparado e não recebeu tag nem release; seu conteúdo está incluído nesta versão.
+
 ## [0.7.0] - 2026-10-14
 
 ### Adicionado
