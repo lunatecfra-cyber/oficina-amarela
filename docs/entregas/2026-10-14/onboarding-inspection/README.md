@@ -40,3 +40,9 @@ Atualizados no workspace oficial `oficinaamarela.atlassian.net`:
 - O script remoto retém as contas para análise; após cada ensaio, suspender somente o grupo daquele timestamp. As credenciais de teste permanecem fora do Git e as desta rodada estão invalidadas.
 
 O checkout principal continua com as alterações paralelas de seus autores; esta entrega está commitada no checkout isolado e sua branch de integração. Não foi feito merge sobre arquivos dirty do principal nem push remoto.
+
+## Publicação paralela posterior
+
+Na conferência final, a API continuava em `9960a39d-3ebd-4764-81f3-b86574a030b6`. A web passou para `024b5d1a-cc69-44bb-9da8-72c45131aada` por uma publicação paralela registrada em `/tmp/oficina-rbac-integrated-deploy.log`, a partir dos assets deste checkout integrado. O smoke posterior confirmou o texto aprovado de onboarding no login (200) e a autenticação da rota de inspeções (401 sem sessão). Esta conferência não repete a jornada completa após a publicação paralela.
+
+Uma edição paralela de uma linha em `apps/web/components/reports-panel.tsx` corrige o rótulo do motivo de encaminhamento. Ela permanece uncommitted neste checkout e não foi revertida nem incluída nos commits desta entrega. O deploy próprio anterior foi `cc1d03ac-d0de-43aa-a4f9-914753fd1098`; os 308 testes finais validaram os commits desta fatia, antes dessa edição paralela.

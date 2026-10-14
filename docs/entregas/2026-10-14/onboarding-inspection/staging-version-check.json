@@ -1,0 +1,12 @@
+{
+  "api": "9960a39d-3ebd-4764-81f3-b86574a030b6",
+  "ownWebRelease": "cc1d03ac-d0de-43aa-a4f9-914753fd1098",
+  "subsequentParallelWebRelease": "024b5d1a-cc69-44bb-9da8-72c45131aada",
+  "parallelBuildAssets": "/tmp/oficina-onboarding-rbac-20261014/apps/web/dist/client",
+  "postParallelDeploymentSmoke": {
+    "login": 200,
+    "approvedOnboardingCopy": true,
+    "unauthenticatedInspectionEndpoint": 401
+  },
+  "parallelDirtyFilePreserved": "apps/web/components/reports-panel.tsx"
+}
