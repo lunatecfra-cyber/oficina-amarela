@@ -24,6 +24,7 @@ import { createContentRoutes } from "./routes/content.ts";
 import { createEditorDirectoryRoutes } from "./routes/editor-directory.ts";
 import { createEditorQueue } from "./routes/editor-queue.ts";
 import { createInspectionRoutes } from "./routes/inspections.ts";
+import { createLessonRoutes } from "./routes/lessons.ts";
 import { createMissionBoardRoutes } from "./routes/mission-board.ts";
 import { createMissionCollaborationRoutes } from "./routes/mission-collaboration.ts";
 import { createMissionFileRoutes } from "./routes/mission-files.ts";
@@ -168,6 +169,8 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
   app.route("/admin/invitations", createAdminInvitationRoutes(dependencies));
   app.route("/admin/ranking", createAdminRankingRoutes(dependencies));
   app.route("/", createContentRoutes(dependencies));
+  // Before the generic /admin mount, so its middleware never sees /admin/lessons.
+  app.route("/", createLessonRoutes());
   app.route("/admin", createAdminManagementRoutes(dependencies));
   app.route("/auth", createAuthRoutes(dependencies));
   app.route("/editor/queue", createEditorQueue(dependencies));
