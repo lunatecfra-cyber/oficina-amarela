@@ -112,7 +112,7 @@ const invitation = (
   await call("/admin/invitations", "admin", {
     email: experiencedEmail,
     kind: "experienced_editor",
-    specialties: ["Documentário"],
+    specialties: ["Documental"],
   })
 ).data;
 await signup("experienced", "editor", invitation.token);
@@ -138,7 +138,7 @@ ok("convite administrativo de uso único resgatado sem elevar papel");
 for (const actor of ["beginner", "experienced"]) {
   await call("/editor/profile", actor, {
     name: `Ensaio ${actor}`,
-    editingStyles: ["documentary"],
+    editingStyles: ["Documental"],
     availability: Array.from({ length: 3 }, () => Array(7).fill(true)),
   });
   await call("/editors/visibility", actor, {

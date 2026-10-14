@@ -1,5 +1,6 @@
 "use client";
 
+import { EDITING_STYLES } from "@oficina/domain/profile";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type View = "invitations" | "ranking" | "audit";
@@ -78,7 +79,7 @@ export function RankingSecurityPanel() {
   const [invitations, setInvitations] = useState<InvitationItem[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEvent[]>([]);
   const [kind, setKind] = useState("spokesperson");
-  const [specialties, setSpecialties] = useState("");
+  const [specialties, setSpecialties] = useState<string[]>([]);
   const [email, setEmail] = useState("");
   const [link, setLink] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
@@ -169,10 +170,7 @@ export function RankingSecurityPanel() {
       {
         email,
         kind,
-        specialties: specialties
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean),
+        specialties,
       },
       "/api/admin/invitations",
     );
@@ -269,12 +267,23 @@ export function RankingSecurityPanel() {
             </label>
             {kind === "experienced_editor" && (
               <label className="mt-3 block text-sm text-text">
-                Especialidades (até três, separadas por vírgula)
-                <input
+                Especialidades (até três)
+                <select
+                  multiple
                   className="field-input mt-1"
                   value={specialties}
-                  onChange={(event) => setSpecialties(event.target.value)}
-                />
+                  onChange={(event) =>
+                    setSpecialties(
+                      Array.from(event.target.selectedOptions, (option) => option.value),
+                    )
+                  }
+                >
+                  {EDITING_STYLES.map((style) => (
+                    <option key={style} value={style}>
+                      {style}
+                    </option>
+                  ))}
+                </select>
                 <span className="mt-2 block text-xs text-muted">
                   Qualificação e selo administrativos, sem estrelas. Primeira entrega inspecionada;
                   pagamentos permanecem desativados.

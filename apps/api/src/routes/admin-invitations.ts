@@ -5,6 +5,7 @@ import {
   INVITATION_VALIDITY_DAYS,
   normalizeInvitationEmail,
 } from "@oficina/domain/invitations";
+import { EDITING_STYLES } from "@oficina/domain/profile";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
@@ -59,13 +60,11 @@ export function createAdminInvitationRoutes(dependencies: ApiDependencies) {
       !Array.isArray(specialties) ||
       specialties.length > 3 ||
       specialties.some(
-        (value: unknown) => typeof value !== "string" || !value.trim() || value.length > 100,
+        (value: unknown) =>
+          typeof value !== "string" || !EDITING_STYLES.some((style) => style === value),
       )
     )
-      return c.json(
-        { error: "Informe até três especialidades, com até 100 caracteres cada." },
-        400,
-      );
+      return c.json({ error: "Escolha até três especialidades disponíveis no formulário." }, 400);
 
     const token = generateInvitationToken();
     const issued = await dependencies.invitationAdmin.issueInvitation({

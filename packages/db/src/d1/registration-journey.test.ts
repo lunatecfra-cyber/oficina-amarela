@@ -504,9 +504,19 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
   });
   test("experienced invitation is admin-only, single-use, typed and preserves provenance without stars", async () => {
     const email = "experienced@journey.local";
+    assert.equal(
+      (
+        await request(
+          "/admin/invitations",
+          { email, kind: "experienced_editor", specialties: ["Unknown specialty"] },
+          adminCookie,
+        )
+      ).status,
+      400,
+    );
     const issued = await request(
       "/admin/invitations",
-      { email, kind: "experienced_editor", specialties: ["Documentário"] },
+      { email, kind: "experienced_editor", specialties: ["Documental"] },
       adminCookie,
     );
     assert.equal(issued.status, 200);

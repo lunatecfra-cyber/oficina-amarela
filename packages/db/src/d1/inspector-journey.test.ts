@@ -267,7 +267,7 @@ test("administratively invited first delivery and volunteer preference use exist
     await call("/admin/invitations", "1", {
       email,
       kind: "experienced_editor",
-      specialties: ["Documentário"],
+      specialties: ["Documental"],
     })
   ).json()) as { token: string };
   const signup = await call("/auth/signup", "", {
@@ -288,7 +288,7 @@ test("administratively invited first delivery and volunteer preference use exist
     (
       await call("/editor/profile", "experienced", {
         name: "Experiente",
-        editingStyles: ["documentary"],
+        editingStyles: ["Documental"],
         availability: [[true]],
       })
     ).status,
