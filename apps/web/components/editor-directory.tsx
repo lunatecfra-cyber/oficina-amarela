@@ -77,8 +77,9 @@ export function EditorDirectory({ missions }: { missions: { id: string; title: s
             onChange={(e) => setSpecialty(e.target.value)}
           />
         </label>
-        <label className="flex items-center gap-2 text-sm text-text">
+        <label className="flex min-h-11 items-center gap-3 text-sm text-text">
           <input
+            className="h-5 w-5 flex-none accent-gold"
             type="checkbox"
             checked={available}
             onChange={(e) => setAvailable(e.target.checked)}

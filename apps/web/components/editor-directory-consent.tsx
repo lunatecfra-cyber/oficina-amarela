@@ -87,8 +87,9 @@ export function EditorDirectoryConsent() {
           <p className="mt-2 text-xs text-muted">
             Esta preferência orienta os convites. Não ativa pagamentos ou cobranças.
           </p>
-          <label className="mt-3 flex items-start gap-2 text-sm text-text">
+          <label className="mt-3 flex min-h-11 items-start gap-3 py-1 text-sm text-text">
             <input
+              className="mt-0.5 h-5 w-5 flex-none accent-gold"
               type="checkbox"
               checked={data.visible}
               onChange={(e) => {
@@ -98,8 +99,9 @@ export function EditorDirectoryConsent() {
             />
             Autorizo publicar meu perfil no diretório da Oficina
           </label>
-          <label className="mt-3 flex items-start gap-2 text-sm text-text">
+          <label className="mt-3 flex min-h-11 items-start gap-3 py-1 text-sm text-text">
             <input
+              className="mt-0.5 h-5 w-5 flex-none accent-gold"
               type="checkbox"
               checked={data.portfolioConsent}
               onChange={(e) => {
