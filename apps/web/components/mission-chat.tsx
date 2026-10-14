@@ -2,6 +2,7 @@
 
 import { LIMITS } from "@oficina/domain/limits";
 import { ATTACHMENT_MAX_BYTES, validateChatAttachment } from "@oficina/domain/uploads";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatMessage, Mensagem } from "@/lib/chat-db";
 
@@ -389,6 +390,15 @@ export function MissionChat({
               {error}
             </p>
           )}
+          <p className="mt-3 text-xs text-muted">
+            Algo deu errado de verdade?{" "}
+            <Link
+              href={`/disputas/nova?missao=${effectiveId.replace(/^db-/, "")}`}
+              className="underline underline-offset-2 hover:text-text"
+            >
+              Abrir disputa
+            </Link>
+          </p>
         </div>
       )}
     </section>

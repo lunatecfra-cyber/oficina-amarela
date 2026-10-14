@@ -10,6 +10,7 @@ const TABS = [
   { href: "/inspetor/contas", label: "Pessoas", rotulo: "Pessoas" },
   { href: "/portfolio", label: "Portfólios", rotulo: "Portfólios" },
   { href: "/inspetor/denuncias", label: "Denúncias", rotulo: "Denúncias" },
+  { href: "/disputas", label: "Disputas", rotulo: "Disputas" },
   { href: "/inspetor/novidades", label: "Novidades", rotulo: "Novidades" },
   { href: "/inspetor/aulas", label: "Videoaulas", rotulo: "Videoaulas" },
   { href: "/inspetor/seguranca", label: "Segurança", rotulo: "Segurança" },
@@ -47,6 +48,7 @@ export function InspectorNav({
           "/inspetor/aulas": "content.manage",
           "/inspetor/seguranca": "security.read",
           "/inspetor/denuncias": "reports.read",
+          "/disputas": "disputes.read",
         };
         return !required[tab.href] || capabilities.includes(required[tab.href]);
       }).map((tab) => {
