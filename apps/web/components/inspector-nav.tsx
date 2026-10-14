@@ -15,18 +15,26 @@ const TABS = [
   { href: "/parceiros?source=admin", label: "Parceiros", rotulo: "Parceiros" },
 ];
 
-export function InspectorNav({ alertCount = 0 }: { alertCount?: number }) {
+export function InspectorNav({
+  alertCount = 0,
+  admin = false,
+}: {
+  alertCount?: number;
+  admin?: boolean;
+}) {
   const pathname = usePathname();
 
   return (
     <nav className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <Link
-        href="/porta-voz"
-        className="mr-2 flex min-h-11 flex-none items-center whitespace-nowrap pr-1 text-xs text-muted/60 transition-colors hover:text-text"
-      >
-        ← Porta-voz
-      </Link>
-      {TABS.map((tab) => {
+      {admin && (
+        <Link
+          href="/porta-voz"
+          className="mr-2 flex min-h-11 flex-none items-center whitespace-nowrap pr-1 text-xs text-muted/60 transition-colors hover:text-text"
+        >
+          ← Porta-voz
+        </Link>
+      )}
+      {(admin ? TABS : TABS.filter((tab) => tab.href === "/inspetor")).map((tab) => {
         const path = tab.href.split("?")[0];
         const active = pathname === path || pathname.startsWith(`${path}/`);
         return (

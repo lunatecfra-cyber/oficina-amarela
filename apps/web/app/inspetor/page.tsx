@@ -1,31 +1,6 @@
 import type { Metadata } from "next";
 import { InspectorQueue } from "@/components/inspector-queue";
-import { readCandidatesByHandles } from "@/lib/candidate-db";
-import { getMissionsMessages } from "@/lib/chat-db";
-import { getMissionsInReview } from "@/lib/missions-db";
-
-export const metadata: Metadata = { title: "Controle de Qualidade — Oficina Amarela" };
-export const dynamic = "force-dynamic";
-
-export default async function InspectorPage() {
-  const realMissions = await getMissionsInReview();
-  const handles = realMissions
-    .map((p) => p.spokespersonHandle ?? (p as any).portaVozApelido)
-    .filter((h): h is string => Boolean(h));
-
-  const ids = realMissions.map((p) => Number(p.id.replace(/^db-/, "")));
-  const [candidatesMap, messagesMap] = await Promise.all([
-    readCandidatesByHandles([...new Set(handles)]),
-    getMissionsMessages(ids),
-  ]);
-  const candidatesByHandle = Object.fromEntries(candidatesMap);
-  const messagesByMission = Object.fromEntries(messagesMap);
-
-  return (
-    <InspectorQueue
-      realMissions={realMissions}
-      candidatesByHandle={candidatesByHandle}
-      messagesByMission={messagesByMission}
-    />
-  );
+export const metadata: Metadata = { title: "Fila de inspeção — Oficina Amarela" };
+export default function InspectorPage() {
+  return <InspectorQueue />;
 }

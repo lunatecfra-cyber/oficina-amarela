@@ -5,7 +5,7 @@ import { requireSession } from "@/lib/server-session";
 export default async function InspectorLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
 
-  if (session.role !== "admin") {
+  if (session.role !== "admin" && session.role !== "inspector") {
     redirect("/login");
   }
 

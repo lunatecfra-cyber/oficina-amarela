@@ -13,6 +13,7 @@ type ApprovalState = {
   approval_status: string | null;
   delivery_version: number;
   inspected_at: string | null;
+  assigned_inspector_id: number | null;
 };
 
 export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepository {
@@ -20,15 +21,20 @@ export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepo
     const state = await db
       .prepare(
         `SELECT p.spokesperson_id, p.reserved_by_id, p.status, p.is_scored,
-                a.status_final AS approval_status, p.delivery_version, i.inspected_at
+                a.status_final AS approval_status, p.delivery_version, i.inspected_at, d.assigned_inspector_id
          FROM missions p LEFT JOIN mission_approvals a ON a.mission_id = p.id
          LEFT JOIN mission_inspections i ON i.mission_id=p.id AND i.version=p.delivery_version
+         LEFT JOIN mission_deliveries d ON d.mission_id=p.id AND d.version=p.delivery_version
          WHERE p.id = ?`,
       )
       .bind(input.missionId)
       .first<ApprovalState>();
     if (!state) return { ok: false, reason: "mission_not_found" };
-    if (input.actor.role !== "admin" || state.reserved_by_id === input.actor.id) {
+    if (
+      !["admin", "inspector"].includes(input.actor.role) ||
+      state.reserved_by_id === input.actor.id ||
+      (input.actor.role === "inspector" && state.assigned_inspector_id !== input.actor.id)
+    ) {
       return { ok: false, reason: "forbidden" };
     }
     if (input.expectedVersion !== undefined && state.delivery_version !== input.expectedVersion)
@@ -56,7 +62,7 @@ export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepo
       ) {
         return { ok: false, reason: "invalid_rating" };
       }
-      if (input.actor.role !== "admin") {
+      if (!["admin", "inspector"].includes(input.actor.role)) {
         return { ok: false, reason: "forbidden" };
       }
 

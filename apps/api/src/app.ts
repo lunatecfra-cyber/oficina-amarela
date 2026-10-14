@@ -22,6 +22,7 @@ import { createAuthRoutes } from "./routes/auth.ts";
 import { createContentRoutes } from "./routes/content.ts";
 import { createEditorDirectoryRoutes } from "./routes/editor-directory.ts";
 import { createEditorQueue } from "./routes/editor-queue.ts";
+import { createInspectionRoutes } from "./routes/inspections.ts";
 import { createMissionBoardRoutes } from "./routes/mission-board.ts";
 import { createMissionCollaborationRoutes } from "./routes/mission-collaboration.ts";
 import { createMissionFileRoutes } from "./routes/mission-files.ts";
@@ -160,6 +161,7 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
 
   app.get("/health", (c) => c.json({ ok: true, service: "oficina-amarela-api" }));
 
+  app.route("/inspections", createInspectionRoutes(dependencies));
   app.route("/admin/invitations", createAdminInvitationRoutes(dependencies));
   app.route("/admin/ranking", createAdminRankingRoutes(dependencies));
   app.route("/", createContentRoutes(dependencies));

@@ -23,9 +23,26 @@ export function createMissionFileRoutes(dependencies: ApiDependencies) {
       .bind(Number(c.req.param("id")))
       .first<{ spokesperson_id: number; reserved_by_id: number | null; status: string }>();
     const actor = c.get("session");
+    const inspectionRead =
+      actor.role === "inspector" &&
+      c.req.method === "GET" &&
+      Boolean(
+        await (c.env.DB as D1DatabaseLike)
+          .prepare(`SELECT m.id FROM missions m JOIN mission_deliveries current ON current.mission_id=m.id AND current.version=m.delivery_version
+        JOIN mission_deliveries d ON d.mission_id=m.id WHERE m.id=? AND current.assigned_inspector_id=? AND current.editor_id<>?
+        AND d.delivery_video_url=?`)
+          .bind(
+            Number(c.req.param("id")),
+            actor.id,
+            actor.id,
+            `${c.env.PUBLIC_ORIGIN ?? new URL(c.req.url).origin}/api${new URL(c.req.url).pathname}`,
+          )
+          .first(),
+      );
     if (
       !mission ||
       (actor.role !== "admin" &&
+        !inspectionRead &&
         mission.reserved_by_id !== actor.id &&
         mission.spokesperson_id !== actor.id)
     )

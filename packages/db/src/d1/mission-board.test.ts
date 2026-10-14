@@ -116,7 +116,10 @@ test("interesse concorrente idempotente não atribui; suspensão, perfil e capac
     "reservations_locked_until='2099-01-01T00:00:00.000Z'",
   ]) {
     await db.prepare(`UPDATE users SET ${change} WHERE id=3`).run();
-    assert.equal((await call(`/missions/${id}/interest`, 3, {})).status, 409);
+    assert.equal(
+      (await call(`/missions/${id}/interest`, 3, {})).status,
+      change === "is_banned=1" ? 401 : 409,
+    );
     await db
       .prepare(
         "UPDATE users SET is_banned=0,reservations_locked_until=NULL,availability=NULL WHERE id=3",

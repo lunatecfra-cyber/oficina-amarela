@@ -48,7 +48,12 @@ function canAct(
   if (action === "reserve" || action === "cancel" || action === "deliver") {
     return session.role === "editor" || session.role === "admin";
   }
-  if (action === "re_edit") return session.role === "admin";
+  if (action === "re_edit" || action === "approve")
+    return (
+      session.role === "admin" ||
+      session.role === "inspector" ||
+      (action === "approve" && session.role === "spokesperson")
+    );
   return session.role === "spokesperson" || session.role === "admin";
 }
 
@@ -78,6 +83,26 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
 
     const session = c.get("session");
     if (!canAct(session, action)) return c.json({ error: roleMessage(action) }, 403);
+    if (session.role === "inspector") {
+      if (!c.env.DB) return c.json({ error: "Fiscalização indisponível." }, 503);
+      const authorized = await (c.env.DB as D1DatabaseLike)
+        .prepare(`SELECT m.id FROM missions m
+        JOIN mission_deliveries d ON d.mission_id=m.id AND d.version=m.delivery_version
+        WHERE m.id=? AND d.assigned_inspector_id=? AND d.editor_id<>?`)
+        .bind(missionId, session.id, session.id)
+        .first();
+      if (!authorized)
+        return c.json({ error: "Você não está responsável pela inspeção desta versão." }, 403);
+      const reason =
+        action === "approve" ? (body?.feedback ?? body?.comentario) : (body?.notes ?? body?.notas);
+      if (typeof reason !== "string" || !reason.trim() || reason.trim().length > 2000)
+        return c.json(
+          { error: "Registre o motivo da decisão técnica (até 2000 caracteres)." },
+          400,
+        );
+      if (body?.rating !== undefined || body?.nota !== undefined)
+        return c.json({ error: "A fiscalização não altera estrelas." }, 403);
+    }
     const expectedVersion = body?.expectedDeliveryVersion;
     if (
       c.env?.DB &&

@@ -1,341 +1,312 @@
 "use client";
-
-import { type Candidate, type Candidato, initials } from "@oficina/domain/candidates";
-import {
-  DEMO_MISSIONS,
-  FORMAT_LABEL,
-  type Mission,
-  type Pauta,
-  WATERMARK_GUIDANCE,
-} from "@oficina/domain/missions";
 import { isLikelyUrl } from "@oficina/domain/validators";
-import { MessageCircle, Star } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { MissionChat } from "@/components/mission-chat";
-import { Badge, Chip, candidateOfMission } from "@/components/mission-ui";
-import { ProximityLocation } from "@/components/proximity-location";
-import type { Mensagem, Message } from "@/lib/chat-db";
+import { useCallback, useEffect, useState } from "react";
 
-export function InspectorQueue({
-  realMissions = [],
-  candidatesByHandle = {},
-  messagesByMission = {},
-  // compatibility aliases
-  pautasReais,
-  candidatosPorApelido,
-  mensagensPorPauta,
-}: {
-  realMissions?: Mission[] | Pauta[];
-  candidatesByHandle?: Record<string, Candidate | Candidato>;
-  messagesByMission?: Record<number, Message[] | Mensagem[]>;
-  pautasReais?: Mission[] | Pauta[];
-  candidatosPorApelido?: Record<string, Candidate | Candidato>;
-  mensagensPorPauta?: Record<number, Message[] | Mensagem[]>;
-}) {
-  const router = useRouter();
+type QueueItem = {
+  id: number;
+  title: string;
+  status: string;
+  version: number;
+  reason: string;
+  deadline: string | null;
+  submittedAt: string;
+  submittedBy: string;
+  assignedInspectorId: number | null;
+};
+type Review = {
+  mission: {
+    id: string;
+    title: string;
+    brief: Record<string, unknown>;
+    deliveryVersion: number;
+    deliveryLink?: string;
+    deliveryVideoUrl?: string;
+  };
+  history: {
+    version: number;
+    submittedAt: string;
+    link: string | null;
+    videoUrl: string | null;
+    decision: string | null;
+    comment: string | null;
+    inspectedAt: string | null;
+    inspector: string | null;
+  }[];
+};
+const REASONS: Record<string, string> = {
+  first_three_deliveries: "Primeiras três entregas de iniciante",
+  invited_first_delivery: "Primeira entrega de experiente convidado",
+  critical: "Entrega crítica ou sinalizada",
+  risk: "Histórico de problemas",
+  sampling: "Amostragem",
+  staging_mandatory: "Todas as entregas inspecionadas em staging",
+  parameters_pending: "Parâmetros de risco pendentes",
+};
+const STATUS: Record<string, string> = {
+  em_revisao: "Aguardando inspeção",
+  reedicao: "Editor corrigindo",
+  aprovada: "Aguardando porta-voz",
+};
+const date = (value: string) =>
+  new Date(value).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
-  const realList = (pautasReais ?? realMissions) as Mission[];
-  const candidatesMap = (candidatosPorApelido ?? candidatesByHandle) as Record<string, Candidate>;
-  const messagesMap = (mensagensPorPauta ?? messagesByMission) as Record<number, Message[]>;
-
-  // Componente cliente: só NODE_ENV chega aqui, e o build de produção o fixa
-  // em "production". Ver lib/dev-mode.ts para as telas servidas pelo servidor.
-  const demo = process.env.NODE_ENV !== "production" ? DEMO_MISSIONS : [];
-  const [missions, setMissions] = useState<Mission[]>([...realList, ...demo]);
-  const [error, setError] = useState("");
-
-  const inReview = missions.filter(
-    (p) => p.status === "in_review" || (p as any).status === "em_revisao",
-  );
-
-  const isRealMission = (id: string) => id.startsWith("db-");
-
-  async function callApi(id: string, body: Record<string, unknown>): Promise<boolean> {
-    const resp = await fetch(`/api/missions/${id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...body,
-        expectedDeliveryVersion:
-          missions.find((mission) => mission.id === id)?.deliveryVersion ?? 0,
-      }),
-    });
-    if (!resp.ok) {
-      const data = await resp.json().catch(() => null);
-      setError(data?.error ?? data?.erro ?? "Não deu pra concluir. Tenta de novo.");
-      return false;
-    }
+export function InspectorQueue() {
+  const [items, setItems] = useState<QueueItem[]>([]),
+    [filter, setFilter] = useState("em_revisao"),
+    [review, setReview] = useState<Review | null>(null),
+    [selected, setSelected] = useState<QueueItem | null>(null),
+    [notes, setNotes] = useState(""),
+    [loading, setLoading] = useState(true),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [notice, setNotice] = useState("");
+  const load = useCallback(async () => {
+    setLoading(true);
     setError("");
-    return true;
+    try {
+      const response = await fetch("/api/inspections");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setItems(data);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Não foi possível carregar a fila.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  async function open(item: QueueItem) {
+    setBusy(true);
+    setError("");
+    setReview(null);
+    setSelected(null);
+    setNotes("");
+    setNotice("");
+    try {
+      if (item.status === "em_revisao") {
+        const claim = await fetch(`/api/inspections/${item.id}/claim`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ version: item.version }),
+        });
+        if (!claim.ok) throw new Error((await claim.json()).error);
+      }
+      const response = await fetch(`/api/inspections/${item.id}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setReview(data);
+      setSelected(item);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Não foi possível abrir a entrega.");
+    } finally {
+      setBusy(false);
+    }
   }
-
-  async function approve(id: string, rating?: number) {
-    if (
-      isRealMission(id) &&
-      !(await callApi(id, { action: "approve", rating, acao: "aprovar", nota: rating }))
-    )
+  async function decide(action: "approve" | "re_edit") {
+    if (!selected || !review) return;
+    if (!notes.trim()) {
+      setError("Registre o motivo da decisão técnica.");
       return;
-
-    setMissions((list) =>
-      list.map((p) => (p.id === id ? { ...p, status: "approved", inspectorNotes: undefined } : p)),
-    );
-    router.refresh();
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/missions/db-${selected.id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action,
+          notes,
+          feedback: notes,
+          expectedDeliveryVersion: review.mission.deliveryVersion,
+        }),
+      });
+      if (!response.ok) throw new Error((await response.json()).error);
+      setReview(null);
+      setSelected(null);
+      setNotes("");
+      setNotice(
+        action === "approve"
+          ? "Inspeção aprovada. A entrega aguarda a conferência do porta-voz."
+          : "Ajustes registrados. Aguarde a nova versão do editor.",
+      );
+      await load();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Não foi possível registrar a decisão.");
+    } finally {
+      setBusy(false);
+    }
   }
-
-  async function requestReedit(id: string, notes: string) {
-    if (
-      isRealMission(id) &&
-      !(await callApi(id, { action: "reedit", notes, acao: "reedicao", notas: notes }))
-    )
-      return;
-
-    setMissions((list) =>
-      list.map((p) => (p.id === id ? { ...p, status: "reedit", inspectorNotes: notes } : p)),
-    );
-    router.refresh();
-  }
-
+  const visible = items.filter((item) => filter === "all" || item.status === filter);
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 py-8 lg:px-8 lg:py-12">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
-            Controle de Qualidade
-          </h1>
-          <p className="mt-1 text-sm text-muted">Aprove ou peça reedição das missões entregues.</p>
-        </div>
-        <p className="text-sm text-muted">{inReview.length} aguardando</p>
+    <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8">
+      <h1 className="text-2xl font-semibold text-text">Fila de inspeção técnica</h1>
+      <p className="mt-2 text-sm text-muted">
+        Assuma uma versão, confira o vídeo e registre sua decisão. A avaliação pública pertence ao
+        porta-voz.
+      </p>
+      <p className="mt-2 text-xs text-muted">
+        Staging exige inspeção de todas as entregas. A amostragem e os parâmetros definitivos de
+        risco ainda aguardam decisão.
+      </p>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <label className="text-sm text-text">
+          Status
+          <select
+            className="field-input mt-1"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+          >
+            {Object.entries(STATUS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+            <option value="all">Todos</option>
+          </select>
+        </label>
+        <button
+          className="btn-ghost"
+          disabled={loading || busy}
+          onClick={() => {
+            setReview(null);
+            setSelected(null);
+            void load();
+          }}
+        >
+          Atualizar fila
+        </button>
       </div>
-
       {error && (
-        <p role="alert" className="mt-4 text-sm text-danger">
+        <p role="alert" className="mt-4 text-danger">
           {error}
         </p>
       )}
-
-      {inReview.length === 0 ? (
-        <div className="mt-10 rounded-2xl border border-line-soft bg-surface/40 p-10 text-center text-sm text-muted">
-          Nada pra revisar agora.
-        </div>
+      {notice && (
+        <p role="status" className="mt-4 text-ok">
+          {notice}
+        </p>
+      )}
+      {loading ? (
+        <p role="status" className="mt-6 text-muted">
+          Carregando inspeções…
+        </p>
       ) : (
-        <ul className="mt-6 flex flex-col gap-3">
-          {inReview.map((p) => (
-            <ReviewCard
-              key={p.id}
-              mission={p}
-              onApprove={(stars) => approve(p.id, stars)}
-              onRequestReedit={(notes) => requestReedit(p.id, notes)}
-              candidatesByHandle={candidatesMap}
-              messages={messagesMap[Number(p.id.replace(/^db-/, ""))] ?? []}
-            />
-          ))}
-        </ul>
+        <>
+          <p className="mt-4 text-sm text-muted">{visible.length} entrega(s)</p>
+          {visible.length === 0 ? (
+            <p className="mt-5 rounded-xl border border-line p-5 text-muted">
+              Nenhuma entrega neste status. Atualize a fila ou consulte outro filtro.
+            </p>
+          ) : (
+            <ul className="mt-4 grid gap-3">
+              {visible.map((item) => (
+                <li key={item.id} className="rounded-xl border border-line p-4">
+                  <h2 className="text-lg text-text">
+                    {item.title} · versão {item.version}
+                  </h2>
+                  <p className="text-sm text-gold">{STATUS[item.status]}</p>
+                  <p className="mt-2 text-sm text-muted">
+                    Entregue por {item.submittedBy} em {date(item.submittedAt)} · há{" "}
+                    {Math.max(0, Math.floor((Date.now() - Date.parse(item.submittedAt)) / 3600000))}{" "}
+                    hora(s)
+                  </p>
+                  <p className="mt-1 text-sm text-muted">
+                    Motivo: {REASONS[item.reason] ?? "Inspeção obrigatória"} · Prazo:{" "}
+                    {item.deadline ?? "Não informado"}
+                  </p>
+                  <button className="btn-gold mt-3" disabled={busy} onClick={() => void open(item)}>
+                    {busy
+                      ? "Aguarde…"
+                      : item.status === "em_revisao"
+                        ? "Assumir e inspecionar"
+                        : "Ver histórico técnico"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+      {review && selected && (
+        <section aria-label="Inspeção da versão" className="mt-6 rounded-xl border border-gold p-5">
+          <h2 className="text-xl text-text">
+            {review.mission.title} · versão {review.mission.deliveryVersion}
+          </h2>
+          <dl className="mt-3 text-sm text-muted">
+            {Object.entries(review.mission.brief ?? {}).map(([key, value]) => (
+              <div key={key}>
+                <dt className="font-medium">
+                  {(
+                    { tone: "Tom", color: "Cor", font: "Fonte", refs: "Referências" } as Record<
+                      string,
+                      string
+                    >
+                  )[key] ?? "Orientação"}
+                </dt>
+                <dd>{typeof value === "string" ? value : "—"}</dd>
+              </div>
+            ))}
+          </dl>
+          <ul className="mt-4 space-y-3">
+            {review.history.map((version) => (
+              <li key={version.version} className="border-t border-line py-3 text-sm text-muted">
+                <p>
+                  Versão {version.version} · {date(version.submittedAt)}
+                </p>
+                {(version.videoUrl || version.link) &&
+                  isLikelyUrl(version.videoUrl || version.link || "") && (
+                    <a
+                      className="tap-target text-gold"
+                      href={version.videoUrl || version.link || ""}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Abrir vídeo da versão {version.version}
+                    </a>
+                  )}
+                {version.decision && (
+                  <p>
+                    {version.decision === "approved"
+                      ? "Aprovada tecnicamente"
+                      : "Ajustes solicitados"}{" "}
+                    por {version.inspector} em {version.inspectedAt && date(version.inspectedAt)} ·{" "}
+                    {version.comment ?? "Sem observação histórica"}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+          {selected.status === "em_revisao" && (
+            <>
+              <label className="mt-4 block text-sm text-text" htmlFor="inspection-notes">
+                Motivo da decisão
+                <textarea
+                  id="inspection-notes"
+                  className="field-input mt-2 min-h-24"
+                  maxLength={2000}
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                />
+              </label>
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                <button className="btn-gold" disabled={busy} onClick={() => void decide("approve")}>
+                  {busy ? "Registrando…" : "Aprovar tecnicamente"}
+                </button>
+                <button
+                  className="btn-ghost"
+                  disabled={busy}
+                  onClick={() => void decide("re_edit")}
+                >
+                  Solicitar ajustes
+                </button>
+              </div>
+            </>
+          )}
+        </section>
       )}
     </div>
   );
 }
-
-function ReviewCard({
-  mission: p,
-  onApprove,
-  onRequestReedit,
-  candidatesByHandle = {},
-  messages = [],
-}: {
-  mission: Mission;
-  onApprove: (stars?: number) => void;
-  onRequestReedit: (notes: string) => void;
-  candidatesByHandle?: Record<string, Candidate>;
-  messages?: Message[];
-}) {
-  const [isReeditOpen, setIsReeditOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [notes, setNotes] = useState("");
-  const [stars, setStars] = useState<number | undefined>(undefined);
-  const [warning, setWarning] = useState("");
-  const cand = candidateOfMission(p, candidatesByHandle);
-
-  function handleConfirmReedit() {
-    if (!notes.trim()) {
-      setWarning("Escreve o que precisa mudar antes de devolver.");
-      return;
-    }
-    onRequestReedit(notes.trim());
-  }
-
-  const title = p.title ?? (p as any).titulo;
-  const status = p.status;
-  const format = p.format ?? (p as any).formato;
-  const reservedBy = p.reservedBy ?? (p as any).reservadaPor;
-  const deliveryLink = p.deliveryVideoUrl ?? p.deliveryLink ?? (p as any).entregaLink;
-  const brief = p.brief ?? {};
-  const tone = brief.tone ?? (brief as any).tom;
-  const color = brief.color ?? (brief as any).cor;
-  const font = brief.font ?? (brief as any).fonte;
-  const refs = brief.refs;
-
-  return (
-    <li className="rounded-2xl border border-line bg-surface/70 p-4 lg:p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-        <Link
-          href={`/candidato/${cand.slug}`}
-          className="group flex flex-none items-center gap-3 lg:w-56"
-        >
-          <span
-            className="grid h-12 w-12 flex-none place-items-center rounded-xl font-[family-name:var(--font-display)] text-sm font-semibold text-black/80"
-            style={{ background: cand.tint }}
-          >
-            {initials(cand.name ?? (cand as any).nome)}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate font-medium text-text transition-colors group-hover:text-gold-hi">
-              {cand.name ?? (cand as any).nome}
-            </p>
-            <p className="truncate text-xs text-muted">{cand.role ?? (cand as any).cargo}</p>
-            <ProximityLocation
-              location={cand.location ?? (cand as any).local}
-              proximity={cand.proximity ?? (cand as any).proximidade ?? 0}
-              className="text-xs text-muted-2"
-            />
-          </div>
-        </Link>
-
-        <div className="min-w-0 flex-1 lg:border-l lg:border-line lg:pl-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
-              {title}
-            </h3>
-            <Badge status={status} />
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-            <span className="rounded-md border border-line bg-ink-2 px-2 py-0.5 text-muted">
-              {FORMAT_LABEL[format as keyof typeof FORMAT_LABEL] ?? format}
-            </span>
-            {tone && <Chip k="tom" v={tone} />}
-            {color && <Chip k="cor" v={color} />}
-            {font && <Chip k="fonte" v={font} />}
-            {refs && <Chip k="ref" v={refs} />}
-          </div>
-          <p className="mt-2 text-xs text-muted">{WATERMARK_GUIDANCE}</p>
-          <p className="mt-2 text-xs text-muted">
-            Entregue por <span className="text-text">{reservedBy}</span>
-            {deliveryLink && isLikelyUrl(deliveryLink) && (
-              <>
-                {" "}
-                ·{" "}
-                <a
-                  href={deliveryLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="tap-target -mx-3 font-medium text-gold-hi hover:underline"
-                >
-                  Abrir vídeo entregue
-                </a>
-              </>
-            )}
-            {" · "}
-            <button
-              type="button"
-              onClick={() => setIsChatOpen((v) => !v)}
-              className="tap-target -mx-3 inline-flex items-center gap-1 font-medium text-gold-hi hover:underline"
-            >
-              <MessageCircle className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
-              Conversa ({messages.length})
-            </button>
-          </p>
-        </div>
-
-        {isChatOpen && (
-          <div className="mt-4">
-            <MissionChat missionId={p.id} messages={messages} compact />
-          </div>
-        )}
-
-        {!isReeditOpen && (
-          <div className="flex flex-none flex-col gap-2 lg:w-56">
-            <p className="text-xs text-muted">Nota técnica opcional; não altera a avaliação do porta-voz.</p>
-            <div className="flex items-center justify-center gap-1" data-guia="nota-editor">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  aria-label={`Dar nota ${n}`}
-                  aria-pressed={stars === n}
-                  onClick={() => setStars(n)}
-                  className={`grid h-11 w-11 place-items-center text-gold transition-opacity lg:h-auto lg:w-auto ${
-                    stars && n <= stars ? "opacity-100" : "opacity-30 hover:opacity-60"
-                  }`}
-                >
-                  <Star
-                    className="h-5 w-5"
-                    fill={stars && n <= stars ? "currentColor" : "none"}
-                    aria-hidden="true"
-                  />
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2 lg:flex-col" data-guia="decisao-inspetor">
-              <button
-                className="btn-gold flex-1 whitespace-nowrap"
-                onClick={() => onApprove(stars)}
-              >
-                Aprovar
-              </button>
-              <button
-                className="btn-ghost flex-1 whitespace-nowrap"
-                onClick={() => setIsReeditOpen(true)}
-              >
-                Pedir reedição
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {isReeditOpen && (
-        <div className="mt-4 rounded-xl border border-line bg-surface/60 p-4">
-          <label
-            htmlFor={`nota-${p.id}`}
-            className="mb-2 block text-xs uppercase tracking-[0.12em] text-muted"
-          >
-            O que precisa mudar
-          </label>
-          <textarea
-            id={`nota-${p.id}`}
-            className="field-input !pl-4 min-h-24 resize-y"
-            placeholder="ex.: cortar os 10s iniciais, trocar a trilha, ajustar a legenda..."
-            value={notes}
-            onChange={(e) => {
-              setNotes(e.target.value);
-              setWarning("");
-            }}
-          />
-          {warning && (
-            <p role="alert" className="mt-2 text-sm text-danger">
-              {warning}
-            </p>
-          )}
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-            <button className="btn-gold sm:flex-1" onClick={handleConfirmReedit}>
-              Confirmar reedição
-            </button>
-            <button
-              className="btn-ghost sm:w-40"
-              onClick={() => {
-                setIsReeditOpen(false);
-                setNotes("");
-                setWarning("");
-              }}
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
-    </li>
-  );
-}
-
-export { InspectorQueue as FilaInspetor };

@@ -8,8 +8,8 @@ import { getSession } from "@/lib/server-session";
 
 export async function AppHeaderInspector() {
   const session = await getSession();
-  if (session?.role !== "admin") return null;
-  const notifications = await getAdminNotifications();
+  if (!session || !["admin", "inspector"].includes(session.role)) return null;
+  const notifications = session.role === "admin" ? await getAdminNotifications() : [];
 
   return (
     <header className="border-b border-line-soft">
@@ -27,7 +27,7 @@ export async function AppHeaderInspector() {
         </div>
       </div>
       <div className="mx-auto w-full max-w-5xl px-5 lg:px-8">
-        <InspectorNav alertCount={notifications.length} />
+        <InspectorNav admin={session.role === "admin"} alertCount={notifications.length} />
       </div>
     </header>
   );

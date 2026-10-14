@@ -85,7 +85,6 @@ export const postgresInvitationRedemption: InvitationRedemptionRepository = {
   async redeemInvitation(input) {
     if (input.kind === "experienced_editor")
       return { ok: false, reason: "invitation_kind_mismatch" };
-    if (input.kind === "experienced_editor") return { ok: false, reason: "invitation_not_found" };
     try {
       return await withTransaction((transaction) => redeem(transaction, input));
     } catch (error) {

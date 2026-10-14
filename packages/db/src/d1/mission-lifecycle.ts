@@ -59,8 +59,9 @@ export function createD1MissionLifecycle(db: D1DatabaseLike): MissionLifecycleRe
         .prepare(
           `INSERT INTO mission_inspections(mission_id,version,inspector_id,comment,decision,inspected_at)
            SELECT p.id,p.delivery_version,u.id,?,'revision_requested',strftime('%Y-%m-%dT%H:%M:%fZ','now')
-           FROM missions p JOIN users u ON u.id=? AND u.role='admin' AND u.is_banned=0
-           WHERE p.id=? AND p.status='em_revisao' AND p.reserved_by_id<>u.id AND (? IS NULL OR p.delivery_version=?)
+           FROM missions p JOIN users u ON u.id=? AND u.role IN ('admin','inspector') AND u.is_banned=0
+           WHERE p.id=? AND p.status='em_revisao' AND p.reserved_by_id<>u.id
+             AND (u.role='admin' OR EXISTS(SELECT 1 FROM mission_deliveries d WHERE d.mission_id=p.id AND d.version=p.delivery_version AND d.assigned_inspector_id=u.id)) AND (? IS NULL OR p.delivery_version=?)
            ON CONFLICT(mission_id,version) DO NOTHING`,
         )
         .bind(
