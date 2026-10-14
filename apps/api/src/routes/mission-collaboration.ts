@@ -125,10 +125,16 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
         return c.json({ error: response.error }, response.status);
       }
       c.header("cache-control", "private, no-store");
+      // Marcos do ciclo vêm na mesma resposta (uma consulta a mais, poucas linhas).
+      const events =
+        c.req.query("events") === "1"
+          ? await dependencies.missionCollaboration.missionEvents(missionId, c.get("session"))
+          : null;
       return c.json({
         messages: page.messages,
         mensagens: page.messages,
         hasMore: page.hasMore,
+        ...(events?.ok ? { events: events.events } : {}),
       });
     }
     const after = c.req.query("after") ?? c.req.query("depois");

@@ -31,6 +31,7 @@ describe("paridade D1 da colaboração de missão", () => {
     await db.batch([
       db.prepare("DELETE FROM reports"),
       db.prepare("DELETE FROM message_reads"),
+      db.prepare("DELETE FROM mission_notifications"),
       db.prepare("DELETE FROM messages"),
       db.prepare("DELETE FROM offers"),
       db.prepare("DELETE FROM missions"),
@@ -267,6 +268,54 @@ describe("paridade D1 da colaboração de missão", () => {
         ok: true,
         missions: [],
       });
+    });
+
+    test("linha do tempo mostra só os marcos públicos, sem observações", async () => {
+      const put = (key: string, event: string, recipient: number, at: string, notes?: string) =>
+        db
+          .prepare(
+            "INSERT INTO mission_notifications(key,mission_id,recipient_id,event,version,notes,created_at) VALUES(?,?,?,?,1,?,?)",
+          )
+          .bind(`mission:${missionId}:${key}`, missionId, recipient, event, notes ?? null, at)
+          .run();
+      await put("submitted:1", "submitted", spokespersonId, "2026-10-14T10:00:00.000Z");
+      await put("offer:9", "offer", editorId, "2026-10-14T09:00:00.000Z");
+      await put(
+        "inspection_pending:1:7",
+        "inspection_pending",
+        editorId,
+        "2026-10-14T10:01:00.000Z",
+      );
+      await put(
+        "inspection:1",
+        "inspection_rejected",
+        spokespersonId,
+        "2026-10-14T11:00:00.000Z",
+        "texto privado da inspeção",
+      );
+      const result = await collaboration.missionEvents(missionId, editor());
+      assert.deepEqual(result, {
+        ok: true,
+        events: [
+          {
+            id: `mission:${missionId}:submitted:1`,
+            event: "submitted",
+            version: 1,
+            at: "2026-10-14T10:00:00.000Z",
+          },
+          {
+            id: `mission:${missionId}:inspection:1`,
+            event: "inspection_rejected",
+            version: 1,
+            at: "2026-10-14T11:00:00.000Z",
+          },
+        ],
+      });
+      assert.ok(!JSON.stringify(result).includes("privado"));
+      assert.deepEqual(
+        await collaboration.missionEvents(missionId, { id: outsiderId, role: "editor" }),
+        { ok: false, reason: "forbidden" },
+      );
     });
 
     test("marcações concorrentes terminam no maior valor", async () => {

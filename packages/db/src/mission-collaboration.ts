@@ -62,7 +62,17 @@ export type MissionUnreadResult =
   | { ok: true; missions: MissionUnread[] }
   | { ok: false; reason: MissionCollaborationFailure };
 
+/** Marco do ciclo da missão mostrado na conversa. Nunca carrega observações de inspeção. */
+export type MissionTimelineEvent = { id: string; event: string; version: number; at: string };
+export type MissionEventsResult =
+  | { ok: true; events: MissionTimelineEvent[] }
+  | { ok: false; reason: MissionCollaborationFailure };
+
 export interface MissionCollaborationRepository {
+  missionEvents(
+    missionId: number,
+    actor: Pick<MissionActor, "id" | "role">,
+  ): Promise<MissionEventsResult>;
   /** Página por id (estável com timestamps iguais). Sem cursor devolve as mais recentes. */
   messagePage(
     missionId: number,
@@ -159,6 +169,9 @@ async function participant(
 
 export const postgresMissionCollaboration: MissionCollaborationRepository = {
   // Cursor por id e leitura são só D1: no PostgreSQL falham fechados.
+  async missionEvents() {
+    return { ok: false, reason: "unsupported" };
+  },
   async messagePage() {
     return { ok: false, reason: "unsupported" };
   },

@@ -100,6 +100,25 @@ test("rotas de leitura e cursor exigem sessão, validam entrada e isolam missõe
   assert.equal((await request("/missions/999/read", 1, "POST", { upTo: 1 })).status, 404);
   assert.equal((await request("/missions/1/read", 1, "POST", {})).status, 400);
 
+  // marcos do ciclo chegam na mesma resposta quando pedidos, e só para participantes
+  await db
+    .prepare(
+      "INSERT INTO mission_notifications(key,mission_id,recipient_id,event,version) VALUES('mission:1:accepted:1',1,1,'accepted',0)",
+    )
+    .run();
+  const withEvents = (await (await request("/missions/1?afterId=0&events=1", 2)).json()) as {
+    events?: { event: string }[];
+  };
+  assert.deepEqual(
+    withEvents.events?.map((e) => e.event),
+    ["accepted"],
+  );
+  const without = (await (await request("/missions/1?afterId=0", 2)).json()) as {
+    events?: unknown;
+  };
+  assert.equal(without.events, undefined);
+  assert.equal((await request("/missions/1?afterId=0&events=1", 3)).status, 403);
+
   // contagem e leitura pelo porta-voz; o editor, autor, não tem pendência
   const unread = (await (await request("/missions/unread", 1)).json()) as {
     missions: { missionId: number; unread: number }[];

@@ -38,6 +38,18 @@ function textWithLinks(text: string): React.ReactNode[] {
 
 const POLL_MS = 5_000;
 
+type TimelineEvent = { id: string; event: string; version: number; at: string };
+
+const EVENT_LABEL: Record<string, (version: number) => string> = {
+  accepted: () => "O editor aceitou a missão",
+  submitted: (v) => `Entrega da versão ${v} enviada`,
+  revision: (v) => `Reedição pedida na versão ${v}`,
+  inspection_approved: (v) => `Inspeção da versão ${v}: aprovada`,
+  inspection_rejected: (v) => `Inspeção da versão ${v}: ajustes pedidos`,
+  approved: () => "Missão concluída",
+  returned: () => "Missão devolvida ao mural",
+};
+
 function seqOf(m: ChatMessage): number {
   return m.seq ?? (Number(String(m.id).replace(/^m-/, "")) || 0);
 }
@@ -68,6 +80,7 @@ export function MissionChat({
   const isCompact = compact || compacto;
 
   const [messages, setMessages] = useState<ChatMessage[]>(effectiveInitial as any);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
@@ -81,11 +94,15 @@ export function MissionChat({
 
   const poll = useCallback(async () => {
     try {
-      const resp = await fetch(`/api/missions/${effectiveId}?afterId=${lastSeq}&limit=100`, {
-        cache: "no-store",
-      });
+      const resp = await fetch(
+        `/api/missions/${effectiveId}?afterId=${lastSeq}&limit=100&events=1`,
+        {
+          cache: "no-store",
+        },
+      );
       if (!resp.ok) return;
       const data = await resp.json();
+      if (Array.isArray(data.events)) setEvents(data.events);
       const newMessages: ChatMessage[] = data.messages ?? data.mensagens ?? [];
       if (newMessages.length > 0) {
         setMessages((prev) => {
@@ -155,11 +172,21 @@ export function MissionChat({
     };
   }, [effectiveId, poll]);
 
+  // Mensagens e marcos do ciclo numa linha só, pelo horário.
+  const timeline = [
+    ...messages.map((m) => ({
+      kind: "message" as const,
+      at: m.createdAt ?? (m as any).criadaEm ?? "",
+      m,
+    })),
+    ...events.map((e) => ({ kind: "event" as const, at: e.at, e })),
+  ].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+
   useEffect(() => {
-    if (messages.length > 0) {
+    if (timeline.length > 0) {
       endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [messages.length]);
+  }, [timeline.length]);
 
   async function send() {
     const t = text.trim();
@@ -197,7 +224,7 @@ export function MissionChat({
         </span>
       </div>
 
-      {messages.length === 0 ? (
+      {messages.length === 0 && events.length === 0 ? (
         <p className="rounded-xl border border-line-soft bg-ink-2/40 px-4 py-3 text-sm text-muted">
           Ninguém falou ainda. Pergunta, combina detalhes do vídeo. Fica tudo registrado aqui.
         </p>
@@ -205,7 +232,17 @@ export function MissionChat({
         <ul
           className={`flex flex-col gap-2 ${isCompact ? "max-h-64" : "max-h-96"} overflow-y-auto pr-1`}
         >
-          {messages.map((m) => {
+          {timeline.map((item) => {
+            if (item.kind === "event") {
+              const label = EVENT_LABEL[item.e.event];
+              if (!label) return null;
+              return (
+                <li key={item.e.id} className="px-2 py-1 text-center text-[11px] text-muted-2">
+                  {label(item.e.version)} · {formatTime(item.e.at)}
+                </li>
+              );
+            }
+            const m = item.m;
             const authorName = m.authorName ?? (m as any).autorNome;
             const authorRole = m.authorRole ?? (m as any).autorPapel;
             const createdAt = m.createdAt ?? (m as any).criadaEm;

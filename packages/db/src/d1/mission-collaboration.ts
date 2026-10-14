@@ -75,7 +75,41 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
   const PAGE_DEFAULT = 100;
   const PAGE_MAX = 200;
 
+  // Marcos que as duas partes podem ver. `offer` (antes da atribuição), `inspection_pending`
+  // (aviso interno) e as ações de transferência ficam de fora, e `notes` nunca é lido.
+  const TIMELINE = [
+    "accepted",
+    "submitted",
+    "revision",
+    "inspection_approved",
+    "inspection_rejected",
+    "approved",
+    "returned",
+  ];
+
   return {
+    async missionEvents(missionId, actor) {
+      const access = await participant(missionId, actor);
+      if (!access.ok) return access;
+      const rows = await db
+        .prepare(
+          `SELECT key, event, version, created_at FROM mission_notifications
+           WHERE mission_id = ? AND event IN (${TIMELINE.map(() => "?").join(",")})
+           ORDER BY created_at, key LIMIT 200`,
+        )
+        .bind(missionId, ...TIMELINE)
+        .all<{ key: string; event: string; version: number; created_at: string }>();
+      return {
+        ok: true,
+        events: rows.results.map((r) => ({
+          id: r.key,
+          event: r.event,
+          version: r.version,
+          at: r.created_at,
+        })),
+      };
+    },
+
     async messagePage(missionId, actor, { afterId, beforeId, limit }) {
       const access = await participant(missionId, actor);
       if (!access.ok) return access;

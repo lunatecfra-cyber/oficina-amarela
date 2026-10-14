@@ -10,3 +10,5 @@ CREATE TABLE IF NOT EXISTS message_reads (
 -- O cursor do chat é o id da mensagem, não o horário: dois envios no mesmo
 -- milissegundo têm created_at igual, mas ids distintos e crescentes.
 CREATE INDEX IF NOT EXISTS messages_mission_id ON messages(mission_id, id);
+-- Linha do tempo da missão na conversa: lê mission_notifications por missão.
+CREATE INDEX IF NOT EXISTS mission_notification_mission ON mission_notifications(mission_id, created_at);
