@@ -1,9 +1,9 @@
--- Disputas: domínio próprio, separado de denúncias (reports) e de pedidos de reedição.
--- Nenhuma consequência financeira ou de reputação é aplicada aqui: a decisão registra
--- resultado, fundamentação e recomendação; quem age sobre ela é um passo futuro.
+-- Disputes: their own domain, separate from reports and from regular revision requests.
+-- No financial or reputation consequence is applied here: the decision records the
+-- outcome, rationale and recommendation; acting on it is a future step.
 
--- Quem pode mediar é concessão explícita (papel inspector ou admin), como a liberação
--- de retenção; o papel sozinho não basta.
+-- Who may mediate is an explicit grant (role inspector or admin), like releasing report
+-- retention; the role alone is not enough.
 CREATE TABLE IF NOT EXISTS dispute_mediators (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   granted_by INTEGER REFERENCES users(id),
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS disputes (
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   CHECK(opened_by_id <> counterpart_id)
 );
--- Uma disputa viva por missão; encerrar libera para uma nova.
+-- One live dispute per mission; closing it allows a new one.
 CREATE UNIQUE INDEX IF NOT EXISTS disputes_one_active ON disputes(mission_id) WHERE status <> 'closed';
 CREATE INDEX IF NOT EXISTS disputes_status ON disputes(status, id);
 
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS dispute_attachments (
 );
 CREATE INDEX IF NOT EXISTS dispute_attachments_dispute ON dispute_attachments(dispute_id, statement_id);
 
--- Uma decisão por rodada; a segunda não apaga nem altera a primeira.
+-- One decision per round; the second never erases or changes the first.
 CREATE TABLE IF NOT EXISTS dispute_decisions (
   id INTEGER PRIMARY KEY,
   dispute_id INTEGER NOT NULL REFERENCES disputes(id),
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS dispute_appeals (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
--- Captura na abertura, no mesmo formato da de denúncias.
+-- Capture at opening, in the same shape as the report capture.
 CREATE TABLE IF NOT EXISTS dispute_evidence_captures (
   dispute_id INTEGER PRIMARY KEY REFERENCES disputes(id),
   captured_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS dispute_evidence (
   PRIMARY KEY(dispute_id, kind, source_id)
 );
 
--- Uma linha por fonte; o D1 limita SELECT composto a cinco termos, então são duas views.
+-- One row per source; D1 limits compound SELECT to five terms, hence two views.
 CREATE VIEW IF NOT EXISTS dispute_evidence_source AS
 SELECT d.id AS dispute_id,'mission' AS kind,CAST(p.id AS TEXT) AS source_id,
   json_object('id',p.id,'title',p.title,'format',p.format,'status',p.status,'spokespersonId',p.spokesperson_id,'editorId',p.reserved_by_id,
@@ -112,11 +112,11 @@ UNION ALL
 SELECT d.id,'participant',CAST(u.id AS TEXT),json_object('id',u.id,'name',u.name,'handle',u.handle,'role',u.role)
 FROM disputes d JOIN missions p ON p.id=d.mission_id JOIN users u ON u.id IN (d.opened_by_id,d.counterpart_id,p.spokesperson_id,p.reserved_by_id)
 UNION ALL
--- Manifesto dos anexos do chat: nome, tamanho e hash; os bytes seguem no R2.
+-- Manifest of the chat attachments: name, size and hash; the bytes stay in R2.
 SELECT d.id,'chat_attachment',CAST(t.id AS TEXT),json_object('id',t.id,'messageId',t.message_id,'filename',t.filename,'contentType',t.content_type,'size',t.size,'sha256',t.sha256,'objectKey',t.object_key)
 FROM disputes d JOIN message_attachments t ON t.mission_id=d.mission_id;
 
--- Quem tem vínculo com o caso não o julga nem revisa.
+-- Anyone tied to the case neither judges nor reviews it.
 CREATE VIEW IF NOT EXISTS dispute_conflicted_users AS
 SELECT d.id AS dispute_id,d.opened_by_id AS user_id FROM disputes d
 UNION SELECT d.id,d.counterpart_id FROM disputes d
@@ -124,12 +124,12 @@ UNION SELECT d.id,p.spokesperson_id FROM disputes d JOIN missions p ON p.id=d.mi
 UNION SELECT d.id,p.reserved_by_id FROM disputes d JOIN missions p ON p.id=d.mission_id WHERE p.reserved_by_id IS NOT NULL
 UNION SELECT d.id,a.editor_id FROM disputes d JOIN mission_assignments a ON a.mission_id=d.mission_id;
 
--- Gancho para a carteira: enquanto houver disputa viva a missão fica sinalizada. Isso não
--- afirma que exista dinheiro retido; só permite a um módulo financeiro futuro consultar.
+-- Hook for the wallet: while a dispute is live the mission is flagged. This does not
+-- claim that any money is held; it only lets a future financial module query it.
 CREATE VIEW IF NOT EXISTS disputed_missions AS
 SELECT mission_id,id AS dispute_id,status FROM disputes WHERE status <> 'closed';
 
--- Capacidades: leitura para inspetor e admin, decisão de recurso para admin, mediação por concessão.
+-- Capabilities: read for inspector and admin, appeal decision for admin, mediation by grant.
 INSERT OR IGNORE INTO role_capabilities(role,capability) VALUES
   ('admin','disputes.read'),('admin','disputes.decide'),('inspector','disputes.read');
 DROP VIEW IF EXISTS authorized_user_capabilities;
@@ -145,8 +145,8 @@ SELECT u.id,'disputes.mediate' FROM users u JOIN dispute_mediators m ON m.user_i
 WHERE u.role IN ('inspector','admin') AND u.is_banned=0
 AND NOT EXISTS(SELECT 1 FROM user_capability_revocations x WHERE x.user_id=u.id AND x.capability='disputes.mediate');
 
--- A retenção de missão passa a cobrir disputas (id negativo não colide com o de uma denúncia).
--- Não há liberação de retenção de disputa: sem regra de prazo definida, fica retido.
+-- Mission retention now covers disputes (a negative id never collides with a report's).
+-- There is no dispute retention release: without a defined deadline rule, it stays retained.
 DROP VIEW IF EXISTS retained_report_missions;
 CREATE VIEW retained_report_missions AS
 SELECT r.id AS report_id,r.mission_id FROM reports r JOIN report_evidence_captures c ON c.report_id=r.id
@@ -163,8 +163,8 @@ BEGIN
   SELECT RAISE(ABORT,'evidence_retained');
 END;
 
--- Abertura: só as duas partes vivas da missão, contra a contraparte, e o estado gravado
--- tem de ser o estado real da missão naquele instante.
+-- Opening: only the two live parties of the mission, against the counterpart, and the
+-- recorded state must be the mission's real state at that instant.
 CREATE TRIGGER IF NOT EXISTS validate_dispute_opening BEFORE INSERT ON disputes
 BEGIN
   SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM missions p JOIN users u ON u.id=NEW.opened_by_id
@@ -183,7 +183,7 @@ BEGIN
   VALUES(NEW.opened_by_id,'disputa_aberta','dispute',CAST(NEW.id AS TEXT),json_object('missionId',NEW.mission_id,'category',NEW.category),NEW.created_at);
 END;
 
--- Campos do caso não mudam; só status, atribuição e encerramento.
+-- Case fields never change; only status, assignment and closing.
 CREATE TRIGGER IF NOT EXISTS preserve_dispute BEFORE UPDATE ON disputes
 BEGIN
   SELECT CASE WHEN NEW.id IS NOT OLD.id OR NEW.mission_id IS NOT OLD.mission_id OR NEW.opened_by_id IS NOT OLD.opened_by_id
@@ -196,7 +196,7 @@ BEGIN
   SELECT RAISE(ABORT,'evidence_retained');
 END;
 
--- Transições permitidas; decisão, recurso e encerramento as conduzem pelos gatilhos abaixo.
+-- Allowed transitions; decision, appeal and closing drive them through the triggers below.
 CREATE TRIGGER IF NOT EXISTS guard_dispute_transition BEFORE UPDATE OF status ON disputes
 WHEN NEW.status <> OLD.status
 BEGIN
@@ -207,8 +207,8 @@ BEGIN
   THEN RAISE(ABORT,'dispute_transition_invalid') END;
 END;
 
--- Atribuição: mediador (rodada 1) exige a concessão; revisor do recurso exige disputes.decide
--- e não pode ser quem decidiu a rodada 1. Nenhum dos dois pode ter vínculo com o caso.
+-- Assignment: the mediator (round 1) needs the grant; the appeal reviewer needs disputes.decide
+-- and cannot be whoever decided round 1. Neither may be tied to the case.
 CREATE TRIGGER IF NOT EXISTS guard_dispute_assignment BEFORE UPDATE OF mediator_id, appeal_reviewer_id ON disputes
 WHEN NEW.mediator_id IS NOT OLD.mediator_id OR NEW.appeal_reviewer_id IS NOT OLD.appeal_reviewer_id
 BEGIN
@@ -233,7 +233,7 @@ BEGIN
     json_object('round',CASE WHEN NEW.appeal_reviewer_id IS NOT OLD.appeal_reviewer_id THEN 2 ELSE 1 END),NEW.updated_at);
 END;
 
--- Encerramento sem recurso: quem fecha tem disputes.decide, justifica e não tem vínculo.
+-- Closing without appeal: whoever closes has disputes.decide, gives a reason and is not tied to the case.
 CREATE TRIGGER IF NOT EXISTS guard_dispute_close BEFORE UPDATE OF status ON disputes
 WHEN NEW.status='closed' AND OLD.status='decided'
 BEGIN
@@ -246,7 +246,7 @@ BEGIN
   VALUES(NEW.closed_by_id,'disputa_encerrada','dispute',CAST(NEW.id AS TEXT),json_object('reason',NEW.close_reason),NEW.updated_at);
 END;
 
--- Manifestações: só as partes (e o mediador atual), enquanto o caso está vivo.
+-- Statements: only the parties (and the current mediator), while the case is live.
 CREATE TRIGGER IF NOT EXISTS validate_dispute_statement BEFORE INSERT ON dispute_statements
 BEGIN
   SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM disputes d JOIN users u ON u.id=NEW.author_id
@@ -262,7 +262,7 @@ BEGIN
   THEN RAISE(ABORT,'dispute_statement_forbidden') END;
 END;
 
--- Decisão: rodada 1 pelo mediador da disputa; rodada 2 pelo revisor do recurso.
+-- Decision: round 1 by the dispute's mediator; round 2 by the appeal reviewer.
 CREATE TRIGGER IF NOT EXISTS validate_dispute_decision BEFORE INSERT ON dispute_decisions
 BEGIN
   SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM disputes d JOIN users u ON u.id=NEW.decider_id
@@ -283,7 +283,7 @@ BEGIN
     json_object('round',NEW.round,'outcome',NEW.outcome,'rationale',NEW.rationale,'actorName',NEW.decider_name),NEW.created_at);
 END;
 
--- Recurso: uma vez, por uma das partes, depois da decisão da rodada 1.
+-- Appeal: once, by one of the parties, after the round 1 decision.
 CREATE TRIGGER IF NOT EXISTS validate_dispute_appeal BEFORE INSERT ON dispute_appeals
 BEGIN
   SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM disputes d JOIN users u ON u.id=NEW.requested_by_id
@@ -297,7 +297,7 @@ BEGIN
   VALUES(NEW.requested_by_id,'disputa_recurso','dispute',CAST(NEW.dispute_id AS TEXT),json_object('reason',NEW.reason),NEW.created_at);
 END;
 
--- Registros de uma disputa são só de acréscimo.
+-- Dispute records are append-only.
 CREATE TRIGGER IF NOT EXISTS immutable_dispute_statements BEFORE UPDATE ON dispute_statements
 BEGIN
   SELECT RAISE(ABORT,'dispute_immutable');

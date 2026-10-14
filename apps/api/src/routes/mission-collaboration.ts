@@ -18,7 +18,7 @@ function missionIdOf(raw: string): number | null {
   return Number.isInteger(missionId) ? missionId : null;
 }
 
-/** Cursor numérico opcional: `m-12` e `12` valem; `undefined` se ausente, `null` se inválido. */
+/** Optional numeric cursor: `m-12` and `12` both work; `undefined` if absent, `null` if invalid. */
 function cursorOf(raw: unknown): number | null | undefined {
   if (raw === undefined || raw === "") return undefined;
   const value = typeof raw === "number" ? raw : Number(String(raw).replace(/^m-/, ""));
@@ -71,7 +71,7 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
     return c.json({ messages: result.messages });
   });
 
-  // Também antes de "/:id", pelo mesmo motivo de "/messages".
+  // Also before "/:id", for the same reason as "/messages".
   routes.get("/unread", async (c) => {
     const result = await dependencies.missionCollaboration.unreadMissions(c.get("session"));
     if (!result.ok) {
@@ -82,8 +82,8 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
     return c.json({ missions: result.missions });
   });
 
-  // Multipart com `file` e `text` (opcional). Autoriza antes de gravar no R2 e, se a
-  // mensagem não for registrada, devolve o objeto recém-criado, que ninguém referencia.
+  // Multipart with `file` and optional `text`. Authorizes before writing to R2 and, if the
+  // message is not recorded, deletes the object just created, which nothing references.
   routes.post("/:id/attachments", async (c) => {
     const missionId = missionIdOf(c.req.param("id"));
     if (missionId === null) return c.json({ error: "Missão inválida." }, 400);
@@ -94,7 +94,7 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
       const response = failure(allowed.reason);
       return c.json({ error: response.error }, response.status);
     }
-    // Recusa pelo cabeçalho antes de ler o corpo; o tamanho real é conferido adiante.
+    // Refuse by header before reading the body; the real size is checked afterwards.
     if (Number(c.req.header("content-length") ?? 0) > ATTACHMENT_MAX_BYTES + 64 * 1024)
       return c.json({ error: "O anexo excede 10 MB." }, 413);
     const attempt = await dependencies.accounts.recordAttempt(`chatfile:${session.id}`, 30, 60, 60);
@@ -171,8 +171,8 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
   routes.get("/:id", async (c, next) => {
     const missionId = missionIdOf(c.req.param("id"));
     if (missionId === null) return next();
-    // Paginação por id: estável com timestamps iguais. Sem estes parâmetros vale o
-    // contrato antigo por horário (`after`), mantido para quem ainda o usa.
+    // Pagination by id: stable with equal timestamps. Without these parameters the old
+    // timestamp contract (`after`) applies, kept for callers that still use it.
     if (["afterId", "beforeId", "limit"].some((name) => c.req.query(name) !== undefined)) {
       const afterId = cursorOf(c.req.query("afterId"));
       const beforeId = cursorOf(c.req.query("beforeId"));
@@ -195,7 +195,7 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
         return c.json({ error: response.error }, response.status);
       }
       c.header("cache-control", "private, no-store");
-      // Marcos do ciclo vêm na mesma resposta (uma consulta a mais, poucas linhas).
+      // Lifecycle events come in the same response (one extra query, few rows).
       const events =
         c.req.query("events") === "1"
           ? await dependencies.missionCollaboration.missionEvents(missionId, c.get("session"))

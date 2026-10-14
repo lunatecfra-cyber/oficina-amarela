@@ -69,12 +69,12 @@ before(async () => {
   for (const [id, role] of [
     [1, "spokesperson"],
     [2, "editor"],
-    [3, "inspector"], // mediador
-    [4, "admin"], // concede mediação
-    [5, "admin"], // revisor do recurso
-    [6, "inspector"], // sem concessão
-    [7, "editor"], // fora das missões
-    [8, "inspector"], // mediador, mas parte na missão 3
+    [3, "inspector"], // mediator
+    [4, "admin"], // grants mediation
+    [5, "admin"], // appeal reviewer
+    [6, "inspector"], // no grant
+    [7, "editor"], // outside the missions
+    [8, "inspector"], // mediator, but a party in mission 3
     [9, "editor"],
   ] as const) {
     await db
@@ -99,8 +99,8 @@ before(async () => {
 });
 after(() => mf.dispose());
 
-test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e encerramento", async () => {
-  // abertura: só as partes, com campos válidos
+test("full cycle: opening, statements, mediation, decision, appeal and closing", async () => {
+  // opening: only the parties, with valid fields
   assert.equal((await open(0 as never, 1)).status, 401);
   assert.equal((await open(7, 1)).status, 403);
   assert.equal(
@@ -114,10 +114,10 @@ test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e
   const created = await open(1, 1);
   assert.equal(created.status, 201);
   const { id } = (await created.json()) as { id: number };
-  // uma disputa viva por missão, mesmo se a outra parte tentar
+  // one live dispute per mission, even if the other party tries
   assert.equal((await open(2, 1)).status, 409);
 
-  // captura no momento da abertura, só para a equipe
+  // capture at opening time, staff only
   const evidence = await call(`/${id}/evidence`, 6);
   assert.equal(evidence.status, 200);
   const kinds = new Set(
@@ -127,7 +127,7 @@ test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e
   assert.equal((await call(`/${id}/evidence`, 1)).status, 403);
   assert.equal((await call(`/${id}/evidence`, 7)).status, 403);
 
-  // visibilidade da lista
+  // list visibility
   const listed = async (actor: number) =>
     ((await (await call("", actor)).json()) as { disputes: { id: number }[] }).disputes.length;
   assert.deepEqual(
@@ -136,7 +136,7 @@ test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e
   );
   assert.equal((await call(`/${id}`, 7)).status, 403);
 
-  // manifestações: as partes, com arquivo opcional; estranhos não
+  // statements: the parties, with an optional file; outsiders cannot
   assert.equal(
     (await call(`/${id}/statements`, 2, "POST", { text: "O briefing mudou depois." })).status,
     201,
@@ -154,17 +154,17 @@ test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e
   assert.equal((await call(`/${id}/attachments/${files[0]?.id}`, 7)).status, 403);
   assert.equal((await call(`/999/attachments/${files[0]?.id}`, 1)).status, 404);
 
-  // mediação: precisa de concessão; parte, não concedido e quem vem do papel não assumem
+  // mediation: needs a grant; parties, ungranted staff and role alone do not take it
   assert.equal((await call(`/${id}/take`, 6, "POST")).status, 403);
   assert.equal((await call(`/${id}/take`, 2, "POST")).status, 403);
   assert.equal((await call("/mediators/3", 3, "PUT")).status, 403);
-  assert.equal((await call("/mediators/7", 4, "PUT")).status, 400); // editor não media
+  assert.equal((await call("/mediators/7", 4, "PUT")).status, 400); // an editor cannot mediate
   assert.equal((await call("/mediators/3", 4, "PUT")).status, 200);
   assert.equal((await call(`/${id}/take`, 3, "POST")).status, 200);
-  assert.equal((await call(`/${id}/take`, 3, "POST")).status, 409); // já está em análise
+  assert.equal((await call(`/${id}/take`, 3, "POST")).status, 409); // already under review
   assert.equal((await caseOf(id, 3)).can.decide, true);
 
-  // decisão: só o mediador da rodada, com campos válidos e sem conflito
+  // decision: only the round's mediator, with valid fields and no conflict
   const verdict = {
     outcome: "partially_upheld",
     rationale: "Parte do pedido procede pelo briefing.",
@@ -180,15 +180,15 @@ test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e
     400,
   );
   assert.equal((await call(`/${id}/decision`, 3, "POST", verdict)).status, 200);
-  assert.equal((await call(`/${id}/decision`, 3, "POST", verdict)).status, 200); // repetição idêntica
+  assert.equal((await call(`/${id}/decision`, 3, "POST", verdict)).status, 200); // identical repeat
   assert.equal(
     (await call(`/${id}/decision`, 3, "POST", { ...verdict, outcome: "dismissed" })).status,
     409,
   );
-  // depois de decidida não entram mais manifestações
+  // once decided, no more statements are accepted
   assert.equal((await call(`/${id}/statements`, 1, "POST", { text: "tarde demais" })).status, 409);
 
-  // recurso: uma das partes, uma vez
+  // appeal: one of the parties, once
   const appealBody = { reason: "A decisão desconsiderou a referência enviada." };
   assert.equal((await call(`/${id}/appeal`, 7, "POST", appealBody)).status, 403);
   assert.equal((await call(`/${id}/appeal`, 3, "POST", appealBody)).status, 403);
@@ -196,7 +196,7 @@ test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e
   assert.equal((await call(`/${id}/appeal`, 1, "POST", appealBody)).status, 201);
   assert.equal((await call(`/${id}/appeal`, 2, "POST", appealBody)).status, 409);
 
-  // revisão: não pode ser o mesmo mediador nem quem só tem a concessão de mediar
+  // review: cannot be the same mediator, nor someone who only holds the mediation grant
   assert.equal((await call(`/${id}/take`, 3, "POST")).status, 403);
   assert.equal((await call(`/${id}/take`, 5, "POST")).status, 200);
   assert.equal((await call(`/${id}/decision`, 3, "POST", verdict)).status, 403);
@@ -207,7 +207,7 @@ test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e
   };
   assert.equal((await call(`/${id}/decision`, 5, "POST", final)).status, 200);
 
-  // histórico preservado: as duas decisões, na ordem, e o recurso
+  // history preserved: both decisions, in order, and the appeal
   const done = await caseOf(id, 1);
   assert.equal(done.status, "closed");
   assert.deepEqual(
@@ -230,7 +230,7 @@ test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e
     /evidence_retained/,
   );
   await assert.rejects(db.prepare("DELETE FROM missions WHERE id = 1").run(), /evidence_retained/);
-  // a conta de quem participa não é apagada enquanto o caso existe
+  // a participant's account is not deleted while the case exists
   const del = await app.request(
     "https://staging.local/account",
     {
@@ -242,7 +242,7 @@ test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e
   );
   assert.equal(del.status, 409);
 
-  // trilha de auditoria: abertura, assunções, decisões, recurso, mediação concedida
+  // audit trail: opening, takes, decisions, appeal
   const audit = await db
     .prepare("SELECT action FROM admin_audit WHERE entity='dispute' AND entity_id = ? ORDER BY id")
     .bind(String(id))
@@ -258,15 +258,15 @@ test("ciclo completo: abertura, manifestações, mediação, decisão, recurso e
       "disputa_decidida",
     ],
   );
-  // encerrada, a missão deixa de aparecer como disputada
+  // once closed, the mission stops showing as disputed
   assert.equal(
     await db.prepare("SELECT 1 FROM disputed_missions WHERE mission_id = 1").first(),
     null,
   );
 });
 
-test("quem tem vínculo não julga; concessão revogada vale na hora; encerrar exige justificativa", async () => {
-  // missão 3: o editor é o inspetor 8, que tem a concessão de mediar, mas é parte
+test("anyone tied to the case does not judge; a revoked grant applies at once; closing needs a reason", async () => {
+  // mission 3: the editor is inspector 8, who holds the mediation grant but is a party
   const opened = await open(1, 3);
   const { id } = (await opened.json()) as { id: number };
   assert.equal(
@@ -280,7 +280,7 @@ test("quem tem vínculo não julga; concessão revogada vale na hora; encerrar e
   assert.equal((await call(`/${id}/take`, 8, "POST")).status, 403);
   assert.equal((await caseOf(id, 8)).can.take, false);
 
-  // mediador 3 assume e depois perde a concessão: não decide mais
+  // mediator 3 takes it, then loses the grant: can no longer decide
   assert.equal((await call(`/${id}/take`, 3, "POST")).status, 200);
   assert.equal((await call("/mediators/3", 4, "DELETE")).status, 200);
   const verdict = { outcome: "upheld", rationale: "Procede integralmente pelo registro." };
@@ -288,7 +288,7 @@ test("quem tem vínculo não julga; concessão revogada vale na hora; encerrar e
   assert.equal((await call("/mediators/3", 4, "PUT")).status, 200);
   assert.equal((await call(`/${id}/decision`, 3, "POST", verdict)).status, 200);
 
-  // encerrar sem recurso: justificativa, capacidade de decidir e sem vínculo
+  // closing without appeal: reason, authority to decide and no tie to the case
   assert.equal((await call(`/${id}/close`, 5, "POST", { reason: "curto" })).status, 400);
   assert.equal(
     (await call(`/${id}/close`, 3, "POST", { reason: "Prazo de recurso encerrado." })).status,

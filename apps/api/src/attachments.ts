@@ -9,8 +9,8 @@ export type PreparedAttachment = {
 };
 
 /**
- * Valida o arquivo recebido: formato e tamanho permitidos, bytes iniciais coerentes com o
- * tipo declarado, hash SHA-256 e um nome sem caminho nem caracteres de controle.
+ * Validates the received file: allowed format and size, leading bytes consistent with the
+ * declared type, SHA-256 hash, and a name without path or control characters.
  */
 export async function prepareAttachment(
   file: File,
@@ -36,7 +36,7 @@ export async function prepareAttachment(
   };
 }
 
-/** Download de anexo privado: imagem abre na página, PDF baixa; nada é interpretado como página. */
+/** Private attachment download: images open in the page, PDFs download; nothing is rendered as a page. */
 export function attachmentResponse(
   object: { body: unknown; size: number },
   meta: { contentType: string; filename: string },

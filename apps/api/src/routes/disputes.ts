@@ -54,7 +54,7 @@ export function createDisputeRoutes(dependencies: ApiDependencies) {
     return c.json({ disputes: result.disputes });
   });
 
-  // Concessão de mediação: gestão de pessoas, auditada. Antes de "/:id".
+  // Mediator grant: people management, audited. Before "/:id".
   routes.put("/mediators/:userId", requireCapability("users.manage"), async (c) => {
     const userId = idOf(c.req.param("userId"));
     if (userId === null) return c.json({ error: "Pessoa inválida." }, 400);
@@ -77,8 +77,8 @@ export function createDisputeRoutes(dependencies: ApiDependencies) {
     return c.json({ dispute: result.dispute });
   });
 
-  // Manifestação em JSON ({ text }) ou multipart (`text` e `file`). O arquivo só vai ao R2
-  // depois de autorizado e, se a manifestação não for registrada, o objeto é devolvido.
+  // Statement as JSON ({ text }) or multipart (`text` and `file`). The file only goes to R2
+  // after authorization and, if the statement is not recorded, the object is given back.
   routes.post("/:id/statements", async (c) => {
     const id = idOf(c.req.param("id"));
     if (id === null) return c.json({ error: "Disputa inválida." }, 400);

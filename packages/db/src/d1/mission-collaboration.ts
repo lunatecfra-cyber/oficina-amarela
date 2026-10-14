@@ -73,7 +73,7 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
     return { ok: true as const, mission };
   }
 
-  /** Anexa os arquivos às mensagens da página com uma consulta só, pela faixa de ids. */
+  /** Attaches the files to the page's messages with a single query, by id range. */
   async function withAttachments(missionId: number, messages: MissionMessage[]) {
     const seqs = messages.map((m) => m.seq ?? 0).filter(Boolean);
     if (seqs.length === 0) return messages;
@@ -105,8 +105,8 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
   const PAGE_DEFAULT = 100;
   const PAGE_MAX = 200;
 
-  // Marcos que as duas partes podem ver. `offer` (antes da atribuição), `inspection_pending`
-  // (aviso interno) e as ações de transferência ficam de fora, e `notes` nunca é lido.
+  // Milestones both parties may see. `offer` (before assignment), `inspection_pending`
+  // (internal notice) and the transfer actions are left out, and `notes` is never read.
   const TIMELINE = [
     "accepted",
     "submitted",
@@ -126,7 +126,7 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
     async attachmentFor(missionId, attachmentId, actor) {
       const access = await participant(missionId, actor);
       if (!access.ok) return access;
-      // O filtro por missão impede abrir o anexo de outra conversa pelo id.
+      // Filtering by mission stops opening another conversation's attachment by id.
       const row = await db
         .prepare(
           `SELECT id, object_key, filename, content_type, size FROM message_attachments
@@ -180,7 +180,7 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       if (!access.ok) return access;
       const size = Math.min(Math.max(Math.trunc(limit ?? PAGE_DEFAULT), 1), PAGE_MAX);
       const ascending = afterId !== undefined;
-      // Um a mais que o pedido: a sobra só diz se há outra página.
+      // One more than requested: the extra row only says whether another page exists.
       const rows = await db
         .prepare(
           `SELECT m.id, m.mission_id, m.author_id, u.name, u.role, m.body, m.created_at
@@ -208,7 +208,7 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
     },
 
     async markRead(missionId, actor, upToMessageId) {
-      // Só quem conversa na missão guarda marcador; quem apenas lê (inspeção) não.
+      // Only people who chat in the mission keep a marker; whoever merely reads (inspection) does not.
       const mission = await db
         .prepare("SELECT spokesperson_id, reserved_by_id FROM missions WHERE id = ?")
         .bind(missionId)
@@ -216,8 +216,8 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       if (!mission) return { ok: false, reason: "mission_not_found" };
       if (actor.id !== mission.spokesperson_id && actor.id !== mission.reserved_by_id)
         return { ok: false, reason: "forbidden" };
-      // O teto é a última mensagem da missão, e o upsert só avança: repetir ou
-      // reordenar chamadas deixa o mesmo resultado.
+      // The ceiling is the mission's last message, and the upsert only moves forward: repeating or
+      // reordering calls gives the same result.
       const row = await db
         .prepare(
           `INSERT INTO message_reads (mission_id, user_id, last_read_message_id)
@@ -327,8 +327,8 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
            RETURNING id, mission_id, author_id, body, created_at`;
       let row: Omit<MessageRow, "name" | "role"> | null;
       if (attachment && db.batch) {
-        // Mensagem e anexo no mesmo lote: ou os dois existem, ou nenhum. O
-        // last_insert_rowid() volta ao valor da mensagem depois dos gatilhos.
+        // Message and attachment in the same batch: either both exist or neither. After the
+        // triggers, last_insert_rowid() goes back to the message's value.
         const [message] = await db.batch<{ results?: Omit<MessageRow, "name" | "role">[] }>([
           db.prepare(insert).bind(missionId, actor.id, text),
           db

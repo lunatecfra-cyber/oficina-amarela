@@ -173,7 +173,7 @@ describe("paridade D1 da colaboração de missão", () => {
 
     assert.deepEqual(result, { ok: false, reason: "write_failed" });
   });
-  describe("cursor por id e leitura", () => {
+  describe("id cursor and read state", () => {
     const editor = () => ({ id: editorId, name: "Editor D1", role: "editor" as const });
     const spokesperson = () => ({
       id: spokespersonId,
@@ -192,13 +192,13 @@ describe("paridade D1 da colaboração de missão", () => {
     const ids = (r: { ok: boolean; messages?: { seq?: number }[] }) =>
       (r.messages ?? []).map((m) => m.seq);
 
-    test("não perde mensagens com o mesmo created_at", async () => {
+    test("does not lose messages with the same created_at", async () => {
       const [a, b, c] = [
         await insert(editorId, "um"),
         await insert(editorId, "dois"),
         await insert(spokespersonId, "três"),
       ];
-      // O cursor por horário esconde as irmãs do último lido; o por id não.
+      // The timestamp cursor hides the siblings of the last one read; the id cursor does not.
       const legacy = await collaboration.messagesForMission(
         missionId,
         spokesperson(),
@@ -209,7 +209,7 @@ describe("paridade D1 da colaboração de missão", () => {
       assert.deepEqual(ids(page), [b, c]);
     });
 
-    test("pagina para frente e para trás sem repetir nem pular", async () => {
+    test("pages forward and backward without repeating or skipping", async () => {
       const all: number[] = [];
       for (let i = 0; i < 5; i++) all.push(await insert(editorId, `m${i}`));
       const latest = await collaboration.messagePage(missionId, editor(), { limit: 2 });
@@ -231,7 +231,7 @@ describe("paridade D1 da colaboração de missão", () => {
       assert.deepEqual([ids(forward), forward.ok && forward.hasMore], [all.slice(1, 3), true]);
     });
 
-    test("conta só mensagens alheias e o marcador só avança", async () => {
+    test("counts only other people's messages and the marker only moves forward", async () => {
       const first = await insert(editorId, "do editor 1");
       const second = await insert(editorId, "do editor 2");
       await insert(spokespersonId, "do porta-voz");
@@ -248,7 +248,7 @@ describe("paridade D1 da colaboração de missão", () => {
         ok: true,
         lastReadId: first,
       });
-      // Repetir e chegar atrasado com um valor menor deixa o marcador onde estava.
+      // Repeating, or arriving late with a lower value, leaves the marker where it was.
       assert.deepEqual(await collaboration.markRead(missionId, spokesperson(), first), {
         ok: true,
         lastReadId: first,
@@ -259,7 +259,7 @@ describe("paridade D1 da colaboração de missão", () => {
       });
       const afterFirst = await collaboration.unreadMissions(spokesperson());
       assert.equal(afterFirst.ok && afterFirst.missions[0]?.unread, 1);
-      // Passar do fim é limitado à última mensagem da missão.
+      // Going past the end is capped at the mission's last message.
       assert.deepEqual(await collaboration.markRead(missionId, spokesperson(), 9_999_999), {
         ok: true,
         lastReadId: second + 1,
@@ -270,7 +270,7 @@ describe("paridade D1 da colaboração de missão", () => {
       });
     });
 
-    test("linha do tempo mostra só os marcos públicos, sem observações", async () => {
+    test("timeline shows only public milestones, without notes", async () => {
       const put = (key: string, event: string, recipient: number, at: string, notes?: string) =>
         db
           .prepare(
@@ -318,7 +318,7 @@ describe("paridade D1 da colaboração de missão", () => {
       );
     });
 
-    test("marcações concorrentes terminam no maior valor", async () => {
+    test("concurrent marks end at the highest value", async () => {
       const all: number[] = [];
       for (let i = 0; i < 5; i++) all.push(await insert(editorId, `c${i}`));
       await Promise.all(
@@ -333,7 +333,7 @@ describe("paridade D1 da colaboração de missão", () => {
       assert.equal(row?.id, all[4]);
     });
 
-    test("isola outras pessoas e outras missões, e acompanha a transferência", async () => {
+    test("isolates other people and other missions, and follows the transfer", async () => {
       const mine = await insert(editorId, "privada");
       const outsider = { id: outsiderId, name: "Fora D1", role: "editor" as const };
       assert.deepEqual(await collaboration.messagePage(missionId, outsider, {}), {
@@ -349,7 +349,7 @@ describe("paridade D1 da colaboração de missão", () => {
         reason: "mission_not_found",
       });
       assert.deepEqual(await collaboration.unreadMissions(outsider), { ok: true, missions: [] });
-      // Inspetor lê pelo painel próprio e não guarda marcador de conversa.
+      // The inspector reads through their own panel and keeps no conversation marker.
       assert.deepEqual(
         await collaboration.markRead(missionId, { id: outsiderId, role: "inspector" }, mine),
         { ok: false, reason: "forbidden" },
@@ -359,7 +359,7 @@ describe("paridade D1 da colaboração de missão", () => {
         .prepare("UPDATE missions SET reserved_by_id = ? WHERE id = ?")
         .bind(outsiderId, missionId)
         .run();
-      // O editor anterior perde acesso na hora; o novo começa com o próprio marcador.
+      // The previous editor loses access at once; the new one starts with their own marker.
       assert.deepEqual(await collaboration.messagePage(missionId, editor(), {}), {
         ok: false,
         reason: "forbidden",

@@ -97,7 +97,7 @@ export function MissionChat({
   const endRef = useRef<HTMLLIElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // O cursor é o id da mensagem: o horário se repete quando duas chegam juntas.
+  // The cursor is the message id: timestamps repeat when two messages arrive together.
   const lastSeq = messages.reduce((max, m) => Math.max(max, seqOf(m)), 0);
   const readRef = useRef(0);
 
@@ -136,7 +136,7 @@ export function MissionChat({
       });
       if (!resp.ok) readRef.current = 0;
     } catch {
-      readRef.current = 0; // tenta de novo na próxima mudança
+      readRef.current = 0; // retry on the next change
     }
   }, [effectiveId, lastSeq]);
 
@@ -181,7 +181,7 @@ export function MissionChat({
     };
   }, [effectiveId, poll]);
 
-  // Mensagens e marcos do ciclo numa linha só, pelo horário.
+  // Messages and lifecycle events on a single line, ordered by time.
   const timeline = [
     ...messages.map((m) => ({
       kind: "message" as const,

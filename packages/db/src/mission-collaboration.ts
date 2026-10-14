@@ -12,7 +12,7 @@ export type MissionMessage = {
   authorRole: Role;
   text: string;
   createdAt: string;
-  /** Id numérico da mensagem: é o cursor estável da paginação e da leitura. */
+  /** Numeric message id: the stable cursor for pagination and reading. */
   seq?: number;
   attachments?: MissionAttachment[];
   pautaId?: number;
@@ -79,14 +79,14 @@ export type MissionUnreadResult =
   | { ok: true; missions: MissionUnread[] }
   | { ok: false; reason: MissionCollaborationFailure };
 
-/** Marco do ciclo da missão mostrado na conversa. Nunca carrega observações de inspeção. */
+/** Mission lifecycle milestone shown in the conversation. Never carries inspection notes. */
 export type MissionTimelineEvent = { id: string; event: string; version: number; at: string };
 export type MissionEventsResult =
   | { ok: true; events: MissionTimelineEvent[] }
   | { ok: false; reason: MissionCollaborationFailure };
 
 export interface MissionCollaborationRepository {
-  /** Autoriza antes de gravar bytes: quem não participa não gasta armazenamento. */
+  /** Authorizes before writing bytes: non-participants do not spend storage. */
   canChat(
     missionId: number,
     actor: Pick<MissionActor, "id" | "role">,
@@ -100,19 +100,19 @@ export interface MissionCollaborationRepository {
     missionId: number,
     actor: Pick<MissionActor, "id" | "role">,
   ): Promise<MissionEventsResult>;
-  /** Página por id (estável com timestamps iguais). Sem cursor devolve as mais recentes. */
+  /** Page by id (stable with equal timestamps). Without a cursor, returns the most recent. */
   messagePage(
     missionId: number,
     actor: Pick<MissionActor, "id" | "role">,
     options: MissionMessagePageOptions,
   ): Promise<MissionMessagePageResult>;
-  /** Avança o marcador de leitura do participante; nunca recua. */
+  /** Advances the participant's read marker; never moves back. */
   markRead(
     missionId: number,
     actor: Pick<MissionActor, "id" | "role">,
     upToMessageId: number,
   ): Promise<MissionReadResult>;
-  /** Missões em que o participante tem mensagens de outras pessoas ainda não lidas. */
+  /** Missions where the participant has other people's messages not yet read. */
   unreadMissions(actor: Pick<MissionActor, "id" | "role">): Promise<MissionUnreadResult>;
   messagesForMission(
     missionId: number,
@@ -200,7 +200,7 @@ async function participant(
 }
 
 export const postgresMissionCollaboration: MissionCollaborationRepository = {
-  // Cursor por id e leitura são só D1: no PostgreSQL falham fechados.
+  // Id cursor and read state are D1 only: on PostgreSQL they fail closed.
   async canChat() {
     return { ok: false, reason: "unsupported" };
   },

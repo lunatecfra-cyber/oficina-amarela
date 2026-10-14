@@ -6,10 +6,10 @@ export type DisputeOutcome = "upheld" | "partially_upheld" | "dismissed";
 
 export type DisputeFailure =
   | "not_found"
-  | "forbidden" // sem papel/capacidade, ou com vínculo com o caso
-  | "invalid" // texto fora dos limites ou valor desconhecido
-  | "conflict" // outra pessoa chegou antes, ou já existe disputa viva
-  | "unavailable" // o estado atual não permite a ação
+  | "forbidden" // no role/capability, or tied to the case
+  | "invalid" // text outside the limits or unknown value
+  | "conflict" // someone got there first, or a live dispute already exists
+  | "unavailable" // the current state does not allow the action
   | "unsupported";
 export type DisputeResult<T> = ({ ok: true } & T) | { ok: false; reason: DisputeFailure };
 
@@ -63,7 +63,7 @@ export type DisputeCase = DisputeSummary & {
   statements: DisputeStatementView[];
   decisions: DisputeDecisionView[];
   appeal: { requestedById: number; reason: string; createdAt: string } | null;
-  /** O que esta pessoa pode fazer agora; a interface só mostra os botões que valem. */
+  /** What this person can do now; the interface only shows the buttons that apply. */
   can: {
     statement: boolean;
     take: boolean;
@@ -88,7 +88,7 @@ export interface DisputeRepository {
   ): Promise<DisputeResult<{ id: number }>>;
   list(actor: DisputeActor): Promise<DisputeResult<{ disputes: DisputeSummary[] }>>;
   get(actor: DisputeActor, id: number): Promise<DisputeResult<{ dispute: DisputeCase }>>;
-  /** Autoriza antes de gravar bytes no R2. */
+  /** Authorizes before writing bytes to R2. */
   canStatement(actor: DisputeActor, id: number): Promise<DisputeResult<object>>;
   addStatement(
     actor: DisputeActor,
@@ -118,7 +118,7 @@ export interface DisputeRepository {
     id: number,
     attachmentId: number,
   ): Promise<DisputeResult<{ attachment: DisputeAttachment & { objectKey: string } }>>;
-  /** Concede ou retira a capacidade de mediar. Quem chama já foi autorizado pela rota. */
+  /** Grants or removes the mediation capability. The caller was already authorized by the route. */
   setMediator(
     admin: DisputeActor,
     userId: number,
@@ -128,7 +128,7 @@ export interface DisputeRepository {
 
 const unsupported = async () => ({ ok: false as const, reason: "unsupported" as const });
 
-/** Disputas são só D1: no PostgreSQL toda operação falha fechada. */
+/** Disputes are D1 only: on PostgreSQL every operation fails closed. */
 export const postgresDisputes: DisputeRepository = {
   open: unsupported,
   list: unsupported,

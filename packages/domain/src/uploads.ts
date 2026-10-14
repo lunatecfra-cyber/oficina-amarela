@@ -49,7 +49,7 @@ export type AttachmentPolicyResult =
   | { ok: true }
   | { ok: false; status: 400 | 413 | 415; error: string };
 
-/** Anexo do chat: poucos formatos e teto menor que o do vídeo bruto. */
+/** Chat attachment: few formats and a lower ceiling than raw video. */
 export function validateChatAttachment(
   contentType: string,
   sizeBytes: number,
@@ -63,7 +63,7 @@ export function validateChatAttachment(
   return { ok: true };
 }
 
-/** Confere os primeiros bytes: o tipo declarado pelo navegador não basta. */
+/** Checks the leading bytes: the type declared by the browser is not enough. */
 export function attachmentMatchesType(contentType: string, head: Uint8Array): boolean {
   const starts = (...bytes: number[]) => bytes.every((b, i) => head[i] === b);
   switch (contentType) {

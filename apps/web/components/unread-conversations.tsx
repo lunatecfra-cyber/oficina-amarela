@@ -7,8 +7,8 @@ type Unread = { missionId: number; title: string; unread: number };
 
 const POLL_MS = 30_000;
 
-/** Conversas com mensagens que a pessoa ainda não leu; cada item leva à conversa. */
-/** `hrefTemplate` leva `{id}` no lugar do número da missão (props de Server Component são serializadas, funções não). */
+/** Conversations with messages the person has not read yet; each item links to the conversation. */
+/** `hrefTemplate` carries `{id}` in place of the mission number (Server Component props are serialized, functions are not). */
 export function UnreadConversations({ hrefTemplate }: { hrefTemplate: string }) {
   const [items, setItems] = useState<Unread[]>([]);
 
@@ -19,7 +19,7 @@ export function UnreadConversations({ hrefTemplate }: { hrefTemplate: string }) 
         const resp = await fetch("/api/missions/unread", { cache: "no-store" });
         if (resp.ok) setItems(((await resp.json()) as { missions: Unread[] }).missions ?? []);
       } catch {
-        // sem rede: mantém o que já estava na tela
+        // offline: keep what was already on screen
       }
     }
     function start() {

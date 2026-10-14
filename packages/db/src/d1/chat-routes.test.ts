@@ -67,7 +67,7 @@ before(async () => {
     cookies[id] =
       `${COOKIE_NAME}=${await createSessionToken({ id, role, handle: `chat${id}`, name: `Chat ${id}` })}`;
   }
-  // Missão 1: voz 1 + editor 2. Missão 2: voz 4 + editor 3, sem relação com a primeira.
+  // Mission 1: voice 1 + editor 2. Mission 2: voice 4 + editor 3, unrelated to the first.
   await db
     .prepare(
       "INSERT INTO missions(id,spokesperson_id,reserved_by_id,title,format,status) VALUES(1,1,2,'Primeira','short','reservada'),(2,4,3,'Segunda','short','reservada')",
@@ -79,8 +79,8 @@ after(() => mf.dispose());
 const seqs = async (res: Response) =>
   ((await res.json()) as { messages: { seq: number }[] }).messages.map((m) => m.seq);
 
-test("rotas de leitura e cursor exigem sessão, validam entrada e isolam missões", async () => {
-  // anônimo
+test("read and cursor routes require a session, validate input and isolate missions", async () => {
+  // anonymous
   assert.equal((await request("/missions/unread")).status, 401);
   assert.equal((await request("/missions/1?afterId=0")).status, 401);
   assert.equal((await request("/missions/1/read", undefined, "POST", { upTo: 1 })).status, 401);
@@ -94,17 +94,17 @@ test("rotas de leitura e cursor exigem sessão, validam entrada e isolam missõe
   const all = await seqs(await request("/missions/1?afterId=0", 1));
   assert.equal(all.length, 3);
 
-  // cursor para frente, para trás e limites
+  // forward and backward cursors, and limits
   assert.deepEqual(await seqs(await request(`/missions/1?afterId=${all[0]}`, 1)), all.slice(1));
   const back = await request(`/missions/1?beforeId=${all[2]}&limit=1`, 1);
   assert.deepEqual(await seqs(back.clone()), [all[1]]);
   assert.equal(((await back.json()) as { hasMore: boolean }).hasMore, true);
   assert.equal((await request("/missions/1?afterId=abc", 1)).status, 400);
   assert.equal((await request("/missions/1?afterId=1&beforeId=9", 1)).status, 400);
-  // formato `m-12` do id público também vale como cursor
+  // the `m-12` public id format also works as a cursor
   assert.equal((await request(`/missions/1?afterId=m-${all[2]}`, 1)).status, 200);
 
-  // quem não participa não lê, não marca e não vê contagem
+  // non-participants cannot read, mark or see counts
   assert.equal((await request("/missions/1?afterId=0", 3)).status, 403);
   assert.equal((await request("/missions/1?afterId=0", 4)).status, 403);
   assert.equal((await request("/missions/1/read", 3, "POST", { upTo: all[2] })).status, 403);
@@ -112,7 +112,7 @@ test("rotas de leitura e cursor exigem sessão, validam entrada e isolam missõe
   assert.equal((await request("/missions/999/read", 1, "POST", { upTo: 1 })).status, 404);
   assert.equal((await request("/missions/1/read", 1, "POST", {})).status, 400);
 
-  // marcos do ciclo chegam na mesma resposta quando pedidos, e só para participantes
+  // lifecycle events arrive in the same response when requested, and only for participants
   await db
     .prepare(
       "INSERT INTO mission_notifications(key,mission_id,recipient_id,event,version) VALUES('mission:1:accepted:1',1,1,'accepted',0)",
@@ -131,7 +131,7 @@ test("rotas de leitura e cursor exigem sessão, validam entrada e isolam missõe
   assert.equal(without.events, undefined);
   assert.equal((await request("/missions/1?afterId=0&events=1", 3)).status, 403);
 
-  // contagem e leitura pelo porta-voz; o editor, autor, não tem pendência
+  // counts and reads by the spokesperson; the editor, as author, has nothing pending
   const unread = (await (await request("/missions/unread", 1)).json()) as {
     missions: { missionId: number; unread: number }[];
   };
@@ -151,7 +151,7 @@ test("rotas de leitura e cursor exigem sessão, validam entrada e isolam missõe
   };
   assert.equal(left.missions[0]?.unread, 1);
 
-  // sessão revogada pela troca de papel/ban deixa de ler na hora
+  // a session revoked by role change/ban stops reading immediately
   await db.prepare("UPDATE users SET is_banned = 1 WHERE id = 1").run();
   assert.equal((await request("/missions/unread", 1)).status, 401);
 });
@@ -180,7 +180,7 @@ const upload = (
 };
 const objectCount = async () => (await media.list()).objects.length;
 
-test("anexos: autorização antes do R2, tipo verificado, isolamento e transferência", async () => {
+test("attachments: authorization before R2, verified type, isolation and transfer", async () => {
   await db
     .prepare(
       "INSERT INTO missions(id,spokesperson_id,reserved_by_id,title,format,status) VALUES(3,5,6,'Terceira','short','reservada')",
@@ -188,14 +188,14 @@ test("anexos: autorização antes do R2, tipo verificado, isolamento e transfer�
     .run();
   const png = new Blob([new Uint8Array(PNG)], { type: "image/png" });
 
-  // sem sessão ou sem participação: nada é gravado
+  // no session or not a participant: nothing is written
   const before = await objectCount();
   assert.equal((await upload("/missions/3/attachments", undefined, png)).status, 401);
   assert.equal((await upload("/missions/3/attachments", 3, png)).status, 403);
   assert.equal((await upload("/missions/3/attachments", 4, png)).status, 403);
   assert.equal(await objectCount(), before);
 
-  // entrada inválida
+  // invalid input
   assert.equal((await upload("/missions/3/attachments", 6, null)).status, 400);
   assert.equal(
     (
@@ -208,7 +208,7 @@ test("anexos: autorização antes do R2, tipo verificado, isolamento e transfer�
     ).status,
     415,
   );
-  // declara PNG mas o conteúdo não é
+  // declares PNG but the content is not
   assert.equal(
     (await upload("/missions/3/attachments", 6, new Blob(["nao sou png"], { type: "image/png" })))
       .status,
@@ -218,7 +218,7 @@ test("anexos: autorização antes do R2, tipo verificado, isolamento e transfer�
   assert.equal((await upload("/missions/3/attachments", 6, big, "g.pdf")).status, 413);
   assert.equal(await objectCount(), before);
 
-  // envio válido: mensagem + anexo, hash conferido, nome higienizado
+  // valid send: message + attachment, hash checked, name sanitized
   const sent = await upload("/missions/3/attachments", 6, png, "..\\pasta/prova final.png", "veja");
   assert.equal(sent.status, 200);
   const { message } = (await sent.json()) as {
@@ -244,13 +244,13 @@ test("anexos: autorização antes do R2, tipo verificado, isolamento e transfer�
   assert.ok(stored?.object_key.startsWith("chat/3/"));
   assert.equal(await objectCount(), before + 1);
 
-  // a página de mensagens já traz o anexo
+  // the messages page already carries the attachment
   const page = (await (await request("/missions/3?afterId=0", 5)).json()) as {
     messages: { attachments?: { id: number }[] }[];
   };
   assert.equal(page.messages[0]?.attachments?.[0]?.id, attachment?.id);
 
-  // download: a outra parte recebe os mesmos bytes, com cabeçalhos de contenção
+  // download: the other party gets the same bytes, with containment headers
   const path = `/missions/3/attachments/${attachment?.id}`;
   const download = await request(path, 5);
   assert.equal(download.status, 200);
@@ -259,19 +259,19 @@ test("anexos: autorização antes do R2, tipo verificado, isolamento e transfer�
   assert.equal(download.headers.get("cache-control"), "private, no-store");
   assert.match(download.headers.get("content-security-policy") ?? "", /sandbox/);
 
-  // sem sessão, fora da missão, e o id de outra conversa não abre por este caminho
+  // no session, outside the mission, and another conversation's id does not open through this path
   assert.equal((await request(path)).status, 401);
   assert.equal((await request(path, 3)).status, 403);
   assert.equal((await request(`/missions/2/attachments/${attachment?.id}`, 4)).status, 404);
   assert.equal((await request("/missions/3/attachments/abc", 5)).status, 400);
 
-  // editor trocado: o anterior perde o acesso na hora
+  // editor replaced: the previous one loses access at once
   await db.prepare("UPDATE missions SET reserved_by_id = 7 WHERE id = 3").run();
   assert.equal((await request(path, 6)).status, 403);
   assert.equal((await upload("/missions/3/attachments", 6, png)).status, 403);
   assert.equal((await request(path, 7)).status, 200);
 
-  // anexo não é reescrito depois de enviado
+  // an attachment is not rewritten after being sent
   await assert.rejects(
     db
       .prepare("UPDATE message_attachments SET filename = 'x' WHERE id = ?")

@@ -38,7 +38,7 @@ const SELECT_DISPUTE = `SELECT d.id, d.mission_id, p.title AS mission_title, d.s
   FROM disputes d JOIN missions p ON p.id = d.mission_id
   JOIN users o ON o.id = d.opened_by_id JOIN users c ON c.id = d.counterpart_id`;
 
-/** Os gatilhos do D1 guardam as regras; aqui o erro volta como motivo tipado. */
+/** The D1 triggers hold the rules; here the error comes back as a typed reason. */
 function failureOf(error: unknown) {
   const message = String(error);
   if (
@@ -90,7 +90,7 @@ export function createD1Disputes(db: D1DatabaseLike): DisputeRepository {
     return db.prepare(`${SELECT_DISPUTE} WHERE d.id = ?`).bind(id).first<Row>();
   }
 
-  /** Quem vê o caso: as partes e a equipe com disputes.read. */
+  /** Who sees the case: the parties and staff with disputes.read. */
   async function visible(actor: DisputeActor, id: number) {
     const d = await load(id);
     if (!d) return { ok: false as const, reason: "not_found" as const };
@@ -101,7 +101,7 @@ export function createD1Disputes(db: D1DatabaseLike): DisputeRepository {
     return { ok: true as const, d, caps, party };
   }
 
-  /** Mediador da rodada atual, se houver. */
+  /** The current round's mediator, if any. */
   const currentMediator = (d: Row) => d.appeal_reviewer_id ?? d.mediator_id;
 
   const summary = (d: Row): DisputeSummary => ({
@@ -375,7 +375,7 @@ export function createD1Disputes(db: D1DatabaseLike): DisputeRepository {
                   .run()
               : null;
         if (!result) return fail("unavailable");
-        // Outra pessoa assumiu entre a leitura e a escrita. O D1 conta também as linhas dos gatilhos, então o teste é "> 0".
+        // Someone else took it between the read and the write. D1 also counts trigger rows, so the test is "> 0".
         return result.meta.changes > 0 ? { ok: true } : fail("conflict");
       } catch (error) {
         return fail(failureOf(error));
@@ -388,7 +388,7 @@ export function createD1Disputes(db: D1DatabaseLike): DisputeRepository {
       if (!seen.ok) return seen;
       const { d } = seen;
       const round = d.appeal_reviewer_id === null ? 1 : 2;
-      // Repetir a mesma decisão (reenvio, rede) é inofensivo; outra decisão para a rodada é conflito.
+      // Repeating the same decision (resend, network) is harmless; a different decision for the round is a conflict.
       const same = await db
         .prepare(
           `SELECT 1 AS ok FROM dispute_decisions WHERE dispute_id = ? AND round = ? AND decider_id = ? AND outcome = ? AND rationale = ?`,
@@ -430,7 +430,7 @@ export function createD1Disputes(db: D1DatabaseLike): DisputeRepository {
     async appeal(actor, id, reason) {
       const seen = await visible(actor, id);
       if (!seen.ok) return seen;
-      if (!seen.party) return fail("forbidden"); // só as partes recorrem
+      if (!seen.party) return fail("forbidden"); // only the parties appeal
       try {
         await db
           .prepare(
@@ -441,7 +441,7 @@ export function createD1Disputes(db: D1DatabaseLike): DisputeRepository {
         return { ok: true };
       } catch (error) {
         const failure = failureOf(error);
-        // Segunda tentativa de recurso: o gatilho barra por estado, a chave primária por duplicidade.
+        // Second appeal attempt: the trigger blocks by state, the primary key by duplication.
         return fail(
           /UNIQUE constraint failed: dispute_appeals/.test(String(error)) ? "conflict" : failure,
         );
@@ -451,7 +451,7 @@ export function createD1Disputes(db: D1DatabaseLike): DisputeRepository {
     async close(actor, id, reason) {
       const seen = await visible(actor, id);
       if (!seen.ok) return seen;
-      // Autoridade e vínculo vêm antes do estado: quem não pode encerrar leva 403, não 409.
+      // Authority and ties come before state: whoever cannot close gets 403, not 409.
       if (!seen.caps.has("disputes.decide") || (await conflicted(seen.d, actor.id)))
         return fail("forbidden");
       try {
@@ -498,7 +498,7 @@ export function createD1Disputes(db: D1DatabaseLike): DisputeRepository {
     async attachmentFor(actor, id, attachmentId) {
       const seen = await visible(actor, id);
       if (!seen.ok) return seen;
-      // O filtro pela disputa impede abrir o anexo de outro caso pelo id.
+      // Filtering by dispute stops opening another case's attachment by id.
       const row = await db
         .prepare(
           `SELECT id, statement_id, object_key, filename, content_type, size FROM dispute_attachments
