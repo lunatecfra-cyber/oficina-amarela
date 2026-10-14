@@ -34,7 +34,8 @@ export function createEditorDirectoryRoutes() {
     if (
       body.workPreference !== undefined &&
       body.workPreference !== null &&
-      !Object.hasOwn(WORK_PREFERENCE_LABELS, body.workPreference)
+      (typeof body.workPreference !== "string" ||
+        !Object.hasOwn(WORK_PREFERENCE_LABELS, body.workPreference))
     )
       return c.json({ error: "Escolha uma preferência de trabalho válida." }, 400);
     const result = await (c.env.DB as unknown as D1DatabaseLike)

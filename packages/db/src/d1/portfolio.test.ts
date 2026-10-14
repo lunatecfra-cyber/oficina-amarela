@@ -301,6 +301,16 @@ test("preferências são validadas, publicadas somente no perfil autorizado e au
       await call("/editors/visibility", 2, {
         visible: true,
         portfolioConsent: false,
+        workPreference: ["paid"],
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await call("/editors/visibility", 2, {
+        visible: true,
+        portfolioConsent: false,
         workPreference: "invalid",
       })
     ).status,
