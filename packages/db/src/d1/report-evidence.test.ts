@@ -174,6 +174,8 @@ test("captura atômica, permissões, recuperação e concorrência; retenção s
     (await request("/account", 2, "DELETE", { confirmation: "senha-errada" })).status,
     400,
   );
+  // the handle is no longer enough once the account has a password
+  assert.equal((await request("/account", 2, "DELETE", { confirmation: "evidence2" })).status, 400);
   assert.equal((await request("/admin/users/2", 3, "DELETE")).status, 400);
   assert.deepEqual(
     await db
@@ -289,7 +291,10 @@ test("captura atômica, permissões, recuperação e concorrência; retenção s
 test("impedimento das partes e do fiscal da entrega; revogação vale com cookie antigo", async () => {
   const missionId = await work();
   const earlyReport = await report(missionId);
-  assert.equal((await request("/account", 2, "DELETE", { confirmation: "evidence2" })).status, 409);
+  assert.equal(
+    (await request("/account", 2, "DELETE", { confirmation: "senha-do-editor" })).status,
+    409,
+  );
   assert.deepEqual(
     await db
       .prepare("SELECT status,reserved_by_id FROM missions WHERE id=?")

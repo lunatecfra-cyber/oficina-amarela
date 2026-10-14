@@ -167,11 +167,11 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const confirmation = String(body?.confirmation ?? body?.confirmacao ?? "");
 
-    // The UI asks password accounts for the password, so accept it besides the handle.
+    // Password accounts must confirm with the password; the handle is only for accounts without one.
     const hash = (await dependencies.accounts.findByHandle(session.handle))?.passwordHash;
-    const confirmed =
-      confirmation.trim().toLowerCase() === session.handle.toLowerCase() ||
-      Boolean(hash && confirmation.length <= 200 && (await bcrypt.compare(confirmation, hash)));
+    const confirmed = hash
+      ? confirmation.length <= 200 && (await bcrypt.compare(confirmation, hash))
+      : confirmation.trim().toLowerCase() === session.handle.toLowerCase();
 
     if (!confirmation || !confirmed) {
       return c.json(
