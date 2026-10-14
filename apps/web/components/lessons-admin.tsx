@@ -58,6 +58,8 @@ export function LessonsAdmin({ data }: { data: AdminLessons }) {
   const [moduleTitle, setModuleTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [warning, setWarning] = useState("");
+  // Row actions (publish, archive…) fail far below the form, so their error shows in the list.
+  const [rowWarning, setRowWarning] = useState("");
 
   const moduleLabel = new Map(
     data.modules.map((mod) => [
@@ -67,9 +69,15 @@ export function LessonsAdmin({ data }: { data: AdminLessons }) {
   );
   const categories = [...new Set(data.lessons.map((lesson) => lesson.category).filter(Boolean))];
 
-  async function send(method: string, path: string, body: unknown): Promise<boolean> {
+  async function send(
+    method: string,
+    path: string,
+    body: unknown,
+    scope: "form" | "row" = "form",
+  ): Promise<boolean> {
     setBusy(true);
     setWarning("");
+    setRowWarning("");
     const resp = await fetch(`/api/admin/lessons${path}`, {
       method,
       headers: { "Content-Type": "application/json" },
@@ -78,7 +86,7 @@ export function LessonsAdmin({ data }: { data: AdminLessons }) {
     setBusy(false);
     if (!resp?.ok) {
       const detail = await resp?.json().catch(() => null);
-      setWarning(detail?.error ?? "Não deu pra concluir.");
+      (scope === "row" ? setRowWarning : setWarning)(detail?.error ?? "Não deu pra concluir.");
       return false;
     }
     router.refresh();
@@ -359,6 +367,11 @@ export function LessonsAdmin({ data }: { data: AdminLessons }) {
         <h2 className="text-xs uppercase tracking-[0.14em] text-gold">
           Aulas ({data.lessons.length})
         </h2>
+        {rowWarning && (
+          <p role="alert" className="mt-3 text-sm text-danger">
+            {rowWarning}
+          </p>
+        )}
         {data.lessons.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-line-soft bg-surface/40 p-6 text-center text-sm text-muted">
             Nenhuma aula cadastrada ainda.
@@ -387,6 +400,7 @@ export function LessonsAdmin({ data }: { data: AdminLessons }) {
                     type="button"
                     className="btn-ghost"
                     disabled={busy}
+                    aria-label={`Editar ${lesson.title}`}
                     onClick={() => edit(lesson)}
                   >
                     Editar
@@ -396,7 +410,8 @@ export function LessonsAdmin({ data }: { data: AdminLessons }) {
                       type="button"
                       className="btn-ghost"
                       disabled={busy}
-                      onClick={() => send("PATCH", `/${lesson.id}`, { status: "published" })}
+                      aria-label={`Publicar ${lesson.title}`}
+                      onClick={() => send("PATCH", `/${lesson.id}`, { status: "published" }, "row")}
                     >
                       Publicar
                     </button>
@@ -406,7 +421,8 @@ export function LessonsAdmin({ data }: { data: AdminLessons }) {
                       type="button"
                       className="btn-ghost"
                       disabled={busy}
-                      onClick={() => send("PATCH", `/${lesson.id}`, { status: "draft" })}
+                      aria-label={`Voltar ${lesson.title} a rascunho`}
+                      onClick={() => send("PATCH", `/${lesson.id}`, { status: "draft" }, "row")}
                     >
                       Voltar a rascunho
                     </button>
@@ -416,7 +432,8 @@ export function LessonsAdmin({ data }: { data: AdminLessons }) {
                       type="button"
                       className="btn-danger"
                       disabled={busy}
-                      onClick={() => send("PATCH", `/${lesson.id}`, { status: "archived" })}
+                      aria-label={`Arquivar ${lesson.title}`}
+                      onClick={() => send("PATCH", `/${lesson.id}`, { status: "archived" }, "row")}
                     >
                       Arquivar
                     </button>
@@ -425,7 +442,8 @@ export function LessonsAdmin({ data }: { data: AdminLessons }) {
                       type="button"
                       className="btn-ghost"
                       disabled={busy}
-                      onClick={() => send("PATCH", `/${lesson.id}`, { status: "draft" })}
+                      aria-label={`Restaurar ${lesson.title} como rascunho`}
+                      onClick={() => send("PATCH", `/${lesson.id}`, { status: "draft" }, "row")}
                     >
                       Restaurar como rascunho
                     </button>

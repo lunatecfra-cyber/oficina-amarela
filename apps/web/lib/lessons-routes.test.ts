@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as admin from "../app/api/admin/lessons/[[...path]]/route.ts";
 import * as learner from "../app/api/lessons/[[...path]]/route.ts";
+import { getAdminLessons, getLesson, getLessons } from "./lessons-db.ts";
 
 // Next calls a route handler as (request, context). forwardToApi takes a service
 // binding as its second argument, so a handler that passes the context straight
@@ -23,4 +24,12 @@ test("lesson route handlers forward the request when called the way Next calls t
     const response = await handler(new Request(`http://web.local${path}`, { method }), context);
     assert.equal(response.status, 401, `${method} ${path}`);
   }
+});
+
+// With no session the API answers 401. The pages used to turn that into an empty list
+// ("Em breve" for learners, "Nenhuma aula" for the admin), hiding a real outage.
+test("page data fetchers reject on an API failure instead of returning an empty result", async () => {
+  await assert.rejects(getLessons(), /\/lessons respondeu 401/);
+  await assert.rejects(getAdminLessons(), /\/admin\/lessons respondeu 401/);
+  await assert.rejects(getLesson(1), /\/lessons\/1 respondeu 401/);
 });

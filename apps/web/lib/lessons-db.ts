@@ -1,4 +1,4 @@
-import { fetchApiJson } from "@/lib/internal-api";
+import { fetchApi } from "@/lib/internal-api";
 
 export type LessonLevel = "beginner" | "intermediate" | "advanced";
 export type LessonStatus = "draft" | "published" | "archived";
@@ -51,17 +51,28 @@ export type AdminLessons = {
   lessons: AdminLesson[];
 };
 
-export async function getLessons(): Promise<LessonSummary[]> {
-  const body = await fetchApiJson<{ lessons: LessonSummary[] }>("/lessons");
-  return body?.lessons ?? [];
+// A failed read must not look like an empty catalog ("Em breve") or an empty admin
+// panel, where Vitor would re-create what he thinks is missing. Throwing hands it to
+// app/error.tsx, which already offers a retry and reports to Sentry.
+async function failIfNotOk(response: Response, path: string): Promise<Response> {
+  if (!response.ok) throw new Error(`Videoaulas: ${path} respondeu ${response.status}`);
+  return response;
 }
 
-export function getLesson(id: number): Promise<LessonDetail | null> {
-  return fetchApiJson<LessonDetail>(`/lessons/${id}`);
+export async function getLessons(): Promise<LessonSummary[]> {
+  const response = await failIfNotOk(await fetchApi("/lessons"), "/lessons");
+  return ((await response.json()) as { lessons: LessonSummary[] }).lessons;
+}
+
+/** `null` only when the lesson does not exist or is not published; any other failure throws. */
+export async function getLesson(id: number): Promise<LessonDetail | null> {
+  const response = await fetchApi(`/lessons/${id}`);
+  if (response.status === 404) return null;
+  await failIfNotOk(response, `/lessons/${id}`);
+  return (await response.json()) as LessonDetail;
 }
 
 export async function getAdminLessons(): Promise<AdminLessons> {
-  return (
-    (await fetchApiJson<AdminLessons>("/admin/lessons")) ?? { tracks: [], modules: [], lessons: [] }
-  );
+  const response = await failIfNotOk(await fetchApi("/admin/lessons"), "/admin/lessons");
+  return (await response.json()) as AdminLessons;
 }
