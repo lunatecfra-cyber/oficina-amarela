@@ -1,5 +1,7 @@
 import type { Editor } from "@oficina/domain/missions";
 import Link from "next/link";
+import { AppHeaderInspector } from "@/components/app-header-inspector";
+import { AppHeaderSpokesperson } from "@/components/app-header-spokesperson";
 import { BrandMark } from "@/components/brand-mark";
 import { EditorNav } from "@/components/editor-nav";
 import { LocalGuide } from "@/components/local-guide";
@@ -9,6 +11,8 @@ import { getSession } from "@/lib/server-session";
 
 export async function AppHeader() {
   const session = await getSession();
+  if (session?.role === "inspector" || session?.role === "admin") return <AppHeaderInspector />;
+  if (session?.role === "spokesperson") return <AppHeaderSpokesperson />;
   const profile = session ? await readEditorProfile(session.id) : null;
 
   if (!session) {

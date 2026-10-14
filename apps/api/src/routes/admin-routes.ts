@@ -107,7 +107,7 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
       actor = c.get("session");
     const result = await db
       .prepare(`INSERT INTO editor_verifications(editor_id,verified,admin_id,reason)
-      SELECT id,?,?,? FROM users WHERE id=? AND role='editor' AND is_banned=0 AND profile_completed=1
+      SELECT id,?,?,? FROM users WHERE id=? AND role='editor' AND is_banned=0 AND (profile_completed=1 OR EXISTS(SELECT 1 FROM spokesperson_invitations WHERE used_by=users.id AND kind='experienced_editor' AND used_at IS NOT NULL))
       AND EXISTS(SELECT 1 FROM users WHERE id=? AND role='admin' AND is_banned=0)
       ON CONFLICT(editor_id) DO UPDATE SET verified=excluded.verified,admin_id=excluded.admin_id,reason=excluded.reason,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
       .bind(Number(body.verified), actor.id, body.reason.trim(), id, actor.id)

@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PortfolioManager } from "@/components/portfolio-manager";
 import { requireSession } from "@/lib/server-session";
 export const dynamic = "force-dynamic";
 export default async function PortfolioPage() {
   const session = await requireSession();
+  if (session.role === "inspector") redirect("/inspetor");
   return (
     <main className="mx-auto w-full max-w-4xl p-5 lg:p-8">
       <Link
