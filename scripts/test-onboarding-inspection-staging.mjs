@@ -223,11 +223,9 @@ assert.ok(queue.some((item) => item.id === beginning));
 await call(`/inspections/${beginning}/claim`, "inspector", { version: 1 });
 for (const path of [
   "/missions/in-review",
-  `/missions/view/${beginning}`,
+  `/missions/${beginning}`,
   `/missions/messages?ids=${beginning}`,
-  "/admin/missions",
-  "/admin/in-flight",
-  "/admin/notifications",
+  "/admin/queue",
 ])
   await call(path, "inspector", undefined, 403);
 assert.equal(

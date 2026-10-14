@@ -249,11 +249,20 @@ test("beginner delivery, independent versioned inspection, corrections, final ap
     200,
   );
   assert.equal(await db.prepare("SELECT rating FROM users WHERE id=2").first("rating"), 4);
+  await db
+    .prepare(
+      "INSERT INTO missions(id,title,format,spokesperson_id,reserved_by_id,status,delivery_version) VALUES(10,'Unassigned legacy completion','short',3,2,'finalizada',1)",
+    )
+    .run();
+  await db
+    .prepare("INSERT INTO mission_deliveries(mission_id,version,editor_id) VALUES(10,1,2)")
+    .run();
   const completedQueue = (await (await call("/inspections", inspector)).json()) as {
     id: number;
     status: string;
   }[];
   assert.ok(completedQueue.some((item) => item.id === 1 && item.status === "finalizada"));
+  assert.ok(!completedQueue.some((item) => item.id === 10));
   assert.equal((await call("/inspections/1", inspector)).status, 200);
   const history = await db
     .prepare(

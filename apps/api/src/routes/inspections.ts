@@ -30,7 +30,7 @@ export function createInspectionRoutes(dependencies: ApiDependencies) {
       FROM missions m JOIN mission_deliveries d ON d.mission_id=m.id AND d.version=m.delivery_version
       JOIN users u ON u.id=d.editor_id
       WHERE m.spokesperson_id<>? AND NOT EXISTS(SELECT 1 FROM mission_assignments past WHERE past.mission_id=m.id AND past.editor_id=?) AND m.status IN ('em_revisao','reedicao','aprovada','finalizada') AND d.editor_id<>?
-        AND (?='admin' OR (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version) IS NULL OR (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version)=?)
+        AND (?='admin' OR (m.status='em_revisao' AND (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version) IS NULL) OR (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version)=?)
       ORDER BY d.submitted_at,m.id`)
       .bind(actor.id, actor.id, actor.id, actor.role, actor.id)
       .all();
