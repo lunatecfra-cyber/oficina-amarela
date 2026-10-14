@@ -26,11 +26,11 @@ export function createInspectionRoutes(dependencies: ApiDependencies) {
       .prepare(`
       SELECT m.id,m.title,m.status,m.delivery_version AS version,m.inspection_reason AS reason,
         m.desired_deadline AS deadline,d.submitted_at AS submittedAt,u.handle AS submittedBy,
-        d.assigned_inspector_id AS assignedInspectorId
+        (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version) AS assignedInspectorId
       FROM missions m JOIN mission_deliveries d ON d.mission_id=m.id AND d.version=m.delivery_version
       JOIN users u ON u.id=d.editor_id
       WHERE m.status IN ('em_revisao','reedicao','aprovada') AND d.editor_id<>?
-        AND (?='admin' OR d.assigned_inspector_id IS NULL OR d.assigned_inspector_id=?)
+        AND (?='admin' OR (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version) IS NULL OR (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version)=?)
       ORDER BY d.submitted_at,m.id`)
       .bind(actor.id, actor.role, actor.id)
       .all();
@@ -44,14 +44,20 @@ export function createInspectionRoutes(dependencies: ApiDependencies) {
       return c.json({ error: "Atualize a fila para conferir a versão." }, 400);
     const claimed = await (c.env.DB as D1DatabaseLike)
       .prepare(`
-      UPDATE mission_deliveries SET assigned_inspector_id=?
-      WHERE mission_id=? AND version=? AND editor_id<>?
-        AND (assigned_inspector_id IS NULL OR assigned_inspector_id=?)
-        AND EXISTS(SELECT 1 FROM missions WHERE id=mission_id AND delivery_version=version AND status='em_revisao')
-      RETURNING version`)
-      .bind(actor.id, id, body.version, actor.id, actor.id)
+      INSERT INTO mission_inspection_assignments(mission_id,version,inspector_id)
+      SELECT m.id,m.delivery_version,? FROM missions m JOIN mission_deliveries d ON d.mission_id=m.id AND d.version=m.delivery_version
+      WHERE m.id=? AND m.delivery_version=? AND d.editor_id<>? AND m.status='em_revisao'
+      ON CONFLICT(mission_id,version) DO NOTHING RETURNING version`)
+      .bind(actor.id, id, body.version, actor.id)
       .first();
-    if (!claimed)
+    const alreadyAssigned =
+      !claimed &&
+      (await (c.env.DB as D1DatabaseLike)
+        .prepare(`SELECT a.version FROM mission_inspection_assignments a JOIN missions m ON m.id=a.mission_id
+      WHERE a.mission_id=? AND a.version=? AND a.inspector_id=? AND m.delivery_version=a.version AND m.status='em_revisao'`)
+        .bind(id, body.version, actor.id)
+        .first());
+    if (!claimed && !alreadyAssigned)
       return c.json(
         { error: "Esta versão já foi assumida ou saiu da fila. Atualize a página." },
         409,
@@ -65,7 +71,7 @@ export function createInspectionRoutes(dependencies: ApiDependencies) {
     const authorized = await db
       .prepare(`SELECT m.id FROM missions m
       JOIN mission_deliveries d ON d.mission_id=m.id AND d.version=m.delivery_version
-      WHERE m.id=? AND d.editor_id<>? AND (?='admin' OR d.assigned_inspector_id=?)`)
+      WHERE m.id=? AND d.editor_id<>? AND (?='admin' OR (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version)=?)`)
       .bind(id, actor.id, actor.role, actor.id)
       .first();
     if (!authorized)

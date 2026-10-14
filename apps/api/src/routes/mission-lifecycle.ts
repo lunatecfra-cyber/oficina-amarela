@@ -88,7 +88,7 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
       const authorized = await (c.env.DB as D1DatabaseLike)
         .prepare(`SELECT m.id FROM missions m
         JOIN mission_deliveries d ON d.mission_id=m.id AND d.version=m.delivery_version
-        WHERE m.id=? AND d.assigned_inspector_id=? AND d.editor_id<>?`)
+        WHERE m.id=? AND (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version)=? AND d.editor_id<>?`)
         .bind(missionId, session.id, session.id)
         .first();
       if (!authorized)
