@@ -38,6 +38,13 @@ export async function AppHeaderSpokesperson() {
             </Link>
 
             <Link
+              href="/editores"
+              className="tap-target hidden text-sm text-muted hover:text-text sm:inline-flex"
+            >
+              Editores
+            </Link>
+
+            <Link
               href="/parceiros?source=spokesperson"
               className="tap-target hidden text-sm text-muted hover:text-text sm:inline-flex"
             >
@@ -64,6 +71,12 @@ export async function AppHeaderSpokesperson() {
             className="tap-target flex-none whitespace-nowrap text-sm text-muted hover:text-text"
           >
             Missões
+          </Link>
+          <Link
+            href="/editores"
+            className="tap-target flex-none whitespace-nowrap text-sm text-muted hover:text-text"
+          >
+            Editores
           </Link>
           <Link
             href="/porta-voz/perfil"

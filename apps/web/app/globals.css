@@ -143,7 +143,8 @@ body {
     -webkit-text-fill-color: transparent;
   }
 
-  .field-input {
+  .field-input,
+  .input {
     width: 100%;
     padding: 0.875rem 0.95rem 0.875rem 2.75rem;
     background: var(--color-surface);
@@ -165,11 +166,20 @@ body {
       background 0.25s;
   }
 
-  .field-input::placeholder {
+  /* `input` é o campo sem ícone (busca, select, texto curto): mesmo desenho do
+   `field-input`, sem a reserva de 2.75rem à esquerda. Dez telas já usavam a
+   classe sem que ela existisse, e o campo saía cru. */
+  .input {
+    padding-left: 0.95rem;
+  }
+
+  .field-input::placeholder,
+  .input::placeholder {
     color: var(--color-muted-2);
   }
 
-  .field-input:focus {
+  .field-input:focus,
+  .input:focus {
     outline: none;
     border-color: var(--color-gold);
     background: var(--color-surface-2);
@@ -178,7 +188,10 @@ body {
 
   .field-input:-webkit-autofill,
   .field-input:-webkit-autofill:hover,
-  .field-input:-webkit-autofill:focus {
+  .field-input:-webkit-autofill:focus,
+  .input:-webkit-autofill,
+  .input:-webkit-autofill:hover,
+  .input:-webkit-autofill:focus {
     -webkit-text-fill-color: var(--color-text);
     caret-color: var(--color-text);
     -webkit-box-shadow: 0 0 0 40px var(--color-surface) inset;
