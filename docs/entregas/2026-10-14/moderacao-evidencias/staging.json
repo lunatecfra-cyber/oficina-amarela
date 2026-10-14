@@ -1,0 +1,237 @@
+{
+  "createdAt": "2026-10-14T13:32:34.797Z",
+  "api": "https://oficina-amarela-api-staging.casamarela.workers.dev",
+  "web": "https://oficina-amarela-web-staging.casamarela.workers.dev",
+  "checks": [
+    {
+      "name": "convite oficial",
+      "status": 200
+    },
+    {
+      "name": "cadastro voice",
+      "status": 200
+    },
+    {
+      "name": "cadastro editor",
+      "status": 200
+    },
+    {
+      "name": "cadastro outsider",
+      "status": 200
+    },
+    {
+      "name": "criação pelo porta-voz",
+      "status": 201
+    },
+    {
+      "name": "convite ao editor",
+      "status": 201
+    },
+    {
+      "name": "atribuição concorrente exclusiva",
+      "statuses": [
+        200,
+        200,
+        409
+      ]
+    },
+    {
+      "name": "chat privado",
+      "status": 200
+    },
+    {
+      "name": "porta-voz lê chat",
+      "status": 200
+    },
+    {
+      "name": "intruso não lê chat",
+      "status": 403
+    },
+    {
+      "name": "preparar upload v1",
+      "status": 200
+    },
+    {
+      "name": "upload v1",
+      "status": 200
+    },
+    {
+      "name": "conclusão upload v1",
+      "status": 200
+    },
+    {
+      "name": "entrega v1",
+      "status": 200
+    },
+    {
+      "name": "reedição com justificativa",
+      "status": 200
+    },
+    {
+      "name": "preparar upload v2",
+      "status": 200
+    },
+    {
+      "name": "upload v2",
+      "status": 200
+    },
+    {
+      "name": "conclusão upload v2",
+      "status": 200
+    },
+    {
+      "name": "entrega v2",
+      "status": 200
+    },
+    {
+      "name": "versão antiga não aprova nova",
+      "status": 409
+    },
+    {
+      "name": "intruso não inspeciona",
+      "status": 403
+    },
+    {
+      "name": "inspeção independente",
+      "status": 200
+    },
+    {
+      "name": "aceite pelo proprietário",
+      "status": 200
+    },
+    {
+      "name": "avaliação verificada",
+      "status": 200
+    },
+    {
+      "name": "denúncia distinta da revisão",
+      "status": 200
+    },
+    {
+      "name": "evidência pelo proxy web",
+      "status": 200
+    },
+    {
+      "name": "intruso não consulta evidência",
+      "status": 403
+    },
+    {
+      "name": "decisão exige justificativa",
+      "status": 400
+    },
+    {
+      "name": "fiscal impedido de julgar sua inspeção",
+      "status": 409
+    },
+    {
+      "name": "decisão concorrente única",
+      "statuses": [
+        200,
+        409
+      ]
+    },
+    {
+      "name": "retry da decisão é idempotente",
+      "status": 200
+    },
+    {
+      "name": "decisão mantém exclusão bloqueada",
+      "status": 400
+    },
+    {
+      "name": "conta retida não é apagada",
+      "status": 409
+    },
+    {
+      "name": "inspetor não libera retenção",
+      "status": 403
+    },
+    {
+      "name": "capacidade revogada vale imediatamente",
+      "status": 403
+    }
+  ],
+  "users": {
+    "inspector": {
+      "id": 110,
+      "handle": "md.ins.1791984754683"
+    },
+    "moderator": {
+      "id": 111,
+      "handle": "md.mod.1791984754683"
+    },
+    "release": {
+      "id": 112,
+      "handle": "md.rel.1791984754683"
+    },
+    "voice": {
+      "id": 113,
+      "handle": "md.voi.1791984754683"
+    },
+    "editor": {
+      "id": 114,
+      "handle": "md.edi.1791984754683"
+    },
+    "outsider": {
+      "id": 115,
+      "handle": "md.out.1791984754683"
+    }
+  },
+  "missions": [
+    47
+  ],
+  "reportId": 2,
+  "database": {
+    "mission": [
+      {
+        "id": 47,
+        "status": "finalizada",
+        "reserved_by_id": 114,
+        "delivery_version": 2
+      }
+    ],
+    "decisions": [
+      {
+        "report_id": 2,
+        "actor_id": 111,
+        "actor_name": "Synthetic moderator",
+        "status": "resolvida",
+        "reason": "Entrega e histórico conferidos no ensaio",
+        "created_at": "2026-10-14T13:33:18.909Z"
+      }
+    ],
+    "captures": [
+      {
+        "report_id": 2,
+        "origin": "opening",
+        "captured_at": "2026-10-14T13:33:13.939Z"
+      }
+    ],
+    "foreignKeys": [],
+    "releases": [
+      {
+        "report_id": 2,
+        "actor_id": 112,
+        "actor_name": "Synthetic release",
+        "reason": "Ensaio encerrado; retenção revisada sem exclusão",
+        "created_at": "2026-10-14T13:33:30.260Z"
+      }
+    ],
+    "audit": [
+      {
+        "action": "denuncia_decidida",
+        "actor_id": 111,
+        "details": "{\"status\":\"resolvida\",\"reason\":\"Entrega e histórico conferidos no ensaio\",\"actorName\":\"Synthetic moderator\"}"
+      },
+      {
+        "action": "retencao_denuncia_liberada",
+        "actor_id": 112,
+        "details": "{\"reason\":\"Ensaio encerrado; retenção revisada sem exclusão\",\"actorName\":\"Synthetic release\"}"
+      }
+    ]
+  },
+  "videoUrls": [
+    "https://oficina-amarela-web-staging.casamarela.workers.dev/api/missions/47/files/114/7708df70-ca0f-43a1-8dcb-0ddc3956c1bf",
+    "https://oficina-amarela-web-staging.casamarela.workers.dev/api/missions/47/files/114/6b4d5a99-398d-4c96-acd7-b2c6a3726ad5"
+  ]
+}

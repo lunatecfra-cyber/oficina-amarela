@@ -1,0 +1,5 @@
+
+ ⛅️ wrangler 4.151.0
+────────────────────
+Listing lock rules for bucket 'oficina-amarela-midia-staging'...
+There are no lock rules for bucket 'oficina-amarela-midia-staging'.

@@ -1,0 +1,4 @@
+
+ ⛅️ wrangler 4.151.0
+────────────────────
+Public access via the r2.dev URL is disabled.

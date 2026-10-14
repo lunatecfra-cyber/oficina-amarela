@@ -1,0 +1,8 @@
+
+ ⛅️ wrangler 4.151.0
+────────────────────
+Listing lifecycle rules for bucket 'oficina-amarela-midia-staging'...
+name:     Default Multipart Abort Rule
+enabled:  Yes
+prefix:   (all prefixes)
+action:   Abort incomplete multipart uploads after 7 days

@@ -1,0 +1,142 @@
+{
+  "createdAt": "2026-10-14T19:33:26.163Z",
+  "web": "https://oficina-amarela-web-staging.casamarela.workers.dev",
+  "cases": [
+    {
+      "viewport": "desktop",
+      "checks": [
+        "cadastro-voice",
+        "cadastro-editor",
+        "missao-criada",
+        "atribuicao-ofertada",
+        "atribuicao-aceita",
+        "chat-privado",
+        "entrega-v1",
+        "reedicao",
+        "entrega-v2",
+        "inspecao-sem-admin",
+        "rota-administrativa-negada",
+        "aprovacao-avaliacao",
+        "denuncia",
+        "encaminhamento-evidencias",
+        "decisao-auditada",
+        "exclusao-bloqueada",
+        "bytes-v1-v2-preservados",
+        "retencao-liberada",
+        "revogacao-capacidade-pela-interface",
+        "revogacao-papel"
+      ],
+      "users": {
+        "admin": {
+          "handle": "e2.d.adm.1792006101837",
+          "id": 198
+        },
+        "inspector": {
+          "handle": "e2.d.ins.1792006101837",
+          "id": 199
+        },
+        "voice": {
+          "handle": "e2.d.voi.1792006101837",
+          "id": 200
+        },
+        "editor": {
+          "handle": "e2.d.edi.1792006101837",
+          "id": 201
+        }
+      },
+      "sha256": "86322dabed157baf72a26314fdac76fc427cddd7ac231ae733868342b8dd9f48",
+      "title": "RBAC visual desktop 1792006101837",
+      "missionId": 61,
+      "reportId": 6,
+      "database": {
+        "audit": [
+          {
+            "action": "denuncia_encaminhada",
+            "actor_id": 199,
+            "details": "{\"reason\":\"Encaminhar evidências à decisão administrativa\",\"actorName\":\"Synthetic desktop inspector\"}"
+          },
+          {
+            "action": "denuncia_decidida",
+            "actor_id": 198,
+            "details": "{\"status\":\"resolvida\",\"reason\":\"Histórico sintético conferido; denúncia resolvida\",\"actorName\":\"Synthetic desktop admin\"}"
+          },
+          {
+            "action": "retencao_denuncia_liberada",
+            "actor_id": 198,
+            "details": "{\"reason\":\"Ensaio visual encerrado; retenção revisada\",\"actorName\":\"Synthetic desktop admin\"}"
+          }
+        ],
+        "foreignKeys": []
+      },
+      "passed": true
+    },
+    {
+      "viewport": "mobile",
+      "checks": [
+        "cadastro-voice",
+        "cadastro-editor",
+        "missao-criada",
+        "atribuicao-ofertada",
+        "atribuicao-aceita",
+        "chat-privado",
+        "entrega-v1",
+        "reedicao",
+        "entrega-v2",
+        "inspecao-sem-admin",
+        "rota-administrativa-negada",
+        "aprovacao-avaliacao",
+        "denuncia",
+        "encaminhamento-evidencias",
+        "decisao-auditada",
+        "exclusao-bloqueada",
+        "bytes-v1-v2-preservados",
+        "retencao-liberada",
+        "revogacao-capacidade-pela-interface",
+        "revogacao-papel"
+      ],
+      "users": {
+        "admin": {
+          "handle": "e2.m.adm.1792006101837",
+          "id": 206
+        },
+        "inspector": {
+          "handle": "e2.m.ins.1792006101837",
+          "id": 207
+        },
+        "voice": {
+          "handle": "e2.m.voi.1792006101837",
+          "id": 208
+        },
+        "editor": {
+          "handle": "e2.m.edi.1792006101837",
+          "id": 209
+        }
+      },
+      "sha256": "86322dabed157baf72a26314fdac76fc427cddd7ac231ae733868342b8dd9f48",
+      "title": "RBAC visual mobile 1792006101837",
+      "missionId": 62,
+      "reportId": 7,
+      "database": {
+        "audit": [
+          {
+            "action": "denuncia_encaminhada",
+            "actor_id": 207,
+            "details": "{\"reason\":\"Encaminhar evidências à decisão administrativa\",\"actorName\":\"Synthetic mobile inspector\"}"
+          },
+          {
+            "action": "denuncia_decidida",
+            "actor_id": 206,
+            "details": "{\"status\":\"resolvida\",\"reason\":\"Histórico sintético conferido; denúncia resolvida\",\"actorName\":\"Synthetic mobile admin\"}"
+          },
+          {
+            "action": "retencao_denuncia_liberada",
+            "actor_id": 206,
+            "details": "{\"reason\":\"Ensaio visual encerrado; retenção revisada\",\"actorName\":\"Synthetic mobile admin\"}"
+          }
+        ],
+        "foreignKeys": []
+      },
+      "passed": true
+    }
+  ]
+}

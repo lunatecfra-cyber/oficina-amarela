@@ -1,0 +1,50 @@
+[
+  {
+    "results": [
+      {
+        "revoked_synthetic_users": 6,
+        "remaining_release_capabilities": 0,
+        "active_assignments": 0
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "ENAM",
+      "served_by_colo": "IAD",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.2883
+      },
+      "duration": 0.2883,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 602112,
+      "rows_read": 12,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "ENAM",
+      "served_by_colo": "IAD",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.4417
+      },
+      "duration": 0.4417,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 602112,
+      "rows_read": 819,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  }
+]
