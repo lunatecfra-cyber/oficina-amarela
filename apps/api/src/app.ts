@@ -21,6 +21,7 @@ import { createAdminRankingRoutes } from "./routes/admin-ranking.ts";
 import { createAdminManagementRoutes } from "./routes/admin-routes.ts";
 import { createAuthRoutes } from "./routes/auth.ts";
 import { createContentRoutes } from "./routes/content.ts";
+import { createDisputeRoutes } from "./routes/disputes.ts";
 import { createEditorDirectoryRoutes } from "./routes/editor-directory.ts";
 import { createEditorQueue } from "./routes/editor-queue.ts";
 import { createInspectionRoutes } from "./routes/inspections.ts";
@@ -180,6 +181,7 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
   // "queue-total" é interpretada como id de missão e recebe a autenticação
   // da colaboração antes de chegar à consulta pública.
   app.route("/", createMissionsCrudRoutes(dependencies));
+  app.route("/disputes", createDisputeRoutes(dependencies));
   app.route("/missions", createMissionCollaborationRoutes(dependencies));
   app.route("/missions", createMissionFileRoutes(dependencies));
   app.route("/missions", createMissionLifecycleRoutes(dependencies));

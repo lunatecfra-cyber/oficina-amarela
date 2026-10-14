@@ -2,6 +2,7 @@ import { type AccountsRepository, postgresAccounts } from "@oficina/db/accounts"
 import { type AdminRepository, postgresAdmin } from "@oficina/db/admin";
 import { createD1Accounts } from "@oficina/db/d1/accounts";
 import { createD1Admin } from "@oficina/db/d1/admin";
+import { createD1Disputes } from "@oficina/db/d1/disputes";
 import { createD1Gamification } from "@oficina/db/d1/gamification";
 import { instrumentD1Database } from "@oficina/db/d1/instrumentation";
 import { createD1InvitationAdmin } from "@oficina/db/d1/invitation-admin";
@@ -18,6 +19,7 @@ import { createD1Profiles } from "@oficina/db/d1/profiles";
 import { createD1Ranking } from "@oficina/db/d1/ranking";
 import { createD1RankingAdmin } from "@oficina/db/d1/ranking-admin";
 import type { D1DatabaseLike } from "@oficina/db/d1/types";
+import { type DisputeRepository, postgresDisputes } from "@oficina/db/disputes";
 import {
   type GamificationRepository,
   postgresGamification,
@@ -64,6 +66,7 @@ export type ApiDependencies = {
   missionQueue: MissionQueueRepository;
   missionLifecycle: MissionLifecycleRepository;
   missionCollaboration: MissionCollaborationRepository;
+  disputes: DisputeRepository;
   missionApproval: MissionApprovalRepository;
   missionContacts: typeof missionContacts;
   missions: MissionsRepository;
@@ -86,6 +89,7 @@ export const postgresApiDependencies: ApiDependencies = {
   missionQueue: postgresMissionQueue,
   missionLifecycle: postgresMissionLifecycle,
   missionCollaboration: postgresMissionCollaboration,
+  disputes: postgresDisputes,
   missionApproval: postgresMissionApproval,
   missionContacts,
   missions: postgresMissions,
@@ -119,6 +123,7 @@ export function d1ApiDependencies(rawDb: D1DatabaseLike): ApiDependencies {
     missionQueue: createD1MissionQueue(db),
     missionLifecycle: createD1MissionLifecycle(db),
     missionCollaboration: createD1MissionCollaboration(db),
+    disputes: createD1Disputes(db),
     missionApproval: createD1MissionApproval(db),
     missionContacts: createD1MissionContacts(db),
     missions: createD1Missions(db),

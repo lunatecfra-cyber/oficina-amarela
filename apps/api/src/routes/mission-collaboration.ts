@@ -1,12 +1,9 @@
 import type { UserSession } from "@oficina/auth/session";
 import type { MissionCollaborationFailure } from "@oficina/db/mission-collaboration";
-import {
-  ATTACHMENT_MAX_BYTES,
-  attachmentMatchesType,
-  validateChatAttachment,
-} from "@oficina/domain/uploads";
+import { ATTACHMENT_MAX_BYTES } from "@oficina/domain/uploads";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
+import { attachmentResponse, prepareAttachment } from "../attachments.ts";
 import type { ApiDependencies } from "../dependencies.ts";
 import { migratedMissionCollaborationAction } from "../mission-actions.ts";
 import { requireSession } from "../session.ts";
@@ -107,20 +104,9 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
     const form = await c.req.parseBody().catch(() => null);
     const file = form?.file;
     if (!(file instanceof File)) return c.json({ error: "Envie um arquivo." }, 400);
-    const policy = validateChatAttachment(file.type, file.size);
-    if (!policy.ok) return c.json({ error: policy.error }, policy.status);
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    if (bytes.byteLength !== file.size || !attachmentMatchesType(file.type, bytes))
-      return c.json({ error: "O conteúdo não corresponde ao formato do arquivo." }, 415);
-
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
-    const sha256 = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-    // Só o nome, sem caminho nem caracteres de controle, e com teto de tamanho.
-    const filename =
-      [...(file.name.split(/[\\/]/).pop() ?? "")]
-        .filter((ch) => ch.charCodeAt(0) > 31)
-        .join("")
-        .slice(0, 120) || "anexo";
+    const prepared = await prepareAttachment(file);
+    if (!prepared.ok) return c.json({ error: prepared.error }, prepared.status);
+    const { bytes, filename, sha256 } = prepared.attachment;
     const objectKey = `chat/${missionId}/${crypto.randomUUID()}`;
     await c.env.MEDIA.put(objectKey, bytes, {
       httpMetadata: { contentType: file.type },
@@ -161,17 +147,7 @@ export function createMissionCollaborationRoutes(dependencies: ApiDependencies) 
     }
     const object = await c.env.MEDIA.get(found.attachment.objectKey);
     if (!object) return c.json({ error: "Anexo não encontrado." }, 404);
-    const inline = found.attachment.contentType.startsWith("image/");
-    return new Response(object.body as never, {
-      headers: {
-        "content-type": found.attachment.contentType,
-        "content-length": String(object.size),
-        "content-disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(found.attachment.filename)}`,
-        "cache-control": "private, no-store",
-        "x-content-type-options": "nosniff",
-        "content-security-policy": "default-src 'none'; sandbox",
-      },
-    });
+    return attachmentResponse(object, found.attachment);
   });
 
   routes.post("/:id/read", async (c) => {
