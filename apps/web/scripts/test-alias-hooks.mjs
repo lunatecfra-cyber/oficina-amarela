@@ -15,6 +15,7 @@ const EXTENSIONS = ["", ".ts", ".tsx", ".mts", ".js", ".mjs", "/index.ts", "/ind
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
+    if (specifier === "next/server") return nextResolve("next/server.js", context);
     if (!specifier.startsWith("@/")) return nextResolve(specifier, context);
 
     const base = path.join(root, specifier.slice(2));

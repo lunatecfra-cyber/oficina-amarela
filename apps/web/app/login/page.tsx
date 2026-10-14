@@ -20,7 +20,7 @@ const PILLARS = [
     icon: <path d="M20 6 9 17l-5-5" />,
   },
   {
-    text: "Suba de Aprendiz a Mestre-Artesão e desbloqueie os pagos.",
+    text: "Defina sua preferência por voluntariado. Pagamentos ainda não estão ativos.",
     icon: <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4L12 17l-6.3 4.4L8 14 2 9.4h7.6z" />,
   },
 ];
@@ -43,8 +43,8 @@ export default function LoginPage() {
             quem edita.
           </h2>
           <p className="mt-5 max-w-sm text-[15px] font-light leading-relaxed text-muted">
-            Onde o bruto vira arte. Editores entram provando valor, sobem de nível e desbloqueiam os
-            trabalhos em ordem, com mérito.
+            Onde o bruto vira arte. Editores completam o perfil e encontram missões gratuitas.
+            Experientes convidados recebem qualificação administrativa, sem avaliações artificiais.
           </p>
         </div>
 

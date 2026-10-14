@@ -60,7 +60,7 @@ async function login(actor) {
   assert.equal(data.role, accounts[actor].role);
 }
 async function signup(actor, role, invitation) {
-  const handle = `${actor}.${stamp}`,
+  const handle = `${actor === "experienced" ? "exp" : actor}.${stamp}`,
     email = `${handle}@example.invalid`;
   const { data, response } = await call("/auth/signup", null, {
     name: `Ensaio ${actor}`,
@@ -107,7 +107,7 @@ await signup("beginner", "editor");
 const voiceEmail = `voice.${stamp}@example.invalid`;
 const voiceInvitation = (await call("/admin/invitations", "admin", { email: voiceEmail })).data;
 await signup("voice", "spokesperson", voiceInvitation.token);
-const experiencedEmail = `experienced.${stamp}@example.invalid`;
+const experiencedEmail = `exp.${stamp}@example.invalid`;
 const invitation = (
   await call("/admin/invitations", "admin", {
     email: experiencedEmail,
