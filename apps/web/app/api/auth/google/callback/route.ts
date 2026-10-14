@@ -10,7 +10,7 @@ import {
   STATE_COOKIE_OPTS,
   verifySignedState,
 } from "@oficina/auth/session";
-import { roleHome } from "@oficina/domain/roles";
+import { type Role, roleHome } from "@oficina/domain/roles";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { fetchApi } from "@/lib/internal-api";
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
       handle: string;
       name: string;
       email: string;
-      role: "editor" | "spokesperson" | "admin";
+      role: Role;
     } | null;
   };
 

@@ -8,7 +8,7 @@ const ROLE_LABEL: Record<string, string> = {
   spokesperson: "Candidato",
   voz: "Candidato",
   editor: "Editor",
-  admin: "Inspetor",
+  admin: "Administrador",
   inspector: "Inspetor",
 };
 
