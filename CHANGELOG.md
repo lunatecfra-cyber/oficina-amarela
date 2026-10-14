@@ -25,6 +25,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Datas ausentes na fila deixam de aparecer como 1969 ou NaN; prazos são apresentados em português brasileiro.
 - Histórico concluído permanece acessível ao fiscal responsável, sem oferecer inspeções encerradas sem atribuição.
 - O formulário de denúncias identifica corretamente a justificativa de encaminhamento para quem não decide administrativamente.
+- Inspetores acessam Denúncias pela permissão `reports.read`, sem o bloqueio redundante que exigia ADMIN.
 
 ### Segurança
 - Autorização por capacidades revalidada na conta atual, com revogação de sessões e bloqueio imediato de acesso à inspeção e à mídia.
