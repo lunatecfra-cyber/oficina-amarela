@@ -1,0 +1,39 @@
+{
+  "foreignKeyViolations": [],
+  "before": [
+    [
+      {
+        "users": 67
+      }
+    ],
+    [
+      {
+        "deliveries": 12
+      }
+    ],
+    [
+      {
+        "evidence": 9
+      }
+    ]
+  ],
+  "after": [
+    [
+      {
+        "users": 75
+      }
+    ],
+    [
+      {
+        "deliveries": 12
+      }
+    ],
+    [
+      {
+        "evidence": 9
+      }
+    ]
+  ],
+  "backup": "/tmp/oficina-before-onboarding-rbac-integration.sql",
+  "migration": "0023_assigned_inspection_capabilities.sql"
+}

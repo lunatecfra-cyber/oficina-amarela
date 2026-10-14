@@ -1,0 +1,111 @@
+{
+  "stamp": 1791986447967,
+  "checks": [
+    "Convite administrativo resgatado uma vez sem elevação",
+    "Perfil, disponibilidade, classificação, selo e preferência persistem",
+    "Iniciante e experiente primeira entrega obrigatória",
+    "Fila acessível ao INSPECTOR dedicado",
+    "Ajustes solicitados com motivo",
+    "Nova versão submetida",
+    "Versão atual aprovada tecnicamente; antiga bloqueada",
+    "Porta-voz finaliza e avalia com origem real",
+    "Acessos cruzados, alteração de estrelas e elevação negados",
+    "Fila administrativa disponível",
+    "Publicação e revogação de portfólio mantidas"
+  ],
+  "accounts": {
+    "admin": {
+      "id": 116,
+      "handle": "admin.1791986447967",
+      "role": "admin"
+    },
+    "inspector": {
+      "id": 117,
+      "handle": "inspector.1791986447967",
+      "role": "inspector"
+    },
+    "other": {
+      "id": 118,
+      "handle": "other.1791986447967",
+      "role": "inspector"
+    },
+    "beginner": {
+      "id": 119,
+      "handle": "beginner.1791986447967",
+      "role": "editor"
+    },
+    "voice": {
+      "id": 120,
+      "handle": "voice.1791986447967",
+      "role": "spokesperson"
+    },
+    "experienced": {
+      "id": 121,
+      "handle": "exp.1791986447967",
+      "role": "editor"
+    }
+  },
+  "missions": [
+    {
+      "id": 48,
+      "title": "Ensaio onboarding beginner 1791986447967",
+      "status": "finalizada",
+      "delivery_version": 2,
+      "inspection_reason": "first_three_deliveries"
+    },
+    {
+      "id": 49,
+      "title": "Ensaio onboarding experienced 1791986447967",
+      "status": "finalizada",
+      "delivery_version": 1,
+      "inspection_reason": "invited_first_delivery"
+    }
+  ],
+  "evidence": [
+    {
+      "id": 48,
+      "status": "finalizada",
+      "inspection_reason": "first_three_deliveries",
+      "version": 1,
+      "decision": "revision_requested",
+      "comment": "Corrigir a legenda sintética",
+      "inspector_id": 117,
+      "inspected_at": "2026-10-14T14:01:36.559Z"
+    },
+    {
+      "id": 48,
+      "status": "finalizada",
+      "inspection_reason": "first_three_deliveries",
+      "version": 2,
+      "decision": "approved",
+      "comment": "Legenda corrigida e conferida",
+      "inspector_id": 117,
+      "inspected_at": "2026-10-14T14:01:48.492Z"
+    },
+    {
+      "id": 49,
+      "status": "finalizada",
+      "inspection_reason": "invited_first_delivery",
+      "version": 1,
+      "decision": "approved",
+      "comment": "Primeira entrega experiente conferida",
+      "inspector_id": 117,
+      "inspected_at": "2026-10-14T14:01:53.045Z"
+    }
+  ],
+  "rating": [
+    {
+      "editor_id": 119,
+      "rating": 4,
+      "source": "spokesperson",
+      "reviewer_id": 120,
+      "delivery_version": 2
+    }
+  ],
+  "portfolio": {
+    "id": "00b95767-d135-42bf-a988-90f1b0a8910f",
+    "publication": 200,
+    "afterRevocation": 404
+  },
+  "demoMission": 50
+}

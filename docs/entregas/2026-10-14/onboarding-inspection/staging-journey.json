@@ -1,0 +1,86 @@
+{
+  "stamp": 1791995546842,
+  "checks": [
+    "convite administrativo resgatado uma vez",
+    "perfil, especialidades, selo e voluntariado persistem após login",
+    "primeiras entregas de iniciante e experiente exigem inspeção",
+    "atribuição e revogação de capacidade restringem mídia e informações privadas",
+    "ajuste, versão corrigida, inspeção e avaliação real concluídos",
+    "acesso cruzado, estrelas, selo e elevação de papel negados",
+    "publicação e revogação de portfólio preservadas"
+  ],
+  "accounts": {
+    "admin": {
+      "id": 142,
+      "handle": "admin.1791995546842",
+      "role": "admin"
+    },
+    "inspector": {
+      "id": 143,
+      "handle": "inspector.1791995546842",
+      "role": "inspector"
+    },
+    "other": {
+      "id": 144,
+      "handle": "other.1791995546842",
+      "role": "inspector"
+    },
+    "beginner": {
+      "id": 145,
+      "handle": "beginner.1791995546842",
+      "role": "editor"
+    },
+    "voice": {
+      "id": 146,
+      "handle": "voice.1791995546842",
+      "role": "spokesperson"
+    },
+    "experienced": {
+      "id": 147,
+      "handle": "exp.1791995546842",
+      "role": "editor"
+    }
+  },
+  "missions": [
+    53,
+    54
+  ],
+  "evidence": [
+    {
+      "id": 53,
+      "title": "Ensaio onboarding beginner 1791995546842",
+      "status": "finalizada",
+      "delivery_version": 2,
+      "inspection_reason": "first_three_deliveries",
+      "version": 1,
+      "decision": "revision_requested",
+      "comment": "Corrigir a legenda sintética",
+      "inspector_id": 143,
+      "inspected_at": "2026-10-14T16:34:11.651Z"
+    },
+    {
+      "id": 53,
+      "title": "Ensaio onboarding beginner 1791995546842",
+      "status": "finalizada",
+      "delivery_version": 2,
+      "inspection_reason": "first_three_deliveries",
+      "version": 2,
+      "decision": "approved",
+      "comment": "Legenda corrigida e conferida",
+      "inspector_id": 143,
+      "inspected_at": "2026-10-14T16:34:25.585Z"
+    },
+    {
+      "id": 54,
+      "title": "Ensaio onboarding experienced 1791995546842",
+      "status": "finalizada",
+      "delivery_version": 1,
+      "inspection_reason": "invited_first_delivery",
+      "version": 1,
+      "decision": "approved",
+      "comment": "Primeira entrega experiente conferida",
+      "inspector_id": 143,
+      "inspected_at": "2026-10-14T16:34:30.765Z"
+    }
+  ]
+}
