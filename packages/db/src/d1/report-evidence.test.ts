@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 import { after, before, test } from "node:test";
 import { COOKIE_NAME, createSessionToken } from "@oficina/auth/session";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
@@ -155,6 +156,24 @@ test("captura atômica, permissões, recuperação e concorrência; retenção s
     .first();
   assert.equal((await request(`/missions/${missionId}`, 3, "DELETE")).status, 400);
   assert.equal((await request("/account", 2, "DELETE", { confirmation: "evidence2" })).status, 409);
+  // password accounts confirm with the password, as the UI asks; a wrong one is refused
+  const { hashSync } = createRequire(import.meta.url)(
+    createRequire(new URL("../../../../apps/api/package.json", import.meta.url)).resolve(
+      "bcryptjs",
+    ),
+  );
+  await db
+    .prepare("UPDATE users SET password_hash=? WHERE id=2")
+    .bind(hashSync("senha-do-editor", 4))
+    .run();
+  assert.equal(
+    (await request("/account", 2, "DELETE", { confirmation: "senha-do-editor" })).status,
+    409,
+  );
+  assert.equal(
+    (await request("/account", 2, "DELETE", { confirmation: "senha-errada" })).status,
+    400,
+  );
   assert.equal((await request("/admin/users/2", 3, "DELETE")).status, 400);
   assert.deepEqual(
     await db
@@ -318,7 +337,7 @@ test("impedimento das partes e do fiscal da entrega; revogação vale com cookie
     409,
   );
   await db.prepare("UPDATE users SET role='admin' WHERE id=1").run();
-  cookies[1] = `${COOKIE_NAME}=${await createSessionToken({ id: 1, role: "admin", handle: "evidence1", name: "Nome alterado",sessionVersion:1 })}`;
+  cookies[1] = `${COOKIE_NAME}=${await createSessionToken({ id: 1, role: "admin", handle: "evidence1", name: "Nome alterado", sessionVersion: 1 })}`;
   assert.equal(
     (
       await request(`${path}/resolve`, 1, "POST", {

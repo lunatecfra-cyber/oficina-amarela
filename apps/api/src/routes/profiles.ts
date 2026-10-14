@@ -167,7 +167,13 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const confirmation = String(body?.confirmation ?? body?.confirmacao ?? "");
 
-    if (!confirmation || confirmation.trim().toLowerCase() !== session.handle.toLowerCase()) {
+    // The UI asks password accounts for the password, so accept it besides the handle.
+    const hash = (await dependencies.accounts.findByHandle(session.handle))?.passwordHash;
+    const confirmed =
+      confirmation.trim().toLowerCase() === session.handle.toLowerCase() ||
+      Boolean(hash && confirmation.length <= 200 && (await bcrypt.compare(confirmation, hash)));
+
+    if (!confirmation || !confirmed) {
       return c.json(
         {
           error: "Confirme o apelido da conta antes de apagar.",
