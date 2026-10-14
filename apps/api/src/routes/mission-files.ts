@@ -1,3 +1,4 @@
+import type { R2Bucket } from "@cloudflare/workers-types";
 import type { UserSession } from "@oficina/auth/session";
 import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import { validateRawMediaUpload } from "@oficina/domain/uploads";
@@ -135,37 +136,52 @@ export function createMissionFileRoutes(dependencies: ApiDependencies) {
     if (!UUID.test(fileId) || !Number.isInteger(ownerId) || ownerId <= 0)
       return c.json({ error: "Arquivo inválido." }, 400);
     const key = `missions/${Number(c.req.param("id"))}/${ownerId}/${fileId}`;
-    const metadata = await c.env.MEDIA!.head(key);
-    if (!metadata || metadata.size !== Number(metadata.customMetadata?.expectedSize))
-      return c.json({ error: "Vídeo não encontrado ou incompleto." }, 404);
-    const range = c.req.header("range");
-    let offset = 0,
-      length = metadata.size;
-    if (range) {
-      const match = /^bytes=(\d*)-(\d*)$/.exec(range);
-      if (!match || (!match[1] && !match[2]))
-        return c.body(null, 416, { "content-range": `bytes */${metadata.size}` });
-      offset = match[1] ? Number(match[1]) : Math.max(0, metadata.size - Number(match[2]));
-      const end = match[1] && match[2] ? Number(match[2]) : metadata.size - 1;
-      if (offset >= metadata.size || end < offset)
-        return c.body(null, 416, { "content-range": `bytes */${metadata.size}` });
-      length = Math.min(end, metadata.size - 1) - offset + 1;
-    }
-    const object = await c.env.MEDIA!.get(key, range ? { range: { offset, length } } : undefined);
-    if (!object) return c.json({ error: "Vídeo não encontrado." }, 404);
-    const headers = new Headers({
-      "content-type": object.httpMetadata?.contentType ?? "video/mp4",
-      "cache-control": "private, no-store",
-      "accept-ranges": "bytes",
-      "x-content-type-options": "nosniff",
-    });
-    if (range) {
-      headers.set("content-range", `bytes ${offset}-${offset + length - 1}/${object.size}`);
-      headers.set("content-length", String(length));
-      return new Response(object.body as never, { status: 206, headers });
-    }
-    headers.set("content-length", String(object.size));
-    return new Response(object.body as never, { headers });
+    return readMissionMedia(c.env.MEDIA!, key, c.req.header("range"));
   });
   return routes;
+}
+
+export async function readMissionMedia(bucket: R2Bucket, key: string, range?: string) {
+  const metadata = await bucket.head(key);
+  if (!metadata || metadata.size !== Number(metadata.customMetadata?.expectedSize))
+    return Response.json({ error: "Vídeo não encontrado ou incompleto." }, { status: 404 });
+  let offset = 0,
+    length = metadata.size;
+  if (range) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+    if (!match || (!match[1] && !match[2]))
+      return new Response(null, {
+        status: 416,
+        headers: {
+          "content-range": `bytes */${metadata.size}`,
+          "cache-control": "private, no-store",
+        },
+      });
+    offset = match[1] ? Number(match[1]) : Math.max(0, metadata.size - Number(match[2]));
+    const end = match[1] && match[2] ? Number(match[2]) : metadata.size - 1;
+    if (offset >= metadata.size || end < offset)
+      return new Response(null, {
+        status: 416,
+        headers: {
+          "content-range": `bytes */${metadata.size}`,
+          "cache-control": "private, no-store",
+        },
+      });
+    length = Math.min(end, metadata.size - 1) - offset + 1;
+  }
+  const object = await bucket.get(key, range ? { range: { offset, length } } : undefined);
+  if (!object) return Response.json({ error: "Vídeo não encontrado." }, { status: 404 });
+  const headers = new Headers({
+    "content-type": object.httpMetadata?.contentType ?? "video/mp4",
+    "cache-control": "private, no-store",
+    "accept-ranges": "bytes",
+    "x-content-type-options": "nosniff",
+  });
+  if (range) {
+    headers.set("content-range", `bytes ${offset}-${offset + length - 1}/${object.size}`);
+    headers.set("content-length", String(length));
+    return new Response(object.body as never, { status: 206, headers });
+  }
+  headers.set("content-length", String(object.size));
+  return new Response(object.body as never, { headers });
 }

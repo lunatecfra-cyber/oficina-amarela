@@ -1,5 +1,4 @@
 import { initials } from "@oficina/domain/candidates";
-import { FORMAT_LABEL } from "@oficina/domain/missions";
 import { DEFAULT_EDITOR_PROFILE, levelProgress } from "@oficina/domain/profile";
 import {
   activeWorkFromMission,
@@ -7,7 +6,6 @@ import {
   DEFAULT_AVAILABILITY,
   PERIODS,
 } from "@oficina/domain/schedule";
-import { Play } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -62,7 +60,6 @@ export default async function ProfilePage() {
   const rating = p.rating ?? (p as any).nota;
   const reputation = p.reputation ?? (p as any).reputacao ?? 0;
   const streak = p.streak ?? 0;
-  const portfolio = p.portfolio ?? [];
   const history = p.history ?? (p as any).historico ?? [];
   const achievements = p.achievements ?? (p as any).conquistas ?? [];
 
@@ -184,48 +181,12 @@ export default async function ProfilePage() {
               </Card>
 
               <Card title="Portfólio" delay={0.1} guide="cartao-portfolio">
-                {portfolio.length === 0 ? (
-                  /* Vazio com convite: antes era uma frase solta que lia como
-                     beco sem saída. A área tracejada mostra onde as entregas
-                     vão morar e o botão dá o próximo passo. */
-                  <div className="rounded-xl border border-dashed border-line px-4 py-7 text-center">
-                    <p className="mx-auto max-w-xs text-sm leading-relaxed text-muted-2">
-                      Seu portfólio se preenche sozinho: cada entrega aprovada entra aqui.
-                    </p>
-                    <Link href="/editor" className="btn-ghost mt-4 inline-flex w-auto px-5 text-sm">
-                      Ver a fila de missões
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {portfolio.map((v: any) => (
-                      <figure key={v.id} className="group">
-                        <div
-                          className="relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-xl border border-line-soft transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-gold-lo/40 group-hover:shadow-[0_10px_28px_rgba(0,0,0,0.5)] group-focus-within:border-gold-lo/40"
-                          style={{ background: v.tint }}
-                        >
-                          <span className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/5" />
-                          <Play
-                            className="relative h-8 w-8 text-white/90 drop-shadow"
-                            fill="currentColor"
-                            aria-hidden="true"
-                          />
-                          <span className="absolute left-2 top-2 rounded bg-black/45 px-1.5 py-0.5 text-xs font-medium text-white/90">
-                            {FORMAT_LABEL[v.format as keyof typeof FORMAT_LABEL] ??
-                              (FORMAT_LABEL as any)[v.formato] ??
-                              v.format}
-                          </span>
-                        </div>
-                        <figcaption className="mt-2">
-                          <p className="truncate text-sm font-medium text-text">
-                            {v.title ?? v.titulo}
-                          </p>
-                          <p className="text-xs text-muted-2">{v.spokesperson ?? v.portaVoz}</p>
-                        </figcaption>
-                      </figure>
-                    ))}
-                  </div>
-                )}
+                <p className="text-sm text-muted">
+                  Escolha suas entregas finalizadas e solicite autorização para cada amostra.
+                </p>
+                <Link href="/portfolio" className="btn-gold mt-4">
+                  Gerenciar meu portfólio
+                </Link>
               </Card>
 
               <Card title="Histórico" delay={0.15}>

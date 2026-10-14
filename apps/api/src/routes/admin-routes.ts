@@ -1,4 +1,5 @@
 import type { UserSession } from "@oficina/auth/session";
+import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import { buildAdminNotifications } from "@oficina/domain/notifications";
 import { drainEmailQueueNow, queueNoticeEmail } from "@oficina/email/dispatch";
 import { buildEditorsQueueEmail, buildFreeEditorsEmail } from "@oficina/email/messages";
@@ -79,7 +80,41 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
     const user = await dependencies.admin.viewUserDetails(id);
     if (!user)
       return c.json({ error: "Conta não encontrada.", erro: "Conta não encontrada." }, 404);
-    return c.json({ ...user, user, usuario: user });
+    const verification = c.env.DB
+      ? await (c.env.DB as D1DatabaseLike)
+          .prepare("SELECT verified FROM editor_verifications WHERE editor_id=?")
+          .bind(id)
+          .first<{ verified: number }>()
+      : null;
+    const detail = { ...user, editorVerified: Boolean(verification?.verified) };
+    return c.json({ ...detail, user: detail, usuario: detail });
+  });
+
+  routes.post("/users/:id", async (c) => {
+    const body = await c.req.json().catch(() => null),
+      id = Number(c.req.param("id"));
+    if (!c.env.DB) return c.json({ error: "Habilitação indisponível neste ambiente." }, 503);
+    if (
+      !Number.isSafeInteger(id) ||
+      id <= 0 ||
+      typeof body?.verified !== "boolean" ||
+      typeof body?.reason !== "string" ||
+      !body.reason.trim() ||
+      body.reason.trim().length > 500
+    )
+      return c.json({ error: "Informe a habilitação e o motivo (até 500 caracteres)." }, 400);
+    const db = c.env.DB as D1DatabaseLike,
+      actor = c.get("session");
+    const result = await db
+      .prepare(`INSERT INTO editor_verifications(editor_id,verified,admin_id,reason)
+      SELECT id,?,?,? FROM users WHERE id=? AND role='editor' AND is_banned=0 AND profile_completed=1
+      AND EXISTS(SELECT 1 FROM users WHERE id=? AND role='admin' AND is_banned=0)
+      ON CONFLICT(editor_id) DO UPDATE SET verified=excluded.verified,admin_id=excluded.admin_id,reason=excluded.reason,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
+      .bind(Number(body.verified), actor.id, body.reason.trim(), id, actor.id)
+      .run();
+    return result.meta.changes
+      ? c.json({ ok: true })
+      : c.json({ error: "Editor não está disponível para habilitação." }, 409);
   });
 
   routes.post("/users/:id/ban", async (c) => {

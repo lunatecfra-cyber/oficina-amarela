@@ -1,7 +1,12 @@
 "use client";
+import { WORK_PREFERENCE_LABELS } from "@oficina/domain/portfolio";
 import { useEffect, useState } from "react";
 export function EditorDirectoryConsent() {
-  const [data, setData] = useState<{ visible: boolean; portfolioConsent: boolean } | null>(null),
+  const [data, setData] = useState<{
+      visible: boolean;
+      portfolioConsent: boolean;
+      workPreference: keyof typeof WORK_PREFERENCE_LABELS | null;
+    } | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");
@@ -10,7 +15,11 @@ export function EditorDirectoryConsent() {
       .then(async (r) => {
         const b = await r.json();
         if (!r.ok) throw new Error(b.error);
-        setData({ visible: Boolean(b.visible), portfolioConsent: Boolean(b.portfolioConsent) });
+        setData({
+          visible: Boolean(b.visible),
+          portfolioConsent: Boolean(b.portfolioConsent),
+          workPreference: b.workPreference ?? null,
+        });
       })
       .catch((e) => setError(e.message));
   }, []);
@@ -52,6 +61,32 @@ export function EditorDirectoryConsent() {
       )}
       {data && (
         <>
+          <label className="mt-3 block text-sm text-text">
+            Preferência de trabalho
+            <select
+              className="input mt-1 w-full"
+              value={data.workPreference ?? ""}
+              onChange={(event) => {
+                setData({
+                  ...data,
+                  workPreference: (event.target.value || null) as
+                    | keyof typeof WORK_PREFERENCE_LABELS
+                    | null,
+                });
+                setNotice("");
+              }}
+            >
+              <option value="">Ainda não informada</option>
+              {Object.entries(WORK_PREFERENCE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="mt-2 text-xs text-muted">
+            Esta preferência orienta os convites. Não ativa pagamentos ou cobranças.
+          </p>
           <label className="mt-3 flex items-start gap-2 text-sm text-text">
             <input
               type="checkbox"

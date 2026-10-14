@@ -89,6 +89,9 @@ export default async function SpokespersonProfilePage() {
             className="mt-4 font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl"
           />
           <CandidateData candidate={cand} />
+          <Link href="/portfolio" className="mt-4 inline-block text-gold-hi underline">
+            Gerenciar autorizações de portfólio
+          </Link>
           {cand.since && <p className="mt-1 text-sm text-muted-2">na guilda desde {cand.since}</p>}
 
           {/* Botão inteiro no celular: é a única ação da tela, não pode ser

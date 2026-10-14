@@ -22,6 +22,7 @@ type UserListItem = {
 };
 
 type UserDetail = UserListItem & {
+  editorVerified: boolean;
   photoUrl: string | null;
   fotoUrl?: string | null;
   location: string | null;
@@ -401,6 +402,59 @@ function DetailPanel({
         <p role="alert" className="mt-3 text-sm text-danger">
           {warning}
         </p>
+      )}
+
+      {role === "editor" && (
+        <form
+          className="mt-5 space-y-3 rounded-xl border border-line p-3"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            setIsSaving(true);
+            setWarning("");
+            try {
+              const response = await fetch(`/api/admin/users/${d.id}`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                  verified: !d.editorVerified,
+                  reason: form.get("verificationReason"),
+                }),
+              });
+              const body = await response.json();
+              if (!response.ok) throw new Error(body.error);
+              onUpdated({ ...d, editorVerified: !d.editorVerified });
+            } catch (e) {
+              setWarning(e instanceof Error ? e.message : "Não foi possível salvar a habilitação.");
+            } finally {
+              setIsSaving(false);
+            }
+          }}
+        >
+          <h3 className="text-sm font-semibold text-text">
+            {d.editorVerified ? "Verificado pela Oficina" : "Editor sem habilitação administrativa"}
+          </h3>
+          <p className="text-xs text-muted">
+            Habilite um editor experiente após a verificação administrativa. O selo não altera a
+            nota pública nem dispensa a inspeção das entregas.
+          </p>
+          <label className="block text-sm text-text">
+            Motivo da habilitação ou revogação
+            <textarea
+              name="verificationReason"
+              className="input mt-1 w-full"
+              required
+              maxLength={500}
+            />
+          </label>
+          <button className="btn-ghost w-full" disabled={isSaving || isBanned}>
+            {isSaving
+              ? "Salvando…"
+              : d.editorVerified
+                ? "Revogar habilitação"
+                : "Habilitar editor experiente"}
+          </button>
+        </form>
       )}
 
       {!isAdmin && !confirming && (

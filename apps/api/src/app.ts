@@ -28,6 +28,7 @@ import { createMissionFileRoutes } from "./routes/mission-files.ts";
 import { createMissionLifecycleRoutes } from "./routes/mission-lifecycle.ts";
 import { createMissionReviewRoutes } from "./routes/mission-reviews.ts";
 import { createMissionsCrudRoutes } from "./routes/missions-crud.ts";
+import { createPortfolioRoutes } from "./routes/portfolio.ts";
 import { createProfileRoutes } from "./routes/profiles.ts";
 import { createRankingRoutes } from "./routes/ranking.ts";
 import { type AnalyticsEngineDataset, recordApiTelemetry } from "./telemetry.ts";
@@ -177,6 +178,7 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
   app.route("/missions", createMissionReviewRoutes());
   app.route("/missions", createMissionBoardRoutes());
   app.route("/editors", createEditorDirectoryRoutes());
+  app.route("/portfolio", createPortfolioRoutes());
 
   app.notFound((c) =>
     c.json({ error: "Rota não encontrada.", requestId: c.get("requestId") }, 404),

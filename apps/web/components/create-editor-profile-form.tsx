@@ -660,7 +660,8 @@ export function CreateEditorProfileForm({
               onChange={(e) => setPortfolioLink(e.target.value)}
             />
             <p className="mt-2 text-xs text-muted-2">
-              Depois da primeira entrega aprovada, seu portfólio aqui dentro se preenche sozinho.
+              Depois de finalizar uma missão, você poderá escolher uma amostra e solicitar
+              autorização para publicá-la.
             </p>
 
             <div className="mt-6">

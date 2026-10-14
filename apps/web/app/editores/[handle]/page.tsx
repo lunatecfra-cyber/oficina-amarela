@@ -1,7 +1,13 @@
+import type { PortfolioSample } from "@oficina/domain/portfolio";
 import type { EditorProfile } from "@oficina/domain/profile";
 import { isLikelyUrl } from "@oficina/domain/validators";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  type DirectoryDetails,
+  EditorDirectoryDetails,
+} from "@/components/editor-directory-details";
+import { PortfolioSamplePreview } from "@/components/portfolio-sample";
 import { fetchApiJson } from "@/lib/internal-api";
 import { requireSession } from "@/lib/server-session";
 export const dynamic = "force-dynamic";
@@ -12,9 +18,10 @@ export default async function EditorProfilePage({
 }) {
   await requireSession();
   const { handle } = await params;
-  const profile = await fetchApiJson<EditorProfile & { portfolioLink?: string }>(
-    `/editors/${encodeURIComponent(handle)}`,
-  );
+  const profile = await fetchApiJson<
+    Omit<EditorProfile, "portfolio"> &
+      DirectoryDetails & { portfolio: PortfolioSample[]; portfolioLink?: string }
+  >(`/editors/${encodeURIComponent(handle)}`);
   if (!profile) notFound();
   return (
     <main className="mx-auto max-w-3xl p-5 lg:p-8">
@@ -36,6 +43,13 @@ export default async function EditorProfilePage({
         {[...(profile.styles || []), ...(profile.niche || [])].join(" · ") || "Não informadas"}
       </p>
       <h2 className="mt-6 text-lg font-semibold text-text">Portfólio publicado</h2>
+      <EditorDirectoryDetails editor={profile} />
+      <Link
+        href={`/editores?editor=${encodeURIComponent(profile.handle)}`}
+        className="btn-gold mt-5"
+      >
+        Escolher missão e convidar este editor
+      </Link>
       {profile.portfolioLink && isLikelyUrl(profile.portfolioLink) && (
         <a
           className="mt-2 block text-gold-hi underline"
@@ -49,8 +63,8 @@ export default async function EditorProfilePage({
       {profile.portfolio.length ? (
         <ul className="mt-3 grid gap-3 sm:grid-cols-2">
           {profile.portfolio.map((item) => (
-            <li key={item.id} className="rounded-xl border border-line p-4 text-text">
-              {item.title}
+            <li key={item.id}>
+              <PortfolioSamplePreview sample={item} />
             </li>
           ))}
         </ul>

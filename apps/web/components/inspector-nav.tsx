@@ -8,6 +8,7 @@ const TABS = [
   { href: "/inspetor/notificacoes", label: "Alertas", rotulo: "Alertas" },
   { href: "/inspetor/panorama", label: "Panorama", rotulo: "Panorama" },
   { href: "/inspetor/contas", label: "Pessoas", rotulo: "Pessoas" },
+  { href: "/portfolio", label: "Portfólios", rotulo: "Portfólios" },
   { href: "/inspetor/denuncias", label: "Denúncias", rotulo: "Denúncias" },
   { href: "/inspetor/novidades", label: "Novidades", rotulo: "Novidades" },
   { href: "/inspetor/seguranca", label: "Segurança", rotulo: "Segurança" },

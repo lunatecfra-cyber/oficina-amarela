@@ -2,8 +2,9 @@
 import { isLikelyUrl } from "@oficina/domain/validators";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { type DirectoryDetails, EditorDirectoryDetails } from "./editor-directory-details";
 
-type DirectoryEditor = {
+type DirectoryEditor = DirectoryDetails & {
   handle: string;
   name: string;
   styles: string | null;
@@ -13,6 +14,7 @@ type DirectoryEditor = {
   ratingCount: number;
   completedCount: number;
   portfolioLink: string | null;
+  portfolioCount: number;
 };
 function labels(value: string | null) {
   if (!value) return "";
@@ -46,7 +48,9 @@ export function EditorDirectory({ missions }: { missions: { id: string; title: s
     }
   }, []);
   useEffect(() => {
-    void load(new URLSearchParams());
+    const editor = new URLSearchParams(window.location.search).get("editor") || "";
+    setSearch(editor);
+    void load(new URLSearchParams({ search: editor }));
   }, [load]);
   return (
     <>
@@ -139,12 +143,8 @@ export function EditorDirectory({ missions }: { missions: { id: string; title: s
                 ? `${e.rating?.toFixed(1).replace(".", ",")} ★ · ${e.ratingCount} ${e.ratingCount === 1 ? "avaliação" : "avaliações"}`
                 : "Ainda sem avaliação"}
             </p>
-            <p className="mt-1 text-sm text-muted">
-              {e.completedCount} trabalhos concluídos ·{" "}
-              {e.available
-                ? "Disponível para oferta"
-                : "Sem disponibilidade para nova oferta agora"}
-            </p>
+            <EditorDirectoryDetails editor={e} />
+            <p className="mt-2 text-xs text-muted">{e.portfolioCount} amostras autorizadas</p>
             <Link
               className="mt-3 block text-sm text-gold-hi underline"
               href={`/editores/${e.handle}`}
