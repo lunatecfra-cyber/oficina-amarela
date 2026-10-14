@@ -245,6 +245,36 @@ for (const signal of ["SIGTERM", "SIGINT", "SIGHUP"]) {
   });
 }
 
+// Vigia: se nada avança por 75 s, registra URL, tela e estado de cada página,
+// para o travamento aparecer como evidência em vez de silêncio.
+let lastProgress = Date.now();
+let lastOp = "início";
+let stallReports = 0;
+const touch = () => {
+  lastProgress = Date.now();
+};
+const origLog = console.log;
+console.log = (...a) => {
+  touch();
+  origLog(...a);
+};
+setInterval(async () => {
+  if (Date.now() - lastProgress < 45_000 || stallReports >= 2) return;
+  stallReports++;
+  console.error(`VIGIA: sem progresso há ${Math.round((Date.now() - lastProgress) / 1000)} s; última operação: ${lastOp}`);
+  for (const { context, actor, viewport } of contexts) {
+    for (const page of context.pages()) {
+      const state = await Promise.race([
+        page.evaluate(() => ({ ready: document.readyState, busy: !!document.querySelector("[aria-busy=true]"), buttons: [...document.querySelectorAll("button:disabled")].map((b) => (b.textContent ?? "").trim().slice(0, 30)).slice(0, 5) })).catch((e) => `evaluate falhou: ${e}`),
+        new Promise((r) => setTimeout(() => r("evaluate sem resposta em 5 s (thread principal presa?)"), 5000)),
+      ]);
+      console.error(`VIGIA ${viewport}/${actor}: ${page.url()} ${JSON.stringify(state)}`);
+      await Promise.race([page.screenshot({ path: join(output, `${viewport}-VIGIA-${actor}.png`) }).catch(() => {}), new Promise((r) => setTimeout(r, 8000))]);
+    }
+  }
+  touch();
+}, 15_000).unref();
+
 try {
   for (const viewport of wanted) {
     const active = { viewport: viewport.name, size: `${viewport.width}x${viewport.height}`, checks: [], steps: [], findings: [], consoleErrors: [], serverErrors: [], guidesClosed: [], users: {} };
@@ -263,7 +293,7 @@ try {
       contexts.push({ context, actor, viewport: viewport.name });
       const page = await context.newPage();
       page.actor = actor;
-      page.seen = new Set();
+      page.guideChecks = new Map();
       page.on("console", (m) => {
         if (m.type() === "error" && !/favicon|Failed to load resource.*(401|403|404|409|429)/.test(m.text())) active.consoleErrors.push({ actor, page: new URL(page.url()).pathname, text: m.text().slice(0, 200) });
       });
@@ -277,27 +307,35 @@ try {
     // O guia abre sozinho ~900 ms depois do carregamento, por rota. Esc fecha (é o
     // contrato do componente); clicar no backdrop falha quando o balão o cobre.
     async function dismissGuide(page) {
+      lastOp = `dismissGuide ${page.actor} ${page.url()}`;
+      await page.waitForLoadState("networkidle").catch(() => {});
       const key = new URL(page.url()).pathname;
-      if (page.seen.has(key)) return;
-      page.seen.add(key);
+      // O guia abre ~900 ms depois da hidratação, e sob carga demora mais: cada rota
+      // é checada até 2 vezes antes de ser dada como "sem guia".
+      if ((page.guideChecks.get(key) ?? 0) >= 2) return;
       const dialog = page.getByRole("dialog");
       try {
-        await dialog.waitFor({ state: "visible", timeout: 1600 });
+        await dialog.waitFor({ state: "visible", timeout: 2500 });
       } catch {
+        page.guideChecks.set(key, (page.guideChecks.get(key) ?? 0) + 1);
         return;
       }
+      page.guideChecks.set(key, 2);
       await page.keyboard.press("Escape");
       await dialog.waitFor({ state: "hidden", timeout: 3000 });
       active.guidesClosed.push(`${page.actor}:${key}`);
     }
     async function goto(page, path) {
+      lastOp = `goto ${page.actor} ${path}`;
       await page.goto(`${WEB}${path}`, { waitUntil: "networkidle" });
       await dismissGuide(page);
     }
     async function snapshot(page, name, { audit = true } = {}) {
+      lastOp = `snapshot ${name}: captura`;
       await page.screenshot({ path: join(output, `${viewport.name}-${name}.png`), fullPage: true });
       active.checks.push(name);
       if (audit) {
+        lastOp = `snapshot ${name}: auditoria`;
         const found = [...(await page.evaluate(auditInPage, { touch: viewport.touch })), ...(await keyboardAudit(page))];
         for (const f of found) active.findings.push({ screen: name, actor: page.actor, ...f });
         const overflow = found.find((f) => f.kind === "overflow");
@@ -306,17 +344,30 @@ try {
       console.log(`OK ${viewport.name}: ${name}`);
     }
     async function action(page, label, path, status = 200) {
+      lastOp = `action ${page.actor} "${label}" -> ${path}`;
       const [r] = await Promise.all([
         page.waitForResponse((res) => res.request().method() !== "GET" && new URL(res.url()).pathname === path, { timeout: 45000 }),
         page.getByRole("button", { name: label, exact: true }).click(),
       ]);
-      assert.equal(r.status(), status, `${label}: ${await r.text()}`);
-      return r.json();
+      // O corpo só é lido quando precisa: após um router.push o navegador descarta
+      // a resposta e a leitura nunca retorna; por isso também há limite de tempo.
+      const body = () =>
+        Promise.race([r.json().catch(() => null), new Promise((resolve) => setTimeout(() => resolve(null), 3000))]);
+      if (r.status() !== status) assert.fail(`${label}: HTTP ${r.status()} ${JSON.stringify(await body())}`);
+      return body();
     }
     async function step(name, fn) {
       currentStep = name;
+      lastOp = `passo ${name}`;
       const started = Date.now();
-      await fn();
+      // Passo que não termina em 4 min reprova com nome, em vez de travar a execução.
+      let timer;
+      await Promise.race([
+        fn(),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`passo excedeu 240 s`)), 240_000);
+        }),
+      ]).finally(() => clearTimeout(timer));
       active.steps.push({ name, ms: Date.now() - started });
     }
     const api = (context, path, method = "GET", data) =>
