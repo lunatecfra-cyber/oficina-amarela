@@ -69,6 +69,7 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
       db.prepare("DELETE FROM offers"),
       db.prepare("DELETE FROM missions"),
       db.prepare("DELETE FROM email_queue"),
+      db.prepare("DELETE FROM editor_verifications"),
       db.prepare("DELETE FROM invitation_redemptions"),
       db.prepare("DELETE FROM spokesperson_invitations"),
       db.prepare("DELETE FROM admin_audit"),
@@ -147,7 +148,16 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
       queueTasks[0],
     );
     assert.equal((await request(`/missions/${missionId}/interest`, {}, editorCookie)).status, 201);
-    assert.equal((await request(`/missions/${missionId}/selection`, {editorId,kind:"interest"}, voiceCookie)).status,201);
+    assert.equal(
+      (
+        await request(
+          `/missions/${missionId}/selection`,
+          { editorId, kind: "interest" },
+          voiceCookie,
+        )
+      ).status,
+      201,
+    );
     const offered = await request("/editor/queue/next", undefined, editorCookie);
     assert.equal(offered.status, 200);
     assert.equal(
@@ -491,5 +501,127 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
     }
     const checked = await request("/auth/rate-limit/check", {}, cookie);
     assert.equal(((await checked.json()) as { locked: boolean }).locked, true);
+  });
+  test("experienced invitation is admin-only, single-use, typed and preserves provenance without stars", async () => {
+    const email = "experienced@journey.local";
+    const issued = await request(
+      "/admin/invitations",
+      { email, kind: "experienced_editor", specialties: ["Documentário"] },
+      adminCookie,
+    );
+    assert.equal(issued.status, 200);
+    const invitation = (await issued.json()) as { token: string; id: number; link: string };
+    assert.ok(invitation.link.includes("kind=experienced_editor"));
+    assert.equal(
+      (
+        await request("/auth/signup", {
+          ...signup,
+          email,
+          handle: "experienced",
+          invitation: invitation.token,
+        })
+      ).status,
+      400,
+    );
+    const results = await Promise.all(
+      ["experienced", "experienced2"].map((handle) =>
+        request("/auth/signup", {
+          ...signup,
+          email,
+          handle,
+          role: "editor",
+          invitation: invitation.token,
+        }),
+      ),
+    );
+    assert.equal(results.filter((result) => result.status === 200).length, 1);
+    const account = await db
+      .prepare("SELECT id,role,rating,reputation,delivered_count FROM users WHERE email=?")
+      .bind(email)
+      .first<{
+        id: number;
+        role: string;
+        rating: null;
+        reputation: number;
+        delivered_count: number;
+      }>();
+    assert.equal(account!.role, "editor");
+    assert.equal(account!.rating, null);
+
+    assert.equal(account!.delivered_count, 0);
+    const provenance = await db
+      .prepare("SELECT verified,invitation_id FROM editor_verifications WHERE editor_id=?")
+      .bind(account!.id)
+      .first();
+    assert.deepEqual(provenance, { verified: 1, invitation_id: invitation.id });
+    const successful = results.find((result) => result.status === 200)!;
+    const profile = (await (
+      await request("/editor/profile", undefined, cookieOf(successful))
+    ).json()) as { experiencedInvitedByAdmin: boolean; administrativelyVerified: boolean };
+    assert.equal(profile.experiencedInvitedByAdmin, true);
+    assert.equal(profile.administrativelyVerified, true);
+    assert.equal(
+      (
+        await request(
+          "/admin/invitations",
+          { email: "other@journey.local", kind: "experienced_editor" },
+          cookieOf(successful),
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request("/auth/signup", {
+          ...signup,
+          email,
+          handle: "reused",
+          role: "editor",
+          invitation: invitation.token,
+        })
+      ).status,
+      400,
+    );
+  });
+  test("experienced invitations reject revoked, expired, wrong-email and public privileged signup", async () => {
+    for (const state of ["revoked", "expired", "wrong-email"]) {
+      const email = `${state}@journey.local`;
+      const issued = await request(
+        "/admin/invitations",
+        { email, kind: "experienced_editor" },
+        adminCookie,
+      );
+      const invitation = (await issued.json()) as { id: number; token: string };
+      if (state === "revoked")
+        assert.equal(
+          (
+            await request(
+              "/admin/invitations",
+              { action: "revoke", id: invitation.id },
+              adminCookie,
+            )
+          ).status,
+          200,
+        );
+      if (state === "expired")
+        await db
+          .prepare("UPDATE spokesperson_invitations SET expires_at='2000-01-01' WHERE id=?")
+          .bind(invitation.id)
+          .run();
+      assert.equal(
+        (
+          await request("/auth/signup", {
+            ...signup,
+            handle: state,
+            email: state === "wrong-email" ? "different@journey.local" : email,
+            role: "editor",
+            invitation: invitation.token,
+          })
+        ).status,
+        400,
+      );
+    }
+    for (const role of ["admin", "inspector"])
+      assert.equal((await request("/auth/signup", { ...signup, role })).status, 400);
   });
 });

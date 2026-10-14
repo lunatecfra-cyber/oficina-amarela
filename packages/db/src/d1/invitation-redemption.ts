@@ -6,6 +6,7 @@ import type {
 import type { D1DatabaseLike } from "./types.ts";
 
 type InvitationState = {
+  kind: string;
   email: string;
   expires_at?: string;
   used_at?: string | null;
@@ -19,11 +20,13 @@ export function createD1InvitationRedemption(db: D1DatabaseLike): InvitationRede
   async function failure(input: RedeemInvitationInput): Promise<InvitationRedemptionResult> {
     const invitation = await db
       .prepare(
-        "SELECT email, expires_at, used_at, revoked_at FROM spokesperson_invitations WHERE token_hash = ?",
+        "SELECT kind,email, expires_at, used_at, revoked_at FROM spokesperson_invitations WHERE token_hash = ?",
       )
       .bind(input.tokenHash)
       .first<InvitationState>();
     if (!invitation) return { ok: false, reason: "invitation_not_found" };
+    if (invitation.kind !== (input.kind ?? "spokesperson"))
+      return { ok: false, reason: "invitation_kind_mismatch" };
     if (invitation.email.toLowerCase() !== input.email.trim().toLowerCase()) {
       return { ok: false, reason: "email_mismatch" };
     }
@@ -51,7 +54,7 @@ export function createD1InvitationRedemption(db: D1DatabaseLike): InvitationRede
              SELECT token_hash, ?, ?, ?, ?, ?, ?, ?, ?
              FROM spokesperson_invitations
              WHERE token_hash = ? AND lower(email) = lower(?)
-               AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?
+               AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ? AND kind=?
              ON CONFLICT (token_hash) DO NOTHING
              RETURNING token_hash`,
           )
@@ -67,6 +70,7 @@ export function createD1InvitationRedemption(db: D1DatabaseLike): InvitationRede
             input.tokenHash,
             input.email,
             redeemedAt,
+            input.kind ?? "spokesperson",
           )
           .first();
         if (!inserted) return failure(input);

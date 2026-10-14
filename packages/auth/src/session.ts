@@ -67,9 +67,10 @@ export async function verifySessionToken(token: string): Promise<UserSession | n
     const role: Role =
       rawRole === "voz" || rawRole === "spokesperson"
         ? "spokesperson"
-        : rawRole === "admin"
-          ? "admin"
+        : rawRole === "admin" || rawRole === "inspector"
+          ? rawRole
           : "editor";
+    if (!["voz", "spokesperson", "editor", "inspector", "admin"].includes(rawRole)) return null;
 
     if (typeof payload.id === "number" && handle && name) {
       const issuedAt = typeof payload.iat === "number" ? payload.iat : undefined;

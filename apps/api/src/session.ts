@@ -1,4 +1,6 @@
 import { COOKIE_NAME, type UserSession, verifySessionToken } from "@oficina/auth/session";
+import { roleFromDb } from "@oficina/db/accounts";
+import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import { getSessionRevocationCutoff } from "@oficina/db/session-revocation";
 import type { Role } from "@oficina/domain/roles";
 import type { Context, MiddlewareHandler } from "hono";
@@ -19,6 +21,16 @@ export async function readSession(c: Context): Promise<UserSession | null> {
 
   const session = await verifySessionToken(token);
   if (!session || typeof session.issuedAt !== "number") return null;
+
+  if (c.env?.DB) {
+    const account = await (c.env.DB as D1DatabaseLike)
+      .prepare("SELECT role,is_banned FROM users WHERE id=?")
+      .bind(session.id)
+      .first<{ role: string; is_banned: number }>();
+    if (!account || account.is_banned) return null;
+    const role = roleFromDb(account.role);
+    if (session.role !== role) return null;
+  }
 
   try {
     const cutoffSeconds = await getSessionRevocationCutoff(session.id);
@@ -65,3 +77,7 @@ export const requireSpokesperson = requireRoles(
  * alternativo para acomodar aqui.
  */
 export const requireAdmin = requireRoles(["admin"], "Só o inspetor pode fazer isso.");
+export const requireInspector = requireRoles(
+  ["inspector", "admin"],
+  "Só a fiscalização pode acessar esta área.",
+);

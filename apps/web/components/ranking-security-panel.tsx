@@ -6,6 +6,7 @@ type View = "invitations" | "ranking" | "audit";
 type Notice = { tone: "success" | "error"; text: string } | null;
 
 type InvitationItem = {
+  kind?: "spokesperson" | "experienced_editor";
   id: number;
   email: string;
   status: string;
@@ -25,7 +26,7 @@ type AuditEvent = {
 };
 
 const VIEWS: Array<{ id: View; label: string }> = [
-  { id: "invitations", label: "Convites de porta-voz" },
+  { id: "invitations", label: "Convites administrativos" },
   { id: "ranking", label: "Ranking e constância" },
   { id: "audit", label: "Auditoria" },
 ];
@@ -76,6 +77,8 @@ export function RankingSecurityPanel() {
   const [view, setView] = useState<View>("invitations");
   const [invitations, setInvitations] = useState<InvitationItem[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEvent[]>([]);
+  const [kind, setKind] = useState("spokesperson");
+  const [specialties, setSpecialties] = useState("");
   const [email, setEmail] = useState("");
   const [link, setLink] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
@@ -162,7 +165,17 @@ export function RankingSecurityPanel() {
 
   async function createInvitation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = await postAction({ email }, "/api/admin/invitations");
+    const result = await postAction(
+      {
+        email,
+        kind,
+        specialties: specialties
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean),
+      },
+      "/api/admin/invitations",
+    );
     if (!result.ok) return;
     setLink(result.data.link ?? "");
     setEmail("");
@@ -172,7 +185,7 @@ export function RankingSecurityPanel() {
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(link);
-      setNotice({ tone: "success", text: "Link copiado. Envie manualmente ao porta-voz." });
+      setNotice({ tone: "success", text: "Link copiado. Envie manualmente à pessoa convidada." });
     } catch {
       setNotice({
         tone: "error",
@@ -240,6 +253,34 @@ export function RankingSecurityPanel() {
         <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
           <section className="border border-line bg-surface/60 p-4">
             <h2 className="text-sm font-semibold text-text">Gerar convite</h2>
+            <label className="mt-3 block text-sm text-text">
+              Tipo de convite
+              <select
+                className="field-input mt-1"
+                value={kind}
+                onChange={(event) => {
+                  setKind(event.target.value);
+                  setLink("");
+                }}
+              >
+                <option value="spokesperson">Porta-voz</option>
+                <option value="experienced_editor">Editor experiente</option>
+              </select>
+            </label>
+            {kind === "experienced_editor" && (
+              <label className="mt-3 block text-sm text-text">
+                Especialidades (até três, separadas por vírgula)
+                <input
+                  className="field-input mt-1"
+                  value={specialties}
+                  onChange={(event) => setSpecialties(event.target.value)}
+                />
+                <span className="mt-2 block text-xs text-muted">
+                  Qualificação e selo administrativos, sem estrelas. Primeira entrega inspecionada;
+                  pagamentos permanecem desativados.
+                </span>
+              </label>
+            )}
             <p className="mt-1 text-xs leading-5 text-muted">
               Uso único, vinculado ao e-mail e válido por 7 dias.
             </p>
@@ -248,7 +289,7 @@ export function RankingSecurityPanel() {
                 className="grid gap-1.5 text-xs font-medium text-muted"
                 htmlFor="invitation-email"
               >
-                E-mail do porta-voz
+                E-mail da pessoa convidada
                 <input
                   id="invitation-email"
                   type="email"
@@ -313,6 +354,11 @@ export function RankingSecurityPanel() {
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-text">{invitation.email}</p>
+                        <p className="text-xs text-muted">
+                          {invitation.kind === "experienced_editor"
+                            ? "Editor experiente"
+                            : "Porta-voz"}
+                        </p>
                         <p className="mt-0.5 text-xs text-muted">
                           Expira em{" "}
                           {formatDateTime(

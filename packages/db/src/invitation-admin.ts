@@ -13,6 +13,7 @@ import { isUniqueViolation, withTransaction } from "./client.ts";
 export type InvitationStatus = "valido" | "usado" | "expirado" | "revogado";
 
 export type InvitationSummary = {
+  kind?: "spokesperson" | "experienced_editor";
   id: number;
   email: string;
   status: InvitationStatus;
@@ -25,6 +26,8 @@ export type InvitationSummary = {
 };
 
 export type IssueInvitationInput = {
+  kind?: "spokesperson" | "experienced_editor";
+  specialties?: string[];
   /** Já normalizado por normalizeInvitationEmail. */
   email: string;
   tokenHash: string;
@@ -45,6 +48,7 @@ export interface InvitationAdminRepository {
 }
 
 type InvitationRow = {
+  kind?: "spokesperson" | "experienced_editor";
   id: number;
   email: string;
   status: InvitationStatus;
@@ -72,6 +76,7 @@ export function toInvitationSummary(row: InvitationRow): InvitationSummary {
   const usedByName = row.used_by_name ?? row.usado_por_nome ?? null;
 
   return {
+    kind: row.kind ?? "spokesperson",
     id: Number(row.id),
     email: row.email,
     status: row.status,
@@ -106,6 +111,7 @@ export const postgresInvitationAdmin: InvitationAdminRepository = {
   },
 
   async issueInvitation(input) {
+    if (input.kind === "experienced_editor") return { ok: false, reason: "issue_failed" };
     try {
       return await withTransaction(async (transaction) => {
         await transaction`

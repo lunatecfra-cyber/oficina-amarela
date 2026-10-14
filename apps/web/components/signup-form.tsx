@@ -30,7 +30,7 @@ export function SignupForm({
     searchParams.get("indicacao") ?? searchParams.get("referral") ?? undefined;
 
   const [role, setRole] = useState<"spokesperson" | "editor">(() => {
-    return convite ? "spokesperson" : "editor";
+    return convite && searchParams.get("kind") !== "experienced_editor" ? "spokesperson" : "editor";
   });
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
@@ -138,7 +138,7 @@ export function SignupForm({
       </a>
       <p className="mt-2 text-center text-xs text-muted-2">
         {convite
-          ? "Seu convite de porta-voz será validado depois que você entrar."
+          ? "Seu convite será validado para o papel selecionado, sem criar avaliações artificiais."
           : "Editor entra normalmente. Porta-voz precisa de convite."}
       </p>
 

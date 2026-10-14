@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
 import { CreateEditorProfileForm } from "@/components/create-editor-profile-form";
+import { EditorDirectoryConsent } from "@/components/editor-directory-consent";
 import { readEditorOnboarding } from "@/lib/profile-db";
 import { requireSession } from "@/lib/server-session";
 
@@ -37,7 +38,16 @@ export default async function CreateEditorProfilePage() {
             Três passos rápidos. É com isso que a Oficina escolhe quais missões oferecer pra você.
           </p>
         </div>
+        <p className="mb-5 max-w-2xl text-sm text-muted">
+          {initial.experiencedInvitedByAdmin
+            ? "Editor experiente por convite administrativo: primeira entrega obrigatoriamente inspecionada. Habilitação futura para trabalho remunerado sem cinco missões gratuitas; pagamentos desativados."
+            : "Editor iniciante: suas primeiras três entregas passam por inspeção. Conclua o perfil e informe sua disponibilidade para receber missões gratuitas."}{" "}
+          {initial.administrativelyVerified && "Verificado pela Oficina."}
+        </p>
         <CreateEditorProfileForm initial={initial} />
+        <div className="w-full max-w-2xl">
+          <EditorDirectoryConsent />
+        </div>
       </main>
     </>
   );

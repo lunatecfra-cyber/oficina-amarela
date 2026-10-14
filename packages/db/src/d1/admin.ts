@@ -14,6 +14,7 @@ import type { D1DatabaseLike } from "./types.ts";
 function normalizeRoleFromDb(papel: string): Role {
   if (papel === "voz" || papel === "spokesperson") return "spokesperson";
   if (papel === "admin") return "admin";
+  if (papel === "inspector") return "inspector";
   return "editor";
 }
 

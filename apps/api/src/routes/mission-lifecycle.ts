@@ -127,12 +127,15 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
       }
       const editor = c.env.DB
         ? await (c.env.DB as D1DatabaseLike)
-            .prepare("SELECT delivered_count FROM users WHERE id=?")
+            .prepare(
+              "SELECT delivered_count, EXISTS(SELECT 1 FROM spokesperson_invitations i WHERE i.used_by=users.id AND i.kind='experienced_editor' AND i.used_at IS NOT NULL) AS experienced_invited FROM users WHERE id=?",
+            )
             .bind(session.id)
-            .first<{ delivered_count: number }>()
+            .first<{ delivered_count: number; experienced_invited: number }>()
         : null;
       const inspection = inspectionPolicy({
         deliveries: editor?.delivered_count ?? 0,
+        experiencedInvitedByAdmin: editor?.experienced_invited === 1,
         stagingMandatory: c.env.STAGING_INSPECTION_ALL === "true",
       });
       result = await dependencies.missionLifecycle.submitDelivery(missionId, session.id, {

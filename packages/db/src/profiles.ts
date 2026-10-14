@@ -32,6 +32,8 @@ export type SaveEditableProfileInput = {
 };
 
 export type EditorOnboarding = {
+  experiencedInvitedByAdmin?: boolean;
+  administrativelyVerified?: boolean;
   name: string;
   avatarUrl?: string;
   photoUrl?: string;
