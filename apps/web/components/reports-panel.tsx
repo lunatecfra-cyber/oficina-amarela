@@ -207,7 +207,7 @@ export function ReportsPanel({
                   {(isOpen || (d.canReleaseRetention && !d.retentionReleasedAt)) && (
                     <div className="flex flex-none flex-col gap-2 lg:w-44">
                       <label htmlFor={`report-reason-${d.id}`} className="text-xs text-muted">
-                        {isOpen && d.canDecide
+                        {isOpen
                           ? d.canDecide
                             ? "Justificativa da decisão"
                             : "Justificativa do encaminhamento"

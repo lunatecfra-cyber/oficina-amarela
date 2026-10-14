@@ -7,6 +7,34 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.7.0] - 2026-10-14
+
+### Adicionado
+- Portfólios por obra com autorização do proprietário, publicação consentida e revogação auditada do acesso à mídia.
+- Onboarding de editores iniciantes, experientes convidados pela administração e exclusivamente voluntários, com preferências persistidas e sem avaliações fictícias.
+- Convites administrativos de experientes com uso único, expiração, revogação, especialidades e proveniência; qualificação independente da nota pública.
+- Papel INSPECTOR com fila técnica, atribuição por versão, histórico e decisões de aprovação ou ajuste com justificativa.
+- Evidências preservadas de denúncias, encaminhamento para decisão administrativa e retenção protegida.
+
+### Modificado
+- Navegação, login e ajuda distinguem inspeção técnica de administração e explicam os próximos passos de cada papel.
+- Selo administrativo e elegibilidade de experientes usam a infraestrutura existente; revogar o selo não apaga a origem do convite.
+- Relatórios e capturas de onboarding e inspeção ficam em `docs/entregas/2026-10-14/onboarding-inspection/`.
+
+### Corrigido
+- Datas ausentes na fila deixam de aparecer como 1969 ou NaN; prazos são apresentados em português brasileiro.
+- Histórico concluído permanece acessível ao fiscal responsável, sem oferecer inspeções encerradas sem atribuição.
+- O formulário de denúncias identifica corretamente a justificativa de encaminhamento para quem não decide administrativamente.
+
+### Segurança
+- Autorização por capacidades revalidada na conta atual, com revogação de sessões e bloqueio imediato de acesso à inspeção e à mídia.
+- Inspetores acessam somente as entregas atribuídas; não alteram estrelas, convites, selo, contas ou papéis administrativos e não inspecionam trabalhos próprios.
+- Aprovação final exige inspeção aprovada da versão atual quando obrigatória; versões antigas não liberam novas entregas.
+
+### Validação e limites
+- Entrega validada exclusivamente em staging; produção e pagamentos permanecem inalterados.
+- Amostragem, critérios objetivos de risco e apelação continuam pendentes. A inspeção de todas as entregas é uma configuração temporária de staging.
+
 ## [0.6.0] - 2026-10-13
 
 ### Adicionado
