@@ -183,6 +183,21 @@ test("inspetor autentica, inspeciona e encaminha com capacidades limitadas; admi
   assert.equal((await request("/admin/ranking", 3)).status, 200);
 });
 
+test("rotas de denúncia recusam anônimo, porta-voz e editor sem depender do layout da página", async () => {
+  const reason = { reason: "Tentativa sem capacidade", status: "resolved" };
+  for (const [path, method, body] of [
+    ["/admin/reports", "GET", undefined],
+    ["/admin/reports/1/evidence", "GET", undefined],
+    ["/admin/reports/1/forward", "POST", reason],
+    ["/admin/reports/1/resolve", "POST", reason],
+    ["/admin/reports/1/release-retention", "POST", reason],
+  ] as const) {
+    assert.equal((await request(path, 0, method, body)).status, 401, `anônimo ${method} ${path}`);
+    for (const id of [1, 2])
+      assert.equal((await request(path, id, method, body)).status, 403, `${id} ${method} ${path}`);
+  }
+});
+
 test("revogação da capacidade, do papel e da sessão vale imediatamente com cookie antigo", async () => {
   await db.prepare("INSERT INTO user_capability_revocations VALUES(4,'mission.inspect')").run();
   const id = await mission();
