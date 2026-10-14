@@ -87,7 +87,7 @@ describe("administração de convites na API", {
         assert.equal(response.status, 403);
         assert.equal(
           ((await response.json()) as { error: string }).error,
-          "Só o inspetor pode fazer isso.",
+          "Só a administração pode fazer isso.",
         );
       }
     }

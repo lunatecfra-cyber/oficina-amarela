@@ -46,6 +46,7 @@ const STATUS: Record<string, string> = {
   em_revisao: "Aguardando inspeção",
   reedicao: "Editor corrigindo",
   aprovada: "Aguardando porta-voz",
+  finalizada: "Concluída",
 };
 const date = (value: string) =>
   new Date(value).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
@@ -85,7 +86,7 @@ export function InspectorQueue() {
     setNotes("");
     setNotice("");
     try {
-      if (item.status === "em_revisao") {
+      if (item.status === "em_revisao" && item.assignedInspectorId === null) {
         const claim = await fetch(`/api/inspections/${item.id}/claim`, {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -98,6 +99,7 @@ export function InspectorQueue() {
       if (!response.ok) throw new Error(data.error);
       setReview(data);
       setSelected(item);
+      setNotice("Entrega carregada abaixo da fila. Confira o histórico e registre a decisão.");
     } catch (error) {
       setError(error instanceof Error ? error.message : "Não foi possível abrir a entrega.");
     } finally {
@@ -221,7 +223,9 @@ export function InspectorQueue() {
                     {busy
                       ? "Aguarde…"
                       : item.status === "em_revisao"
-                        ? "Assumir e inspecionar"
+                        ? item.assignedInspectorId === null
+                          ? "Assumir e inspecionar"
+                          : "Continuar inspeção"
                         : "Ver histórico técnico"}
                   </button>
                 </li>

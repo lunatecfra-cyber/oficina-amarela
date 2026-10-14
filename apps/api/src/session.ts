@@ -71,12 +71,8 @@ export const requireSpokesperson = requireRoles(
   "Só porta-vozes têm acesso a esta área.",
 );
 
-/**
- * Exige sessão de inspetor. Único portão da administração de convites: o papel
- * no banco só aceita 'voz', 'editor' e 'admin', então não há um "inspetor"
- * alternativo para acomodar aqui.
- */
-export const requireAdmin = requireRoles(["admin"], "Só o inspetor pode fazer isso.");
+/** Administração de convites e qualificação; fiscalização é um papel independente. */
+export const requireAdmin = requireRoles(["admin"], "Só a administração pode fazer isso.");
 export const requireInspector = requireRoles(
   ["inspector", "admin"],
   "Só a fiscalização pode acessar esta área.",

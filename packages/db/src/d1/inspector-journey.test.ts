@@ -215,6 +215,12 @@ test("beginner delivery, independent versioned inspection, corrections, final ap
     200,
   );
   assert.equal(await db.prepare("SELECT rating FROM users WHERE id=2").first("rating"), 4);
+  const completedQueue = (await (await call("/inspections", inspector)).json()) as {
+    id: number;
+    status: string;
+  }[];
+  assert.ok(completedQueue.some((item) => item.id === 1 && item.status === "finalizada"));
+  assert.equal((await call("/inspections/1", inspector)).status, 200);
   const history = await db
     .prepare(
       "SELECT version,decision,comment,inspector_id FROM mission_inspections WHERE mission_id=1 ORDER BY version",

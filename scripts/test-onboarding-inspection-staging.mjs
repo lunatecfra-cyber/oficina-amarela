@@ -8,8 +8,7 @@ import bcrypt from "../apps/web/node_modules/bcryptjs/index.js";
 const WEB = "https://oficina-amarela-web-staging.casamarela.workers.dev";
 const DB = "oficina-amarela-staging";
 const stamp = Date.now(),
-  password = randomUUID(),
-  prefix = `onb.${stamp}`;
+  password = randomUUID();
 const accounts = {},
   missions = [],
   checks = [];
@@ -89,7 +88,8 @@ if (process.argv.includes("--self-check")) {
   process.exit(0);
 }
 assert.ok(process.argv.includes("--run"), "Use --run only for an authorized staging journey");
-const video = await readFile(process.env.SYNTHETIC_VIDEO ?? "/tmp/oficina-portfolio-synthetic.mp4");
+// shortcut: uses the preserved synthetic clip in /tmp; add a repository fixture before CI.
+const video = await readFile("/tmp/oficina-portfolio-synthetic.mp4");
 const hash = await bcrypt.hash(password, 10);
 for (const [actor, role] of [
   ["admin", "admin"],
@@ -283,8 +283,9 @@ assert.equal(
   (await fetch(corrected, { headers: { cookie: accounts.inspector.cookie } })).status,
   200,
 );
-const sample = (await call("/portfolio", "beginner", { missionId: beginning, deliveryVersion: 2 }))
-  .data;
+const sample = (
+  await call("/portfolio", "beginner", { missionId: beginning, deliveryVersion: 2 }, 201)
+).data;
 await call(`/portfolio/${sample.id}`, "beginner", { action: "request", revision: 0 });
 await call(`/portfolio/${sample.id}`, "voice", {
   action: "authorize",
@@ -303,7 +304,7 @@ assert.equal(
   404,
 );
 ok("publicação e revogação de portfólio preservadas");
-await call("/admin/overview", "admin");
+await call("/admin/queue", "admin");
 const evidence = await d1(
   `SELECT m.id,m.title,m.status,m.delivery_version,m.inspection_reason,i.version,i.decision,i.comment,i.inspector_id,i.inspected_at FROM missions m JOIN mission_inspections i ON i.mission_id=m.id WHERE m.id IN (${missions.join(",")}) ORDER BY m.id,i.version`,
 );

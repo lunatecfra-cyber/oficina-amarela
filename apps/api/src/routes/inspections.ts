@@ -29,7 +29,7 @@ export function createInspectionRoutes(dependencies: ApiDependencies) {
         (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version) AS assignedInspectorId
       FROM missions m JOIN mission_deliveries d ON d.mission_id=m.id AND d.version=m.delivery_version
       JOIN users u ON u.id=d.editor_id
-      WHERE m.status IN ('em_revisao','reedicao','aprovada') AND d.editor_id<>?
+      WHERE m.status IN ('em_revisao','reedicao','aprovada','finalizada') AND d.editor_id<>?
         AND (?='admin' OR (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version) IS NULL OR (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version)=?)
       ORDER BY d.submitted_at,m.id`)
       .bind(actor.id, actor.role, actor.id)
