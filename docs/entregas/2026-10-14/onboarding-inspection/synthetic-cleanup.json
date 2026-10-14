@@ -1,0 +1,54 @@
+{
+  "accounts": [
+    {
+      "id": 142,
+      "handle": "admin.1791995546842",
+      "role": "admin",
+      "is_banned": 1
+    },
+    {
+      "id": 143,
+      "handle": "inspector.1791995546842",
+      "role": "inspector",
+      "is_banned": 1
+    },
+    {
+      "id": 144,
+      "handle": "other.1791995546842",
+      "role": "inspector",
+      "is_banned": 1
+    },
+    {
+      "id": 145,
+      "handle": "beginner.1791995546842",
+      "role": "editor",
+      "is_banned": 1
+    },
+    {
+      "id": 146,
+      "handle": "voice.1791995546842",
+      "role": "voz",
+      "is_banned": 1
+    },
+    {
+      "id": 147,
+      "handle": "exp.1791995546842",
+      "role": "editor",
+      "is_banned": 1
+    },
+    {
+      "id": 148,
+      "handle": "ui.inspector.1791995659471",
+      "role": "inspector",
+      "is_banned": 1
+    },
+    {
+      "id": 149,
+      "handle": "ui.admin.1791995659471",
+      "role": "admin",
+      "is_banned": 1
+    }
+  ],
+  "previousInspectorCookieStatus": 401,
+  "foreignKeyViolations": []
+}
