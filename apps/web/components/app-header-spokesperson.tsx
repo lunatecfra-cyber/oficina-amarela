@@ -32,9 +32,16 @@ export async function AppHeaderSpokesperson() {
 
             <Link
               href="/porta-voz/perfil"
+              className="tap-target hidden max-w-56 truncate text-sm text-muted hover:text-text lg:inline-flex"
+            >
+              {session.name} · {isAdmin ? "administração" : "porta-voz"}
+            </Link>
+
+            <Link
+              href="/editores"
               className="tap-target hidden text-sm text-muted hover:text-text sm:inline-flex"
             >
-              {session.name} · {isAdmin ? "inspetor" : "porta-voz"}
+              Editores
             </Link>
 
             <Link
@@ -49,7 +56,7 @@ export async function AppHeaderSpokesperson() {
                 href="/inspetor"
                 className="tap-target hidden border border-line text-xs font-medium text-muted hover:border-gold-lo/60 hover:text-gold-hi sm:inline-flex"
               >
-                Inspetor
+                Administração
               </Link>
             )}
 
@@ -64,6 +71,12 @@ export async function AppHeaderSpokesperson() {
             className="tap-target flex-none whitespace-nowrap text-sm text-muted hover:text-text"
           >
             Missões
+          </Link>
+          <Link
+            href="/editores"
+            className="tap-target flex-none whitespace-nowrap text-sm text-muted hover:text-text"
+          >
+            Editores
           </Link>
           <Link
             href="/porta-voz/perfil"
@@ -82,7 +95,7 @@ export async function AppHeaderSpokesperson() {
               href="/inspetor"
               className="tap-target flex-none whitespace-nowrap border border-line text-sm font-medium text-muted hover:border-gold-lo/60 hover:text-gold-hi"
             >
-              Inspetor
+              Administração
             </Link>
           )}
         </nav>

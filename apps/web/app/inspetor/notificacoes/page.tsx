@@ -69,7 +69,7 @@ export default async function NotificationsPage() {
                 <p className="mt-1 text-xs text-muted">{n.description}</p>
                 <Link
                   href={n.href}
-                  className="mt-3 inline-block text-xs font-medium text-gold-hi hover:underline"
+                  className="tap-target -ml-3 mt-1 justify-start text-xs font-medium text-gold-hi hover:underline"
                 >
                   Resolver agora →
                 </Link>

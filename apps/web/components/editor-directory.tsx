@@ -77,8 +77,9 @@ export function EditorDirectory({ missions }: { missions: { id: string; title: s
             onChange={(e) => setSpecialty(e.target.value)}
           />
         </label>
-        <label className="flex items-center gap-2 text-sm text-text">
+        <label className="flex min-h-11 items-center gap-3 text-sm text-text">
           <input
+            className="h-5 w-5 flex-none accent-gold"
             type="checkbox"
             checked={available}
             onChange={(e) => setAvailable(e.target.checked)}
@@ -146,14 +147,14 @@ export function EditorDirectory({ missions }: { missions: { id: string; title: s
             <EditorDirectoryDetails editor={e} />
             <p className="mt-2 text-xs text-muted">{e.portfolioCount} amostras autorizadas</p>
             <Link
-              className="mt-3 block text-sm text-gold-hi underline"
+              className="tap-target mt-1 -ml-3 justify-start text-sm text-gold-hi underline"
               href={`/editores/${e.handle}`}
             >
               Consultar perfil
             </Link>
             {e.portfolioLink && isLikelyUrl(e.portfolioLink) && (
               <a
-                className="mt-2 block text-sm text-gold-hi underline"
+                className="tap-target -ml-3 justify-start text-sm text-gold-hi underline"
                 href={e.portfolioLink}
                 target="_blank"
                 rel="noopener noreferrer"

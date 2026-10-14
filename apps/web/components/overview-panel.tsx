@@ -3,7 +3,8 @@
 import { Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { inspectionWaitShort } from "@/lib/inspection-time";
 import type {
   ItemFila,
   MissaoEmVoo,
@@ -56,7 +57,7 @@ function StatNumber({
       >
         {value}
       </p>
-      <p className="mt-0.5 text-[10px] uppercase leading-tight tracking-[0.1em] text-muted-2">
+      <p className="mt-0.5 text-xs uppercase leading-tight tracking-[0.1em] text-muted-2">
         {label}
       </p>
     </div>
@@ -91,6 +92,13 @@ export function OverviewPanel({
   const [notifying, setNotifying] = useState<"editors" | "candidates" | null>(null);
   const [notifiedMsg, setNotifiedMsg] = useState<string>("");
   const [warning, setWarning] = useState("");
+
+  useEffect(() => {
+    if (confirmDeleteId === null) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setConfirmDeleteId(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmDeleteId]);
 
   async function move(id: number, movement: "up" | "down" | "top" | "subir" | "descer" | "topo") {
     setMovingId(id);
@@ -174,6 +182,75 @@ export function OverviewPanel({
   const freeEditorsCount = sum.freeEditors ?? (sum as any).editoresLivres ?? 0;
   const bannedCount = sum.banned ?? (sum as any).banidos ?? 0;
 
+  // "Precisa de você agora": cada linha leva direto à tela onde a ação acontece.
+  const attention = sum.attention;
+  const stalledWithoutEditor = queueItems.filter(
+    (f) =>
+      (f.status === "available" || f.status === "disponivel") &&
+      idleDays(f.createdAt ?? (f as any).criadaEm) >= 3,
+  ).length;
+  const stalledInFlight = fList.filter((m) => idleDays(m.since ?? (m as any).desde) >= 5).length;
+  const attentionRows: {
+    href: string;
+    count: number;
+    urgent: boolean;
+    title: string;
+    hint: string;
+  }[] = [
+    ...(attention
+      ? [
+          {
+            href: "/inspetor",
+            count: inReviewCount,
+            urgent: inReviewCount > 0,
+            title: "Entregas aguardando inspeção",
+            hint: inReviewCount
+              ? `${attention.unassignedInspections} sem inspetor · mais antiga: ${inspectionWaitShort(attention.oldestInspectionAt)}`
+              : "Nada pendente",
+          },
+          {
+            href: "/inspetor/denuncias",
+            count: attention.openReports,
+            urgent: attention.openReports > 0,
+            title: "Denúncias abertas",
+            hint: attention.openReports
+              ? "Evidências preservadas aguardam encaminhamento ou decisão"
+              : "Nada pendente",
+          },
+          {
+            href: "/inspetor/contas",
+            count: attention.validInvitations,
+            urgent: attention.expiringInvitations > 0,
+            title: "Convites válidos",
+            hint: attention.expiringInvitations
+              ? `${attention.expiringInvitations} vencem em até 3 dias`
+              : attention.validInvitations
+                ? "Nenhum vence nos próximos 3 dias"
+                : "Nenhum convite aberto",
+          },
+        ]
+      : []),
+    {
+      href: "#fila-edicao",
+      count: offeredCount,
+      urgent: false,
+      title: "Ofertas aguardando resposta de editor",
+      hint: offeredCount
+        ? "Cada oferta espera o aceite do editor escolhido"
+        : "Nenhuma oferta aberta",
+    },
+    {
+      href: "#em-andamento",
+      count: stalledWithoutEditor + stalledInFlight,
+      urgent: stalledWithoutEditor + stalledInFlight > 0,
+      title: "Missões paradas",
+      hint:
+        stalledWithoutEditor + stalledInFlight
+          ? `${stalledWithoutEditor} sem editor há 3+ dias · ${stalledInFlight} no mesmo lugar há 5+ dias`
+          : "Nenhuma missão parada",
+    },
+  ];
+
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
       <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
@@ -183,7 +260,46 @@ export function OverviewPanel({
         Onde está cada missão e quem está livre pra pegar a próxima.
       </p>
 
-      <section className="mt-6" data-guia="numeros-panorama">
+      <section className="mt-6" aria-labelledby="precisa-de-voce">
+        <h2
+          id="precisa-de-voce"
+          className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold"
+        >
+          Precisa de você agora
+        </h2>
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {attentionRows.map((row) => {
+            const hot = row.urgent && row.count > 0;
+            return (
+              <li key={row.title}>
+                <Link
+                  href={row.href}
+                  className={`flex min-h-11 items-center gap-4 rounded-2xl border p-4 transition-colors hover:bg-surface-2 ${
+                    hot ? "border-gold-lo/60 bg-gold/[0.07]" : "border-line bg-surface/50"
+                  }`}
+                >
+                  <span
+                    className={`font-[family-name:var(--font-display)] text-3xl font-semibold tabular-nums ${
+                      hot ? "text-gold" : "text-text"
+                    }`}
+                  >
+                    {row.count}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-text">{row.title}</span>
+                    <span className="block text-xs text-muted">{row.hint}</span>
+                  </span>
+                  <span aria-hidden="true" className="ml-auto text-gold-hi">
+                    →
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section className="mt-10" data-guia="numeros-panorama">
         <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-gold">Missões</h2>
         <button
           type="button"
@@ -236,7 +352,7 @@ export function OverviewPanel({
       )}
       {notifiedMsg && <p className="mt-4 text-sm text-gold-hi">{notifiedMsg}</p>}
 
-      <section className="mt-10" data-guia="fila-edicao">
+      <section id="fila-edicao" className="mt-10 scroll-mt-4" data-guia="fila-edicao">
         <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-gold">
             Fila de edição
@@ -346,7 +462,7 @@ export function OverviewPanel({
         )}
       </section>
 
-      <section className="mt-10" data-guia="em-voo">
+      <section id="em-andamento" className="mt-10 scroll-mt-4" data-guia="em-voo">
         <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-gold">
             Em andamento
@@ -408,7 +524,7 @@ export function OverviewPanel({
                   <button
                     type="button"
                     onClick={() => setConfirmDeleteId(m.id)}
-                    className="mt-2 text-xs text-muted hover:text-danger"
+                    className="tap-target -ml-3 mt-1 text-xs text-muted hover:text-danger"
                   >
                     Apagar missão
                   </button>
@@ -425,10 +541,16 @@ export function OverviewPanel({
           onClick={() => setConfirmDeleteId(null)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirmar-apagar-titulo"
             className="mx-4 w-full max-w-sm rounded-2xl border border-line bg-surface p-6 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-text">
+            <h3
+              id="confirmar-apagar-titulo"
+              className="font-[family-name:var(--font-display)] text-lg font-semibold text-text"
+            >
               Apagar missão?
             </h3>
             <p className="mt-2 text-sm text-muted">
@@ -438,6 +560,7 @@ export function OverviewPanel({
             <div className="mt-5 flex gap-2">
               <button
                 type="button"
+                autoFocus
                 onClick={() => setConfirmDeleteId(null)}
                 className="btn-ghost min-h-11 flex-1 py-2 text-sm"
               >

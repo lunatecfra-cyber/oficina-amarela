@@ -13,7 +13,11 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  });
 }
 
 function textWithLinks(text: string): React.ReactNode[] {
@@ -218,6 +222,7 @@ export function MissionChat({
           <div className="flex flex-col gap-2 sm:flex-row">
             <textarea
               className="field-input !pl-4 min-h-11 flex-1 resize-y"
+              aria-label="Mensagem para a conversa da missão"
               placeholder="Escrever na conversa…"
               value={text}
               maxLength={LIMITS.message}

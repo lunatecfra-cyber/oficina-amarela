@@ -350,7 +350,7 @@ export function ActiveMissionCard({
                   href={deliveredVideoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-medium text-gold-hi hover:underline"
+                  className="tap-target -ml-3 font-medium text-gold-hi hover:underline"
                 >
                   Ver o que você entregou
                 </a>
@@ -392,6 +392,7 @@ export function ActiveMissionCard({
               <input
                 id="entrega"
                 className="field-input !pl-4"
+                aria-label="Link da entrega no Drive"
                 placeholder="cole aqui o link do Drive (opcional se fez upload)"
                 value={deliveryLink}
                 onChange={(e) => {

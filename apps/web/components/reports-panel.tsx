@@ -187,7 +187,7 @@ export function ReportsPanel({
                       <>
                         <a
                           href={`/api/admin/reports/${d.id}/evidence`}
-                          className="mt-2 inline-block text-xs text-gold-hi underline"
+                          className="tap-target -ml-3 mt-1 justify-start text-xs text-gold-hi underline"
                         >
                           Baixar registro preservado
                         </a>
