@@ -1,0 +1,13 @@
+Aceite técnico em staging — 14/10/2026
+
+Portfólio por obra entregue: adicionar entrega finalizada do armazenamento privado, título/descrição/especialidades, escolha do instante da prévia, status privado/pendente/publicado, solicitação de publicação e retirada pelo editor. A autorização pertence à missão + versão + asset; edição exige nova autorização.
+
+Regra aprovada explicitamente pelo responsável pelo produto nesta execução: o porta-voz pode autorizar quando declarar que tem todas as permissões necessárias. Checkbox obrigatório e declaração auditada por obra. Concluir a missão não concede permissão de publicação. Porta-voz e inspetor podem revogar; a entrega original não é apagada. GET e Range revalidam permissão; respostas no-store e sem URLs públicas/assinadas do R2. URLs anteriores retornam 404 após revogação para terceiros. Cópias já recebidas antes da revogação não podem ser recolhidas.
+
+Diretório integrado: amostras autorizadas, busca por especialidade/disponibilidade, preferências voluntário/remunerado/ambos, selo administrativo concedido/revogado com motivo, contagem de trabalhos e entregas no prazo com origem na primeira submissão. Ausência de data/prazo permanece sem dados; estrelas continuam derivadas somente de avaliações registradas.
+
+E2E sintético: db-42 finalizada, versão 1 e arquivo de 382.376 bytes; editor 86 criou/solicitou amostra, porta-voz 88 autorizou e revogou pela interface. Perfil móvel de 390 px exibiu vídeo válido, 4,0/1 e selo independente. Após consultar o portfólio, o porta-voz enviou convite db-43 e o editor 86 aceitou pelo celular. Iniciante 87, sem selo/nota, recebeu e aceitou db-44 via API. IDOR rejeitado; concorrência 200/409; criação repetida conserva uma amostra; revogação administrativa testada. Original, versões e auditoria preservados, FK sem violações. Amostra deixada privada ao final.
+
+Commits: 973d6f9, 4a81168, f4103c8. Evidência commit 1d65f4f, diretório docs/entregas/2026-10-14/onca-34/ (README, screenshots, API e D1). Regressão: 293 testes passaram; 16 direcionados e validação final de tipo passaram. Typecheck/build passaram. Biome passou nos 21 arquivos desta entrega; global tem 16 erros preexistentes fora do escopo, preservados. PostgreSQL legado não executado, sem TEST_DATABASE_URL.
+
+Somente staging: API 6ac99da9-b3a3-4c38-8407-da4ce5ee0a9e; web f7d065f6-4efa-4166-b221-9636c1d9e5a8. Sem produção, pagamentos ou notificações externas reais. Critérios funcionais V2 de ONCA-34 comprovados. Próxima fatia: onboarding por papel e inspeção; reforma visual/pagamentos continuam separados.

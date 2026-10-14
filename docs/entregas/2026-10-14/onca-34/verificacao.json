@@ -19,5 +19,11 @@
   "postgres": "not run: TEST_DATABASE_URL absent",
   "production": "unchanged",
   "payments": "inactive",
-  "realExternalNotifications": "not sent"
+  "realExternalNotifications": "not sent",
+  "jira": {
+    "ONCA-34": "Done",
+    "ONCA-61": "Done",
+    "comments": "saved and verified in official Jira UI",
+    "postMvpSubtasks": "unchanged"
+  }
 }

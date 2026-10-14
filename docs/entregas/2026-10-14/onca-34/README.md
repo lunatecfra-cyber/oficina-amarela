@@ -47,3 +47,7 @@ A amostra final ficou **privada**, com os consentimentos revogados. Os testes n�
 As migrações `0016` e `0017` foram aplicadas somente a `oficina-amarela-staging`, na conta casamarela. Workers finais e resultados dos checks estão em [verificacao.json](verificacao.json).
 
 Próxima fatia executável: onboarding por papel e jornada de inspeção — entrada do editor iniciante/experiente, responsabilidades do porta-voz/editor/inspetor e fila de entregas que precisam de fiscalização. Reutilizar ONCA-4/ONCA-53; percentual de amostragem e critérios de risco continuam decisões próprias, sem inventá-los. Pagamentos e a reforma visual ONCA-11 continuam separados.
+
+## Registro no Jira
+
+Comentários salvos e status **Done** confirmados no Jira oficial em [ONCA-34](https://oficinaamarela.atlassian.net/browse/ONCA-34) e [ONCA-61](https://oficinaamarela.atlassian.net/browse/ONCA-61). Evidências: [ONCA-34 Done](jira-onca-34-done.jpg), [ONCA-61 Done](jira-onca-61-done.jpg), [comentário ONCA-34](jira-onca-34-comment.txt) e [comentário ONCA-61](jira-onca-61-comment.txt). Os itens ONCA-105/106/107/108 permanecem pós-MVP e não foram encerrados. ONCA-4 e ONCA-53 conservam seus próprios critérios.
