@@ -123,7 +123,7 @@ export function PortfolioManager() {
               ou gerencie as amostras abaixo.
             </p>
           )}
-          <Link href="/editor" className="mt-3 inline-block text-sm text-gold-hi underline">
+          <Link href="/editor" className="tap-target -ml-3 mt-1 text-sm text-gold-hi underline">
             Ver minhas missões
           </Link>
         </div>

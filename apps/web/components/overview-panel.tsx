@@ -524,7 +524,7 @@ export function OverviewPanel({
                   <button
                     type="button"
                     onClick={() => setConfirmDeleteId(m.id)}
-                    className="mt-2 text-xs text-muted hover:text-danger"
+                    className="tap-target -ml-3 mt-1 text-xs text-muted hover:text-danger"
                   >
                     Apagar missão
                   </button>

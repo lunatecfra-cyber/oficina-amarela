@@ -385,7 +385,7 @@ export function RankingSecurityPanel() {
                         {(status === "valido" || status === "valid") && (
                           <button
                             type="button"
-                            className="text-xs text-danger hover:underline"
+                            className="tap-target -mx-3 text-xs text-danger hover:underline"
                             onClick={() => void revokeInvitation(invitation)}
                             disabled={loadingAction}
                           >

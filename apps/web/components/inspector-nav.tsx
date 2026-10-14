@@ -30,7 +30,7 @@ export function InspectorNav({
       {capabilities.includes("mission.participate") && (
         <Link
           href="/porta-voz"
-          className="mr-2 flex min-h-11 flex-none items-center whitespace-nowrap pr-1 text-xs text-muted/60 transition-colors hover:text-text"
+          className="mr-2 flex min-h-11 flex-none items-center whitespace-nowrap pr-1 text-xs text-muted transition-colors hover:text-text"
         >
           ← Porta-voz
         </Link>
@@ -63,7 +63,7 @@ export function InspectorNav({
           >
             {tab.label}
             {tab.href === "/inspetor/notificacoes" && alertCount > 0 && (
-              <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-semibold text-white">
+              <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-semibold text-ink">
                 {alertCount}
               </span>
             )}
