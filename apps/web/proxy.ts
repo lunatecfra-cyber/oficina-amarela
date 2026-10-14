@@ -1,5 +1,6 @@
 import { COOKIE_NAME, verifySessionToken } from "@oficina/auth/session";
 import { isDevAuthBypassEnabled } from "@oficina/config/dev-mode";
+import { roleHome } from "@oficina/domain/roles";
 import { NextRequest, NextResponse } from "next/server";
 
 export default async function proxy(request: NextRequest) {
@@ -19,7 +20,7 @@ export default async function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   // as rotas públicas são em PT-BR: mandar pra "/spokesperson" dava 404
-  const defaultArea = session.role === "spokesperson" ? "/porta-voz" : "/editor";
+  const defaultArea = roleHome(session.role);
 
   // Inspector / Admin protected area
   if (
@@ -27,7 +28,13 @@ export default async function proxy(request: NextRequest) {
     pathname.startsWith("/inspetor") ||
     pathname.startsWith("/admin")
   ) {
-    if (session.role !== "admin") {
+    if (
+      session.role !== "admin" &&
+      !(
+        session.role === "inspector" &&
+        (pathname.replace(/\/$/, "") === "/inspetor" || pathname === "/inspetor/denuncias")
+      )
+    ) {
       return NextResponse.redirect(new URL(defaultArea, request.url));
     }
     return NextResponse.next();

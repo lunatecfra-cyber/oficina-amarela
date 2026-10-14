@@ -80,6 +80,26 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
 
     const session = c.get("session");
     if (!canAct(session, action)) return c.json({ error: roleMessage(action) }, 403);
+    if (session.role === "inspector") {
+      if (!c.env.DB) return c.json({ error: "Fiscalização indisponível." }, 503);
+      const authorized = await (c.env.DB as D1DatabaseLike)
+        .prepare(`SELECT m.id FROM missions m
+        JOIN mission_deliveries d ON d.mission_id=m.id AND d.version=m.delivery_version
+        WHERE m.id=? AND (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=d.mission_id AND version=d.version)=? AND d.editor_id<>?`)
+        .bind(missionId, session.id, session.id)
+        .first();
+      if (!authorized)
+        return c.json({ error: "Você não está responsável pela inspeção desta versão." }, 403);
+      const reason =
+        action === "approve" ? (body?.feedback ?? body?.comentario) : (body?.notes ?? body?.notas);
+      if (typeof reason !== "string" || !reason.trim() || reason.trim().length > 2000)
+        return c.json(
+          { error: "Registre o motivo da decisão técnica (até 2000 caracteres)." },
+          400,
+        );
+      if (body?.rating !== undefined || body?.nota !== undefined)
+        return c.json({ error: "A fiscalização não altera estrelas." }, 403);
+    }
     const expectedVersion = body?.expectedDeliveryVersion;
     if (
       c.env?.DB &&
@@ -129,12 +149,15 @@ export function createMissionLifecycleRoutes(dependencies: ApiDependencies) {
       }
       const editor = c.env.DB
         ? await (c.env.DB as D1DatabaseLike)
-            .prepare("SELECT delivered_count FROM users WHERE id=?")
+            .prepare(
+              "SELECT delivered_count, EXISTS(SELECT 1 FROM spokesperson_invitations i WHERE i.used_by=users.id AND i.kind='experienced_editor' AND i.used_at IS NOT NULL) AS experienced_invited FROM users WHERE id=?",
+            )
             .bind(session.id)
-            .first<{ delivered_count: number }>()
+            .first<{ delivered_count: number; experienced_invited: number }>()
         : null;
       const inspection = inspectionPolicy({
         deliveries: editor?.delivered_count ?? 0,
+        experiencedInvitedByAdmin: editor?.experienced_invited === 1,
         stagingMandatory: c.env.STAGING_INSPECTION_ALL === "true",
       });
       result = await dependencies.missionLifecycle.submitDelivery(missionId, session.id, {

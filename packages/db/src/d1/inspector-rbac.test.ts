@@ -95,15 +95,22 @@ test("inspetor autentica, inspeciona e encaminha com capacidades limitadas; admi
   ]);
   const id = await mission();
   assert.equal((await deliver(id)).status, 200);
-  assert.equal((await request("/missions/in-review")).status, 200);
+  assert.equal((await request("/missions/in-review")).status, 403);
+  assert.equal((await request("/inspections")).status, 200);
+  assert.equal((await request(`/inspections/${id}/claim`, 4, "POST", { version: 1 })).status, 200);
   assert.equal(
     (await request(`/missions/${id}`, 4, "POST", { action: "message", text: "Inspeção sintética" }))
       .status,
-    200,
+    403,
   );
   assert.equal(
-    (await request(`/missions/${id}`, 4, "POST", { action: "approve", expectedDeliveryVersion: 1 }))
-      .status,
+    (
+      await request(`/missions/${id}`, 4, "POST", {
+        action: "approve",
+        feedback: "Conferência técnica independente",
+        expectedDeliveryVersion: 1,
+      })
+    ).status,
     200,
   );
   assert.equal(
@@ -181,15 +188,27 @@ test("revogação da capacidade, do papel e da sessão vale imediatamente com co
   const id = await mission();
   assert.equal((await deliver(id)).status, 200);
   assert.equal(
-    (await request(`/missions/${id}`, 4, "POST", { action: "approve", expectedDeliveryVersion: 1 }))
-      .status,
+    (
+      await request(`/missions/${id}`, 4, "POST", {
+        action: "approve",
+        feedback: "Conferência técnica independente",
+        expectedDeliveryVersion: 1,
+      })
+    ).status,
     403,
   );
-  assert.equal((await request(`/missions/${id}`, 4)).status, 200);
+  assert.equal((await request(`/missions/${id}`, 4)).status, 403);
+  assert.equal((await request(`/inspections/${id}/claim`, 4, "POST", { version: 1 })).status, 403);
   await db.prepare("DELETE FROM user_capability_revocations WHERE user_id=4").run();
+  assert.equal((await request(`/inspections/${id}/claim`, 4, "POST", { version: 1 })).status, 200);
   assert.equal(
-    (await request(`/missions/${id}`, 4, "POST", { action: "approve", expectedDeliveryVersion: 1 }))
-      .status,
+    (
+      await request(`/missions/${id}`, 4, "POST", {
+        action: "approve",
+        feedback: "Conferência técnica independente",
+        expectedDeliveryVersion: 1,
+      })
+    ).status,
     200,
   );
   assert.equal(
@@ -236,20 +255,37 @@ test("transferência remove o acesso do editor anterior e histórico impede auto
   await db.prepare("UPDATE users SET role='inspector' WHERE id=6").run();
   await cookie(6);
   assert.equal(
-    (await request(`/missions/${id}`, 6, "POST", { action: "approve", expectedDeliveryVersion: 1 }))
-      .status,
-    409,
+    (
+      await request(`/missions/${id}`, 6, "POST", {
+        action: "approve",
+        feedback: "Conferência técnica independente",
+        expectedDeliveryVersion: 1,
+      })
+    ).status,
+    403,
   );
   await db.prepare("UPDATE users SET role='inspector' WHERE id=1").run();
   cookies[1] = `${COOKIE_NAME}=${await createSessionToken({ id: 1, handle: "rbac1", name: "RBAC 1", role: "inspector", sessionVersion: 1 })}`;
   assert.equal(
-    (await request(`/missions/${id}`, 1, "POST", { action: "approve", expectedDeliveryVersion: 1 }))
-      .status,
+    (
+      await request(`/missions/${id}`, 1, "POST", {
+        action: "approve",
+        feedback: "Conferência técnica independente",
+        expectedDeliveryVersion: 1,
+      })
+    ).status,
     403,
   );
+  assert.equal((await request(`/inspections/${id}/claim`, 6, "POST", { version: 1 })).status, 409);
+  assert.equal((await request(`/inspections/${id}/claim`, 4, "POST", { version: 1 })).status, 200);
   assert.equal(
-    (await request(`/missions/${id}`, 4, "POST", { action: "approve", expectedDeliveryVersion: 1 }))
-      .status,
+    (
+      await request(`/missions/${id}`, 4, "POST", {
+        action: "approve",
+        feedback: "Conferência técnica independente",
+        expectedDeliveryVersion: 1,
+      })
+    ).status,
     200,
   );
   const broken = {

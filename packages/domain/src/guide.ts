@@ -147,19 +147,19 @@ const SCRIPTS: readonly (GuideScript & { match: (route: string) => boolean })[] 
   },
   {
     key: "inspector",
-    version: 1,
+    version: 2,
     title: "Controle de qualidade",
     match: (r) => r === "/inspector" || r === "/inspetor",
     steps: [
       {
-        target: "nota-editor",
-        title: "A nota move os números",
-        text: "As estrelas são opcionais, mas é o que forma a média do editor e faz o nível subir.",
+        target: "inspection-queue",
+        title: "Assuma a versão atual",
+        text: "Confira o motivo, a versão e o tempo de espera. Assuma a inspeção para acessar apenas as entregas autorizadas e seu histórico técnico.",
       },
       {
-        target: "decisao-inspetor",
-        title: "Aprovar ou pedir reedição",
-        text: "Pedindo reedição, escreva o que precisa mudar. O editor recebe por e-mail e a missão volta pras mãos dele.",
+        target: "inspection-decision",
+        title: "Decisão técnica com motivo",
+        text: "Registre o motivo para aprovar tecnicamente ou solicitar ajustes. A versão corrigida passa por nova conferência. As estrelas pertencem à avaliação do porta-voz.",
       },
     ],
   },

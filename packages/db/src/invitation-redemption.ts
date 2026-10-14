@@ -2,6 +2,7 @@ import { isUniqueViolation, type TransactionSql, withTransaction } from "./clien
 
 export type InvitationRedemptionFailure =
   | "invitation_not_found"
+  | "invitation_kind_mismatch"
   | "email_mismatch"
   | "invitation_revoked"
   | "invitation_used"
@@ -13,6 +14,7 @@ export type InvitationRedemptionResult =
   | { ok: false; reason: InvitationRedemptionFailure };
 
 export type RedeemInvitationInput = {
+  kind?: "spokesperson" | "experienced_editor";
   tokenHash: string;
   email: string;
   handle: string;
@@ -81,6 +83,8 @@ async function redeem(
 
 export const postgresInvitationRedemption: InvitationRedemptionRepository = {
   async redeemInvitation(input) {
+    if (input.kind === "experienced_editor")
+      return { ok: false, reason: "invitation_kind_mismatch" };
     try {
       return await withTransaction((transaction) => redeem(transaction, input));
     } catch (error) {

@@ -72,6 +72,7 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
   });
 
   routes.get("/missions/in-review", requireCapability("mission.inspect"), async (c) => {
+    if (c.get("session").role === "inspector") return c.json({ error: "Use a fila técnica de inspeções." }, 403);
     const list = await dependencies.missions.getMissionsInReview();
     return c.json(list);
   });
@@ -114,6 +115,7 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
   });
 
   routes.get("/missions/view/:id", requireSession, async (c) => {
+    if (c.get("session").role === "inspector") return c.json({ error: "Acesse a versão atribuída pela fila técnica." }, 403);
     const id = Number(c.req.param("id").replace(/^db-/, ""));
     const mission = await dependencies.missions.getMissionById(id);
     if (!mission)
@@ -137,6 +139,7 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
   });
 
   routes.get("/admin/missions", requireCapability("mission.read"), async (c) => {
+    if (c.get("session").role === "inspector") return c.json({ error: "Use a fila técnica de inspeções." }, 403);
     const list = await dependencies.missions.listAllMissions();
     return c.json(list);
   });

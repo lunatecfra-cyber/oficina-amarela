@@ -1,3 +1,4 @@
+import { expandInspectorRole } from "./roles-migration.ts";
 import type { D1DatabaseLike } from "./types.ts";
 
 /**
@@ -103,6 +104,7 @@ export async function applyAllD1Migrations(db: D1DatabaseLike): Promise<void> {
     .filter((file) => /^\d{4}_.*\.sql$/.test(file))
     .sort();
   for (const file of files) {
+    if (file === "0019_inspector_roles.sql") await expandInspectorRole(db);
     const content = await readFile(path.join(migrationsDir, file), "utf8");
     await applyD1Schema(db, content);
   }

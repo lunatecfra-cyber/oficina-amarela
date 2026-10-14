@@ -21,6 +21,13 @@ const DEV_ACCOUNTS: Record<
     email: "dev.porta-voz@oficinaamarela.local",
     destination: "/porta-voz",
   },
+  inspector: {
+    id: 9004,
+    handle: "dev.inspector",
+    name: "Dev Inspetor",
+    email: "dev.inspector@oficinaamarela.local",
+    destination: "/inspetor",
+  },
   admin: {
     id: 9003,
     handle: "dev.admin",
@@ -43,8 +50,8 @@ export async function GET(request: Request) {
   const role: Role =
     rawRole === "spokesperson" || rawRole === "voz"
       ? "spokesperson"
-      : rawRole === "admin"
-        ? "admin"
+      : rawRole === "admin" || rawRole === "inspector"
+        ? rawRole
         : "editor";
 
   const acc = DEV_ACCOUNTS[role];

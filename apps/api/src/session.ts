@@ -90,3 +90,5 @@ export function requireCapability(capability: Capability): SessionMiddleware {
     await next();
   };
 }
+
+export const requireInspector = requireCapability("mission.inspect");

@@ -5,6 +5,7 @@ import {
   INVITATION_VALIDITY_DAYS,
   normalizeInvitationEmail,
 } from "@oficina/domain/invitations";
+import { EDITING_STYLES } from "@oficina/domain/profile";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
@@ -49,9 +50,26 @@ export function createAdminInvitationRoutes(dependencies: ApiDependencies) {
 
     const email = normalizeInvitationEmail(body?.email);
     if (!email) return c.json({ error: "Digite um e-mail válido." }, 400);
+    const kind = body?.kind ?? "spokesperson";
+    if (!["spokesperson", "experienced_editor"].includes(kind))
+      return c.json({ error: "Escolha o tipo de convite." }, 400);
+    if (kind === "experienced_editor" && !c.env.DB)
+      return c.json({ error: "Convite de editor indisponível neste ambiente." }, 503);
+    const specialties = body?.specialties ?? [];
+    if (
+      !Array.isArray(specialties) ||
+      specialties.length > 3 ||
+      specialties.some(
+        (value: unknown) =>
+          typeof value !== "string" || !EDITING_STYLES.some((style) => style === value),
+      )
+    )
+      return c.json({ error: "Escolha até três especialidades disponíveis no formulário." }, 400);
 
     const token = generateInvitationToken();
     const issued = await dependencies.invitationAdmin.issueInvitation({
+      kind,
+      specialties: specialties.map((value: string) => value.trim()),
       email,
       tokenHash: await hashInvitation(token),
       adminId: session.id,
@@ -64,14 +82,14 @@ export function createAdminInvitationRoutes(dependencies: ApiDependencies) {
       return c.json({ error: "Outro convite para este e-mail acabou de sair. Recarregue." }, 409);
     }
 
-    const origin = new URL(c.req.url).origin;
+    const origin = c.env.PUBLIC_ORIGIN ?? new URL(c.req.url).origin;
     return c.json({
       ok: true,
       id: issued.id,
       email: issued.email,
       token,
       expiresAt: issued.expiresAt,
-      link: `${origin}/criar-conta?convite=${encodeURIComponent(token)}`,
+      link: `${origin}/criar-conta?convite=${encodeURIComponent(token)}${kind === "experienced_editor" ? "&kind=experienced_editor" : ""}`,
     });
   });
 

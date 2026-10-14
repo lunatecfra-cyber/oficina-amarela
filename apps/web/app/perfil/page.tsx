@@ -1,5 +1,5 @@
 import { initials } from "@oficina/domain/candidates";
-import { DEFAULT_EDITOR_PROFILE, levelProgress } from "@oficina/domain/profile";
+import { levelProgress } from "@oficina/domain/profile";
 import {
   activeWorkFromMission,
   DAYS,
@@ -35,7 +35,26 @@ export default async function ProfilePage() {
     getEditorProgress(session.id),
   ]);
 
-  const p = dbProfile ?? DEFAULT_EDITOR_PROFILE;
+  if (!dbProfile)
+    return (
+      <>
+        <AppHeader />
+        <main className="mx-auto w-full max-w-3xl p-5 lg:p-8">
+          <h1 className="text-2xl font-semibold text-text">Perfil indisponível</h1>
+          <p role="alert" className="mt-3 text-muted">
+            Não foi possível carregar seus dados. Nenhuma reputação ou avaliação de exemplo será
+            exibida.
+          </p>
+          <a href="/perfil" className="btn-gold mt-5">
+            Tentar novamente
+          </a>
+          <Link href="/editor" className="btn-ghost mt-3">
+            Voltar à bancada
+          </Link>
+        </main>
+      </>
+    );
+  const p = dbProfile;
   const level = levelProgress(p.deliveries ?? (p as any).entregues ?? 0);
 
   const grid = onboarding?.availability?.length ? onboarding.availability : DEFAULT_AVAILABILITY;

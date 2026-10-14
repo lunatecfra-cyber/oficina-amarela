@@ -36,6 +36,10 @@ export function InspectorNav({
       )}
       {TABS.filter((tab) => {
         const required: Record<string, string> = {
+          "/inspetor": "mission.inspect",
+          "/inspetor/notificacoes": "security.read",
+          "/portfolio": "portfolio.moderate",
+          "/parceiros?source=admin": "security.read",
           "/inspetor/panorama": "security.read",
           "/inspetor/contas": "users.manage",
           "/inspetor/novidades": "content.manage",

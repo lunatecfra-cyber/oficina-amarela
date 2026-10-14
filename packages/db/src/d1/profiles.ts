@@ -69,7 +69,9 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         const row = await db
           .prepare(
             `SELECT name, avatar_url, location, headline, bio, software_tools, editing_styles, editing_level,
-                    pc_setup, portfolio_link, whatsapp, niches, availability, profile_completed
+                    pc_setup, portfolio_link, whatsapp, niches, availability, profile_completed,
+                    EXISTS(SELECT 1 FROM spokesperson_invitations WHERE used_by=users.id AND kind='experienced_editor' AND used_at IS NOT NULL) AS experienced_invited,
+                    COALESCE((SELECT verified FROM editor_verifications WHERE editor_id=users.id),0) AS verified
              FROM users WHERE id = ?`,
           )
           .bind(userId)
@@ -88,9 +90,14 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
             niches: string | null;
             availability: string | null;
             profile_completed: number | null;
+            experienced_invited: number;
+            verified: number;
           }>();
         if (!row) return null;
         return {
+          experiencedInvitedByAdmin: row.experienced_invited === 1,
+          administrativelyVerified: row.verified === 1,
+          paidWorkQualified: row.experienced_invited === 1 && row.verified === 1,
           name: row.name ?? "",
           avatarUrl: row.avatar_url ?? "",
           photoUrl: row.avatar_url ?? "",

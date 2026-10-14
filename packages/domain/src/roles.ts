@@ -43,3 +43,11 @@ export function hasCapability(
 
 /** Alias legado. Sai quando nenhum call site depender dele. */
 export type Papel = Role;
+
+export function roleHome(role: Role) {
+  return role === "admin" || role === "inspector"
+    ? "/inspetor"
+    : role === "editor"
+      ? "/editor"
+      : "/porta-voz";
+}

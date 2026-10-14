@@ -1,5 +1,7 @@
 import type { Editor } from "@oficina/domain/missions";
 import Link from "next/link";
+import { AppHeaderInspector } from "@/components/app-header-inspector";
+import { AppHeaderSpokesperson } from "@/components/app-header-spokesperson";
 import { BrandMark } from "@/components/brand-mark";
 import { EditorNav } from "@/components/editor-nav";
 import { LocalGuide } from "@/components/local-guide";
@@ -9,6 +11,8 @@ import { getSession } from "@/lib/server-session";
 
 export async function AppHeader() {
   const session = await getSession();
+  if (session?.role === "inspector" || session?.role === "admin") return <AppHeaderInspector />;
+  if (session?.role === "spokesperson") return <AppHeaderSpokesperson />;
   const profile = session ? await readEditorProfile(session.id) : null;
 
   if (!session) {
@@ -72,8 +76,9 @@ export async function AppHeader() {
           >
             <p className="truncate text-sm font-medium text-text">{editor.handle}</p>
             <p className="truncate text-xs text-muted">
-              {editor.deliveredCount} entregues
-              {editor.rating !== null && ` · nota ${editor.rating}`}
+              {profile
+                ? `${editor.deliveredCount} entregues${editor.rating !== null ? ` · nota ${editor.rating}` : ""}`
+                : "Dados do perfil indisponíveis"}
             </p>
           </Link>
 
@@ -81,7 +86,7 @@ export async function AppHeader() {
             href="/perfil"
             className="flex min-h-11 flex-none items-center rounded-full border border-gold-lo/60 bg-gold/10 px-3 text-xs font-medium text-gold-hi transition-colors hover:bg-gold/20"
           >
-            {editor.level}
+            {profile ? editor.level : "Meu perfil"}
           </Link>
 
           <LogoutButton className="flex min-h-11 flex-none items-center px-1 text-xs uppercase tracking-[0.12em] text-muted transition-colors hover:text-silver-hi" />

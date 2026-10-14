@@ -38,6 +38,12 @@ export default async function EditorPage() {
       <main className="flex-1">
         <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-8 lg:py-12">
           <div className="mb-8">
+            <p className="mb-3 text-sm text-muted">
+              {onboarding?.experiencedInvitedByAdmin
+                ? "Editor experiente por convite administrativo · primeira entrega inspecionada"
+                : "Editor iniciante · primeiras três entregas inspecionadas"}
+              {onboarding?.administrativelyVerified && " · Verificado pela Oficina"}
+            </p>
             <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-text lg:text-3xl">
               Bancada e mural de missões
             </h1>

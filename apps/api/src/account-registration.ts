@@ -55,6 +55,8 @@ function limit(value: unknown, max: number): string {
 
 export function invitationFailureMessage(reason: string): string {
   if (reason === "email_mismatch") return "Este convite pertence a outro e-mail.";
+  if (reason === "invitation_kind_mismatch")
+    return "Este convite pertence a outro tipo de cadastro.";
   if (reason === "invitation_revoked") return "Este convite foi revogado.";
   if (reason === "invitation_used") return "Este convite já foi usado.";
   if (reason === "invitation_expired") return "Este convite expirou.";
@@ -116,12 +118,13 @@ export async function registerAccount(
 
   // Porta-voz oficial só nasce de um convite válido. O resgate é atômico e de
   // uso único nos dois bancos; não existe um segundo estado de aprovação.
-  if (role === "spokesperson") {
+  if (role === "spokesperson" || input.invitation) {
     const invitation = typeof input.invitation === "string" ? input.invitation : "";
     if (!invitation) {
       return { ok: false, status: 400, error: "Convite especial obrigatório para porta-voz." };
     }
     const redeemed = await invitations.redeemInvitation({
+      kind: role === "spokesperson" ? "spokesperson" : "experienced_editor",
       tokenHash: await hashInvitation(invitation),
       email,
       handle,

@@ -1,5 +1,6 @@
 "use client";
 
+import { roleHome } from "@oficina/domain/roles";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -48,13 +49,7 @@ function LoginFormContent() {
     const role = data.role ?? data.papel;
     // "/spokesperson" não existe — a área do porta-voz é "/porta-voz". Quem
     // entrava como porta-voz caía num 404 logo depois de acertar a senha.
-    router.push(
-      role === "inspector" || role === "admin"
-        ? "/inspetor"
-        : role === "editor"
-          ? "/editor"
-          : "/porta-voz",
-    );
+    router.push(roleHome(role));
     router.refresh();
   }
 

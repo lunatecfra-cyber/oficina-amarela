@@ -10,7 +10,9 @@ import { getSession } from "@/lib/server-session";
 export async function AppHeaderInspector() {
   const session = await getSession();
   if (!session || !hasCapability(session, "mission.read")) return null;
-  const notifications = await getAdminNotifications();
+  const notifications = hasCapability(session, "security.read")
+    ? await getAdminNotifications()
+    : [];
 
   return (
     <header className="border-b border-line-soft">
@@ -22,7 +24,7 @@ export async function AppHeaderInspector() {
         <div className="flex items-center gap-1.5 sm:gap-4">
           <LocalGuide />
           <span className="hidden text-sm text-muted sm:block">
-            {session.name} · controle de qualidade
+            {session.name} · {session.role === "admin" ? "administração" : "inspeção técnica"}
           </span>
           <LogoutButton className="tap-target text-xs uppercase tracking-[0.12em] text-muted hover:text-silver-hi" />
         </div>

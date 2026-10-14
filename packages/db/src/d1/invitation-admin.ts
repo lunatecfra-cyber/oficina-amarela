@@ -22,7 +22,7 @@ export function createD1InvitationAdmin(db: D1DatabaseLike): InvitationAdminRepo
       const now = new Date().toISOString();
       const { results } = await db
         .prepare(
-          `SELECT c.id, c.email, c.created_at, c.expires_at, c.used_at, c.revoked_at,
+          `SELECT c.id, c.email, c.kind, c.created_at, c.expires_at, c.used_at, c.revoked_at,
                   criador.name AS created_by_name, usado.name AS used_by_name,
                   CASE
                     WHEN c.revoked_at IS NOT NULL THEN 'revogado'
@@ -58,11 +58,19 @@ export function createD1InvitationAdmin(db: D1DatabaseLike): InvitationAdminRepo
       try {
         const invitation = await db
           .prepare(
-            `INSERT INTO spokesperson_invitations (email, token_hash, created_by, created_at, expires_at)
-             VALUES (?, ?, ?, ?, ?)
+            `INSERT INTO spokesperson_invitations (email, token_hash, created_by, created_at, expires_at,kind,specialties)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
              RETURNING id, email, expires_at`,
           )
-          .bind(input.email, input.tokenHash, input.adminId, createdAt, expiresAt)
+          .bind(
+            input.email,
+            input.tokenHash,
+            input.adminId,
+            createdAt,
+            expiresAt,
+            input.kind ?? "spokesperson",
+            JSON.stringify(input.specialties ?? []),
+          )
           .first<{ id: number; email: string; expires_at: string; expira_em?: string }>();
         if (!invitation) return { ok: false, reason: "issue_failed" };
 

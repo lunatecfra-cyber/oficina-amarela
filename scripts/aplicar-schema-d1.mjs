@@ -21,6 +21,7 @@ import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { inspectorRoleStatements } from "../packages/db/src/d1/roles-migration.ts";
 
 const DATABASES = {
   staging: "oficina-amarela-staging",
@@ -114,6 +115,60 @@ const patches = readdirSync(d1Dir)
 for (const patch of patches) {
   console.log(`aplicando patch ${path.basename(patch)}`);
 
+  if (path.basename(patch) === "0019_inspector_roles.sql") {
+    const inspect = spawnSync(
+      "bunx",
+      [
+        "wrangler",
+        "d1",
+        "execute",
+        targetDb,
+        remote,
+        "--config",
+        config,
+        ...envFlag,
+        "--command",
+        "SELECT type,name,sql FROM sqlite_master WHERE sql IS NOT NULL",
+        "--json",
+      ],
+      { cwd: root, encoding: "utf8", env: process.env },
+    );
+    if (inspect.status !== 0) throw new Error("Could not inspect role migration target");
+    const objects = JSON.parse(inspect.stdout)[0].results;
+    const users = objects.find((object) => object.type === "table" && object.name === "users");
+    if (!users) throw new Error("Users table missing");
+    if (!users.sql.includes("'inspector'")) {
+      const ddl = inspectorRoleStatements(
+        objects.filter(
+          (object) =>
+            ["trigger", "view"].includes(object.type) ||
+            (object.type === "index" && /\brole\b/.test(object.sql)),
+        ),
+      );
+      const upgrade = path.join(tmpdir(), `oficina-inspector-role-${randomUUID()}.sql`);
+      writeFileSync(upgrade, ddl.join(";\n") + ";\n");
+      const migrated = spawnSync(
+        "bunx",
+        [
+          "wrangler",
+          "d1",
+          "execute",
+          targetDb,
+          remote,
+          "--config",
+          config,
+          ...envFlag,
+          "--file",
+          upgrade,
+          "--yes",
+        ],
+        { cwd: root, stdio: "inherit", env: process.env },
+      );
+      if (migrated.status !== 0)
+        throw new Error(`Native role migration failed; recovery statements retained at ${upgrade}`);
+      rmSync(upgrade, { force: true });
+    }
+  }
   const raw = readFileSync(patch, "utf8");
   const statements = [];
   let current = "";

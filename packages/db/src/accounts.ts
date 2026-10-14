@@ -74,6 +74,7 @@ export function roleFromDb(papel: string): Role {
   if (papel === "voz" || papel === "spokesperson") return "spokesperson";
   if (papel === "inspector" || papel === "inspetor") return "inspector";
   if (papel === "admin") return "admin";
+  if (papel === "inspector") return "inspector";
   return "editor";
 }
 

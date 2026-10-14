@@ -10,6 +10,7 @@ import {
   STATE_COOKIE_OPTS,
   verifySignedState,
 } from "@oficina/auth/session";
+import { type Role, roleHome } from "@oficina/domain/roles";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { fetchApi } from "@/lib/internal-api";
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
       handle: string;
       name: string;
       email: string;
-      role: "editor" | "spokesperson" | "inspector" | "admin";
+      role: Role;
       sessionVersion?: number;
     } | null;
   };
@@ -71,11 +72,7 @@ export async function GET(request: Request) {
     cookieStore.delete(REFERRAL_COOKIE_NAME);
     const token = await createSessionToken(result.account);
     cookieStore.set(COOKIE_NAME, token, COOKIE_OPTS);
-    const destination = ["inspector", "admin"].includes(result.account.role)
-      ? "/inspetor"
-      : result.account.role === "editor"
-        ? "/editor"
-        : "/porta-voz";
+    const destination = roleHome(result.account.role);
     return NextResponse.redirect(new URL(destination, url.origin));
   }
 

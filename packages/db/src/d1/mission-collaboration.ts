@@ -53,6 +53,7 @@ function rowToMessage(row: MessageRow): MissionMessage {
 
 export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollaborationRepository {
   async function participant(missionId: number, actor: Pick<MissionActor, "id" | "role">) {
+    if (actor.role === "inspector") return { ok: false as const, reason: "forbidden" as const };
     const mission = await db
       .prepare(
         "SELECT spokesperson_id, reserved_by_id,EXISTS(SELECT 1 FROM authorized_user_capabilities c WHERE c.user_id=? AND c.capability='mission.read') AS can_read FROM missions WHERE id = ?",
@@ -90,6 +91,7 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
     },
 
     async messagesForMissions(missionIds, actor) {
+      if (actor.role === "inspector") return { ok: false as const, reason: "forbidden" as const };
       const allowed = await db
         .prepare(
           "SELECT 1 FROM authorized_user_capabilities WHERE user_id=? AND capability='mission.read'",

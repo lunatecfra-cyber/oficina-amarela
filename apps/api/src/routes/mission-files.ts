@@ -24,11 +24,30 @@ export function createMissionFileRoutes(dependencies: ApiDependencies) {
       .bind(Number(c.req.param("id")))
       .first<{ spokesperson_id: number; reserved_by_id: number | null; status: string }>();
     const actor = c.get("session");
+    const inspectionRead =
+      actor.role === "inspector" &&
+      hasCapability(actor, "mission.read") &&
+      hasCapability(actor, "mission.inspect") &&
+      c.req.method === "GET" &&
+      Boolean(
+        await (c.env.DB as D1DatabaseLike)
+          .prepare(`SELECT m.id FROM missions m JOIN mission_deliveries current ON current.mission_id=m.id AND current.version=m.delivery_version
+        JOIN mission_deliveries d ON d.mission_id=m.id WHERE m.id=? AND (SELECT inspector_id FROM mission_inspection_assignments WHERE mission_id=current.mission_id AND version=current.version)=? AND current.editor_id<>?
+        AND d.delivery_video_url=?`)
+          .bind(
+            Number(c.req.param("id")),
+            actor.id,
+            actor.id,
+            `${c.env.PUBLIC_ORIGIN ?? new URL(c.req.url).origin}/api${new URL(c.req.url).pathname}`,
+          )
+          .first(),
+      );
     if (
       !mission ||
-      (!hasCapability(actor, "mission.read") &&
-        mission.reserved_by_id !== actor.id &&
-        mission.spokesperson_id !== actor.id)
+      (!(actor.role === "admin" && hasCapability(actor, "mission.read")) &&
+        !inspectionRead &&
+        (actor.role === "inspector" ||
+          (mission.reserved_by_id !== actor.id && mission.spokesperson_id !== actor.id)))
     )
       return c.json({ error: "Você não participa desta missão." }, 403);
     if (

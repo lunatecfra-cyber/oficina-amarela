@@ -159,6 +159,7 @@ function escapeWildcards(term: string): string {
 function normalizeRoleFromDb(papel: string): Role {
   if (papel === "voz" || papel === "spokesperson") return "spokesperson";
   if (papel === "admin") return "admin";
+  if (papel === "inspector") return "inspector";
   return "editor";
 }
 

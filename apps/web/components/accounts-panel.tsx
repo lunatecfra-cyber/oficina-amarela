@@ -54,7 +54,7 @@ const ROLE_LABELS: Record<string, string> = {
   voz: "Porta-voz",
   editor: "Editor",
   inspector: "Inspetor",
-  admin: "Inspetor",
+  admin: "Administrador",
 };
 
 function formatDate(iso: string | null): string {
@@ -342,8 +342,7 @@ function DetailPanel({
   const isCandidate =
     (String(role) === "spokesperson" || String(role) === "voz") &&
     (!!politicalRole || !!runningFor);
-  const isAdmin =
-    String(role) === "inspector" || String(role) === "admin" || String(role) === "inspetor";
+  const isAdmin = role === "admin";
 
   return (
     <div className="rounded-2xl border border-line bg-surface/80 p-4 lg:p-5">
