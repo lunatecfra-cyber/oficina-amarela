@@ -89,7 +89,7 @@ function Tile({
       >
         {value}
       </p>
-      <p className="mt-0.5 text-xs uppercase leading-tight tracking-[0.1em] text-muted-2">
+      <p className="mt-0.5 text-[11px] uppercase leading-tight tracking-[0.06em] text-muted-2">
         {label}
       </p>
     </div>
@@ -350,7 +350,7 @@ export function InspectorQueue() {
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-                        <h2 className="min-w-0 flex-1 font-[family-name:var(--font-display)] text-base font-semibold leading-snug text-text lg:text-lg">
+                        <h2 className="min-w-0 basis-full font-[family-name:var(--font-display)] text-base font-semibold leading-snug text-text sm:flex-1 sm:basis-0 lg:text-lg">
                           {item.title} · versão {item.version}
                         </h2>
                         <div className="flex flex-wrap gap-1.5">
