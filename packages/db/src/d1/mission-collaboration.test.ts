@@ -30,6 +30,7 @@ describe("paridade D1 da colaboração de missão", () => {
   beforeEach(async () => {
     await db.batch([
       db.prepare("DELETE FROM reports"),
+      db.prepare("DELETE FROM message_reads"),
       db.prepare("DELETE FROM messages"),
       db.prepare("DELETE FROM offers"),
       db.prepare("DELETE FROM missions"),
@@ -170,5 +171,157 @@ describe("paridade D1 da colaboração de missão", () => {
     );
 
     assert.deepEqual(result, { ok: false, reason: "write_failed" });
+  });
+  describe("cursor por id e leitura", () => {
+    const editor = () => ({ id: editorId, name: "Editor D1", role: "editor" as const });
+    const spokesperson = () => ({
+      id: spokespersonId,
+      name: "Voz D1",
+      role: "spokesperson" as const,
+    });
+    async function insert(author: number, body: string, createdAt = "2026-10-14T12:00:00.000Z") {
+      const row = await db
+        .prepare(
+          "INSERT INTO messages (mission_id, author_id, body, created_at) VALUES (?, ?, ?, ?) RETURNING id",
+        )
+        .bind(missionId, author, body, createdAt)
+        .first<{ id: number }>();
+      return row?.id as number;
+    }
+    const ids = (r: { ok: boolean; messages?: { seq?: number }[] }) =>
+      (r.messages ?? []).map((m) => m.seq);
+
+    test("não perde mensagens com o mesmo created_at", async () => {
+      const [a, b, c] = [
+        await insert(editorId, "um"),
+        await insert(editorId, "dois"),
+        await insert(spokespersonId, "três"),
+      ];
+      // O cursor por horário esconde as irmãs do último lido; o por id não.
+      const legacy = await collaboration.messagesForMission(
+        missionId,
+        spokesperson(),
+        "2026-10-14T12:00:00.000Z",
+      );
+      assert.deepEqual(legacy, { ok: true, messages: [] });
+      const page = await collaboration.messagePage(missionId, spokesperson(), { afterId: a });
+      assert.deepEqual(ids(page), [b, c]);
+    });
+
+    test("pagina para frente e para trás sem repetir nem pular", async () => {
+      const all: number[] = [];
+      for (let i = 0; i < 5; i++) all.push(await insert(editorId, `m${i}`));
+      const latest = await collaboration.messagePage(missionId, editor(), { limit: 2 });
+      assert.deepEqual([ids(latest), latest.ok && latest.hasMore], [all.slice(3), true]);
+      const older = await collaboration.messagePage(missionId, editor(), {
+        beforeId: all[3],
+        limit: 2,
+      });
+      assert.deepEqual([ids(older), older.ok && older.hasMore], [all.slice(1, 3), true]);
+      const oldest = await collaboration.messagePage(missionId, editor(), {
+        beforeId: all[1],
+        limit: 2,
+      });
+      assert.deepEqual([ids(oldest), oldest.ok && oldest.hasMore], [[all[0]], false]);
+      const forward = await collaboration.messagePage(missionId, editor(), {
+        afterId: all[0],
+        limit: 2,
+      });
+      assert.deepEqual([ids(forward), forward.ok && forward.hasMore], [all.slice(1, 3), true]);
+    });
+
+    test("conta só mensagens alheias e o marcador só avança", async () => {
+      const first = await insert(editorId, "do editor 1");
+      const second = await insert(editorId, "do editor 2");
+      await insert(spokespersonId, "do porta-voz");
+      const unread = await collaboration.unreadMissions(spokesperson());
+      assert.deepEqual(unread, {
+        ok: true,
+        missions: [{ missionId, title: "Missão D1", unread: 2, lastMessageId: second + 1 }],
+      });
+      assert.deepEqual(await collaboration.unreadMissions(editor()), {
+        ok: true,
+        missions: [{ missionId, title: "Missão D1", unread: 1, lastMessageId: second + 1 }],
+      });
+      assert.deepEqual(await collaboration.markRead(missionId, spokesperson(), first), {
+        ok: true,
+        lastReadId: first,
+      });
+      // Repetir e chegar atrasado com um valor menor deixa o marcador onde estava.
+      assert.deepEqual(await collaboration.markRead(missionId, spokesperson(), first), {
+        ok: true,
+        lastReadId: first,
+      });
+      assert.deepEqual(await collaboration.markRead(missionId, spokesperson(), 0), {
+        ok: true,
+        lastReadId: first,
+      });
+      const afterFirst = await collaboration.unreadMissions(spokesperson());
+      assert.equal(afterFirst.ok && afterFirst.missions[0]?.unread, 1);
+      // Passar do fim é limitado à última mensagem da missão.
+      assert.deepEqual(await collaboration.markRead(missionId, spokesperson(), 9_999_999), {
+        ok: true,
+        lastReadId: second + 1,
+      });
+      assert.deepEqual(await collaboration.unreadMissions(spokesperson()), {
+        ok: true,
+        missions: [],
+      });
+    });
+
+    test("marcações concorrentes terminam no maior valor", async () => {
+      const all: number[] = [];
+      for (let i = 0; i < 5; i++) all.push(await insert(editorId, `c${i}`));
+      await Promise.all(
+        [all[2], all[4], all[0], all[3], all[1]].map((id) =>
+          collaboration.markRead(missionId, spokesperson(), id),
+        ),
+      );
+      const row = await db
+        .prepare("SELECT last_read_message_id AS id FROM message_reads WHERE user_id = ?")
+        .bind(spokespersonId)
+        .first<{ id: number }>();
+      assert.equal(row?.id, all[4]);
+    });
+
+    test("isola outras pessoas e outras missões, e acompanha a transferência", async () => {
+      const mine = await insert(editorId, "privada");
+      const outsider = { id: outsiderId, name: "Fora D1", role: "editor" as const };
+      assert.deepEqual(await collaboration.messagePage(missionId, outsider, {}), {
+        ok: false,
+        reason: "forbidden",
+      });
+      assert.deepEqual(await collaboration.markRead(missionId, outsider, mine), {
+        ok: false,
+        reason: "forbidden",
+      });
+      assert.deepEqual(await collaboration.markRead(999_999, spokesperson(), 1), {
+        ok: false,
+        reason: "mission_not_found",
+      });
+      assert.deepEqual(await collaboration.unreadMissions(outsider), { ok: true, missions: [] });
+      // Inspetor lê pelo painel próprio e não guarda marcador de conversa.
+      assert.deepEqual(
+        await collaboration.markRead(missionId, { id: outsiderId, role: "inspector" }, mine),
+        { ok: false, reason: "forbidden" },
+      );
+
+      await db
+        .prepare("UPDATE missions SET reserved_by_id = ? WHERE id = ?")
+        .bind(outsiderId, missionId)
+        .run();
+      // O editor anterior perde acesso na hora; o novo começa com o próprio marcador.
+      assert.deepEqual(await collaboration.messagePage(missionId, editor(), {}), {
+        ok: false,
+        reason: "forbidden",
+      });
+      assert.deepEqual(await collaboration.unreadMissions(editor()), { ok: true, missions: [] });
+      assert.deepEqual(await collaboration.markRead(missionId, editor(), mine), {
+        ok: false,
+        reason: "forbidden",
+      });
+      const incoming = await collaboration.messagePage(missionId, outsider, {});
+      assert.deepEqual(ids(incoming), [mine]);
+    });
   });
 });

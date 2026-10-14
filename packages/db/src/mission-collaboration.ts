@@ -12,6 +12,8 @@ export type MissionMessage = {
   authorRole: Role;
   text: string;
   createdAt: string;
+  /** Id numérico da mensagem: é o cursor estável da paginação e da leitura. */
+  seq?: number;
   pautaId?: number;
   autorId?: number;
   autorNome?: string;
@@ -28,7 +30,8 @@ export type MissionCollaborationFailure =
   | "forbidden"
   | "empty_message"
   | "empty_report"
-  | "write_failed";
+  | "write_failed"
+  | "unsupported";
 
 export type MissionMessagesByMissionResult =
   | { ok: true; messages: Record<number, MissionMessage[]> }
@@ -42,7 +45,38 @@ export type MissionMessageResult =
   | { ok: false; reason: MissionCollaborationFailure };
 export type MissionReportResult = { ok: true } | { ok: false; reason: MissionCollaborationFailure };
 
+export type MissionMessagePageOptions = { afterId?: number; beforeId?: number; limit?: number };
+export type MissionMessagePageResult =
+  | { ok: true; messages: MissionMessage[]; hasMore: boolean }
+  | { ok: false; reason: MissionCollaborationFailure };
+export type MissionReadResult =
+  | { ok: true; lastReadId: number }
+  | { ok: false; reason: MissionCollaborationFailure };
+export type MissionUnread = {
+  missionId: number;
+  title: string;
+  unread: number;
+  lastMessageId: number;
+};
+export type MissionUnreadResult =
+  | { ok: true; missions: MissionUnread[] }
+  | { ok: false; reason: MissionCollaborationFailure };
+
 export interface MissionCollaborationRepository {
+  /** Página por id (estável com timestamps iguais). Sem cursor devolve as mais recentes. */
+  messagePage(
+    missionId: number,
+    actor: Pick<MissionActor, "id" | "role">,
+    options: MissionMessagePageOptions,
+  ): Promise<MissionMessagePageResult>;
+  /** Avança o marcador de leitura do participante; nunca recua. */
+  markRead(
+    missionId: number,
+    actor: Pick<MissionActor, "id" | "role">,
+    upToMessageId: number,
+  ): Promise<MissionReadResult>;
+  /** Missões em que o participante tem mensagens de outras pessoas ainda não lidas. */
+  unreadMissions(actor: Pick<MissionActor, "id" | "role">): Promise<MissionUnreadResult>;
   messagesForMission(
     missionId: number,
     actor: Pick<MissionActor, "id" | "role">,
@@ -124,6 +158,16 @@ async function participant(
 }
 
 export const postgresMissionCollaboration: MissionCollaborationRepository = {
+  // Cursor por id e leitura são só D1: no PostgreSQL falham fechados.
+  async messagePage() {
+    return { ok: false, reason: "unsupported" };
+  },
+  async markRead() {
+    return { ok: false, reason: "unsupported" };
+  },
+  async unreadMissions() {
+    return { ok: false, reason: "unsupported" };
+  },
   async messagesForMission(missionId, actor, after) {
     const access = await participant(missionId, actor);
     if (!access.ok) return access;

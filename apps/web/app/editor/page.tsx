@@ -6,6 +6,7 @@ import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner"
 import { MissionBoard } from "@/components/mission-board";
 import { MissionNotifications } from "@/components/mission-notifications";
 import { MissionOffer } from "@/components/mission-offer";
+import { UnreadConversations } from "@/components/unread-conversations";
 import { getMissionMessages } from "@/lib/chat-db";
 import { listDailyChallenges, recordDailyLogin } from "@/lib/gamification-db";
 import { getReservedMission } from "@/lib/missions-db";
@@ -60,6 +61,9 @@ export default async function EditorPage() {
             </div>
           )}
 
+          <div className="mb-6 empty:hidden">
+            <UnreadConversations hrefTemplate="/editor" />
+          </div>
           <ActiveMissionCard mission={currentMission} messages={messages} />
           <MissionOffer hasActiveMission={!!currentMission} />
           <MissionBoard key={currentMission?.id ?? "unassigned"} />

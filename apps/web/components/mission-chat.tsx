@@ -38,6 +38,10 @@ function textWithLinks(text: string): React.ReactNode[] {
 
 const POLL_MS = 5_000;
 
+function seqOf(m: ChatMessage): number {
+  return m.seq ?? (Number(String(m.id).replace(/^m-/, "")) || 0);
+}
+
 export function MissionChat({
   missionId,
   pautaId,
@@ -71,15 +75,15 @@ export function MissionChat({
   const endRef = useRef<HTMLLIElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const lastTs =
-    messages.length > 0
-      ? (messages[messages.length - 1].createdAt ?? (messages[messages.length - 1] as any).criadaEm)
-      : null;
+  // O cursor é o id da mensagem: o horário se repete quando duas chegam juntas.
+  const lastSeq = messages.reduce((max, m) => Math.max(max, seqOf(m)), 0);
+  const readRef = useRef(0);
 
   const poll = useCallback(async () => {
     try {
-      const params = lastTs ? `?after=${encodeURIComponent(lastTs)}` : "";
-      const resp = await fetch(`/api/missions/${effectiveId}${params}`);
+      const resp = await fetch(`/api/missions/${effectiveId}?afterId=${lastSeq}&limit=100`, {
+        cache: "no-store",
+      });
       if (!resp.ok) return;
       const data = await resp.json();
       const newMessages: ChatMessage[] = data.messages ?? data.mensagens ?? [];
@@ -93,7 +97,30 @@ export function MissionChat({
     } catch {
       // network failure
     }
-  }, [effectiveId, lastTs]);
+  }, [effectiveId, lastSeq]);
+
+  const markRead = useCallback(async () => {
+    if (lastSeq <= readRef.current || document.visibilityState !== "visible") return;
+    readRef.current = lastSeq;
+    try {
+      const resp = await fetch(`/api/missions/${effectiveId}/read`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ upTo: lastSeq }),
+      });
+      if (!resp.ok) readRef.current = 0;
+    } catch {
+      readRef.current = 0; // tenta de novo na próxima mudança
+    }
+  }, [effectiveId, lastSeq]);
+
+  useEffect(() => {
+    if (!/^\d+$/.test(effectiveId.replace(/^db-/, ""))) return;
+    void markRead();
+    const onVisible = () => void markRead();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [effectiveId, markRead]);
 
   useEffect(() => {
     if (!effectiveId || !/^\d+$/.test(effectiveId.replace(/^db-/, ""))) return;

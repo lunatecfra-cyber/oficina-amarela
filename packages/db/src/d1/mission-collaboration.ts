@@ -42,6 +42,7 @@ function rowToMessage(row: MessageRow): MissionMessage {
     authorRole: role,
     text,
     createdAt,
+    seq: row.id,
     pautaId: missionId,
     autorId: authorId,
     autorNome: authorName,
@@ -71,7 +72,89 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
     return { ok: true as const, mission };
   }
 
+  const PAGE_DEFAULT = 100;
+  const PAGE_MAX = 200;
+
   return {
+    async messagePage(missionId, actor, { afterId, beforeId, limit }) {
+      const access = await participant(missionId, actor);
+      if (!access.ok) return access;
+      const size = Math.min(Math.max(Math.trunc(limit ?? PAGE_DEFAULT), 1), PAGE_MAX);
+      const ascending = afterId !== undefined;
+      // Um a mais que o pedido: a sobra só diz se há outra página.
+      const rows = await db
+        .prepare(
+          `SELECT m.id, m.mission_id, m.author_id, u.name, u.role, m.body, m.created_at
+           FROM messages m JOIN users u ON u.id = m.author_id
+           WHERE m.mission_id = ? AND (? IS NULL OR m.id > ?) AND (? IS NULL OR m.id < ?)
+           ORDER BY m.id ${ascending ? "ASC" : "DESC"} LIMIT ?`,
+        )
+        .bind(
+          missionId,
+          afterId ?? null,
+          afterId ?? null,
+          beforeId ?? null,
+          beforeId ?? null,
+          size + 1,
+        )
+        .all<MessageRow>();
+      const hasMore = rows.results.length > size;
+      const page = rows.results.slice(0, size);
+      if (!ascending) page.reverse();
+      return { ok: true, messages: page.map(rowToMessage), hasMore };
+    },
+
+    async markRead(missionId, actor, upToMessageId) {
+      // Só quem conversa na missão guarda marcador; quem apenas lê (inspeção) não.
+      const mission = await db
+        .prepare("SELECT spokesperson_id, reserved_by_id FROM missions WHERE id = ?")
+        .bind(missionId)
+        .first<{ spokesperson_id: number; reserved_by_id: number | null }>();
+      if (!mission) return { ok: false, reason: "mission_not_found" };
+      if (actor.id !== mission.spokesperson_id && actor.id !== mission.reserved_by_id)
+        return { ok: false, reason: "forbidden" };
+      // O teto é a última mensagem da missão, e o upsert só avança: repetir ou
+      // reordenar chamadas deixa o mesmo resultado.
+      const row = await db
+        .prepare(
+          `INSERT INTO message_reads (mission_id, user_id, last_read_message_id)
+           VALUES (?1, ?2, MIN(?3, COALESCE((SELECT MAX(id) FROM messages WHERE mission_id = ?1), 0)))
+           ON CONFLICT (mission_id, user_id) DO UPDATE SET
+             last_read_message_id = MAX(last_read_message_id, excluded.last_read_message_id),
+             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+           RETURNING last_read_message_id`,
+        )
+        .bind(missionId, actor.id, Math.max(0, Math.trunc(upToMessageId)))
+        .first<{ last_read_message_id: number }>();
+      return { ok: true, lastReadId: row?.last_read_message_id ?? 0 };
+    },
+
+    async unreadMissions(actor) {
+      const rows = await db
+        .prepare(
+          `SELECT mission_id, title, unread, last_message_id FROM (
+             SELECT ms.id AS mission_id, ms.title AS title,
+               (SELECT COUNT(*) FROM messages m
+                 WHERE m.mission_id = ms.id AND m.author_id <> ?1
+                   AND m.id > COALESCE((SELECT r.last_read_message_id FROM message_reads r
+                                         WHERE r.mission_id = ms.id AND r.user_id = ?1), 0)) AS unread,
+               (SELECT MAX(id) FROM messages WHERE mission_id = ms.id) AS last_message_id
+             FROM missions ms WHERE ms.spokesperson_id = ?1 OR ms.reserved_by_id = ?1
+           ) WHERE unread > 0 ORDER BY last_message_id DESC LIMIT 100`,
+        )
+        .bind(actor.id)
+        .all<{ mission_id: number; title: string; unread: number; last_message_id: number }>();
+      return {
+        ok: true,
+        missions: rows.results.map((r) => ({
+          missionId: r.mission_id,
+          title: r.title,
+          unread: r.unread,
+          lastMessageId: r.last_message_id,
+        })),
+      };
+    },
+
     async messagesForMission(missionId, actor, after) {
       const access = await participant(missionId, actor);
       if (!access.ok) return access;
