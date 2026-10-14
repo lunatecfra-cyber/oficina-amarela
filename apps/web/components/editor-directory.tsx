@@ -146,14 +146,14 @@ export function EditorDirectory({ missions }: { missions: { id: string; title: s
             <EditorDirectoryDetails editor={e} />
             <p className="mt-2 text-xs text-muted">{e.portfolioCount} amostras autorizadas</p>
             <Link
-              className="mt-3 block text-sm text-gold-hi underline"
+              className="tap-target mt-1 -ml-3 justify-start text-sm text-gold-hi underline"
               href={`/editores/${e.handle}`}
             >
               Consultar perfil
             </Link>
             {e.portfolioLink && isLikelyUrl(e.portfolioLink) && (
               <a
-                className="mt-2 block text-sm text-gold-hi underline"
+                className="tap-target -ml-3 justify-start text-sm text-gold-hi underline"
                 href={e.portfolioLink}
                 target="_blank"
                 rel="noopener noreferrer"

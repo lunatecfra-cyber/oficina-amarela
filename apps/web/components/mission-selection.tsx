@@ -172,6 +172,7 @@ export function MissionSelectionPanel({ missionId }: { missionId: number }) {
               <input
                 id="direct-editor"
                 className="input mt-2 w-full"
+                aria-label="Buscar editor por nome ou apelido"
                 placeholder="Busque por nome ou apelido"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

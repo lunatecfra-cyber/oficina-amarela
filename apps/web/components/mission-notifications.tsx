@@ -56,7 +56,9 @@ export function MissionNotifications({ missionId }: { missionId?: string }) {
               </p>
               {event.notes && <p className="whitespace-pre-line">{event.notes}</p>}
               <time dateTime={event.createdAt}>
-                {new Date(event.createdAt).toLocaleString("pt-BR")}
+                {new Date(event.createdAt).toLocaleString("pt-BR", {
+                  timeZone: "America/Sao_Paulo",
+                })}
               </time>
             </li>
           ))}
