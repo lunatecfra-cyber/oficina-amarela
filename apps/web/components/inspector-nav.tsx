@@ -11,6 +11,7 @@ const TABS = [
   { href: "/portfolio", label: "Portfólios", rotulo: "Portfólios" },
   { href: "/inspetor/denuncias", label: "Denúncias", rotulo: "Denúncias" },
   { href: "/inspetor/novidades", label: "Novidades", rotulo: "Novidades" },
+  { href: "/inspetor/aulas", label: "Videoaulas", rotulo: "Videoaulas" },
   { href: "/inspetor/seguranca", label: "Segurança", rotulo: "Segurança" },
   { href: "/parceiros?source=admin", label: "Parceiros", rotulo: "Parceiros" },
 ];
@@ -43,6 +44,7 @@ export function InspectorNav({
           "/inspetor/panorama": "security.read",
           "/inspetor/contas": "users.manage",
           "/inspetor/novidades": "content.manage",
+          "/inspetor/aulas": "content.manage",
           "/inspetor/seguranca": "security.read",
           "/inspetor/denuncias": "reports.read",
         };

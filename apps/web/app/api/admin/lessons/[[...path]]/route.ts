@@ -1,0 +1,13 @@
+import { forwardToApi } from "@/lib/internal-api";
+
+export function GET(request: Request) {
+  return forwardToApi(request);
+}
+
+export function POST(request: Request) {
+  return forwardToApi(request);
+}
+
+export function PATCH(request: Request) {
+  return forwardToApi(request);
+}
