@@ -153,7 +153,7 @@ export function InspectorQueue() {
         Staging exige inspeção de todas as entregas. A amostragem e os parâmetros definitivos de
         risco ainda aguardam decisão.
       </p>
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-5 flex flex-wrap gap-3" data-guia="inspection-queue">
         <label className="text-sm text-text">
           Status
           <select
@@ -235,7 +235,11 @@ export function InspectorQueue() {
         </>
       )}
       {review && selected && (
-        <section aria-label="Inspeção da versão" className="mt-6 rounded-xl border border-gold p-5">
+        <section
+          aria-label="Inspeção da versão"
+          data-guia="inspection-decision"
+          className="mt-6 rounded-xl border border-gold p-5"
+        >
           <h2 className="text-xl text-text">
             {review.mission.title} · versão {review.mission.deliveryVersion}
           </h2>
