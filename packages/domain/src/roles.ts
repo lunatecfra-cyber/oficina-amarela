@@ -24,13 +24,25 @@ export const ADMIN_CAPABILITIES = [
   "broadcast.send",
   "security.read",
   "portfolio.moderate",
+  "disputes.read",
+  "disputes.decide",
 ] as const;
-export type Capability = (typeof ADMIN_CAPABILITIES)[number] | "reports.releaseRetention";
+export type Capability =
+  | (typeof ADMIN_CAPABILITIES)[number]
+  | "reports.releaseRetention"
+  | "disputes.mediate";
 
 export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
   editor: [],
   spokesperson: [],
-  inspector: ["mission.read", "mission.chat", "mission.inspect", "reports.read", "reports.forward"],
+  inspector: [
+    "mission.read",
+    "mission.chat",
+    "mission.inspect",
+    "reports.read",
+    "reports.forward",
+    "disputes.read",
+  ],
   admin: ADMIN_CAPABILITIES,
 };
 

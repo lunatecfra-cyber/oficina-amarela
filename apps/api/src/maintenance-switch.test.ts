@@ -87,6 +87,7 @@ describe("escolha do conjunto de repositórios", async () => {
     "missionQueue",
     "missionLifecycle",
     "missionCollaboration",
+    "disputes",
     "missionApproval",
     "missionContacts",
     "missions",

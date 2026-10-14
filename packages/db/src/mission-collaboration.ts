@@ -12,6 +12,9 @@ export type MissionMessage = {
   authorRole: Role;
   text: string;
   createdAt: string;
+  /** Numeric message id: the stable cursor for pagination and reading. */
+  seq?: number;
+  attachments?: MissionAttachment[];
   pautaId?: number;
   autorId?: number;
   autorNome?: string;
@@ -19,6 +22,22 @@ export type MissionMessage = {
   texto?: string;
   criadaEm?: string;
 };
+export type MissionAttachment = {
+  id: number;
+  filename: string;
+  contentType: string;
+  size: number;
+};
+export type NewAttachment = {
+  objectKey: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  sha256: string;
+};
+export type MissionAttachmentResult =
+  | { ok: true; attachment: MissionAttachment & { objectKey: string } }
+  | { ok: false; reason: MissionCollaborationFailure | "attachment_not_found" };
 export type Message = MissionMessage;
 export type Mensagem = MissionMessage;
 export type ChatMessage = MissionMessage;
@@ -28,7 +47,8 @@ export type MissionCollaborationFailure =
   | "forbidden"
   | "empty_message"
   | "empty_report"
-  | "write_failed";
+  | "write_failed"
+  | "unsupported";
 
 export type MissionMessagesByMissionResult =
   | { ok: true; messages: Record<number, MissionMessage[]> }
@@ -42,7 +62,58 @@ export type MissionMessageResult =
   | { ok: false; reason: MissionCollaborationFailure };
 export type MissionReportResult = { ok: true } | { ok: false; reason: MissionCollaborationFailure };
 
+export type MissionMessagePageOptions = { afterId?: number; beforeId?: number; limit?: number };
+export type MissionMessagePageResult =
+  | { ok: true; messages: MissionMessage[]; hasMore: boolean }
+  | { ok: false; reason: MissionCollaborationFailure };
+export type MissionReadResult =
+  | { ok: true; lastReadId: number }
+  | { ok: false; reason: MissionCollaborationFailure };
+export type MissionUnread = {
+  missionId: number;
+  title: string;
+  unread: number;
+  lastMessageId: number;
+};
+export type MissionUnreadResult =
+  | { ok: true; missions: MissionUnread[] }
+  | { ok: false; reason: MissionCollaborationFailure };
+
+/** Mission lifecycle milestone shown in the conversation. Never carries inspection notes. */
+export type MissionTimelineEvent = { id: string; event: string; version: number; at: string };
+export type MissionEventsResult =
+  | { ok: true; events: MissionTimelineEvent[] }
+  | { ok: false; reason: MissionCollaborationFailure };
+
 export interface MissionCollaborationRepository {
+  /** Authorizes before writing bytes: non-participants do not spend storage. */
+  canChat(
+    missionId: number,
+    actor: Pick<MissionActor, "id" | "role">,
+  ): Promise<{ ok: true } | { ok: false; reason: MissionCollaborationFailure }>;
+  attachmentFor(
+    missionId: number,
+    attachmentId: number,
+    actor: Pick<MissionActor, "id" | "role">,
+  ): Promise<MissionAttachmentResult>;
+  missionEvents(
+    missionId: number,
+    actor: Pick<MissionActor, "id" | "role">,
+  ): Promise<MissionEventsResult>;
+  /** Page by id (stable with equal timestamps). Without a cursor, returns the most recent. */
+  messagePage(
+    missionId: number,
+    actor: Pick<MissionActor, "id" | "role">,
+    options: MissionMessagePageOptions,
+  ): Promise<MissionMessagePageResult>;
+  /** Advances the participant's read marker; never moves back. */
+  markRead(
+    missionId: number,
+    actor: Pick<MissionActor, "id" | "role">,
+    upToMessageId: number,
+  ): Promise<MissionReadResult>;
+  /** Missions where the participant has other people's messages not yet read. */
+  unreadMissions(actor: Pick<MissionActor, "id" | "role">): Promise<MissionUnreadResult>;
   messagesForMission(
     missionId: number,
     actor: Pick<MissionActor, "id" | "role">,
@@ -56,7 +127,12 @@ export interface MissionCollaborationRepository {
     missionIds: number[],
     actor: Pick<MissionActor, "id" | "role">,
   ): Promise<MissionMessagesByMissionResult>;
-  sendMessage(missionId: number, actor: MissionActor, text: string): Promise<MissionMessageResult>;
+  sendMessage(
+    missionId: number,
+    actor: MissionActor,
+    text: string,
+    attachment?: NewAttachment,
+  ): Promise<MissionMessageResult>;
   reportMission(
     missionId: number,
     actor: Pick<MissionActor, "id" | "role">,
@@ -124,6 +200,25 @@ async function participant(
 }
 
 export const postgresMissionCollaboration: MissionCollaborationRepository = {
+  // Id cursor and read state are D1 only: on PostgreSQL they fail closed.
+  async canChat() {
+    return { ok: false, reason: "unsupported" };
+  },
+  async attachmentFor() {
+    return { ok: false, reason: "unsupported" };
+  },
+  async missionEvents() {
+    return { ok: false, reason: "unsupported" };
+  },
+  async messagePage() {
+    return { ok: false, reason: "unsupported" };
+  },
+  async markRead() {
+    return { ok: false, reason: "unsupported" };
+  },
+  async unreadMissions() {
+    return { ok: false, reason: "unsupported" };
+  },
   async messagesForMission(missionId, actor, after) {
     const access = await participant(missionId, actor);
     if (!access.ok) return access;

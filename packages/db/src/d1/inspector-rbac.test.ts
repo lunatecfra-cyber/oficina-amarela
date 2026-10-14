@@ -87,6 +87,7 @@ test("inspetor autentica, inspeciona e encaminha com capacidades limitadas; admi
   const data = (await session.json()) as { role: string; capabilities: string[] };
   assert.equal(data.role, "inspector");
   assert.deepEqual(data.capabilities.sort(), [
+    "disputes.read",
     "mission.chat",
     "mission.inspect",
     "mission.read",

@@ -14,6 +14,7 @@ import { EmojiLead } from "@/components/emoji-icon";
 import { EmptyState } from "@/components/empty-state";
 import { IncompleteProfileBanner } from "@/components/incomplete-profile-banner";
 import { MissionCounters } from "@/components/mission-counters";
+import { UnreadConversations } from "@/components/unread-conversations";
 import { readCandidateOnboarding } from "@/lib/candidate-db";
 import { getAvailableMissions, getSpokespersonMissions } from "@/lib/missions-db";
 import { getSession } from "@/lib/server-session";
@@ -123,6 +124,10 @@ export default async function SpokespersonHome() {
       </p>
 
       {/* O botão fica antes de tudo: no celular é a ação que a pessoa mais repete. */}
+      <div className="mt-5 empty:hidden">
+        <UnreadConversations hrefTemplate="/porta-voz/missao/db-{id}" />
+      </div>
+
       <Link href="/porta-voz/nova-pauta" className="btn-gold mt-5 w-full" data-guia="nova-missao">
         Criar missão
       </Link>

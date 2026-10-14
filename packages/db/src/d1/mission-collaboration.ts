@@ -3,6 +3,7 @@ import type { Role } from "@oficina/domain/roles";
 import { roleFromDb } from "../accounts.ts";
 import type {
   MissionActor,
+  MissionAttachment,
   MissionCollaborationRepository,
   MissionMessage,
 } from "../mission-collaboration.ts";
@@ -42,6 +43,7 @@ function rowToMessage(row: MessageRow): MissionMessage {
     authorRole: role,
     text,
     createdAt,
+    seq: row.id,
     pautaId: missionId,
     autorId: authorId,
     autorNome: authorName,
@@ -71,7 +73,191 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
     return { ok: true as const, mission };
   }
 
+  /** Attaches the files to the page's messages with a single query, by id range. */
+  async function withAttachments(missionId: number, messages: MissionMessage[]) {
+    const seqs = messages.map((m) => m.seq ?? 0).filter(Boolean);
+    if (seqs.length === 0) return messages;
+    const rows = await db
+      .prepare(
+        `SELECT id, message_id, filename, content_type, size FROM message_attachments
+         WHERE mission_id = ? AND message_id BETWEEN ? AND ? ORDER BY id`,
+      )
+      .bind(missionId, Math.min(...seqs), Math.max(...seqs))
+      .all<{
+        id: number;
+        message_id: number;
+        filename: string;
+        content_type: string;
+        size: number;
+      }>();
+    const byMessage = new Map<number, MissionAttachment[]>();
+    for (const r of rows.results) {
+      const list = byMessage.get(r.message_id) ?? [];
+      list.push({ id: r.id, filename: r.filename, contentType: r.content_type, size: r.size });
+      byMessage.set(r.message_id, list);
+    }
+    return messages.map((m) => {
+      const attachments = byMessage.get(m.seq ?? 0);
+      return attachments ? { ...m, attachments } : m;
+    });
+  }
+
+  const PAGE_DEFAULT = 100;
+  const PAGE_MAX = 200;
+
+  // Milestones both parties may see. `offer` (before assignment), `inspection_pending`
+  // (internal notice) and the transfer actions are left out, and `notes` is never read.
+  const TIMELINE = [
+    "accepted",
+    "submitted",
+    "revision",
+    "inspection_approved",
+    "inspection_rejected",
+    "approved",
+    "returned",
+  ];
+
   return {
+    async canChat(missionId, actor) {
+      const access = await participant(missionId, actor);
+      return access.ok ? { ok: true } : access;
+    },
+
+    async attachmentFor(missionId, attachmentId, actor) {
+      const access = await participant(missionId, actor);
+      if (!access.ok) return access;
+      // Filtering by mission stops opening another conversation's attachment by id.
+      const row = await db
+        .prepare(
+          `SELECT id, object_key, filename, content_type, size FROM message_attachments
+           WHERE id = ? AND mission_id = ?`,
+        )
+        .bind(attachmentId, missionId)
+        .first<{
+          id: number;
+          object_key: string;
+          filename: string;
+          content_type: string;
+          size: number;
+        }>();
+      if (!row) return { ok: false, reason: "attachment_not_found" };
+      return {
+        ok: true,
+        attachment: {
+          id: row.id,
+          objectKey: row.object_key,
+          filename: row.filename,
+          contentType: row.content_type,
+          size: row.size,
+        },
+      };
+    },
+
+    async missionEvents(missionId, actor) {
+      const access = await participant(missionId, actor);
+      if (!access.ok) return access;
+      const rows = await db
+        .prepare(
+          `SELECT key, event, version, created_at FROM mission_notifications
+           WHERE mission_id = ? AND event IN (${TIMELINE.map(() => "?").join(",")})
+           ORDER BY created_at, key LIMIT 200`,
+        )
+        .bind(missionId, ...TIMELINE)
+        .all<{ key: string; event: string; version: number; created_at: string }>();
+      return {
+        ok: true,
+        events: rows.results.map((r) => ({
+          id: r.key,
+          event: r.event,
+          version: r.version,
+          at: r.created_at,
+        })),
+      };
+    },
+
+    async messagePage(missionId, actor, { afterId, beforeId, limit }) {
+      const access = await participant(missionId, actor);
+      if (!access.ok) return access;
+      const size = Math.min(Math.max(Math.trunc(limit ?? PAGE_DEFAULT), 1), PAGE_MAX);
+      const ascending = afterId !== undefined;
+      // One more than requested: the extra row only says whether another page exists.
+      const rows = await db
+        .prepare(
+          `SELECT m.id, m.mission_id, m.author_id, u.name, u.role, m.body, m.created_at
+           FROM messages m JOIN users u ON u.id = m.author_id
+           WHERE m.mission_id = ? AND (? IS NULL OR m.id > ?) AND (? IS NULL OR m.id < ?)
+           ORDER BY m.id ${ascending ? "ASC" : "DESC"} LIMIT ?`,
+        )
+        .bind(
+          missionId,
+          afterId ?? null,
+          afterId ?? null,
+          beforeId ?? null,
+          beforeId ?? null,
+          size + 1,
+        )
+        .all<MessageRow>();
+      const hasMore = rows.results.length > size;
+      const page = rows.results.slice(0, size);
+      if (!ascending) page.reverse();
+      return {
+        ok: true,
+        messages: await withAttachments(missionId, page.map(rowToMessage)),
+        hasMore,
+      };
+    },
+
+    async markRead(missionId, actor, upToMessageId) {
+      // Only people who chat in the mission keep a marker; whoever merely reads (inspection) does not.
+      const mission = await db
+        .prepare("SELECT spokesperson_id, reserved_by_id FROM missions WHERE id = ?")
+        .bind(missionId)
+        .first<{ spokesperson_id: number; reserved_by_id: number | null }>();
+      if (!mission) return { ok: false, reason: "mission_not_found" };
+      if (actor.id !== mission.spokesperson_id && actor.id !== mission.reserved_by_id)
+        return { ok: false, reason: "forbidden" };
+      // The ceiling is the mission's last message, and the upsert only moves forward: repeating or
+      // reordering calls gives the same result.
+      const row = await db
+        .prepare(
+          `INSERT INTO message_reads (mission_id, user_id, last_read_message_id)
+           VALUES (?1, ?2, MIN(?3, COALESCE((SELECT MAX(id) FROM messages WHERE mission_id = ?1), 0)))
+           ON CONFLICT (mission_id, user_id) DO UPDATE SET
+             last_read_message_id = MAX(last_read_message_id, excluded.last_read_message_id),
+             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+           RETURNING last_read_message_id`,
+        )
+        .bind(missionId, actor.id, Math.max(0, Math.trunc(upToMessageId)))
+        .first<{ last_read_message_id: number }>();
+      return { ok: true, lastReadId: row?.last_read_message_id ?? 0 };
+    },
+
+    async unreadMissions(actor) {
+      const rows = await db
+        .prepare(
+          `SELECT mission_id, title, unread, last_message_id FROM (
+             SELECT ms.id AS mission_id, ms.title AS title,
+               (SELECT COUNT(*) FROM messages m
+                 WHERE m.mission_id = ms.id AND m.author_id <> ?1
+                   AND m.id > COALESCE((SELECT r.last_read_message_id FROM message_reads r
+                                         WHERE r.mission_id = ms.id AND r.user_id = ?1), 0)) AS unread,
+               (SELECT MAX(id) FROM messages WHERE mission_id = ms.id) AS last_message_id
+             FROM missions ms WHERE ms.spokesperson_id = ?1 OR ms.reserved_by_id = ?1
+           ) WHERE unread > 0 ORDER BY last_message_id DESC LIMIT 100`,
+        )
+        .bind(actor.id)
+        .all<{ mission_id: number; title: string; unread: number; last_message_id: number }>();
+      return {
+        ok: true,
+        missions: rows.results.map((r) => ({
+          missionId: r.mission_id,
+          title: r.title,
+          unread: r.unread,
+          lastMessageId: r.last_message_id,
+        })),
+      };
+    },
+
     async messagesForMission(missionId, actor, after) {
       const access = await participant(missionId, actor);
       if (!access.ok) return access;
@@ -87,7 +273,10 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
         ? statement.bind(missionId, after)
         : statement.bind(missionId)
       ).all<MessageRow>();
-      return { ok: true, messages: rows.results.map(rowToMessage) };
+      return {
+        ok: true,
+        messages: await withAttachments(missionId, rows.results.map(rowToMessage)),
+      };
     },
 
     async messagesForMissions(missionIds, actor) {
@@ -128,23 +317,42 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
       return { ok: true as const, messages };
     },
 
-    async sendMessage(missionId, actor, rawText) {
-      const text = limitStr(rawText, LIMITS.message);
+    async sendMessage(missionId, actor, rawText, attachment) {
+      const text =
+        limitStr(rawText, LIMITS.message) || (attachment ? `Anexo: ${attachment.filename}` : "");
       if (!text) return { ok: false, reason: "empty_message" };
       const access = await participant(missionId, actor);
       if (!access.ok) return access;
-      const row = await db
-        .prepare(
-          `INSERT INTO messages (mission_id, author_id, body) VALUES (?, ?, ?)
-           RETURNING id, mission_id, author_id, body, created_at`,
-        )
-        .bind(missionId, actor.id, text)
-        .first<Omit<MessageRow, "name" | "role">>();
+      const insert = `INSERT INTO messages (mission_id, author_id, body) VALUES (?, ?, ?)
+           RETURNING id, mission_id, author_id, body, created_at`;
+      let row: Omit<MessageRow, "name" | "role"> | null;
+      if (attachment && db.batch) {
+        // Message and attachment in the same batch: either both exist or neither. After the
+        // triggers, last_insert_rowid() goes back to the message's value.
+        const [message] = await db.batch<{ results?: Omit<MessageRow, "name" | "role">[] }>([
+          db.prepare(insert).bind(missionId, actor.id, text),
+          db
+            .prepare(
+              `INSERT INTO message_attachments (message_id, mission_id, object_key, filename, content_type, size, sha256)
+               VALUES (last_insert_rowid(), ?, ?, ?, ?, ?, ?)`,
+            )
+            .bind(
+              missionId,
+              attachment.objectKey,
+              attachment.filename,
+              attachment.contentType,
+              attachment.size,
+              attachment.sha256,
+            ),
+        ]);
+        row = message?.results?.[0] ?? null;
+      } else {
+        row = await db.prepare(insert).bind(missionId, actor.id, text).first();
+      }
       if (!row) return { ok: false, reason: "write_failed" };
-      return {
-        ok: true,
-        message: rowToMessage({ ...row, name: actor.name, role: actor.role } as MessageRow),
-      };
+      const message = rowToMessage({ ...row, name: actor.name, role: actor.role } as MessageRow);
+      const [withFiles] = await withAttachments(missionId, [message]);
+      return { ok: true, message: withFiles ?? message };
     },
 
     async reportMission(missionId, actor, rawText) {
