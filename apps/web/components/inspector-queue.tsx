@@ -1,6 +1,7 @@
 "use client";
 import { isLikelyUrl } from "@oficina/domain/validators";
 import { useCallback, useEffect, useState } from "react";
+import { inspectionDate as date, inspectionWait } from "@/lib/inspection-time";
 
 type QueueItem = {
   id: number;
@@ -9,7 +10,7 @@ type QueueItem = {
   version: number;
   reason: string;
   deadline: string | null;
-  submittedAt: string;
+  submittedAt: string | null;
   submittedBy: string;
   assignedInspectorId: number | null;
 };
@@ -24,7 +25,7 @@ type Review = {
   };
   history: {
     version: number;
-    submittedAt: string;
+    submittedAt: string | null;
     link: string | null;
     videoUrl: string | null;
     decision: string | null;
@@ -48,8 +49,6 @@ const STATUS: Record<string, string> = {
   aprovada: "Aguardando porta-voz",
   finalizada: "Concluída",
 };
-const date = (value: string) =>
-  new Date(value).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
 export function InspectorQueue() {
   const [items, setItems] = useState<QueueItem[]>([]),
@@ -211,13 +210,12 @@ export function InspectorQueue() {
                   </h2>
                   <p className="text-sm text-gold">{STATUS[item.status]}</p>
                   <p className="mt-2 text-sm text-muted">
-                    Entregue por {item.submittedBy} em {date(item.submittedAt)} · há{" "}
-                    {Math.max(0, Math.floor((Date.now() - Date.parse(item.submittedAt)) / 3600000))}{" "}
-                    hora(s)
+                    Entregue por {item.submittedBy} em {date(item.submittedAt)} ·{" "}
+                    {inspectionWait(item.submittedAt)}
                   </p>
                   <p className="mt-1 text-sm text-muted">
                     Motivo: {REASONS[item.reason] ?? "Inspeção obrigatória"} · Prazo:{" "}
-                    {item.deadline ?? "Não informado"}
+                    {date(item.deadline)}
                   </p>
                   <button className="btn-gold mt-3" disabled={busy} onClick={() => void open(item)}>
                     {busy
