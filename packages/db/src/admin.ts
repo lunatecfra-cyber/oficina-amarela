@@ -61,6 +61,14 @@ export type SystemOverview = {
   editors: number;
   freeEditors: number;
   banned: number;
+  /** O que pede ação do administrador agora. Só o D1 informa; no Postgres ficam ausentes. */
+  attention?: {
+    unassignedInspections: number;
+    oldestInspectionAt: string | null;
+    openReports: number;
+    validInvitations: number;
+    expiringInvitations: number;
+  };
   // PT-BR aliases
   naFila?: number;
   oferecidas?: number;

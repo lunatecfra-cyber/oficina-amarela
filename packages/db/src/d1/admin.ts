@@ -400,6 +400,33 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
           editores_livres: number;
         }>();
 
+      // Convites que vencem em até três dias contam como "vencendo".
+      const nowIso = new Date().toISOString();
+      const soonIso = new Date(Date.now() + 3 * 86_400_000).toISOString();
+      const a = await db
+        .prepare(
+          `SELECT
+             (SELECT count(*) FROM missions m WHERE m.status = 'em_revisao'
+                AND NOT EXISTS (SELECT 1 FROM mission_inspection_assignments s
+                                WHERE s.mission_id = m.id AND s.version = m.delivery_version)) AS sem_inspetor,
+             (SELECT min(d.submitted_at) FROM missions m
+                JOIN mission_deliveries d ON d.mission_id = m.id AND d.version = m.delivery_version
+                WHERE m.status = 'em_revisao') AS mais_antiga,
+             (SELECT count(*) FROM reports WHERE status = 'aberta') AS denuncias_abertas,
+             (SELECT count(*) FROM spokesperson_invitations
+                WHERE revoked_at IS NULL AND used_at IS NULL AND expires_at > ?) AS convites_validos,
+             (SELECT count(*) FROM spokesperson_invitations
+                WHERE revoked_at IS NULL AND used_at IS NULL AND expires_at > ? AND expires_at <= ?) AS convites_vencendo`,
+        )
+        .bind(nowIso, nowIso, soonIso)
+        .first<{
+          sem_inspetor: number;
+          mais_antiga: string | null;
+          denuncias_abertas: number;
+          convites_validos: number;
+          convites_vencendo: number;
+        }>();
+
       const inQueue = Number(p?.na_fila ?? 0);
       const offered = Number(p?.oferecidas ?? 0);
       const inEditing = Number(p?.em_edicao ?? 0);
@@ -424,6 +451,13 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
         editors,
         freeEditors,
         banned,
+        attention: {
+          unassignedInspections: Number(a?.sem_inspetor ?? 0),
+          oldestInspectionAt: a?.mais_antiga ?? null,
+          openReports: Number(a?.denuncias_abertas ?? 0),
+          validInvitations: Number(a?.convites_validos ?? 0),
+          expiringInvitations: Number(a?.convites_vencendo ?? 0),
+        },
         naFila: inQueue,
         oferecidas: offered,
         emEdicao: inEditing,
