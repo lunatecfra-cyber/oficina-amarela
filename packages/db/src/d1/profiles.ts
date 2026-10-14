@@ -97,6 +97,7 @@ export function createD1Profiles(db: D1DatabaseLike): ProfilesRepository {
         return {
           experiencedInvitedByAdmin: row.experienced_invited === 1,
           administrativelyVerified: row.verified === 1,
+          paidWorkQualified: row.experienced_invited === 1 && row.verified === 1,
           name: row.name ?? "",
           avatarUrl: row.avatar_url ?? "",
           photoUrl: row.avatar_url ?? "",

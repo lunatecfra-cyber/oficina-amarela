@@ -557,9 +557,45 @@ describe("jornada de cadastro, perfil e convite com D1 isolado", () => {
     const successful = results.find((result) => result.status === 200)!;
     const profile = (await (
       await request("/editor/profile", undefined, cookieOf(successful))
-    ).json()) as { experiencedInvitedByAdmin: boolean; administrativelyVerified: boolean };
+    ).json()) as {
+      experiencedInvitedByAdmin: boolean;
+      administrativelyVerified: boolean;
+      paidWorkQualified: boolean;
+    };
     assert.equal(profile.experiencedInvitedByAdmin, true);
     assert.equal(profile.administrativelyVerified, true);
+    assert.equal(profile.paidWorkQualified, true);
+    const manager = await db
+      .prepare(
+        "INSERT INTO users(handle,name,email,role) VALUES('qualification.admin','Manager','manager@journey.local','admin') RETURNING id",
+      )
+      .first<{ id: number }>();
+    const managerCookie = `${COOKIE_NAME}=${await createSessionToken({ id: manager!.id, handle: "qualification.admin", name: "Manager", role: "admin" })}`;
+    assert.equal(
+      (
+        await request(
+          `/admin/users/${account!.id}`,
+          { verified: false, reason: "Revogação sintética antes de completar perfil" },
+          managerCookie,
+        )
+      ).status,
+      200,
+    );
+    const revokedProfile = (await (
+      await request("/editor/profile", undefined, cookieOf(successful))
+    ).json()) as { experiencedInvitedByAdmin: boolean; paidWorkQualified: boolean };
+    assert.equal(revokedProfile.experiencedInvitedByAdmin, true);
+    assert.equal(revokedProfile.paidWorkQualified, false);
+    assert.equal(
+      (
+        await request(
+          `/admin/users/${account!.id}`,
+          { verified: true, reason: "Habilitação sintética restabelecida" },
+          adminCookie,
+        )
+      ).status,
+      200,
+    );
     assert.equal(
       (
         await request(

@@ -43,6 +43,9 @@ export default async function CreateEditorProfilePage() {
             ? "Editor experiente por convite administrativo: primeira entrega obrigatoriamente inspecionada. Habilitação futura para trabalho remunerado sem cinco missões gratuitas; pagamentos desativados."
             : "Editor iniciante: suas primeiras três entregas passam por inspeção. Conclua o perfil e informe sua disponibilidade para receber missões gratuitas."}{" "}
           {initial.administrativelyVerified && "Verificado pela Oficina."}
+          {initial.experiencedInvitedByAdmin &&
+            !initial.paidWorkQualified &&
+            " O selo não está ativo; procure a administração para validar a habilitação."}
         </p>
         <CreateEditorProfileForm initial={initial} />
         <div className="w-full max-w-2xl">
