@@ -11,7 +11,9 @@ export async function expandInspectorRole(db: D1DatabaseLike) {
       "SELECT type,name,sql FROM sqlite_master WHERE type IN ('trigger','view','index') AND sql IS NOT NULL",
     )
     .all<{ type: string; name: string; sql: string }>();
-  const dependent = results.filter((object) => /\brole\b/.test(object.sql));
+  const dependent = results.filter(
+    (object) => object.type !== "index" || /\brole\b/.test(object.sql),
+  );
   const statements = inspectorRoleStatements(dependent);
   // Keep the parent table and every child row; rebuilding users would cascade-delete evidence.
   await db.batch(statements.map((statement) => db.prepare(statement)));

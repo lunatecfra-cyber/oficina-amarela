@@ -43,6 +43,12 @@ before(async () => {
     .prepare("INSERT INTO mission_deliveries(mission_id,version,editor_id) VALUES(1,1,2)")
     .run();
   await db.prepare("CREATE VIEW custom_role_projection AS SELECT id,role FROM users").run();
+  await db.prepare("CREATE TABLE consumer_events(count INTEGER)").run();
+  await db
+    .prepare(
+      "CREATE TRIGGER indirect_projection AFTER UPDATE OF name ON users BEGIN INSERT INTO consumer_events SELECT count(*) FROM custom_role_projection; END",
+    )
+    .run();
 });
 after(() => mf.dispose());
 test("native inspector migration preserves users, deliveries, dependent views and triggers atomically", async () => {
@@ -63,6 +69,8 @@ test("native inspector migration preserves users, deliveries, dependent views an
     triggers,
   );
   assert.deepEqual((await db.prepare("PRAGMA foreign_key_check").all()).results, []);
+  await db.prepare("UPDATE users SET name='Preserved administrator' WHERE id=1").run();
+  assert.equal(await db.prepare("SELECT count FROM consumer_events").first("count"), 3);
   await db
     .prepare(
       "INSERT INTO users(id,handle,name,email,role) VALUES(4,'inspector','Inspector','inspector@example.invalid','inspector')",

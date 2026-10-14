@@ -141,7 +141,8 @@ for (const patch of patches) {
       const ddl = inspectorRoleStatements(
         objects.filter(
           (object) =>
-            ["trigger", "view", "index"].includes(object.type) && /\brole\b/.test(object.sql),
+            ["trigger", "view"].includes(object.type) ||
+            (object.type === "index" && /\brole\b/.test(object.sql)),
         ),
       );
       const upgrade = path.join(tmpdir(), `oficina-inspector-role-${randomUUID()}.sql`);
