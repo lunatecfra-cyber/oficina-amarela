@@ -42,7 +42,6 @@ export default async function EditorProfilePage({
       <p className="mt-2 text-muted">
         {[...(profile.styles || []), ...(profile.niche || [])].join(" · ") || "Não informadas"}
       </p>
-      <h2 className="mt-6 text-lg font-semibold text-text">Portfólio publicado</h2>
       <EditorDirectoryDetails editor={profile} />
       <Link
         href={`/editores?editor=${encodeURIComponent(profile.handle)}`}
@@ -50,6 +49,7 @@ export default async function EditorProfilePage({
       >
         Escolher missão e convidar este editor
       </Link>
+      <h2 className="mt-6 text-lg font-semibold text-text">Portfólio publicado</h2>
       {profile.portfolioLink && isLikelyUrl(profile.portfolioLink) && (
         <a
           className="mt-2 block text-gold-hi underline"

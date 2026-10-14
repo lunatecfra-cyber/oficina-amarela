@@ -59,9 +59,9 @@ export function PortfolioManager() {
   return (
     <section className="mt-5">
       <p className="text-sm leading-relaxed text-muted">
-        Cada obra começa privada. A divulgação exige seu pedido, autorização do porta-voz e a
-        aprovação dos direitos de divulgação. Retirar uma amostra ou revogar a autorização preserva
-        a entrega original da missão.
+        Cada obra começa privada. A divulgação exige seu pedido e autorização do porta-voz, que deve
+        declarar ter todas as permissões necessárias para divulgar esta obra. Retirar uma amostra ou
+        revogar a autorização preserva a entrega original da missão.
       </p>
       {error && (
         <p role="alert" className="mt-4 text-danger">
@@ -147,7 +147,7 @@ export function PortfolioManager() {
                   ? "Privada"
                   : !sample.ownerAuthorized
                     ? "Aguardando autorização do porta-voz"
-                    : "Autorizada · perfil fora do diretório"}
+                    : "Autorizada · publicação indisponível"}
             </p>
             <p className="mt-1 text-xs text-muted">
               Missão db-{sample.missionId} · versão {sample.deliveryVersion} · {sample.editorName}

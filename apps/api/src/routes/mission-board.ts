@@ -13,7 +13,7 @@ export const ELIGIBLE = `u.role='editor' AND u.is_banned=0 AND u.profile_complet
   AND (json_extract(u.availability, '$[' || CASE WHEN CAST(strftime('%H','now','-3 hours') AS INTEGER) BETWEEN 6 AND 11 THEN 0 WHEN CAST(strftime('%H','now','-3 hours') AS INTEGER) BETWEEN 12 AND 17 THEN 1 ELSE 2 END || '][' || ((CAST(strftime('%w','now','-3 hours') AS INTEGER)+6)%7) || ']') IS NOT 0)
   AND (u.reservations_locked_until IS NULL OR u.reservations_locked_until<=strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   AND NOT EXISTS(SELECT 1 FROM missions a WHERE a.reserved_by_id=u.id AND a.status IN ('reservada','em_revisao','reedicao'))
-  AND NOT EXISTS(SELECT 1 FROM offers o WHERE o.editor_id=u.id AND o.status='pendente')`;
+  AND NOT EXISTS(SELECT 1 FROM offers o WHERE o.editor_id=u.id AND o.status='pendente' AND o.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now'))`;
 type Env = { Bindings: Bindings; Variables: { session: UserSession; requestId: string } };
 export function createMissionBoardRoutes() {
   const routes = new Hono<Env>();

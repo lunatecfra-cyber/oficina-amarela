@@ -422,3 +422,29 @@ test("entregas no prazo usam primeira submissão e calendário de Brasília, pre
   assert.equal(list[0].onTimeKnownCount, 2);
   assert.equal(list[0].onTimeCount, 1);
 });
+
+test("oferta expirada não esconde editor disponível enquanto aguarda manutenção", async () => {
+  const response = await call("/missions", 1, {
+    title: "Convite sintético expirado",
+    format: "short",
+    deadline: "2026-11-01",
+    driveLink: "https://drive.google.com/synthetic",
+    motivation: "Ensaio",
+  });
+  assert.equal(response.status, 201);
+  const { id } = (await response.json()) as { id: number };
+  assert.equal(
+    (await call(`/missions/${id}/selection`, 1, { editorId: 4, kind: "direct" })).status,
+    201,
+  );
+  assert.deepEqual(await (await call("/editors?search=portfolio4&available=true", 5)).json(), []);
+  await db
+    .prepare("UPDATE offers SET expires_at='2000-01-01T00:00:00.000Z' WHERE mission_id=?")
+    .bind(id)
+    .run();
+  const list = (await (await call("/editors?search=portfolio4&available=true", 5)).json()) as {
+    available: number;
+  }[];
+  assert.equal(list.length, 1);
+  assert.equal(list[0].available, 1);
+});

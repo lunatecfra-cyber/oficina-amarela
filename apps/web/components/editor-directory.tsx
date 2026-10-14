@@ -161,7 +161,7 @@ export function EditorDirectory({ missions }: { missions: { id: string; title: s
                 Portfólio autorizado pelo editor
               </a>
             )}
-            {mission && e.available && (
+            {mission && Boolean(e.available) && (
               <Link
                 className="btn-gold mt-4 w-full"
                 href={`/porta-voz/missao/${mission}?editor=${encodeURIComponent(e.handle)}`}
