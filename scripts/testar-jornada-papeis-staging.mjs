@@ -313,7 +313,8 @@ try {
       // O guia abre ~900 ms depois da hidratação, e sob carga demora mais: cada rota
       // é checada até 2 vezes antes de ser dada como "sem guia".
       if ((page.guideChecks.get(key) ?? 0) >= 2) return;
-      const dialog = page.getByRole("dialog");
+      // O div[role=dialog] do guia não tem caixa própria (filhos `fixed`): quem aparece é o balão.
+      const dialog = page.locator(".guide-bubble");
       try {
         await dialog.waitFor({ state: "visible", timeout: 2500 });
       } catch {
@@ -584,7 +585,7 @@ try {
         await action(voice, "Aceitar e postar", `/api/missions/db-${active.missionId}`);
         await voice.getByLabel("4 ★", { exact: true }).check();
         await voice.getByLabel("Comentário opcional").fill("Aceite sintético da jornada");
-        await action(voice, "Enviar avaliação", `/api/missions/${active.missionId}/review`);
+        await action(voice, "Enviar avaliação", `/api/missions/db-${active.missionId}/review`);
         await voice.getByText(/4 de 5 estrelas/).waitFor();
         await snapshot(voice, "aprovacao-avaliacao");
         await voice.getByRole("button", { name: "Denunciar esta missão", exact: true }).click();
