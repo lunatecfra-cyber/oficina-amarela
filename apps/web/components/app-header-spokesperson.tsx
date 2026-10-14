@@ -32,7 +32,7 @@ export async function AppHeaderSpokesperson() {
 
             <Link
               href="/porta-voz/perfil"
-              className="tap-target hidden text-sm text-muted hover:text-text sm:inline-flex"
+              className="tap-target hidden max-w-56 truncate text-sm text-muted hover:text-text lg:inline-flex"
             >
               {session.name} · {isAdmin ? "administração" : "porta-voz"}
             </Link>

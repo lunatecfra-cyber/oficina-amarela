@@ -77,7 +77,6 @@ export function MissionActions({
           <textarea
             id="ajuste"
             className="field-input !pl-4 min-h-28 py-3"
-            aria-label="O que precisa mudar no vídeo"
             placeholder="ex.: cortar os 3 primeiros segundos e aumentar a legenda"
             value={notes}
             onChange={(e) => {
