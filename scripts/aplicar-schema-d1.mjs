@@ -115,7 +115,7 @@ const patches = readdirSync(d1Dir)
 for (const patch of patches) {
   console.log(`aplicando patch ${path.basename(patch)}`);
 
-  if (path.basename(patch) === "0019_inspector_roles.sql") {
+  if (["0019_inspector_roles.sql", "0019_inspector_rbac.sql"].includes(path.basename(patch))) {
     const inspect = spawnSync(
       "bunx",
       [
@@ -137,7 +137,10 @@ for (const patch of patches) {
     const objects = JSON.parse(inspect.stdout)[0].results;
     const users = objects.find((object) => object.type === "table" && object.name === "users");
     if (!users) throw new Error("Users table missing");
-    if (!users.sql.includes("'inspector'")) {
+    if (path.basename(patch) === "0019_inspector_rbac.sql") {
+      if (/\bsession_version\b/.test(users.sql)) continue;
+    }
+    if (path.basename(patch) === "0019_inspector_roles.sql" && !users.sql.includes("'inspector'")) {
       const ddl = inspectorRoleStatements(
         objects.filter(
           (object) =>

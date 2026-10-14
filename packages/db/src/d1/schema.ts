@@ -105,6 +105,13 @@ export async function applyAllD1Migrations(db: D1DatabaseLike): Promise<void> {
     .sort();
   for (const file of files) {
     if (file === "0019_inspector_roles.sql") await expandInspectorRole(db);
+    if (
+      file === "0019_inspector_rbac.sql" &&
+      (await db
+        .prepare("SELECT name FROM pragma_table_info('users') WHERE name='session_version'")
+        .first())
+    )
+      continue;
     const content = await readFile(path.join(migrationsDir, file), "utf8");
     await applyD1Schema(db, content);
   }
