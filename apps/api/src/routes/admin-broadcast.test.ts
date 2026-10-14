@@ -21,6 +21,19 @@ function appWith(overview: Overview, editors: string[] = [], spokespersons: stri
 
   return createApp({
     ...postgresApiDependencies,
+    accounts: {
+      ...postgresApiDependencies.accounts,
+      findById: async () => ({
+        id: 1,
+        handle: "inspetor",
+        name: "Inspetor",
+        email: "synthetic@example.invalid",
+        role: "admin",
+        passwordHash: null,
+        banned: false,
+        sessionVersion: 0,
+      }),
+    },
     admin: {
       ...postgresApiDependencies.admin,
       getSystemOverview: async () => ({ ...EMPTY_OVERVIEW, ...overview }),

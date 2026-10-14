@@ -269,14 +269,19 @@ export function createD1Missions(db: D1DatabaseLike): MissionsRepository {
     },
 
     async deleteMission(missionId: number) {
-      await db
-        .prepare("UPDATE missions SET reserved_by_id = NULL WHERE id = ?")
-        .bind(missionId)
-        .run();
-      const row = await db
-        .prepare("DELETE FROM missions WHERE id = ? RETURNING id")
-        .bind(missionId)
-        .first<{ id: number }>();
+      let row: { id: number } | null;
+      try {
+        row = await db
+          .prepare("DELETE FROM missions WHERE id = ? RETURNING id")
+          .bind(missionId)
+          .first<{ id: number }>();
+      } catch (error) {
+        if (!/evidence_retained/.test(String(error))) throw error;
+        return {
+          ok: false,
+          error: "Missão com evidências sob retenção. A exclusão foi bloqueada.",
+        };
+      }
       if (!row)
         return { ok: false, error: "Missão não encontrada.", erro: "Missão não encontrada." };
       return { ok: true };

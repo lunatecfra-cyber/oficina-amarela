@@ -22,7 +22,7 @@ function getKey() {
 }
 
 // O papel é conceito de domínio; a sessão só o transporta.
-import type { Role } from "@oficina/domain/roles";
+import type { Capability, Role } from "@oficina/domain/roles";
 
 export type { Papel, Role } from "@oficina/domain/roles";
 
@@ -32,6 +32,8 @@ export type UserSession = {
   name: string;
   role: Role;
   issuedAt?: number;
+  sessionVersion?: number;
+  capabilities?: Capability[];
   // compatibility aliases
   apelido?: string;
   nome?: string;
@@ -47,6 +49,7 @@ export async function createSessionToken(user: UserSession) {
     handle: user.handle,
     name: user.name,
     role: user.role,
+    sessionVersion: user.sessionVersion ?? 0,
     // also put aliases for compatibility
     apelido: user.handle,
     nome: user.name,
@@ -67,11 +70,22 @@ export async function verifySessionToken(token: string): Promise<UserSession | n
     const role: Role =
       rawRole === "voz" || rawRole === "spokesperson"
         ? "spokesperson"
-        : rawRole === "admin"
-          ? "admin"
-          : "editor";
+        : rawRole === "inspector" || rawRole === "inspetor"
+          ? "inspector"
+          : rawRole === "admin"
+            ? "admin"
+            : "editor";
 
-    if (typeof payload.id === "number" && handle && name) {
+    if (
+      ["voz", "spokesperson", "editor", "admin", "inspector", "inspetor"].includes(rawRole) &&
+      typeof payload.id === "number" &&
+      Number.isSafeInteger(payload.id) &&
+      Number(payload.id) > 0 &&
+      typeof handle === "string" &&
+      handle &&
+      typeof name === "string" &&
+      name
+    ) {
       const issuedAt = typeof payload.iat === "number" ? payload.iat : undefined;
       return {
         id: payload.id,
@@ -79,6 +93,7 @@ export async function verifySessionToken(token: string): Promise<UserSession | n
         name,
         role,
         issuedAt,
+        sessionVersion: typeof payload.sessionVersion === "number" ? payload.sessionVersion : 0,
         apelido: handle,
         nome: name,
         papel: role,

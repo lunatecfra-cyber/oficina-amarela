@@ -57,7 +57,8 @@ export async function GET(request: Request) {
       handle: string;
       name: string;
       email: string;
-      role: "editor" | "spokesperson" | "admin";
+      role: "editor" | "spokesperson" | "inspector" | "admin";
+      sessionVersion?: number;
     } | null;
   };
 
@@ -70,7 +71,11 @@ export async function GET(request: Request) {
     cookieStore.delete(REFERRAL_COOKIE_NAME);
     const token = await createSessionToken(result.account);
     cookieStore.set(COOKIE_NAME, token, COOKIE_OPTS);
-    const destination = result.account.role === "editor" ? "/editor" : "/porta-voz";
+    const destination = ["inspector", "admin"].includes(result.account.role)
+      ? "/inspetor"
+      : result.account.role === "editor"
+        ? "/editor"
+        : "/porta-voz";
     return NextResponse.redirect(new URL(destination, url.origin));
   }
 

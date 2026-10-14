@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MissionNotifications } from "@/components/mission-notifications";
 import { getAdminNotifications } from "@/lib/overview-db";
+import { requireCapability } from "@/lib/server-session";
 
 export const metadata: Metadata = { title: "Alertas — Oficina Amarela" };
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ function shortDate(iso: string | null) {
 }
 
 export default async function NotificationsPage() {
+  await requireCapability("mission.read");
   const notifications = await getAdminNotifications();
 
   return (

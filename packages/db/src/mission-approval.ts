@@ -1,4 +1,4 @@
-import type { Role } from "@oficina/domain/roles";
+import type { Capability, Role } from "@oficina/domain/roles";
 import { type TransactionSql, withTransaction } from "./client.ts";
 
 export type MissionApprovalFailure =
@@ -13,7 +13,7 @@ export type MissionApprovalResult =
 
 export type ApproveMissionInput = {
   missionId: number;
-  actor: { id: number; role: Role };
+  actor: { id: number; role: Role; capabilities?: Capability[] };
   rating?: number;
   comment?: string;
   expectedVersion?: number;

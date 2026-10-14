@@ -1,5 +1,6 @@
 import { LIMITS, limitStr } from "@oficina/domain/limits";
 import type { Role } from "@oficina/domain/roles";
+import { roleFromDb } from "../accounts.ts";
 import type {
   MissionActor,
   MissionCollaborationRepository,
@@ -26,12 +27,7 @@ type MessageRow = {
 
 function rowToMessage(row: MessageRow): MissionMessage {
   const rawRole = row.role ?? row.papel;
-  const role: Role =
-    rawRole === "voz" || rawRole === "spokesperson"
-      ? "spokesperson"
-      : rawRole === "admin"
-        ? "admin"
-        : "editor";
+  const role: Role = roleFromDb(rawRole ?? "editor");
   const missionId = row.mission_id ?? row.pauta_id ?? 0;
   const authorId = row.author_id ?? row.autor_id ?? 0;
   const authorName = row.name ?? row.nome ?? "";
@@ -58,12 +54,14 @@ function rowToMessage(row: MessageRow): MissionMessage {
 export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollaborationRepository {
   async function participant(missionId: number, actor: Pick<MissionActor, "id" | "role">) {
     const mission = await db
-      .prepare("SELECT spokesperson_id, reserved_by_id FROM missions WHERE id = ?")
-      .bind(missionId)
-      .first<{ spokesperson_id: number; reserved_by_id: number | null }>();
+      .prepare(
+        "SELECT spokesperson_id, reserved_by_id,EXISTS(SELECT 1 FROM authorized_user_capabilities c WHERE c.user_id=? AND c.capability='mission.read') AS can_read FROM missions WHERE id = ?",
+      )
+      .bind(actor.id, missionId)
+      .first<{ spokesperson_id: number; reserved_by_id: number | null; can_read: number }>();
     if (!mission) return { ok: false as const, reason: "mission_not_found" as const };
     if (
-      actor.role !== "admin" &&
+      !mission.can_read &&
       actor.id !== mission.spokesperson_id &&
       actor.id !== mission.reserved_by_id
     ) {
@@ -92,7 +90,13 @@ export function createD1MissionCollaboration(db: D1DatabaseLike): MissionCollabo
     },
 
     async messagesForMissions(missionIds, actor) {
-      if (actor.role !== "admin") return { ok: false, reason: "forbidden" as const };
+      const allowed = await db
+        .prepare(
+          "SELECT 1 FROM authorized_user_capabilities WHERE user_id=? AND capability='mission.read'",
+        )
+        .bind(actor.id)
+        .first();
+      if (!allowed) return { ok: false, reason: "forbidden" as const };
       const messages: Record<number, MissionMessage[]> = {};
       if (missionIds.length === 0) return { ok: true as const, messages };
 

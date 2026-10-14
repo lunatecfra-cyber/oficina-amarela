@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1Admin } from "./admin.ts";
@@ -93,7 +92,17 @@ describe("paridade D1 de administração e fiscalização", () => {
     assert.equal(reports[0].missionTitle, "Pauta 1");
     assert.equal(reports[0].status, "open");
 
-    const resolveRes = await repo.resolveReport(reports[0].id, "resolved");
+    const inspector = await db
+      .prepare(
+        "INSERT INTO users(handle,name,email,role) VALUES('audit.admin','Fiscal','audit.admin@teste.local','admin') RETURNING id",
+      )
+      .first<{ id: number }>();
+    const resolveRes = await repo.resolveReport(
+      reports[0].id,
+      "resolved",
+      inspector!.id,
+      "Entrega corrigida e conferida.",
+    );
     assert.deepEqual(resolveRes, { ok: true });
 
     const overview = await repo.getSystemOverview();

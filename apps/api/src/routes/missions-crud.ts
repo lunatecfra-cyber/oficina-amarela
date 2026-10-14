@@ -1,10 +1,16 @@
 import type { UserSession } from "@oficina/auth/session";
 import type { CreateMissionInput } from "@oficina/db/missions";
+import { hasCapability } from "@oficina/domain/roles";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import { requestMissionDispatch } from "../background.ts";
 import type { ApiDependencies } from "../dependencies.ts";
-import { requireAdmin, requireEditor, requireSession, requireSpokesperson } from "../session.ts";
+import {
+  requireCapability,
+  requireEditor,
+  requireSession,
+  requireSpokesperson,
+} from "../session.ts";
 
 type MissionEnv = {
   Bindings: Bindings;
@@ -65,7 +71,7 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
     );
   });
 
-  routes.get("/missions/in-review", requireAdmin, async (c) => {
+  routes.get("/missions/in-review", requireCapability("mission.inspect"), async (c) => {
     const list = await dependencies.missions.getMissionsInReview();
     return c.json(list);
   });
@@ -114,7 +120,7 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
       return c.json({ error: "Missão não encontrada.", erro: "Missão não encontrada." }, 404);
     const session = c.get("session");
     if (
-      session.role !== "admin" &&
+      !hasCapability(session, "mission.read") &&
       mission.spokespersonHandle !== session.handle &&
       mission.reservedBy !== session.handle
     ) {
@@ -123,14 +129,14 @@ export function createMissionsCrudRoutes(dependencies: ApiDependencies) {
     return c.json(mission);
   });
 
-  routes.delete("/missions/:id", requireAdmin, async (c) => {
+  routes.delete("/missions/:id", requireCapability("mission.delete"), async (c) => {
     const id = Number(c.req.param("id").replace(/^db-/, ""));
     const result = await dependencies.missions.deleteMission(id);
     if (!result.ok) return c.json({ error: result.error, erro: result.error }, 400);
     return c.json({ ok: true });
   });
 
-  routes.get("/admin/missions", requireAdmin, async (c) => {
+  routes.get("/admin/missions", requireCapability("mission.read"), async (c) => {
     const list = await dependencies.missions.listAllMissions();
     return c.json(list);
   });

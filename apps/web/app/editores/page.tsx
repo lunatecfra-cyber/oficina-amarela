@@ -13,7 +13,7 @@ export default async function EditorsPage() {
         href={
           session.role === "spokesperson"
             ? "/porta-voz"
-            : session.role === "admin"
+            : session.role === "admin" || session.role === "inspector"
               ? "/inspetor"
               : "/editor"
         }

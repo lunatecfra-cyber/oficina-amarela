@@ -1,7 +1,9 @@
 import { COOKIE_NAME, type UserSession, verifySessionToken } from "@oficina/auth/session";
 import { isDevAuthBypassEnabled } from "@oficina/config/dev-mode";
+import { type Capability, hasCapability } from "@oficina/domain/roles";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { fetchApi } from "./internal-api.ts";
 
 export async function getSession(): Promise<UserSession | null> {
   const jar = await cookies();
@@ -42,11 +44,23 @@ export async function getSession(): Promise<UserSession | null> {
   if (!session) return null;
   if (typeof session.issuedAt !== "number") return null;
 
-  return session;
+  try {
+    const response = await fetchApi("/auth/session");
+    return response.ok ? ((await response.json()) as UserSession) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function requireSession(): Promise<UserSession> {
   const session = await getSession();
   if (!session) redirect("/login");
+  return session;
+}
+
+export async function requireCapability(capability: Capability): Promise<UserSession> {
+  const session = await requireSession();
+  if (!hasCapability(session, capability))
+    redirect(hasCapability(session, "mission.read") ? "/inspetor" : "/");
   return session;
 }

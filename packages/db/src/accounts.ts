@@ -18,6 +18,8 @@ export type AccountRow = {
   role: Role;
   passwordHash: string | null;
   banned: boolean;
+  sessionVersion: number;
+  sessionCutoffMs?: number;
 };
 
 export type CreateAccountInput = {
@@ -38,6 +40,7 @@ export type CreateAccountResult =
 export type RateLock = { locked: boolean; minutes: number };
 
 export interface AccountsRepository {
+  findById(userId: number): Promise<AccountRow | null>;
   findByHandle(handle: string): Promise<AccountRow | null>;
   /** Login por apelido OU e-mail: quem esquece o apelido ainda sabe o e-mail. */
   findByHandleOrEmail(identity: string): Promise<AccountRow | null>;
@@ -69,6 +72,7 @@ export function roleToDb(role: Role): string {
 
 export function roleFromDb(papel: string): Role {
   if (papel === "voz" || papel === "spokesperson") return "spokesperson";
+  if (papel === "inspector" || papel === "inspetor") return "inspector";
   if (papel === "admin") return "admin";
   return "editor";
 }
@@ -79,6 +83,9 @@ type UserRow = {
   name?: string;
   email: string;
   role?: string;
+  session_version?: number;
+  sessions_valid_after?: string;
+  sessoes_validas_apos?: string;
   password_hash?: string | null;
   is_banned?: boolean | number | null;
   // legacy:
@@ -100,12 +107,21 @@ export function toAccountRow(row: UserRow | undefined | null): AccountRow | null
     role: roleFromDb(roleVal),
     passwordHash: row.password_hash ?? row.senha_hash ?? null,
     banned: Boolean(row.is_banned ?? row.banido),
+    sessionVersion: row.session_version ?? 0,
+    sessionCutoffMs: new Date(
+      row.sessions_valid_after ?? row.sessoes_validas_apos ?? "1970-01-01T00:00:00.000Z",
+    ).getTime(),
   };
 }
 
 const SELECT_ACCOUNT = "id, apelido, nome, email, papel, senha_hash, banido";
 
 export const postgresAccounts: AccountsRepository = {
+  async findById(userId) {
+    const [row] =
+      await sql`SELECT id, apelido, nome, email, papel, senha_hash, banido,sessoes_validas_apos FROM users WHERE id=${userId}`;
+    return toAccountRow(row as unknown as UserRow);
+  },
   async findByHandle(handle) {
     const [row] = await sql`
       SELECT id, apelido, nome, email, papel, senha_hash, banido

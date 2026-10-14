@@ -52,6 +52,7 @@ export function ReportsPanel({
   const list = (reports ?? denuncias ?? []) as Report[];
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [reasons, setReasons] = useState<Record<number, string>>({});
 
   const openCount = list.filter(
     (d) => d.status === "open" || (d as any).status === "aberta",
@@ -59,26 +60,29 @@ export function ReportsPanel({
 
   async function handleAction(
     reportId: number,
-    action: "resolve" | "ignore" | "resolver" | "ignorar",
+    action: "resolve" | "ignore" | "release-retention" | "forward",
   ) {
     setError("");
     setProcessingId(reportId);
     try {
-      const normAction =
-        action === "resolver" ? "resolve" : action === "ignorar" ? "ignore" : action;
-      const resp = await fetch(`/api/admin/reports/${reportId}/resolve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: normAction === "resolve" ? "resolved" : "ignored",
-        }),
-      });
+      const resp = await fetch(
+        `/api/admin/reports/${reportId}/${action === "release-retention" || action === "forward" ? action : "resolve"}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: action === "resolve" ? "resolved" : "ignored",
+            reason: reasons[reportId] ?? "",
+          }),
+        },
+      );
       if (!resp.ok) {
         const data = await resp.json().catch(() => null);
         setError(data?.error ?? data?.erro ?? "Não deu pra concluir.");
         return;
       }
       router.refresh();
+      setReasons((previous) => ({ ...previous, [reportId]: "" }));
     } catch {
       setError("Sem conexão. Tenta de novo.");
     } finally {
@@ -169,11 +173,58 @@ export function ReportsPanel({
                       {text}
                     </p>
                     <p className="mt-1 text-xs text-muted-2">{shortDate(createdAt)}</p>
+                    {d.forwardingReason && (
+                      <p className="mt-2 text-sm text-muted">
+                        Encaminhada por {d.forwardedBy}: {d.forwardingReason}
+                      </p>
+                    )}
+                    {d.decisionReason && (
+                      <p className="mt-2 text-sm text-muted">
+                        Decisão de {d.decidedBy}: {d.decisionReason}
+                      </p>
+                    )}
+                    {d.evidenceCapturedAt ? (
+                      <>
+                        <a
+                          href={`/api/admin/reports/${d.id}/evidence`}
+                          className="mt-2 inline-block text-xs text-gold-hi underline"
+                        >
+                          Baixar registro preservado
+                        </a>
+                        <p className="mt-1 text-xs text-muted">
+                          {d.retentionReleasedAt
+                            ? `Retenção liberada em ${shortDate(d.retentionReleasedAt)}`
+                            : "Evidências sob retenção; encerrar a denúncia não autoriza sua exclusão."}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-xs text-muted">
+                        Sem registro de evidência preservada.
+                      </p>
+                    )}
                   </div>
 
-                  {isOpen && (
+                  {(isOpen || (d.canReleaseRetention && !d.retentionReleasedAt)) && (
                     <div className="flex flex-none flex-col gap-2 lg:w-44">
-                      {reportedHandle && (
+                      <label htmlFor={`report-reason-${d.id}`} className="text-xs text-muted">
+                        {isOpen && d.canDecide
+                          ? d.canDecide
+                            ? "Justificativa da decisão"
+                            : "Justificativa do encaminhamento"
+                          : "Justificativa de liberação"}
+                      </label>
+                      <textarea
+                        id={`report-reason-${d.id}`}
+                        minLength={5}
+                        maxLength={1000}
+                        value={reasons[d.id] ?? ""}
+                        onChange={(event) =>
+                          setReasons((previous) => ({ ...previous, [d.id]: event.target.value }))
+                        }
+                        className="rounded-lg border border-line bg-ink-2 p-2 text-sm text-text"
+                        rows={3}
+                      />
+                      {reportedHandle && d.canDecide && (
                         <Link
                           href={`/inspetor/contas?q=${encodeURIComponent(reportedHandle)}`}
                           className="btn-ghost text-center text-xs"
@@ -181,20 +232,48 @@ export function ReportsPanel({
                           Ver conta de {reportedHandle}
                         </Link>
                       )}
-                      <button
-                        className="btn-gold !py-2 text-xs"
-                        onClick={() => void handleAction(d.id, "resolve")}
-                        disabled={processingId === d.id}
-                      >
-                        {processingId === d.id ? "…" : "Marcar resolvida"}
-                      </button>
-                      <button
-                        className="btn-ghost !py-2 text-xs"
-                        onClick={() => void handleAction(d.id, "ignore")}
-                        disabled={processingId === d.id}
-                      >
-                        Ignorar
-                      </button>
+                      {isOpen && d.canDecide ? (
+                        <>
+                          <button
+                            className="btn-gold !py-2 text-xs"
+                            onClick={() => void handleAction(d.id, "resolve")}
+                            disabled={
+                              processingId !== null || (reasons[d.id]?.trim().length ?? 0) < 5
+                            }
+                          >
+                            {processingId === d.id ? "…" : "Marcar resolvida"}
+                          </button>
+                          <button
+                            className="btn-ghost !py-2 text-xs"
+                            onClick={() => void handleAction(d.id, "ignore")}
+                            disabled={
+                              processingId !== null || (reasons[d.id]?.trim().length ?? 0) < 5
+                            }
+                          >
+                            Ignorar
+                          </button>
+                        </>
+                      ) : isOpen && d.canForward ? (
+                        <button
+                          className="btn-gold !py-2 text-xs"
+                          disabled={
+                            processingId !== null || (reasons[d.id]?.trim().length ?? 0) < 5
+                          }
+                          onClick={() => void handleAction(d.id, "forward")}
+                        >
+                          Encaminhar ao administrador
+                        </button>
+                      ) : d.canReleaseRetention ? (
+                        <button
+                          className="btn-ghost !py-2 text-xs"
+                          disabled={
+                            processingId !== null || (reasons[d.id]?.trim().length ?? 0) < 5
+                          }
+                          onClick={() => void handleAction(d.id, "release-retention")}
+                        >
+                          Liberar retenção
+                        </button>
+                      ) : null}
                     </div>
                   )}
                 </div>

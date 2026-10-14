@@ -1,6 +1,7 @@
 import type { UserSession } from "@oficina/auth/session";
 import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import { PORTFOLIO_AUTHORIZATION_STATEMENT } from "@oficina/domain/portfolio";
+import { hasCapability } from "@oficina/domain/roles";
 import { validateRawMediaUpload } from "@oficina/domain/uploads";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
@@ -207,7 +208,7 @@ export function createPortfolioRoutes() {
       values = [PORTFOLIO_AUTHORIZATION_STATEMENT, actor.id];
     } else if (
       body.action === "revoke" &&
-      (sample.spokesperson_id === actor.id || actor.role === "admin")
+      (sample.spokesperson_id === actor.id || hasCapability(actor, "portfolio.moderate"))
     ) {
       update = "owner_authorized=0,authorization_statement=NULL,authorized_by=NULL";
       values = [];

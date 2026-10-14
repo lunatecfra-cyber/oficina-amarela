@@ -1,6 +1,7 @@
 import type { R2Bucket } from "@cloudflare/workers-types";
 import type { UserSession } from "@oficina/auth/session";
 import type { D1DatabaseLike } from "@oficina/db/d1/types";
+import { hasCapability } from "@oficina/domain/roles";
 import { validateRawMediaUpload } from "@oficina/domain/uploads";
 import { Hono, type MiddlewareHandler } from "hono";
 import type { Bindings } from "../app.ts";
@@ -25,7 +26,7 @@ export function createMissionFileRoutes(dependencies: ApiDependencies) {
     const actor = c.get("session");
     if (
       !mission ||
-      (actor.role !== "admin" &&
+      (!hasCapability(actor, "mission.read") &&
         mission.reserved_by_id !== actor.id &&
         mission.spokesperson_id !== actor.id)
     )

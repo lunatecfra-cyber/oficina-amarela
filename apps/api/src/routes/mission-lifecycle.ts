@@ -2,6 +2,7 @@ import type { UserSession } from "@oficina/auth/session";
 import type { D1DatabaseLike } from "@oficina/db/d1/types";
 import type { MissionActionFailure, MissionActionResult } from "@oficina/db/mission-lifecycle";
 import { inspectionPolicy } from "@oficina/domain/inspection-policy";
+import { hasCapability } from "@oficina/domain/roles";
 import { isLikelyUrl } from "@oficina/domain/validators";
 import { drainEmailQueueNow, queueMissionNotification } from "@oficina/email/dispatch";
 import {
@@ -46,10 +47,11 @@ function canAct(
   action: NonNullable<ReturnType<typeof migratedMissionAction>>,
 ) {
   if (action === "reserve" || action === "cancel" || action === "deliver") {
-    return session.role === "editor" || session.role === "admin";
+    return session.role === "editor" || hasCapability(session, "mission.participate");
   }
-  if (action === "re_edit") return session.role === "admin";
-  return session.role === "spokesperson" || session.role === "admin";
+  if (action === "re_edit" || (action === "approve" && session.role !== "spokesperson"))
+    return hasCapability(session, "mission.inspect");
+  return session.role === "spokesperson" || hasCapability(session, "mission.participate");
 }
 
 function roleMessage(action: NonNullable<ReturnType<typeof migratedMissionAction>>): string {

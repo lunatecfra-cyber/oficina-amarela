@@ -51,11 +51,12 @@ export async function reportsForInspector(): Promise<Report[]> {
 export async function resolveReport(
   id: number,
   status: "resolved" | "ignored" | "resolvida" | "ignorada",
+  reason: string,
 ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }> {
   const res = await fetchApi(`/admin/reports/${id}/resolve`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, reason }),
   });
   const body = (await res.json().catch(() => ({}))) as {
     ok?: boolean;

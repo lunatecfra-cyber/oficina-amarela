@@ -1,18 +1,16 @@
 import { COOKIE_NAME, type UserSession, verifySessionToken } from "@oficina/auth/session";
-import { getSessionRevocationCutoff } from "@oficina/db/session-revocation";
-import type { Role } from "@oficina/domain/roles";
+import type { AccountsRepository } from "@oficina/db/accounts";
+import type { D1DatabaseLike } from "@oficina/db/d1/types";
+import {
+  type Capability,
+  hasCapability,
+  ROLE_CAPABILITIES,
+  type Role,
+} from "@oficina/domain/roles";
 import type { Context, MiddlewareHandler } from "hono";
 import { getCookie } from "hono/cookie";
 
-/**
- * Sessão na fronteira da API.
- *
- * Mesma semântica do getSession() do apps/web — cookie, assinatura, corte de
- * revogação e falha aberta em erro transitório de banco — sem os atalhos de
- * desenvolvimento que fabricam sessão. Em dev o login continua acontecendo por
- * /api/auth/dev-login, que grava um cookie de verdade, então o caminho normal
- * atende os dois casos e a API não ganha uma porta a mais.
- */
+/** Sessão e capacidades revalidadas na conta atual; indisponibilidade falha fechada. */
 export async function readSession(c: Context): Promise<UserSession | null> {
   const token = getCookie(c, COOKIE_NAME);
   if (!token) return null;
@@ -21,12 +19,29 @@ export async function readSession(c: Context): Promise<UserSession | null> {
   if (!session || typeof session.issuedAt !== "number") return null;
 
   try {
-    const cutoffSeconds = await getSessionRevocationCutoff(session.id);
-    if (cutoffSeconds === null) return null;
+    const accounts = c.get("accounts") as AccountsRepository;
+    const account = await accounts.findById(session.id);
+    if (
+      !account ||
+      account.banned ||
+      account.role !== session.role ||
+      account.sessionVersion !== (session.sessionVersion ?? 0)
+    )
+      return null;
+    session.name = account.name;
+    session.handle = account.handle;
+    if (c.env?.DB) {
+      const { results } = await (c.env.DB as D1DatabaseLike)
+        .prepare("SELECT capability FROM authorized_user_capabilities WHERE user_id=?")
+        .bind(session.id)
+        .all<{ capability: Capability }>();
+      session.capabilities = results.map((row) => row.capability);
+    } else session.capabilities = [...ROLE_CAPABILITIES[account.role]];
+    const cutoffSeconds = Math.floor((account.sessionCutoffMs ?? 0) / 1000);
     // Tolerância de 2s para desvios de relógio de subsegundo na criação de conta/sessão.
     if (session.issuedAt < cutoffSeconds - 2) return null;
   } catch {
-    // Erro transitório de banco: aceita a assinatura válida, como no apps/web.
+    return null;
   }
 
   return session;
@@ -40,7 +55,11 @@ function requireRoles(roles?: Role[], forbiddenMessage?: string): SessionMiddlew
   return async (c, next) => {
     const session = await readSession(c);
     if (!session) return c.json({ error: "Faça login para continuar." }, 401);
-    if (roles && !roles.includes(session.role)) {
+    if (
+      roles &&
+      (!roles.includes(session.role) ||
+        (session.role === "admin" && !hasCapability(session, "mission.participate")))
+    ) {
       return c.json({ error: forbiddenMessage ?? "Você não pode fazer isso." }, 403);
     }
     c.set("session", session);
@@ -59,9 +78,15 @@ export const requireSpokesperson = requireRoles(
   "Só porta-vozes têm acesso a esta área.",
 );
 
-/**
- * Exige sessão de inspetor. Único portão da administração de convites: o papel
- * no banco só aceita 'voz', 'editor' e 'admin', então não há um "inspetor"
- * alternativo para acomodar aqui.
- */
-export const requireAdmin = requireRoles(["admin"], "Só o inspetor pode fazer isso.");
+/** Capacidades vêm da conta atual, nunca dos claims de privilégio do JWT. */
+export function requireCapability(capability: Capability): SessionMiddleware {
+  return async (c, next) => {
+    const session = await readSession(c);
+    if (!session) return c.json({ error: "Faça login para continuar." }, 401);
+    if (!hasCapability(session, capability))
+      return c.json({ error: "Você não tem permissão para esta operação." }, 403);
+    c.set("session", session);
+    c.header("cache-control", "private, no-store");
+    await next();
+  };
+}

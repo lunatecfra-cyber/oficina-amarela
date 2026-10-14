@@ -1,4 +1,5 @@
 import type { R2Bucket } from "@cloudflare/workers-types";
+import type { AccountsRepository } from "@oficina/db/accounts";
 import { configureDatabaseUrl, withRequestDatabase } from "@oficina/db/client";
 import { createD1EmailQueueSource } from "@oficina/db/d1/email-queue";
 import { D1MetricsCollector, runWithD1Metrics } from "@oficina/db/d1/instrumentation";
@@ -68,6 +69,7 @@ export type Bindings = {
 };
 
 export type Variables = {
+  accounts: AccountsRepository;
   requestId: string;
 };
 
@@ -117,6 +119,7 @@ export function createApp(dependencies: ApiDependencies = postgresApiDependencie
     c.header("x-request-id", requestId);
 
     configureRuntimeBindings(c.env);
+    c.set("accounts", dependenciesFor(c.env, dependencies).accounts);
 
     const startedAt = Date.now();
     const collector = new D1MetricsCollector();

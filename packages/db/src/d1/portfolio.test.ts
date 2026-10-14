@@ -66,7 +66,7 @@ before(async () => {
   }
 });
 after(() => mf.dispose());
-async function work(kind = "video", external = false) {
+async function work(kind = "video", external = false, assetOwner = 2) {
   const mission = await db
     .prepare(
       "INSERT INTO missions(spokesperson_id,reserved_by_id,title,format,status,delivery_version) VALUES(1,2,'Obra sintética','short','finalizada',1) RETURNING id",
@@ -74,13 +74,17 @@ async function work(kind = "video", external = false) {
     .first<{ id: number }>();
   const missionId = mission!.id,
     fileId = crypto.randomUUID(),
-    key = `missions/${missionId}/2/${fileId}`,
+    key = `missions/${missionId}/${assetOwner}/${fileId}`,
     assetUrl = external
       ? "https://drive.google.com/private"
-      : `https://staging.local/api/missions/${missionId}/files/2/${fileId}`;
+      : `https://staging.local/api/missions/${missionId}/files/${assetOwner}/${fileId}`;
   await media.put(key, new Uint8Array([1, 2, 3]), {
     httpMetadata: { contentType: kind === "image" ? "image/png" : "video/mp4" },
-    customMetadata: { ownerId: "2", missionId: String(missionId), expectedSize: "3" },
+    customMetadata: {
+      ownerId: String(assetOwner),
+      missionId: String(missionId),
+      expectedSize: "3",
+    },
   });
   await db
     .prepare(
@@ -151,11 +155,7 @@ test("IDOR, papel, arquivos externos e assets de outro editor são rejeitados", 
   assert.equal((await action(s.id, 2, "authorize")).status, 403);
   assert.equal((await action(s.id, 3, "authorize")).status, 403);
   assert.equal((await call("/portfolio", 2, await work("video", true))).status, 409);
-  const other = await work();
-  await db
-    .prepare("UPDATE mission_deliveries SET delivery_video_url=? WHERE mission_id=?")
-    .bind(other.assetUrl.replace("/files/2/", "/files/4/"), other.missionId)
-    .run();
+  const other = await work("video", false, 4);
   assert.equal((await call("/portfolio", 2, other)).status, 409);
   await db.prepare("UPDATE missions SET status='cancelada' WHERE id=?").bind(other.missionId).run();
   assert.equal((await call("/portfolio", 2, other)).status, 404);
@@ -272,7 +272,7 @@ test("retry e concorrência não duplicam amostras nem sobrescrevem uma revogaç
   );
   assert.deepEqual((await db.prepare("PRAGMA foreign_key_check").all()).results, []);
 });
-test("retrait de perfil, bloqueio da conta e alteração de asset invalidam publicações; imagem usa a mesma permissão", async () => {
+test("retirada de perfil e bloqueio invalidam publicações; asset histórico é imutável e imagem usa a mesma permissão", async () => {
   const delivery = await work("image"),
     res = await call("/portfolio", 2, delivery),
     { id } = (await res.json()) as { id: string };
@@ -286,13 +286,21 @@ test("retrait de perfil, bloqueio da conta e alteração de asset invalidam publ
   await db.prepare("UPDATE users SET directory_visible=1,is_banned=1 WHERE id=2").run();
   assert.equal((await call(`/portfolio/${id}/media`, 5)).status, 404);
   await db.prepare("UPDATE users SET is_banned=0 WHERE id=2").run();
-  await db
-    .prepare(
-      "UPDATE mission_deliveries SET delivery_video_url='https://staging.local/other' WHERE mission_id=?",
-    )
-    .bind(delivery.missionId)
-    .run();
-  assert.equal((await call(`/portfolio/${id}/media`, 5)).status, 404);
+  const version = await db
+    .prepare("SELECT session_version FROM users WHERE id=2")
+    .first<{ session_version: number }>();
+  cookies[2] = `${COOKIE_NAME}=${await createSessionToken({ id: 2, role: "editor", handle: "portfolio2", name: "Synthetic 2", sessionVersion: version!.session_version })}`;
+  await assert.rejects(
+    () =>
+      db
+        .prepare(
+          "UPDATE mission_deliveries SET delivery_video_url='https://staging.local/other' WHERE mission_id=?",
+        )
+        .bind(delivery.missionId)
+        .run(),
+    /delivery_immutable/,
+  );
+  assert.equal((await call(`/portfolio/${id}/media`, 5)).status, 200);
 });
 
 test("preferências são validadas, publicadas somente no perfil autorizado e auditadas", async () => {

@@ -2,7 +2,7 @@ import type { UserSession } from "@oficina/auth/session";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
-import { requireAdmin, requireSession } from "../session.ts";
+import { requireCapability, requireSession } from "../session.ts";
 
 type ContentEnv = {
   Bindings: Bindings;
@@ -20,12 +20,12 @@ export function createContentRoutes(dependencies: ApiDependencies) {
   });
 
   // Admin news
-  routes.get("/admin/news", requireAdmin, async (c) => {
+  routes.get("/admin/news", requireCapability("content.manage"), async (c) => {
     const list = await dependencies.news.getAllNews();
     return c.json(list);
   });
 
-  routes.post("/admin/news", requireAdmin, async (c) => {
+  routes.post("/admin/news", requireCapability("content.manage"), async (c) => {
     const session = c.get("session");
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const title = String(body?.title ?? body?.titulo ?? "");
@@ -37,14 +37,14 @@ export function createContentRoutes(dependencies: ApiDependencies) {
     return c.json(result, 201);
   });
 
-  routes.post("/admin/news/:id/toggle", requireAdmin, async (c) => {
+  routes.post("/admin/news/:id/toggle", requireCapability("content.manage"), async (c) => {
     const id = Number(c.req.param("id"));
     const result = await dependencies.news.toggleNewsPublication(id);
     if (!result.ok) return c.json({ error: result.error, erro: result.error }, 400);
     return c.json(result);
   });
 
-  routes.delete("/admin/news/:id", requireAdmin, async (c) => {
+  routes.delete("/admin/news/:id", requireCapability("content.manage"), async (c) => {
     const id = Number(c.req.param("id"));
     const result = await dependencies.news.deleteNews(id);
     if (!result.ok) return c.json({ error: result.error, erro: result.error }, 400);
@@ -63,7 +63,7 @@ export function createContentRoutes(dependencies: ApiDependencies) {
     return c.json(tags);
   });
 
-  routes.post("/tools/music", requireAdmin, async (c) => {
+  routes.post("/tools/music", requireCapability("content.manage"), async (c) => {
     const session = c.get("session");
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const name = String(body?.name ?? body?.nome ?? "").trim();

@@ -106,6 +106,7 @@ export function createAuthRoutes(dependencies: ApiDependencies) {
       handle: account.handle,
       name: account.name,
       role: account.role,
+      sessionVersion: account.sessionVersion,
     };
     setCookie(c, COOKIE_NAME, await createSessionToken(identity), COOKIE_OPTS);
     await dependencies

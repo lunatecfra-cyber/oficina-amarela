@@ -8,7 +8,7 @@ import {
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
-import { requireAdmin } from "../session.ts";
+import { requireCapability } from "../session.ts";
 
 /**
  * Administração dos convites de porta-voz.
@@ -25,7 +25,7 @@ type AdminEnv = {
 
 export function createAdminInvitationRoutes(dependencies: ApiDependencies) {
   const routes = new Hono<AdminEnv>();
-  routes.use("*", requireAdmin);
+  routes.use("*", requireCapability("invitations.manage"));
 
   routes.get("/", async (c) => {
     const invitations = await dependencies.invitationAdmin.listInvitations();

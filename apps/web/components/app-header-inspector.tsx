@@ -1,3 +1,4 @@
+import { hasCapability } from "@oficina/domain/roles";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { InspectorNav } from "@/components/inspector-nav";
@@ -8,7 +9,7 @@ import { getSession } from "@/lib/server-session";
 
 export async function AppHeaderInspector() {
   const session = await getSession();
-  if (session?.role !== "admin") return null;
+  if (!session || !hasCapability(session, "mission.read")) return null;
   const notifications = await getAdminNotifications();
 
   return (
@@ -27,7 +28,7 @@ export async function AppHeaderInspector() {
         </div>
       </div>
       <div className="mx-auto w-full max-w-5xl px-5 lg:px-8">
-        <InspectorNav alertCount={notifications.length} />
+        <InspectorNav alertCount={notifications.length} capabilities={session.capabilities ?? []} />
       </div>
     </header>
   );

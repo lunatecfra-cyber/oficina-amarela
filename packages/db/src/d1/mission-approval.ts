@@ -1,3 +1,4 @@
+import { hasCapability } from "@oficina/domain/roles";
 import type {
   ApproveMissionInput,
   MissionApprovalRepository,
@@ -28,7 +29,11 @@ export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepo
       .bind(input.missionId)
       .first<ApprovalState>();
     if (!state) return { ok: false, reason: "mission_not_found" };
-    if (input.actor.role !== "admin" || state.reserved_by_id === input.actor.id) {
+    if (
+      !hasCapability(input.actor, "mission.inspect") ||
+      state.reserved_by_id === input.actor.id ||
+      state.spokesperson_id === input.actor.id
+    ) {
       return { ok: false, reason: "forbidden" };
     }
     if (input.expectedVersion !== undefined && state.delivery_version !== input.expectedVersion)
@@ -56,7 +61,7 @@ export function createD1MissionApproval(db: D1DatabaseLike): MissionApprovalRepo
       ) {
         return { ok: false, reason: "invalid_rating" };
       }
-      if (input.actor.role !== "admin") {
+      if (!hasCapability(input.actor, "mission.inspect")) {
         return { ok: false, reason: "forbidden" };
       }
 

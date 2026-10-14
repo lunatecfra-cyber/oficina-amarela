@@ -1,4 +1,4 @@
-import type { Role } from "@oficina/auth/session";
+import { roleFromDb } from "../accounts.ts";
 import type {
   AdminRepository,
   MissionInFlight,
@@ -9,13 +9,8 @@ import type {
   UserDetail,
   UserListItem,
 } from "../admin.ts";
+import { createD1Accounts } from "./accounts.ts";
 import type { D1DatabaseLike } from "./types.ts";
-
-function normalizeRoleFromDb(papel: string): Role {
-  if (papel === "voz" || papel === "spokesperson") return "spokesperson";
-  if (papel === "admin") return "admin";
-  return "editor";
-}
 
 export function createD1Admin(db: D1DatabaseLike): AdminRepository {
   return {
@@ -51,7 +46,7 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
       }>();
 
       return (result.results ?? []).map((l) => {
-        const role = normalizeRoleFromDb(l.role);
+        const role = roleFromDb(l.role);
         return {
           id: Number(l.id),
           handle: String(l.handle),
@@ -119,7 +114,7 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
         .bind(userId)
         .first<{ total: number }>();
 
-      const role = normalizeRoleFromDb(row.role);
+      const role = roleFromDb(row.role);
 
       return {
         id: Number(row.id),
@@ -237,16 +232,12 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
         };
       }
 
-      await db
-        .prepare(
-          `UPDATE missions
-           SET status = 'disponivel', reserved_by_id = NULL, reserved_until = NULL, reserved_at = NULL
-           WHERE reserved_by_id = ? AND status IN ('reservada','reedicao','oferecida')`,
-        )
-        .bind(userId)
-        .run();
-
-      await db.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();
+      try {
+        await createD1Accounts(db).deleteAccount(userId);
+      } catch (error) {
+        if (!/evidence_retained/.test(String(error))) throw error;
+        return { ok: false, error: "Conta com evidências sob retenção. A exclusão foi bloqueada." };
+      }
       return { ok: true, handle: String(target.handle), apelido: String(target.handle) };
     },
 
@@ -254,6 +245,8 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
       const result = await db
         .prepare(
           `SELECT r.id, r.mission_id, r.body AS text, r.status, r.created_at,
+                  f.actor_name AS forwarded_by,f.reason AS forwarding_reason,f.created_at AS forwarded_at,
+                  d.actor_name AS decided_by,d.reason AS decision_reason,d.created_at AS decided_at,x.created_at AS retention_released_at,c.captured_at AS evidence_captured_at,
                   p.title AS mission_title, p.status AS mission_status,
                   u1.name AS reporter_name, u1.handle AS reporter_handle, u1.id AS reporter_id,
                   u2.name AS reported_name, u2.handle AS reported_handle, u2.id AS reported_id
@@ -261,6 +254,10 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
            JOIN missions p ON p.id = r.mission_id
            JOIN users u1 ON u1.id = r.reporter_id
            LEFT JOIN users u2 ON u2.id = r.reported_id
+           LEFT JOIN report_forwardings f ON f.id=(SELECT MAX(id) FROM report_forwardings WHERE report_id=r.id)
+           LEFT JOIN report_decisions d ON d.report_id=r.id
+           LEFT JOIN report_retention_releases x ON x.report_id=r.id
+           LEFT JOIN report_evidence_captures c ON c.report_id=r.id
            ORDER BY CASE WHEN r.status = 'aberta' THEN 0 ELSE 1 END, r.created_at DESC`,
         )
         .all<{
@@ -277,6 +274,14 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
           reported_name: string | null;
           reported_handle: string | null;
           reported_id: number | null;
+          forwarded_by: string | null;
+          forwarding_reason: string | null;
+          forwarded_at: string | null;
+          decided_by: string | null;
+          decision_reason: string | null;
+          decided_at: string | null;
+          retention_released_at: string | null;
+          evidence_captured_at: string | null;
         }>();
 
       return (result.results ?? []).map((r) => {
@@ -300,6 +305,14 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
           text: String(r.text),
           status: normStatus,
           createdAt: String(r.created_at),
+          forwardedBy: r.forwarded_by,
+          forwardingReason: r.forwarding_reason,
+          forwardedAt: r.forwarded_at,
+          decidedBy: r.decided_by,
+          decisionReason: r.decision_reason,
+          decidedAt: r.decided_at,
+          retentionReleasedAt: r.retention_released_at,
+          evidenceCapturedAt: r.evidence_captured_at,
           pautaId: Number(r.mission_id),
           pautaTitulo: String(r.mission_title),
           pautaStatus: String(r.mission_status),
@@ -315,21 +328,31 @@ export function createD1Admin(db: D1DatabaseLike): AdminRepository {
       });
     },
 
-    async resolveReport(id, status) {
+    async resolveReport(id, status, actorId, reason) {
       const normStatus = status === "resolved" || status === "resolvida" ? "resolvida" : "ignorada";
-      const updated = await db
-        .prepare(
-          `UPDATE reports
-           SET status = ?, resolved_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-           WHERE id = ?
-           RETURNING id`,
-        )
-        .bind(normStatus, id)
-        .first<{ id: number }>();
-
-      if (!updated)
-        return { ok: false, error: "Denúncia não encontrada.", erro: "Denúncia não encontrada." };
-      return { ok: true };
+      if (!reason.trim() || reason.trim().length < 5 || reason.trim().length > 1000)
+        return { ok: false, error: "Informe a justificativa (5 a 1000 caracteres)." };
+      try {
+        await db
+          .prepare(`INSERT INTO report_decisions(report_id,actor_id,actor_name,status,reason)
+          SELECT ?,id,name,?,? FROM users WHERE id=? AND EXISTS(SELECT 1 FROM authorized_user_capabilities c WHERE c.user_id=users.id AND c.capability='reports.decide')
+          ON CONFLICT(report_id) DO NOTHING`)
+          .bind(id, normStatus, reason.trim(), actorId)
+          .run();
+      } catch (error) {
+        if (!/report_decision_unavailable/.test(String(error))) throw error;
+      }
+      const decision = await db
+        .prepare("SELECT actor_id,status,reason FROM report_decisions WHERE report_id=?")
+        .bind(id)
+        .first<{ actor_id: number; status: string; reason: string }>();
+      if (
+        decision?.actor_id === actorId &&
+        decision.status === normStatus &&
+        decision.reason === reason.trim()
+      )
+        return { ok: true };
+      return { ok: false, error: "Denúncia já decidida ou indisponível para este responsável." };
     },
 
     async getSystemOverview(): Promise<SystemOverview> {

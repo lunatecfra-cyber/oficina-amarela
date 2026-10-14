@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createD1MissionCollaboration } from "./mission-collaboration.ts";
@@ -118,6 +117,27 @@ describe("paridade D1 da colaboração de missão", () => {
       await collaboration.reportMission(missionId, { id: editorId, role: "editor" }, "  "),
       { ok: false, reason: "empty_report" },
     );
+    // O fixture encerra sua vida aqui: a retenção impede a limpeza entre casos.
+    await db
+      .prepare(
+        "INSERT INTO users(handle,name,email,role) VALUES('fixture.retention','Fixture','fixture.retention@teste.local','admin')",
+      )
+      .run();
+    await db
+      .prepare(
+        "INSERT INTO admin_capabilities SELECT id,'release_report_retention' FROM users WHERE handle='fixture.retention'",
+      )
+      .run();
+    await db
+      .prepare(
+        "INSERT INTO report_decisions(report_id,actor_id,actor_name,status,reason) SELECT r.id,u.id,u.name,'resolvida','Encerramento do fixture isolado' FROM reports r,users u WHERE u.handle='fixture.retention'",
+      )
+      .run();
+    await db
+      .prepare(
+        "INSERT INTO report_retention_releases(report_id,actor_id,actor_name,reason) SELECT r.id,u.id,u.name,'Limpeza do fixture isolado' FROM reports r,users u WHERE u.handle='fixture.retention'",
+      )
+      .run();
   });
 
   test("não declara mensagem enviada quando INSERT RETURNING não devolve linha", async () => {

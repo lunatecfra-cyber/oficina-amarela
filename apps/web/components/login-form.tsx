@@ -48,7 +48,13 @@ function LoginFormContent() {
     const role = data.role ?? data.papel;
     // "/spokesperson" não existe — a área do porta-voz é "/porta-voz". Quem
     // entrava como porta-voz caía num 404 logo depois de acertar a senha.
-    router.push(role === "editor" ? "/editor" : "/porta-voz");
+    router.push(
+      role === "inspector" || role === "admin"
+        ? "/inspetor"
+        : role === "editor"
+          ? "/editor"
+          : "/porta-voz",
+    );
     router.refresh();
   }
 

@@ -5,6 +5,7 @@ import {
   type UserSession,
 } from "@oficina/auth/session";
 import type { D1DatabaseLike } from "@oficina/db/d1/types";
+import { hasCapability } from "@oficina/domain/roles";
 import bcrypt from "bcryptjs";
 import { Hono } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
@@ -94,7 +95,7 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
     const viewer = c.get("session");
     const requested = c.req.param("handleOrId");
     if (
-      viewer.role !== "admin" &&
+      !hasCapability(viewer, "users.manage") &&
       requested !== String(viewer.id) &&
       requested.toLowerCase() !== viewer.handle.toLowerCase()
     )
@@ -176,7 +177,12 @@ export function createProfileRoutes(dependencies: ApiDependencies) {
       );
     }
 
-    await dependencies.accounts.deleteAccount(session.id);
+    try {
+      await dependencies.accounts.deleteAccount(session.id);
+    } catch (error) {
+      if (!/evidence_retained/.test(String(error))) throw error;
+      return c.json({ error: "Conta com evidências sob retenção. A exclusão foi bloqueada." }, 409);
+    }
     dependencies.invalidateSessionRevocation(session.id);
     deleteCookie(c, COOKIE_NAME, { path: "/" });
     return c.json({ ok: true });

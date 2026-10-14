@@ -24,6 +24,7 @@ export function canPerformAction(rawStatus: string, rawRole: string, rawAction: 
   const status = rawStatus.toLowerCase();
   const isSpokesperson = rawRole === "spokesperson" || rawRole === "voz";
   const isEditor = rawRole === "editor";
+  const isInspector = rawRole === "inspector" || rawRole === "inspetor";
   const isAdmin = rawRole === "admin";
 
   if (
@@ -35,7 +36,7 @@ export function canPerformAction(rawStatus: string, rawRole: string, rawAction: 
     return true;
 
   if (action === "reserve" || action === "reservar") {
-    return !isSpokesperson && (status === "available" || status === "disponivel");
+    return (isEditor || isAdmin) && (status === "available" || status === "disponivel");
   }
   if (
     action === "cancel" ||
@@ -44,7 +45,7 @@ export function canPerformAction(rawStatus: string, rawRole: string, rawAction: 
     action === "entregar"
   ) {
     return (
-      !isSpokesperson &&
+      (isEditor || isAdmin) &&
       (status === "reserved" ||
         status === "reservada" ||
         status === "revision_requested" ||
@@ -52,17 +53,20 @@ export function canPerformAction(rawStatus: string, rawRole: string, rawAction: 
     );
   }
   if (action === "approve" || action === "aprovar") {
-    return (isAdmin || isSpokesperson) && (status === "in_review" || status === "em_revisao");
+    return (
+      (isAdmin || isInspector || isSpokesperson) &&
+      (status === "in_review" || status === "em_revisao")
+    );
   }
   if (action === "re_edit" || action === "revision" || action === "reedicao") {
-    return isAdmin && (status === "in_review" || status === "em_revisao");
+    return (isAdmin || isInspector) && (status === "in_review" || status === "em_revisao");
   }
   if (action === "accept" || action === "aceitar") {
-    return !isEditor && (status === "approved" || status === "aprovada");
+    return (isSpokesperson || isAdmin) && (status === "approved" || status === "aprovada");
   }
   if (action === "adjust" || action === "ajuste") {
     return (
-      !isEditor &&
+      (isSpokesperson || isAdmin) &&
       (status === "in_review" ||
         status === "em_revisao" ||
         status === "approved" ||

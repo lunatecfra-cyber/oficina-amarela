@@ -6,7 +6,7 @@ import { buildEditorsQueueEmail, buildFreeEditorsEmail } from "@oficina/email/me
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
-import { requireAdmin } from "../session.ts";
+import { requireCapability, requireSession } from "../session.ts";
 
 export type BroadcastAudience = "editors" | "spokespersons";
 
@@ -36,15 +36,15 @@ type AdminEnv = {
 
 export function createAdminManagementRoutes(dependencies: ApiDependencies) {
   const routes = new Hono<AdminEnv>();
-  routes.use("*", requireAdmin);
+  routes.use("*", requireSession);
 
-  routes.get("/users", async (c) => {
+  routes.get("/users", requireCapability("users.manage"), async (c) => {
     const q = c.req.query("q") ?? "";
     const users = await dependencies.admin.searchUsers(q);
     return c.json({ users, usuarios: users, items: users });
   });
 
-  routes.post("/users", async (c) => {
+  routes.post("/users", requireCapability("users.manage"), async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const userId = Number(body?.userId ?? body?.id);
     const action = String(body?.action ?? body?.acao ?? "");
@@ -75,7 +75,7 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
     return c.json({ error: "Ação inválida.", erro: "Ação inválida." }, 400);
   });
 
-  routes.get("/users/:id", async (c) => {
+  routes.get("/users/:id", requireCapability("users.manage"), async (c) => {
     const id = Number(c.req.param("id"));
     const user = await dependencies.admin.viewUserDetails(id);
     if (!user)
@@ -90,7 +90,7 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
     return c.json({ ...detail, user: detail, usuario: detail });
   });
 
-  routes.post("/users/:id", async (c) => {
+  routes.post("/users/:id", requireCapability("users.manage"), async (c) => {
     const body = await c.req.json().catch(() => null),
       id = Number(c.req.param("id"));
     if (!c.env.DB) return c.json({ error: "Habilitação indisponível neste ambiente." }, 503);
@@ -117,7 +117,40 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
       : c.json({ error: "Editor não está disponível para habilitação." }, 409);
   });
 
-  routes.post("/users/:id/ban", async (c) => {
+  routes.post("/users/:id/role", requireCapability("users.manage"), async (c) => {
+    if (!c.env.DB) return c.json({ error: "Alteração de papel indisponível neste ambiente." }, 503);
+    const id = Number(c.req.param("id")),
+      body = await c.req.json().catch(() => null);
+    if (
+      !Number.isSafeInteger(id) ||
+      id <= 0 ||
+      !["editor", "spokesperson", "inspector", "admin"].includes(body?.role) ||
+      typeof body?.reason !== "string" ||
+      body.reason.trim().length < 5 ||
+      body.reason.trim().length > 1000
+    )
+      return c.json({ error: "Informe papel e justificativa (5 a 1000 caracteres)." }, 400);
+    const db = c.env.DB as D1DatabaseLike;
+    const user = await db.prepare("SELECT id FROM users WHERE id=?").bind(id).first();
+    if (!user) return c.json({ error: "Conta não encontrada." }, 404);
+    await db.batch!([
+      db
+        .prepare("UPDATE users SET role=? WHERE id=?")
+        .bind(body.role === "spokesperson" ? "voz" : body.role, id),
+      db
+        .prepare(
+          "INSERT INTO admin_audit(actor_id,action,entity,entity_id,details) VALUES(?,'papel_alterado','user',?,?)",
+        )
+        .bind(
+          c.get("session").id,
+          String(id),
+          JSON.stringify({ role: body.role, reason: body.reason.trim() }),
+        ),
+    ]);
+    return c.json({ ok: true });
+  });
+
+  routes.post("/users/:id/ban", requireCapability("users.manage"), async (c) => {
     const id = Number(c.req.param("id"));
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const reason = String(body?.reason ?? body?.motivo ?? "");
@@ -126,50 +159,185 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
     return c.json({ ok: true });
   });
 
-  routes.post("/users/:id/unban", async (c) => {
+  routes.post("/users/:id/unban", requireCapability("users.manage"), async (c) => {
     const id = Number(c.req.param("id"));
     const result = await dependencies.admin.unbanUser(id);
     if (!result.ok) return c.json({ error: result.error, erro: result.error }, 400);
     return c.json({ ok: true });
   });
 
-  routes.delete("/users/:id", async (c) => {
+  routes.delete("/users/:id", requireCapability("users.manage"), async (c) => {
     const id = Number(c.req.param("id"));
     const result = await dependencies.admin.removeUser(id);
     if (!result.ok) return c.json({ error: result.error, erro: result.error }, 400);
     return c.json(result);
   });
 
-  routes.get("/reports", async (c) => {
+  routes.get("/reports", requireCapability("reports.read"), async (c) => {
     const reports = await dependencies.admin.reportsForInspector();
-    return c.json({ reports, denuncias: reports, items: reports });
+    const capability = c.env.DB
+      ? await (c.env.DB as D1DatabaseLike)
+          .prepare(`SELECT 1 FROM admin_capabilities a JOIN users u ON u.id=a.user_id
+      WHERE u.id=? AND u.role='admin' AND u.is_banned=0 AND a.capability='release_report_retention'`)
+          .bind(c.get("session").id)
+          .first()
+      : null;
+    const items = reports.map((report) => ({
+      ...report,
+      canDecide: c.get("session").capabilities?.includes("reports.decide") ?? false,
+      canForward: c.get("session").capabilities?.includes("reports.forward") ?? false,
+      canReleaseRetention: Boolean(
+        capability &&
+          c.get("session").capabilities?.includes("reports.releaseRetention") &&
+          report.evidenceCapturedAt,
+      ),
+    }));
+    c.header("cache-control", "private, no-store");
+    return c.json({ reports: items, denuncias: items, items });
   });
 
-  routes.post("/reports/:id/resolve", async (c) => {
+  routes.post("/reports/:id/resolve", requireCapability("reports.decide"), async (c) => {
     const id = Number(c.req.param("id"));
-    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-    const status = (body?.status ?? "resolvida") as any;
-    const result = await dependencies.admin.resolveReport(id, status);
-    if (!result.ok) return c.json({ error: result.error, erro: result.error }, 400);
+    if (!c.env.DB)
+      return c.json({ error: "Moderação auditável indisponível neste ambiente." }, 503);
+    const body = await c.req.json().catch(() => null);
+    const status = body?.status;
+    if (
+      !Number.isSafeInteger(id) ||
+      id <= 0 ||
+      !["resolved", "ignored", "resolvida", "ignorada"].includes(status) ||
+      typeof body?.reason !== "string" ||
+      body.reason.trim().length < 5 ||
+      body.reason.trim().length > 1000
+    )
+      return c.json({ error: "Informe a decisão e a justificativa (5 a 1000 caracteres)." }, 400);
+    const result = await dependencies.admin.resolveReport(
+      id,
+      status,
+      c.get("session").id,
+      body.reason,
+    );
+    if (!result.ok) return c.json({ error: result.error, erro: result.error }, 409);
     return c.json({ ok: true });
   });
 
-  routes.get("/overview", async (c) => {
+  routes.get("/reports/:id/evidence", requireCapability("reports.read"), async (c) => {
+    if (!c.env.DB) return c.json({ error: "Evidência indisponível neste ambiente." }, 503);
+    const db = c.env.DB as D1DatabaseLike,
+      id = Number(c.req.param("id"));
+    const capture = await db
+      .prepare(
+        "SELECT origin,captured_at AS capturedAt FROM report_evidence_captures WHERE report_id=?",
+      )
+      .bind(id)
+      .first();
+    if (!capture) return c.json({ error: "Evidência não encontrada." }, 404);
+    const { results: evidence } = await db
+      .prepare(
+        "SELECT kind,source_id AS sourceId,payload FROM report_evidence WHERE report_id=? ORDER BY kind,source_id",
+      )
+      .bind(id)
+      .all();
+    c.header("cache-control", "private, no-store");
+    c.header("content-disposition", `attachment; filename="denuncia-${id}.json"`);
+    return c.json({ capture, evidence });
+  });
+
+  routes.post(
+    "/reports/:id/release-retention",
+    requireCapability("reports.releaseRetention"),
+    async (c) => {
+      if (!c.env.DB) return c.json({ error: "Retenção indisponível neste ambiente." }, 503);
+      const db = c.env.DB as D1DatabaseLike,
+        id = Number(c.req.param("id")),
+        body = await c.req.json().catch(() => null),
+        actorId = c.get("session").id;
+      if (
+        !Number.isSafeInteger(id) ||
+        id <= 0 ||
+        typeof body?.reason !== "string" ||
+        body.reason.trim().length < 5 ||
+        body.reason.trim().length > 1000
+      )
+        return c.json(
+          { error: "Informe a justificativa de liberação (5 a 1000 caracteres)." },
+          400,
+        );
+      const capability = await db
+        .prepare(`SELECT 1 FROM admin_capabilities a JOIN users u ON u.id=a.user_id
+      WHERE u.id=? AND u.role='admin' AND u.is_banned=0 AND a.capability='release_report_retention'`)
+        .bind(actorId)
+        .first();
+      if (!capability)
+        return c.json({ error: "Sua conta não pode liberar retenção de evidências." }, 403);
+      try {
+        await db
+          .prepare(`INSERT INTO report_retention_releases(report_id,actor_id,actor_name,reason)
+        SELECT ?,id,name,? FROM users WHERE id=? ON CONFLICT(report_id) DO NOTHING`)
+          .bind(id, body.reason.trim(), actorId)
+          .run();
+      } catch (error) {
+        if (!/report_release_unavailable/.test(String(error))) throw error;
+        return c.json(
+          {
+            error: "Encerre a denúncia e verifique o impedimento do responsável antes de liberar.",
+          },
+          409,
+        );
+      }
+      const release = await db
+        .prepare("SELECT actor_id,reason FROM report_retention_releases WHERE report_id=?")
+        .bind(id)
+        .first<{ actor_id: number; reason: string }>();
+      return release?.actor_id === actorId && release.reason === body.reason.trim()
+        ? c.json({ ok: true })
+        : c.json({ error: "Retenção já liberada por outra decisão." }, 409);
+    },
+  );
+
+  routes.post("/reports/:id/forward", requireCapability("reports.forward"), async (c) => {
+    if (!c.env.DB) return c.json({ error: "Encaminhamento indisponível neste ambiente." }, 503);
+    const id = Number(c.req.param("id")),
+      body = await c.req.json().catch(() => null),
+      actor = c.get("session");
+    if (
+      !Number.isSafeInteger(id) ||
+      id <= 0 ||
+      typeof body?.reason !== "string" ||
+      body.reason.trim().length < 5 ||
+      body.reason.trim().length > 1000
+    )
+      return c.json({ error: "Informe a justificativa (5 a 1000 caracteres)." }, 400);
+    try {
+      await (c.env.DB as D1DatabaseLike)
+        .prepare(
+          "INSERT INTO report_forwardings(report_id,actor_id,actor_name,reason) VALUES(?,?,?,?) ON CONFLICT(report_id,actor_id,reason) DO NOTHING",
+        )
+        .bind(id, actor.id, actor.name, body.reason.trim())
+        .run();
+    } catch (error) {
+      if (!/report_forward_unavailable|FOREIGN KEY/.test(String(error))) throw error;
+      return c.json({ error: "Denúncia indisponível para encaminhamento." }, 409);
+    }
+    return c.json({ ok: true });
+  });
+
+  routes.get("/overview", requireCapability("security.read"), async (c) => {
     const overview = await dependencies.admin.getSystemOverview();
     return c.json(overview);
   });
 
-  routes.get("/queue", async (c) => {
+  routes.get("/queue", requireCapability("mission.read"), async (c) => {
     const queue = await dependencies.admin.getEditingQueue();
     return c.json({ queue, fila: queue, items: queue });
   });
 
-  routes.get("/in-flight", async (c) => {
+  routes.get("/in-flight", requireCapability("mission.read"), async (c) => {
     const list = await dependencies.admin.getMissionsInFlight();
     return c.json(list);
   });
 
-  routes.get("/notifications", async (c) => {
+  routes.get("/notifications", requireCapability("mission.read"), async (c) => {
     const [queue, inFlight, reports] = await Promise.all([
       dependencies.admin.getEditingQueue(),
       dependencies.admin.getMissionsInFlight(),
@@ -179,7 +347,7 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
     return c.json(notifications);
   });
 
-  routes.on("POST", ["/queue", "/queue/move"], async (c) => {
+  routes.on("POST", ["/queue", "/queue/move"], requireCapability("queue.manage"), async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const missionId = Number(body?.missionId ?? body?.pautaId ?? body?.id);
     if (!Number.isInteger(missionId) || missionId <= 0)
@@ -190,7 +358,7 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
     return c.json({ ok: true });
   });
 
-  routes.get("/broadcast/recipients", async (c) => {
+  routes.get("/broadcast/recipients", requireCapability("broadcast.send"), async (c) => {
     const audience = c.req.query("audience") ?? "all";
     let editors: { name: string; email: string }[] = [];
     let spokespersons: { name: string; email: string }[] = [];
@@ -204,7 +372,7 @@ export function createAdminManagementRoutes(dependencies: ApiDependencies) {
     return c.json({ editors, spokespersons });
   });
 
-  routes.post("/broadcast", async (c) => {
+  routes.post("/broadcast", requireCapability("broadcast.send"), async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
     const audience = resolveBroadcastAudience(body);
     if (!audience) return c.json({ error: "Público inválido." }, 400);

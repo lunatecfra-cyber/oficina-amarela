@@ -3,7 +3,7 @@ import type { RankingAdminFailure } from "@oficina/db/ranking-admin";
 import { Hono } from "hono";
 import type { Bindings } from "../app.ts";
 import type { ApiDependencies } from "../dependencies.ts";
-import { requireAdmin } from "../session.ts";
+import { requireCapability } from "../session.ts";
 
 /**
  * Correções do inspetor sobre o ranking.
@@ -11,7 +11,7 @@ import { requireAdmin } from "../session.ts";
  * auditoria_admin, ranking_aprovacoes, bloqueios_constancia e
  * indicacoes_recompensas estão sob RLS no PostgreSQL, mas a aplicação conecta
  * como dona das tabelas e passa por cima da política — e o D1 nem tem RLS.
- * Quem autoriza é este requireAdmin, e é ele que os testes cobrem.
+ * Quem autoriza é este requireCapability, e é ele que os testes cobrem.
  */
 
 const AUDIT_LIMIT = 100;
@@ -37,7 +37,7 @@ function failure(reason: RankingAdminFailure, action: "cancel" | "shield") {
 
 export function createAdminRankingRoutes(dependencies: ApiDependencies) {
   const routes = new Hono<AdminEnv>();
-  routes.use("*", requireAdmin);
+  routes.use("*", requireCapability("ranking.manage"));
 
   routes.get("/", async (c) => {
     const audit = await dependencies.rankingAdmin.recentAudit(AUDIT_LIMIT);

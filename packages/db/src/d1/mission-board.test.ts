@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { after, before, test } from "node:test";
+import { after, before, beforeEach, test } from "node:test";
 import { COOKIE_NAME, createSessionToken } from "@oficina/auth/session";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { createApp } from "../../../../apps/api/src/app.ts";
@@ -60,6 +60,18 @@ before(async () => {
   }
 });
 after(() => mf.dispose());
+async function refreshCookie(id: number) {
+  const row = await db
+    .prepare("SELECT role,session_version FROM users WHERE id=?")
+    .bind(id)
+    .first<{ role: "voz" | "editor"; session_version: number }>();
+  cookies[id] =
+    `${COOKIE_NAME}=${await createSessionToken({ id, handle: `synthetic${id}`, name: `Synthetic ${id}`, role: row!.role === "voz" ? "spokesperson" : "editor", sessionVersion: row!.session_version })}`;
+}
+beforeEach(async () => {
+  for (const id of [1, 2, 3, 4, 5]) await refreshCookie(id);
+});
+
 async function mission() {
   const res = await call("/missions", 1, {
     title: "Synthetic board",
@@ -116,12 +128,16 @@ test("interesse concorrente idempotente não atribui; suspensão, perfil e capac
     "reservations_locked_until='2099-01-01T00:00:00.000Z'",
   ]) {
     await db.prepare(`UPDATE users SET ${change} WHERE id=3`).run();
-    assert.equal((await call(`/missions/${id}/interest`, 3, {})).status, 409);
+    assert.equal(
+      (await call(`/missions/${id}/interest`, 3, {})).status,
+      change === "is_banned=1" ? 401 : 409,
+    );
     await db
       .prepare(
         "UPDATE users SET is_banned=0,reservations_locked_until=NULL,availability=NULL WHERE id=3",
       )
       .run();
+    await refreshCookie(3);
   }
 });
 test("seleção concorrente, posse exclusiva, autorização e retries", async () => {
@@ -283,6 +299,7 @@ test("diretório é opt-in, não expõe dados privados e consentimento pode ser 
   await db.prepare("UPDATE users SET is_banned=1 WHERE id=2").run();
   assert.deepEqual(await list(), []);
   await db.prepare("UPDATE users SET is_banned=0 WHERE id=2").run();
+  await refreshCookie(2);
   await call("/editors/visibility", 2, { visible: false, portfolioConsent: false });
   assert.deepEqual(await list(), []);
   assert.equal((await call("/editors/synthetic2", 4)).status, 404);

@@ -15,18 +15,35 @@ const TABS = [
   { href: "/parceiros?source=admin", label: "Parceiros", rotulo: "Parceiros" },
 ];
 
-export function InspectorNav({ alertCount = 0 }: { alertCount?: number }) {
+export function InspectorNav({
+  alertCount = 0,
+  capabilities = [],
+}: {
+  alertCount?: number;
+  capabilities?: readonly string[];
+}) {
   const pathname = usePathname();
 
   return (
     <nav className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <Link
-        href="/porta-voz"
-        className="mr-2 flex min-h-11 flex-none items-center whitespace-nowrap pr-1 text-xs text-muted/60 transition-colors hover:text-text"
-      >
-        ← Porta-voz
-      </Link>
-      {TABS.map((tab) => {
+      {capabilities.includes("mission.participate") && (
+        <Link
+          href="/porta-voz"
+          className="mr-2 flex min-h-11 flex-none items-center whitespace-nowrap pr-1 text-xs text-muted/60 transition-colors hover:text-text"
+        >
+          ← Porta-voz
+        </Link>
+      )}
+      {TABS.filter((tab) => {
+        const required: Record<string, string> = {
+          "/inspetor/panorama": "security.read",
+          "/inspetor/contas": "users.manage",
+          "/inspetor/novidades": "content.manage",
+          "/inspetor/seguranca": "security.read",
+          "/inspetor/denuncias": "reports.read",
+        };
+        return !required[tab.href] || capabilities.includes(required[tab.href]);
+      }).map((tab) => {
         const path = tab.href.split("?")[0];
         const active = pathname === path || pathname.startsWith(`${path}/`);
         return (

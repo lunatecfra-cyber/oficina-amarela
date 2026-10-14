@@ -10,7 +10,7 @@ export default async function PortfolioPage() {
         href={
           session.role === "editor"
             ? "/perfil"
-            : session.role === "admin"
+            : session.role === "admin" || session.role === "inspector"
               ? "/inspetor"
               : "/porta-voz"
         }

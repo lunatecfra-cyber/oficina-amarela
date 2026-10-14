@@ -10,7 +10,8 @@ import type { D1DatabaseLike } from "./types.ts";
  * importa é a chave trancar ao atingir o máximo, não onde a subtração acontece.
  */
 
-const SELECT_ACCOUNT = "id, handle, name, email, role, password_hash, is_banned";
+const SELECT_ACCOUNT =
+  "id, handle, name, email, role, password_hash, is_banned, session_version, sessions_valid_after";
 
 type UserRow = Parameters<typeof toAccountRow>[0];
 
@@ -25,6 +26,7 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
   }
 
   return {
+    findById: accountById,
     async findByHandle(handle) {
       return toAccountRow(
         await db
@@ -115,16 +117,17 @@ export function createD1Accounts(db: D1DatabaseLike): AccountsRepository {
     },
 
     async deleteAccount(userId) {
-      await db
-        .prepare(
-          `UPDATE missions
+      await db.batch!([
+        db
+          .prepare(
+            `UPDATE missions
            SET status = 'disponivel', reserved_by_id = NULL, reserved_until = NULL,
                reserved_at = NULL
            WHERE reserved_by_id = ? AND status IN ('reservada', 'reedicao', 'oferecida')`,
-        )
-        .bind(userId)
-        .run();
-      await db.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();
+          )
+          .bind(userId),
+        db.prepare("DELETE FROM users WHERE id = ?").bind(userId),
+      ]);
     },
 
     async sessionCutoffMs(userId) {

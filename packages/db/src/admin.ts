@@ -125,6 +125,17 @@ export type Report = {
   text: string;
   status: "open" | "resolved" | "ignored" | "aberta" | "resolvida" | "ignorada";
   createdAt: string;
+  decidedBy?: string | null;
+  decisionReason?: string | null;
+  decidedAt?: string | null;
+  retentionReleasedAt?: string | null;
+  evidenceCapturedAt?: string | null;
+  canReleaseRetention?: boolean;
+  canDecide?: boolean;
+  canForward?: boolean;
+  forwardedBy?: string | null;
+  forwardingReason?: string | null;
+  forwardedAt?: string | null;
   // PT-BR aliases
   pautaId?: number;
   pautaTitulo?: string;
@@ -168,6 +179,8 @@ export type AdminRepository = {
   resolveReport(
     id: number,
     status: "resolved" | "ignored" | "resolvida" | "ignorada",
+    actorId: number,
+    reason: string,
   ): Promise<{ ok: true } | { ok: false; error: string; erro?: string }>;
   getSystemOverview(): Promise<SystemOverview>;
   getEditingQueue(): Promise<QueueItem[]>;
@@ -414,17 +427,8 @@ export const postgresAdmin: AdminRepository = {
     });
   },
 
-  async resolveReport(id, status) {
-    const normStatus = status === "resolved" || status === "resolvida" ? "resolvida" : "ignorada";
-    const rows = await sql`
-      UPDATE denuncias SET status = ${normStatus}, resolvida_em = now()
-      WHERE id = ${id}
-      RETURNING id
-    `;
-    if (rows.length === 0) {
-      return { ok: false, error: "Denúncia não encontrada.", erro: "Denúncia não encontrada." };
-    }
-    return { ok: true };
+  async resolveReport() {
+    return { ok: false, error: "Moderação auditável exige o banco D1." };
   },
 
   async getSystemOverview(): Promise<SystemOverview> {

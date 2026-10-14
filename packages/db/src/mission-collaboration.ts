@@ -1,8 +1,8 @@
 import { LIMITS, limitStr } from "@oficina/domain/limits";
-import type { Role } from "@oficina/domain/roles";
+import type { Capability, Role } from "@oficina/domain/roles";
 import { sql } from "./client.ts";
 
-export type MissionActor = { id: number; name: string; role: Role };
+export type MissionActor = { id: number; name: string; role: Role; capabilities?: Capability[] };
 
 export type MissionMessage = {
   id: string;
