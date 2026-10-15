@@ -64,3 +64,7 @@ dist/
 # Gerados pelo `next dev` a cada arranque (agentRules do next.config).
 apps/web/AGENTS.md
 apps/web/CLAUDE.md
+
+# Evidências de browser (prints, traces, vídeo). Ficam locais.
+docs/entregas/**/browser/
+docs/entregas/**/browser-aceite/
