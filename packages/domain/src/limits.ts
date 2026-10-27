@@ -41,10 +41,26 @@ export function limitList(value: unknown, maxItems: number): string[] {
 
 export const MAX_PHOTO_BYTES = 2_000_000;
 
-const PHOTO_FORMATS = ["data:image/png", "data:image/jpeg", "data:image/webp", "data:image/gif"];
-
 export function isValidPhoto(dataUrl: string | undefined | null): boolean {
-  if (!dataUrl) return true;
-  if (!PHOTO_FORMATS.some((f) => dataUrl.startsWith(f))) return false;
-  return dataUrl.length <= MAX_PHOTO_BYTES;
+  if (dataUrl === undefined || dataUrl === null || dataUrl === "") return true;
+  if (typeof dataUrl !== "string" || dataUrl.length > MAX_PHOTO_BYTES) return false;
+  const match = /^data:image\/(png|jpeg|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/.exec(dataUrl);
+  if (!match || match[2].length % 4 !== 0) return false;
+  try {
+    const header = atob(match[2].slice(0, 24));
+    switch (match[1]) {
+      case "png":
+        return header.startsWith("\x89PNG\r\n\x1a\n");
+      case "jpeg":
+        return header.startsWith("\xff\xd8\xff");
+      case "gif":
+        return header.startsWith("GIF87a") || header.startsWith("GIF89a");
+      case "webp":
+        return header.startsWith("RIFF") && header.slice(8, 12) === "WEBP";
+      default:
+        return false;
+    }
+  } catch {
+    return false;
+  }
 }

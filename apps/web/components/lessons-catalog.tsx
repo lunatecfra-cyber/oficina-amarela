@@ -3,7 +3,8 @@
 import { CheckCircle2, Clock, GraduationCap, PlayCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { LEVEL_LABEL, type LessonSummary } from "@/lib/lessons-db";
+import { LEVEL_LABEL } from "@/lib/lesson-labels";
+import type { LessonSummary } from "@/lib/lessons-db";
 
 // ponytail: filtering runs in the browser over the whole published list; move it
 // to the API (and paginate) when the catalog grows past a few hundred lessons.

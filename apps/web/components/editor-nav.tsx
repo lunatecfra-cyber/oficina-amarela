@@ -4,12 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/editor", label: "Fila", rotulo: "Fila" },
-  { href: "/agenda", label: "Agenda", rotulo: "Agenda" },
-  { href: "/portfolio", label: "Portfólio", rotulo: "Portfólio" },
+  { href: "/editor", label: "Trabalhos", rotulo: "Trabalhos" },
   { href: "/aulas", label: "Aulas", rotulo: "Aulas" },
   { href: "/ferramentas", label: "Ferramentas", rotulo: "Ferramentas" },
-  { href: "/ranking", label: "Ranking", rotulo: "Ranking" },
   { href: "/parceiros?source=editor", label: "Parceiros", rotulo: "Parceiros" },
 ];
 

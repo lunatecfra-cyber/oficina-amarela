@@ -49,7 +49,10 @@ export function MissionOffer({
       const resp = await fetch("/api/editor/queue/next");
       const nextOffer: Offer | null =
         resp.status === 204 ? null : resp.ok ? await resp.json() : undefined!;
-      if (nextOffer === undefined) return;
+      if (nextOffer === undefined) {
+        setNotice("Não foi possível consultar as ofertas. Tentaremos novamente.");
+        return;
+      }
 
       setOffer(nextOffer);
 
@@ -60,7 +63,7 @@ export function MissionOffer({
         router.refresh();
       }
     } catch {
-      // network failure
+      setNotice("Não foi possível consultar as ofertas. Tentaremos novamente.");
     } finally {
       isFetching.current = false;
     }
@@ -93,16 +96,21 @@ export function MissionOffer({
         action: normalizedAction,
         acao: normalizedAction === "accept" ? "aceitar" : "recusar",
       }),
-    });
+    }).catch(() => null);
 
     setIsProcessing(false);
     setOffer(null);
     lastId.current = null;
 
-    if (!resp.ok) {
-      const data = await resp.json().catch(() => null);
-      setNotice(data?.error ?? data?.erro ?? "Não deu pra responder. Tenta de novo.");
-      fetchNext();
+    if (!resp?.ok) {
+      const data = await resp?.json().catch(() => null);
+      setNotice(
+        data?.error ??
+          data?.erro ??
+          "Não foi possível confirmar a resposta. Confira a missão antes de tentar novamente.",
+      );
+      router.refresh();
+      void fetchNext();
       return;
     }
 
@@ -174,6 +182,11 @@ export function MissionOffer({
           Você pode manifestar interesse no mural. A oferta aparece aqui após a escolha do
           porta-voz.
         </p>
+        {notice && (
+          <p role="alert" className="mt-4 text-sm text-danger">
+            {notice}
+          </p>
+        )}
         <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-ink-2 px-3 py-1 text-xs text-muted-2">
           <span className="h-2 w-2 rounded-full bg-ok" />
           Online

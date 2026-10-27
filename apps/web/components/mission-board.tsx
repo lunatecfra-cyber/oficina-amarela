@@ -1,5 +1,5 @@
 "use client";
-import type { BoardMission } from "@oficina/domain/mission-board";
+import { type BoardMission, filterBoardMissions } from "@oficina/domain/mission-board";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -8,6 +8,8 @@ export function MissionBoard() {
   const [data, setData] = useState<{ eligible: boolean; missions: BoardMission[] } | null>(null);
   const [error, setError] = useState(""),
     [busy, setBusy] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
+  const [format, setFormat] = useState("");
   const load = useCallback(async () => {
     setError("");
     try {
@@ -39,6 +41,7 @@ export function MissionBoard() {
       setBusy(null);
     }
   }
+  const missions = data && filterBoardMissions(data.missions, query, format);
   return (
     <section className="mt-6" aria-labelledby="board-title">
       <h2 id="board-title" className="text-xl font-semibold text-text">
@@ -67,18 +70,49 @@ export function MissionBoard() {
           oferta atual.
         </p>
       )}
+      {data && data.missions.length > 0 && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+          <label className="text-sm text-muted">
+            Buscar trabalho
+            <input
+              className="field-input mt-1 !pl-4"
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <label className="text-sm text-muted">
+            Formato
+            <select
+              className="field-input mt-1 !pl-4"
+              value={format}
+              onChange={(event) => setFormat(event.target.value)}
+            >
+              <option value="">Todos</option>
+              <option value="short">Vídeo curto</option>
+              <option value="long">Vídeo longo</option>
+            </select>
+          </label>
+        </div>
+      )}
       {data?.missions.length === 0 && (
         <p className="mt-4 rounded-xl border border-line p-4 text-muted">
           Nenhuma missão disponível. Volte mais tarde.
         </p>
       )}
+      {data && data.missions.length > 0 && missions?.length === 0 && (
+        <p role="status" className="mt-4 text-muted">
+          Nenhum trabalho corresponde aos filtros.
+        </p>
+      )}
       <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-        {data?.missions.map((m) => (
+        {missions?.map((m) => (
           <li key={m.id} className="min-w-0 rounded-2xl border border-line bg-surface p-4">
             <p className="text-xs text-muted">
               {m.spokesperson} · {m.format === "short" ? "Vídeo curto" : "Vídeo longo"}
             </p>
             <h3 className="mt-1 text-lg font-semibold text-text">{m.title}</h3>
+            <p className="mt-1 text-sm text-muted">Trabalho voluntário</p>
             <p className="mt-2 text-sm text-muted">
               Prazo desejado:{" "}
               {m.desiredDeadline
@@ -112,7 +146,7 @@ export function MissionBoard() {
                           ? "Interesse registrado. Aguardando escolha do porta-voz"
                           : "Aberta a interessados"}
             </p>
-            {data.eligible && m.status === "disponivel" && !m.interested && !m.offerStatus && (
+            {data?.eligible && m.status === "disponivel" && !m.interested && !m.offerStatus && (
               <button
                 className="btn-gold mt-3 w-full"
                 disabled={busy !== null}

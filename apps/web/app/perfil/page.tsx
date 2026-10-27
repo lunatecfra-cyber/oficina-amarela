@@ -17,6 +17,7 @@ import { EditorDirectoryConsent } from "@/components/editor-directory-consent";
 import { EditorInvitation } from "@/components/editor-invitation";
 import { ElectoralProgress } from "@/components/electoral-progress";
 import { EmojiIcon, EmojiLead } from "@/components/emoji-icon";
+import { PortfolioManager } from "@/components/portfolio-manager";
 import { Stat } from "@/components/stat";
 import { getEditorProgress } from "@/lib/electoral-ranking-db";
 import { getReservedMission } from "@/lib/missions-db";
@@ -200,12 +201,7 @@ export default async function ProfilePage() {
               </Card>
 
               <Card title="Portfólio" delay={0.1} guide="cartao-portfolio">
-                <p className="text-sm text-muted">
-                  Escolha suas entregas finalizadas e solicite autorização para cada amostra.
-                </p>
-                <Link href="/portfolio" className="btn-gold mt-4">
-                  Gerenciar meu portfólio
-                </Link>
+                <PortfolioManager />
               </Card>
 
               <Card title="Histórico" delay={0.15}>

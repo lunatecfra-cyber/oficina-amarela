@@ -67,6 +67,11 @@ export function DeleteAccount({
 
           <input
             type={effectiveHasPassword ? "password" : "text"}
+            aria-label={
+              effectiveHasPassword
+                ? "Senha para confirmar exclusão"
+                : "Apelido para confirmar exclusão"
+            }
             className="field-input !pl-4 mt-4"
             placeholder={effectiveHasPassword ? "sua senha" : "seu apelido"}
             autoComplete={effectiveHasPassword ? "current-password" : "off"}

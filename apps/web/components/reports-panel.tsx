@@ -34,6 +34,7 @@ const MISSION_STATUS_LABELS: Record<string, string> = {
 
 function shortDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     day: "2-digit",
     month: "short",
     hour: "2-digit",

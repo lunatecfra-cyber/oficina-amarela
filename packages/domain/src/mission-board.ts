@@ -13,6 +13,15 @@ export type BoardMission = {
   offerStatus: string | null;
   assignedToMe: number;
 };
+
+export function filterBoardMissions(missions: BoardMission[], query: string, format: string) {
+  const needle = query.trim().toLocaleLowerCase("pt-BR");
+  return missions.filter(
+    (mission) =>
+      (!format || mission.format === format) &&
+      `${mission.title} ${mission.spokesperson}`.toLocaleLowerCase("pt-BR").includes(needle),
+  );
+}
 export type BoardEditor = {
   id: number;
   handle: string;

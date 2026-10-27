@@ -7,6 +7,24 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.8.2] - 2026-10-27
+
+### Modificado
+- Mural de trabalhos gratuitos com busca e filtro por formato; gerenciamento de portfólio no perfil do editor.
+- Agenda, Ranking e Portfólio deixam o menu principal do editor, mantendo suas rotas.
+
+### Corrigido
+- Componentes de videoaulas não carregam mais a API e o driver PostgreSQL no bundle do navegador.
+- Falhas de rede ao responder ofertas não deixam os controles travados ou repetem o aceite automaticamente.
+- Datas de denúncias usam fuso explícito; confirmação de exclusão tem nome acessível.
+- Fotos enviadas ao perfil exigem base64, assinatura de formato permitida e limite de tamanho.
+- Ensaio de staging aguarda o documento sem exigir ausência de polling e seleciona o upload de vídeo corretamente.
+
+### Validação e limites
+- Jornada funcional móvel e desktop exercitada em staging na versão anterior, com contas sintéticas desativadas ao fim; alertas de contraste e erros de hidratação observados naquela versão permanecem para revalidação.
+- A integração de Parceiros à sidebar, migração de contas legadas e conexão D1 local não estão concluídas. Com `DATABASE_STUB=1`, contas sintéticas do atalho de desenvolvimento não passam pela revalidação da API.
+- As mudanças desta versão ainda precisam de validação integrada em staging; este registro não declara o sprint concluído.
+
 ## [0.8.1] - 2026-10-26
 
 ### Modificado

@@ -2,13 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
-import {
-  type AdminLesson,
-  type AdminLessons,
-  LEVEL_LABEL,
-  type LessonLevel,
-  type LessonStatus,
-} from "@/lib/lessons-db";
+import { LEVEL_LABEL } from "@/lib/lesson-labels";
+import type { AdminLesson, AdminLessons, LessonLevel, LessonStatus } from "@/lib/lessons-db";
 
 const STATUS_LABEL: Record<LessonStatus, string> = {
   draft: "Rascunho",

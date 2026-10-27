@@ -134,7 +134,7 @@ function auditInPage({ touch }) {
     const s = getComputedStyle(el);
     if (el.tagName === "A" && s.display === "inline") continue;
     let box = el;
-    if (el.type === "checkbox" || el.type === "radio") box = el.closest("label") ?? el;
+    if (el.type === "checkbox" || el.type === "radio" || el.type === "file") box = el.closest("label") ?? el;
     const r = box.getBoundingClientRect();
     const h = Math.round(r.height);
     const w = Math.round(r.width);
@@ -328,7 +328,7 @@ try {
     }
     async function goto(page, path) {
       lastOp = `goto ${page.actor} ${path}`;
-      await page.goto(`${WEB}${path}`, { waitUntil: "networkidle" });
+      await page.goto(`${WEB}${path}`, { waitUntil: "domcontentloaded" });
       await dismissGuide(page);
     }
     async function snapshot(page, name, { audit = true } = {}) {
@@ -528,9 +528,10 @@ try {
       const urls = [];
       async function deliver(version) {
         await goto(editor, "/editor");
-        const complete = editor.waitForResponse((r) => r.request().method() === "POST" && new URL(r.url()).pathname.endsWith("/complete"));
-        await editor.locator('input[type="file"]').setInputFiles(video);
-        const uploaded = await complete;
+        const [uploaded] = await Promise.all([
+          editor.waitForResponse((r) => r.request().method() === "POST" && new URL(r.url()).pathname.endsWith("/complete")),
+          editor.locator('input[type="file"][accept*="video/mp4"]').setInputFiles(video),
+        ]);
         assert.equal(uploaded.status(), 200);
         urls.push((await uploaded.json()).readUrl);
         await editor.locator("#entrega").waitFor();

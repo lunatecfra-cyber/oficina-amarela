@@ -3,12 +3,6 @@ import { fetchApi } from "@/lib/internal-api";
 export type LessonLevel = "beginner" | "intermediate" | "advanced";
 export type LessonStatus = "draft" | "published" | "archived";
 
-export const LEVEL_LABEL: Record<LessonLevel, string> = {
-  beginner: "Iniciante",
-  intermediate: "Intermediário",
-  advanced: "Avançado",
-};
-
 export type LessonSummary = {
   id: number;
   title: string;

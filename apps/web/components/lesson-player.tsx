@@ -4,7 +4,8 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LEVEL_LABEL, type LessonDetail } from "@/lib/lessons-db";
+import { LEVEL_LABEL } from "@/lib/lesson-labels";
+import type { LessonDetail } from "@/lib/lessons-db";
 
 async function putProgress(id: number, completed: boolean) {
   return fetch(`/api/lessons/${id}/progress`, {
