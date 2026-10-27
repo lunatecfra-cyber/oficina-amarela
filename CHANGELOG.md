@@ -7,6 +7,21 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.8.3] - 2026-10-27
+
+### Corrigido
+
+- As duas notas agregadas antigas, sem autoria comprovada, ficam preservadas como histórico identificado (`legacy_user_rating_snapshot`) em vez de serem zeradas pelo recálculo das avaliações de porta-voz.
+
+### Segurança
+
+- A API de produção guarda entregas, anexos de chat, evidências de disputa e portfólio num bucket R2 privado (`oficina-amarela-midia-privada`), separado do bucket público.
+
+### Implantação
+
+- Produção recebeu as migrações D1 pendentes num único lote atômico, ensaiado antes sobre uma cópia exportada. Contagens, chaves estrangeiras e papéis foram preservados.
+- Os vídeos brutos enviados ao criar uma missão continuam indo para o bucket público pelo presign do web.
+
 ## [0.8.2] - 2026-10-27
 
 ### Modificado
