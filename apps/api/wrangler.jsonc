@@ -138,6 +138,9 @@
       // O domínio final. Explícito para não depender do padrão embutido no
       // código quando o staging deixar de usá-lo.
       "vars": { "PUBLIC_ORIGIN": "https://oficinaamarela.com.br" },
+      // Privado de propósito: oficina-amarela-midia é público via r2.dev e não
+      // pode guardar entregas, anexos de chat nem evidências de disputa.
+      "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "oficina-amarela-midia-privada" }],
       "observability": { "enabled": true },
 
       "d1_databases": [
