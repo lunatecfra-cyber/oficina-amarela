@@ -12,7 +12,7 @@
   "dependencies": {
     "@oficina/config": "*",
     "@oficina/domain": "*",
-    "jose": "^6.2.12"
+    "jose": "^6.2.13"
   },
   "devDependencies": {
     "@types/node": "^26",

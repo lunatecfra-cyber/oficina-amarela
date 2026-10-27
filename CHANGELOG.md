@@ -7,6 +7,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.8.1] - 2026-10-26
+
+### Modificado
+- Dependências atualizadas (Bun 1.4.4, Biome 2.6.3, Turbo 2.11.10, Hono, Wrangler, workers-types, Next, React, Vinext, Sentry, AWS SDK, Resend, Jose, TipTap, Vue, Pinia, Vue Router, Vite).
+- Capturas, traces e vídeo de evidência em `docs/entregas` ficam só na máquina local.
+
+### Corrigido
+- No desenvolvimento, com banco ausente, o login e os atalhos de `/api/auth/dev-login` permanecem autenticados.
+
+### Validação e limites
+- Publicação desta versão limitada ao staging. Produção e pagamentos permanecem como estavam.
+
 ## [0.8.0] - 2026-10-14
 
 ### Adicionado

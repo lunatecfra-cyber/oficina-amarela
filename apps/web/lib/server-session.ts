@@ -44,6 +44,12 @@ export async function getSession(): Promise<UserSession | null> {
   if (!session) return null;
   if (typeof session.issuedAt !== "number") return null;
 
+  // Em desenvolvimento pode não haver banco (DATABASE_STUB=1), e os atalhos de
+  // /api/auth/dev-login assinam tokens de contas sintéticas que nunca existiram
+  // nele. Revalidar contra /auth/session aqui devolvia 401 e transformava todo
+  // login local — inclusive os atalhos — numa volta para /login.
+  if (isDevAuthBypassEnabled()) return session;
+
   try {
     const response = await fetchApi("/auth/session");
     return response.ok ? ((await response.json()) as UserSession) : null;
